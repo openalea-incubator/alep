@@ -46,7 +46,23 @@ class Lesion(object):
         """
         self.rings = []
         self.fungus = fungus
+    
+    def create(self):
+        """ Create a new lesion.
         
+        :Parameters:
+          - `fungus` (function): returns a class of specific parameters for 
+          the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
+
+        """
+        new_ring = self.fungus_factory()
+        new_ring.status = EMERGENT
+        self.rings.append(new_ring)
+        # TODO G.Garin, 23/11/2012:
+        # Changer car ne doit plus fonctionner avec des anneaux. 
+        # Doit aussi pouvoir etre plus parametrable (ie construire des lesions
+        # d'un etat donne, d'un age donne et d'une surface donnee)
+    
     def update(self, dt, leaf, environment, **kwds):
         """ Update the status of the lesion and create a new growth ring if needed.
         
