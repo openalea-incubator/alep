@@ -61,7 +61,9 @@ class Lesion(object):
         # TODO G.Garin, 23/11/2012:
         # Changer car ne doit plus fonctionner avec des anneaux. 
         # Doit aussi pouvoir etre plus parametrable (ie construire des lesions
-        # d'un etat donne, d'un age donne et d'une surface donnee)
+        # d'un etat donne, d'un age donne et d'une surface donnee).
+        # En outre, si c'est la lesion qui gere la reussite de l'infection,
+        # alors elle devra appeler la fonction 'create'.
     
     def update(self, dt, leaf, environment, **kwds):
         """ Update the status of the lesion and create a new growth ring if needed.
