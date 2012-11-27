@@ -443,7 +443,6 @@ class Septoria(Ring):
         :Parameters:
           - `environment` (dict): data from the environment in which we use here :
               ¤ `lesion` (class): properties of the lesion (e.g. status, parameters for the septoria).
-              ¤ `relative_humidity` (float): mean relative humidity of the air during the time step (in %).
         
         :Returns:
           - self.status : developement stage of the ring 
@@ -454,7 +453,7 @@ class Septoria(Ring):
         
         leaf = self.leaf
         rain_intensity = leaf.rain_intensity # (float) : rain intensity on the leaf sector during the time step (in mm/h).
-        relative_humidity = environment['relative_humidity']
+        relative_humidity = leaf.relative_humidity # (float) : relative humidity on the leaf sector during the time step (in %).
         lesion = environment['lesion']
 
         if rain_intensity > 0 and relative_humidity >= lesion.fungus.rh_min and not self.rain_before:
@@ -588,7 +587,7 @@ class PowderyMildew(Ring):
         leaf = self.leaf
         leaf_wet = leaf.wetness
         temp = leaf.temp
-        relative_humidity = environment['relative_humidity']
+        relative_humidity = leaf.relative_humidity
         lesion = environment['lesion']
         
         # Raw parameters for the calculation

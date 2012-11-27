@@ -1,9 +1,9 @@
 from nose import with_setup
 import matplotlib.pyplot as plt
 
-from alinea.simcycle import cycle
-from alinea.simcycle.cycle import septoria
-from alinea.simcycle.cycle import powdery_mildew
+from alinea.alep import cycle
+from alinea.alep.cycle import septoria
+from alinea.alep.cycle import powdery_mildew
 
 class StubLeaf(object):
     def __init__(self):
@@ -12,6 +12,7 @@ class StubLeaf(object):
         self.age = 1.
         self.healthy_surface = 10.
         self.rain_intensity = 0.
+        self.relative_humidity = 85.
         self.lesions = []
         
 class TestClass:
@@ -20,8 +21,6 @@ class TestClass:
         self.dt = 1.
         self.nb_steps = 1000
         environment = {}
-        environment['relative_humidity'] = 85.
-        environment['dispersal_rate'] = 0.3
         self.environment = environment
 
     def tearDown(self):
