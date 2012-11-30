@@ -1,9 +1,9 @@
 from nose import with_setup
 import matplotlib.pyplot as plt
 
-from alinea.alep import cycle
-from alinea.alep.cycle import septoria
-from alinea.alep.cycle import powdery_mildew
+from alinea.alep import cycle2
+from alinea.alep.cycle2 import septoria
+from alinea.alep.cycle2 import powdery_mildew
 
 class StubLeaf(object):
     def __init__(self):
@@ -20,17 +20,14 @@ class TestClass:
         self.leaf = StubLeaf()
         self.dt = 1.
         self.nb_steps = 1000
-        environment = {}
-        self.environment = environment
 
     def tearDown(self):
         print "TearDown"
 
     def test_powdery(self):
         leaf = self.leaf
-        environment = self.environment
         
-        s = cycle.Lesion(fungus = powdery_mildew())
+        s = cycle2.Lesion(fungus = powdery_mildew())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
@@ -38,40 +35,38 @@ class TestClass:
                 leaf.rain_intensity = 5
             else:
                 leaf.rain_intensity = 0
-            s.update(self.dt,  leaf, environment)
+            s.update(self.dt, leaf)
         
-        return s, leaf, environment
+        return s, leaf
 
     def test_septoria(self):
         dt = self.dt
         leaf = self.leaf
-        environment = self.environment
         
-        s = cycle.Lesion(fungus = septoria())
+        s = cycle2.Lesion(fungus = septoria())
         leaf.lesions.append(s)
        
         for i in range(self.nb_steps):
-            s.update(self.dt,  leaf, environment)
+            s.update(self.dt, leaf)
         
         # Emptying of the lesions
         leaf.rain_intensity = 5
-        s.update(dt, leaf, environment)
+        s.update(dt, leaf)
         leaf.rain_intensity = 0
-        s.update(dt, leaf, environment)
+        s.update(dt, leaf)
         leaf.rain_intensity = 5
-        s.update(dt, leaf, environment)
+        s.update(dt, leaf)
         leaf.rain_intensity = 0
-        s.update(dt, leaf, environment)
+        s.update(dt, leaf)
         leaf.rain_intensity = 5
-        s.update(dt, leaf, environment)
+        s.update(dt, leaf)
         
         return s
         
     def test_septoria_rain(self):
         leaf = self.leaf
-        environment = self.environment
         
-        s = cycle.Lesion(fungus = septoria())
+        s = cycle2.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
@@ -79,15 +74,14 @@ class TestClass:
                 leaf.rain_intensity = 5
             else:
                 leaf.rain_intensity = 0
-            s.update(self.dt,  leaf, environment)
+            s.update(self.dt, leaf)
         
         return s
         
     def test_death_by_drought(self):
         leaf = self.leaf
-        environment = self.environment
         
-        s = cycle.Lesion(fungus = septoria())
+        s = cycle2.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
@@ -95,19 +89,18 @@ class TestClass:
                 leaf.wetness = False
             else:
                 leaf.wetness = True
-            s.update(self.dt,  leaf, environment)
+            s.update(self.dt, leaf)
         if len(leaf.lesions) > 0:
             assert s.status == 6, s.status
     
     def test_status_changes(self):
         leaf = self.leaf
-        environment = self.environment
 
-        s = cycle.Lesion(fungus = septoria())
+        s = cycle2.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
-            s.update(self.dt,  leaf, environment)
+            s.update(self.dt, leaf)
             # Test of the emergence of the first ring after 10 h of continuous wetness duration
             if i == 10 :
                 assert s.status == 1, s.status
@@ -131,21 +124,19 @@ class TestClass:
 
     def test_Smax(self):
         leaf = self.leaf
-        environment = self.environment
         
-        s = cycle.Lesion(fungus = septoria())
+        s = cycle2.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
-            s.update(self.dt,  leaf, environment)
+            s.update(self.dt, leaf)
         
         assert sum([r.surface for r in s.rings]) <= s.fungus.Smax
 
     def test_septoria_hist(self):
         leaf = self.leaf
-        environment = self.environment
-        
-        s = cycle.Lesion(fungus = septoria())
+
+        s = cycle2.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         hist_lesion_age = []
@@ -156,7 +147,7 @@ class TestClass:
         hist_all_rings_status = []
         
         for i in range(self.nb_steps):
-            s.update(self.dt,  leaf, environment)
+            s.update(self.dt, leaf)
             hist_lesion_age.append(s.age)
             hist_lesion_age_dday.append(s.age_dday)
             hist_lesion_status.append(s.status)
