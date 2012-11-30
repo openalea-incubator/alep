@@ -4,6 +4,7 @@ from alinea.adel.newmtg import *
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 import alinea.adel.fitting as fitting
+from alinea.adel.AdelR import devCsv,setAdel,RunAdel,genGeoLeaf,genGeoAxe
 
 from alinea.alep import cycle
 from alinea.alep.cycle import septoria
@@ -11,6 +12,14 @@ from alinea.alep.cycle import powdery_mildew
 
 from alinea.alep.protocol import *
 
+
+def adelR(nplants,dd):
+    devT = devCsv('../../adel/test/data/axeTCa0N.csv','../../adel/test/data/dimTCa0N.csv','../../adel/test/data/phenTCa0N.csv','../../adel/test/data/earTCa0N.csv','../../adel/test/data/ssi2sen.csv')
+    geoLeaf = genGeoLeaf()
+    geoAxe = genGeoAxe()
+    pars = setAdel(devT,geoLeaf,geoAxe,nplants)
+    cantable = RunAdel(dd,pars)
+    return pars,cantable
 
 def leaves_db():
     import cPickle as Pickle
@@ -28,6 +37,13 @@ def adel_mtg():
          'Laz': [0,90], 'Ll' :[3,3], 'Lv' :[3,3] , 'Lsen':[0,0], 'L_shape':[3,3], 'Lw_shape':[.3,.3], 'Linc':[0,0],
          'Einc':[0,45],'El':[1,1],'Ev':[1,1],'Esen':[0,0],'Ed': [0.1,0.1]}
     g=mtg_factory(d,adel_metamer,leaf_db=leaves_db())
+    g=mtg_interpreter(g)
+    return g
+    
+def adel_mtg2():
+    """ create a less simple adel mtg """
+    p, d = adelR(3,1000)
+    g=mtg_factory(d,adel_metamer,leaf_db=leaves_db(),stand=[((0,0,0),0),((10,0,0),90), ((0,10,0), 0)])
     g=mtg_interpreter(g)
     return g
    
@@ -66,7 +82,7 @@ def plot_lesions(g):
     
     
 def test_initiate():
-    g = adel_mtg()
+    g = adel_mtg2()
     les = cycle.LesionFactory(fungus = septoria())
     initiate(g,les)
     plot_lesions(g)
