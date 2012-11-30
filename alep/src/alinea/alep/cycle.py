@@ -32,6 +32,28 @@ EMERGENT = 1
 # OK pour etats apres emergents. Pb pour etats avant : Cf initialisation d'un 
 # nouvel anneau.
 
+
+class LesionFactory(object):
+    """
+    """
+
+    def __init__(self, fungus):
+        """ Initialize the lesion. 
+        
+        :Parameters:
+          - `fungus` (function): returns a class of specific parameters for 
+          the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
+
+        """
+        self.fungus = fungus    
+    
+    def instantiate(self):
+        """ instantiate a Lesion """
+        les = Lesion(self.fungus)
+        les.initiate()
+        return les
+
+
 class Lesion(object):
     """ 
     """

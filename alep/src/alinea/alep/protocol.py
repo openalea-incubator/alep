@@ -1,14 +1,17 @@
 """ Define the protocol between plant architecture and lesions """
 
 
-def initiate(g, lesion_class, label="LeafElement"):
+def initiate(g, lesion_factory, label="LeafElement"):
     """ Instantiate a Lesion on nodes of g identified by label """
-    vids = [n for n in g if g.label(n).startsWith(label)]
-    infected = random.sample(vids)
+    import random
+    vids = [n for n in g if g.label(n).startswith(label)]
+    nbinfected = int(round(random.random() * len(vids)))
+    nbinfected = max(nbinfected,1)
+    infected = random.sample(vids,nbinfected)
     for i in infected:
         n = g.node(i)
-        les = lesion_class.initiate()
-        if not n.lesions:
+        les = lesion_factory.instantiate()
+        if not 'lesions' in n.properties():
             n.lesions=[]
         n.lesions.append(les)
     return g,

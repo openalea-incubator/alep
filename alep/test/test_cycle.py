@@ -1,9 +1,9 @@
 from nose import with_setup
 import matplotlib.pyplot as plt
 
-from alinea.alep import cycle2
-from alinea.alep.cycle2 import septoria
-from alinea.alep.cycle2 import powdery_mildew
+from alinea.alep import cycle
+from alinea.alep.cycle import septoria
+from alinea.alep.cycle import powdery_mildew
 
 class StubLeaf(object):
     def __init__(self):
@@ -27,7 +27,7 @@ class TestClass:
     def test_powdery(self):
         leaf = self.leaf
         
-        s = cycle2.Lesion(fungus = powdery_mildew())
+        s = cycle.Lesion(fungus = powdery_mildew())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
@@ -43,7 +43,7 @@ class TestClass:
         dt = self.dt
         leaf = self.leaf
         
-        s = cycle2.Lesion(fungus = septoria())
+        s = cycle.Lesion(fungus = septoria())
         leaf.lesions.append(s)
        
         for i in range(self.nb_steps):
@@ -66,7 +66,7 @@ class TestClass:
     def test_septoria_rain(self):
         leaf = self.leaf
         
-        s = cycle2.Lesion(fungus = septoria())
+        s = cycle.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
@@ -81,7 +81,7 @@ class TestClass:
     def test_death_by_drought(self):
         leaf = self.leaf
         
-        s = cycle2.Lesion(fungus = septoria())
+        s = cycle.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
@@ -96,7 +96,7 @@ class TestClass:
     def test_status_changes(self):
         leaf = self.leaf
 
-        s = cycle2.Lesion(fungus = septoria())
+        s = cycle.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
@@ -125,7 +125,7 @@ class TestClass:
     def test_Smax(self):
         leaf = self.leaf
         
-        s = cycle2.Lesion(fungus = septoria())
+        s = cycle.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         for i in range(self.nb_steps):
@@ -136,7 +136,7 @@ class TestClass:
     def test_septoria_hist(self):
         leaf = self.leaf
 
-        s = cycle2.Lesion(fungus = septoria())
+        s = cycle.Lesion(fungus = septoria())
         leaf.lesions.append(s)
         
         hist_lesion_age = []
