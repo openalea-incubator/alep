@@ -1,0 +1,4 @@
+compound;dose_max_ha;type_code;Ap;Kp;Ae;Ke;decay_rate
+Epoxiconazole;125;2;0.71;6;0.5;7.01;0.069
+Chlorothalonil;1000;3;0;0;1;6.49;0.01
+Metconazole;60;2;0.5;5;0.5;5;0.01

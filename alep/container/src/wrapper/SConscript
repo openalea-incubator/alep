@@ -1,0 +1,27 @@
+# -*-python-*-
+
+Import("env")
+
+py_dir = '../container'
+
+# Build wrappers as shared libraries
+# utils wrapper
+env1 = env.Clone()
+
+sources = ["export_id_generator.cpp",
+	   "export_id_map.cpp",
+	   "export_grid.cpp",
+	   "export_relation.cpp",
+	   "export_graph.cpp",
+	   "export_topomesh.cpp",
+	   "export_iterators.cpp",
+	   "export_int_range.cpp",
+	   "export_property_map.cpp",
+	   "container_wrap.cpp"]
+target = "_container"
+lib1 = ["container"]
+
+env1.AppendUnique(LIBS=lib1)
+env1.ALEAWrapper(py_dir, target, sources)
+
+

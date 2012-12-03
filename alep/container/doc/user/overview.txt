@@ -1,0 +1,8 @@
+OpenAlea.Container is a Python package for the creation and manipulation
+of shared data structure such as:
+
+    - :class:`Graph`,
+    - :class:`Tree`,
+    - :class:`Grid`,
+    - :class:`TopoMesh`
+
