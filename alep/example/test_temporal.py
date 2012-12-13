@@ -6,7 +6,6 @@ dt = 1
 Dt1 = 10
 Dt2 = 30 
 
-
 ts  = (t1, t2)
 Dts = (Dt1, Dt2)
 n = 150
@@ -22,7 +21,6 @@ def lesion(Dts=Dts,ts=ts, n=n, growth_rate=growth_rate):
     s1 = np.zeros(int(t1/Dt1))
     s2 = np.zeros(int(t2/Dt2))
 
-
     def growth(s, dt, Dt, growth_rate):
         """ 
         Parameters
@@ -32,11 +30,14 @@ def lesion(Dts=Dts,ts=ts, n=n, growth_rate=growth_rate):
             state variable
         - dt : float
             step of the simulation
+        - Dt : float
+            step for grouping surfaces
+        - growth_rate : float
+            constant input = growth by time step
 
         Returns
         =======
-
-        output_growth_rate: float
+        - output_growth_rate: float
             produced growth rate in the new state
         """
         ds = s * (float(dt) / float(Dt))
