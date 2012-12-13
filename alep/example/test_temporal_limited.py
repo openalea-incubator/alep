@@ -4,17 +4,17 @@ from pylab import *
 dt = 1 # Time step of the simulation
 t1, t2 = 100, 200 # Times needed to complete state 1 and state 2
 ts  = (t1, t2)
-nbSteps = 10 # Number of fractions into a state
+nbFract = 10 # Number of fractions into a state
 n = 300 # Number of time steps achieved
 growth_rate = 0.06 # Growth rate by time step
 
-def lesion(nbSteps=nbSteps,ts=ts, n=n, growth_rate=growth_rate): 
+def lesion(nbFract=nbFract,ts=ts, n=n, growth_rate=growth_rate): 
 
     t1, t2 = ts
-    Dt1, Dt2 = t1/nbSteps, t2/nbSteps # Number of time steps into each fraction of state
+    Dt1, Dt2 = t1/nbFract, t2/nbFract # Number of time steps into each fraction of state
 
-    s1 = np.zeros(nbSteps) # Initialisation of each state
-    s2 = np.zeros(nbSteps)
+    s1 = np.zeros(nbFract) # Initialisation of each state
+    s2 = np.zeros(nbFract)
 
     def growth(iSim, iStep, t, s, dt, Dt, growth_rate):
         """ 
@@ -46,19 +46,16 @@ def lesion(nbSteps=nbSteps,ts=ts, n=n, growth_rate=growth_rate):
         # If no surface has completed this state
         if iSim < t:
             if iStep == 1:
-                current_Dt = 0
                 # current_Dt is the fraction of the state in which the simulation is currently running
+                current_Dt = 0
             else:
-                # if iStep%Dt == 0:
-                    # current_Dt = (float(iStep)/Dt)-1
-                # else:
                 current_Dt = floor(float(iStep)/Dt)
 
             # Balance between input and output until current_Dt
             s[0:current_Dt+1] -= ds[0:current_Dt+1]
             s[1:current_Dt+1] += ds[0:current_Dt]    
         
-        # If this state has been completed by at least 1 surface
+        # If this state has been completed by at least 1 surface, same as is 'test_temporal.py'
         else:
             ds = s * (float(dt) / float(Dt))
             s = s - ds
@@ -85,9 +82,8 @@ def lesion(nbSteps=nbSteps,ts=ts, n=n, growth_rate=growth_rate):
     s3[n1:] = np.repeat(s2/Dt2,int(Dt2))
 
     plot(s3)
-    show()
     
 for i in range(1,101):
     if t1%i==0 & t2%i==0:
-        lesion(nbSteps=i)
+        lesion(nbFract=i)
 
