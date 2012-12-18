@@ -86,4 +86,4 @@ def lesion(nbFract=nbFract,ts=ts, n=n, growth_rate=growth_rate):
 for i in range(1,101):
     if t1%i==0 & t2%i==0:
         lesion(nbFract=i)
-
+        show()
