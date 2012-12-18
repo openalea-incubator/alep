@@ -5,14 +5,14 @@ dt = 1 # Time step of the simulation
 t1, t2 = 100, 200 # Times needed to complete state 1 and state 2
 ts  = (t1, t2)
 nbFract = 10 # Number of fractions into a state
-n = 300 # Number of time steps achieved
+n = 150 # Number of time steps achieved
 growth_rate = 0.06 # Growth rate by time step
 
 def lesion(nbFract=nbFract,ts=ts, n=n, growth_rate=growth_rate): 
-
+   
     t1, t2 = ts
     Dt1, Dt2 = t1/nbFract, t2/nbFract # Number of time steps into each fraction of state
-
+   
     s1 = np.zeros(nbFract) # Initialisation of each state
     s2 = np.zeros(nbFract)
 
