@@ -33,6 +33,7 @@ EMERGENT = 1
 # nouvel anneau.
 
 
+
 class LesionFactory(object):
     """
     """
@@ -49,12 +50,59 @@ class LesionFactory(object):
     
     def instantiate(self):
         """ instantiate a Lesion """
-        les = Lesion(self.fungus)
-        les.initiate()
-        return les
+        return self.fungus()
 
 
 class Lesion(object):
+    """ 
+    Define a lesion protocol.
+
+    To implement a lesion, you need to implement the following methods:
+        - update(dt, leaf, ...)
+
+    And the lesion have to answer to a set of queries:
+        - is_dead
+        - surface
+        - status
+        - age
+        - age_dday
+        - status
+    """
+    
+    def __init__(self, fungus):
+        """ Initialize the lesion. 
+        
+        :Parameters:
+          - `fungus` (function): returns a class of specific parameters for 
+          the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
+
+        """
+        self.fungus = fungus
+    
+    def update(self, dt, leaf, **kwds):
+        """ Update the status of the lesion and create a new growth ring if needed.
+        
+        If it has enough space, a lesion grows in a concentric way until it reaches
+        its maximum size. At each time step, it forms a new ring of mycelium. 
+        This ring passes through different stages of an automaton (see 'Ring' class).
+        The status of the lesion is updated according the status of its first ring.
+         
+        :Parameters:
+          - `dt` (float): delta time.
+          - `leaf` (class): a leaf sector with properties (e.g. healthy surface,
+          senescence, rain intensity, wetness, temperature, lesions).
+
+        """
+        pass
+
+
+    
+
+class PowderyMildew(Lesion):
+    pass
+
+
+class Septoria(Lesion):
     """ 
     """
     
@@ -66,28 +114,15 @@ class Lesion(object):
           the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
 
         """
+        super(Septoria, self).__init__(fungus=fungus)
         self.rings = []
-        self.fungus = fungus
+        self.status = SeptoriaRing.DEPOSIT
+
+        self.rings = []
+        #ring = SeptoriaRing(dt=fungus.dt)
+        #self.rings.append(ring)
+
     
-    def initiate(self):
-        """ Create a new property 'lesions' on g[vid] 
-        
-        :Parameters:
-          - `fungus` (function): returns a class of specific parameters for 
-          the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
-
-        """
-        new_ring = self.fungus_factory()
-        new_ring.status = EMERGENT
-        self.rings.append(new_ring)
-        #
-
-        # TODO G.Garin, 23/11/2012:
-        # Changer car ne doit plus fonctionner avec des anneaux. 
-        # Doit aussi pouvoir etre plus parametrable (ie construire des lesions
-        # d'un etat donne, d'un age donne et d'une surface donnee).
-        # En outre, si c'est la lesion qui gere la reussite de l'infection,
-        # alors elle devra appeler la fonction 'create'.
     
     def update(self, dt, leaf, **kwds):
         """ Update the status of the lesion and create a new growth ring if needed.
@@ -103,9 +138,24 @@ class Lesion(object):
           senescence, rain intensity, wetness, temperature, lesions).
 
         """        
+        """ TODO: gérer la mise à jour des anneaux
+
+        Algo:
+
+        1.  if lesion is DEPOSIT:
+               accumulate temp, ...
+               and create a new ring when needed
+            return
+        2 else:
+            for ring in rings
+                ring.update()
+
+
         
+
+        """
+
         # Update the status of each ring
-        lesion = self
         for ring in self.rings:
             ring.update(dt, leaf, lesion, **kwds)
             
@@ -137,30 +187,16 @@ class Lesion(object):
             * if there is no green surface on the leaf
             
         """
-        lesion = self # improves reading   
-        
-        if self.fungus.name == "Septoria":
-            ring = SeptoriaRing()
-            return ring.can_form_new_ring(leaf, lesion)
-        
-        elif self.fungus.name == "PowderyMildew":
-            ring = PowderyMildewRing()
-            return ring.can_form_new_ring(leaf, lesion)
+
+        """ T > Dt and conditions are OK. """
+        retuirn None # TODO
+        #return ring.can_form_new_ring(leaf, lesion)
             
         # TODO G.Garin, 24/09/2012:
         # Supprimer la fonction 'can_form_new_ring' de la classe lesion.
         # La mettre dans chaque classe de maladie. Il ne doit pas y avoir de 
         # 'if nom_du_champignon = "champignon"' dans la classe lesion.
 
-    def fungus_factory(self):
-        """ This factory will search for entry points.
-        
-        Thus, we will not have to change this file to add a new fungus.
-        """
-        if self.fungus.name == "Septoria":
-            return SeptoriaRing()
-        elif self.fungus.name == "PowderyMildew":
-            return PowderyMildewRing()
             
     @property
     def surface(self):
@@ -219,7 +255,7 @@ class SeptoriaRing(Ring):
     EMPTY = 5
     DEAD = 6
 
-    def __init__(self, status = DEPOSIT):
+    def __init__(self, dt=1, status = DEPOSIT):
         """ Initialize the lesion. 
         
         :Parameters:
@@ -247,6 +283,7 @@ class SeptoriaRing(Ring):
             * if there is no green surface on the leaf
             
         """
+        # TO MOVE IN LESION
         lesions = leaf.lesions
         healthy_surface = leaf.healthy_surface
         incubating_surface = sum([les.surface for les in lesions if les.status == self.INCUBATING])
@@ -276,7 +313,7 @@ class SeptoriaRing(Ring):
           senescence, rain intensity, wetness, temperature, lesions).
           
         """
-        
+        # MANAGE TIME SCALE
         if self.DEAD > self.status > self.DEPOSIT:
             self.age += dt
             ddday = (leaf.temp - lesion.fungus.basis_for_dday)/24
@@ -874,6 +911,11 @@ class SeptoriaParameters(Parameters):
         self.growth_rate = growth_rate
         self.rh_min = rh_min
         self.rain_events_to_empty = rain_events_to_empty
+        # TODO
+        self.dt = 10
+
+    def __call__(self):
+        return Septoria(fungus=self)
 
 def septoria(**kwds):
     return SeptoriaParameters(**kwds)
@@ -1006,6 +1048,11 @@ class PowderyMildewParameters(Parameters):
         self.n_for_sporulation = n_for_sporulation
         self.nb_du_max = nb_du_max
         self.treshold_nb_du_to_empty = treshold_nb_du_to_empty
+
+        # TODO
+        self.dt = 10
+    def __call__(self):
+        return PowderyMildew(fungus=self)
 
 def powdery_mildew(**kwds):
     return PowderyMildewParameters(**kwds)
