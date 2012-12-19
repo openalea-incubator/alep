@@ -38,7 +38,7 @@ class Lesion(object):
           the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
 
         """
-        self.surfaces = []
+        self.surfaces = np.zeros(nbFract*self.nbStates) # Initialisation for all states
         self.fungus = fungus
         self.nbFract = nbFract
     
@@ -49,6 +49,22 @@ class Lesion(object):
         new_surface = self.fungus_factory()
         new_surface.status = EMERGENT
         self.surfaces.append(new_surface)
+        
+    def update(self, dt, leaf, **kwds):
+        """ Update the status of the lesion and make it grow if needed.
+
+        """        
+        
+        # Update the status of each state
+        lesion = self
+        for surface in self.surfaces:
+            surface.update(dt, leaf, lesion, **kwds)
+            
+        # Create a new surface 
+        if self.can_keep_growing(leaf):
+            new_surface = self.fungus_factory()
+            new_surface.status = EMERGENT
+            self.surfaces.append(new_surface)
     
     def growth(iSim, iStep, t, s, dt, Dt, growth_rate):
         """ 
@@ -100,6 +116,8 @@ class Lesion(object):
         
         return s, ds[-1]
     
+    
+    
     def fungus_factory(self):
         """ This factory will search for entry points.
         
@@ -115,55 +133,29 @@ class Lesion(object):
 class Septoria(Lesion):
     """ Lesion of Septoria.
     """
-    EMERGENT = 0
-    INCUBATING = 1
-    CHLOROTIC = 2
-    NECROTIC = 3
-    SPORULATING = 4
-    EMPTY = 5
-    DEAD = 6
+    DEPOSIT = 0
+    EMERGENT = 1
+    INCUBATING = 2
+    CHLOROTIC = 3
+    NECROTIC = 4
+    SPORULATING = 5
+    EMPTY = 6
+    DEAD = 7
 
-    def __init__(self, status = EMERGENT):
+    def __init__(self, status = DEPOSIT):
         """ Initialize the lesion. 
 
         """
         super(Septoria, self).__init__()
-        for i in range(sef.nbStates):
-            self.surfaces.append(np.zeros(self.nbFract))
-        self.growth_rate = np.zeros(self.nbStates)
+        self.status = status
+        self.surface = 0.
+        self.age = 0.
         self.age_dday = 0.
-    
-    def update(self, dt, leaf, **kwds):
-        """ Update the status of the lesion and make it grow if needed.
-
-        """        
+        self.age_dday_chlorotic = 0.
+        self.cumul_wetness = 0.
+        self.cumul_rain_event = 0.
+        self.rain_before = False
         
-        # Update the age of the lesion
-        ddday = (leaf.temp - self.basis_for_dday)/dt
-        self.age_dday += ddday
-
-        # Update the surfaces in each state
-        for state in range(CHLOROTIC, SPORULATING):
-            iStep[state] = dt - tEnd[state-1]
-            self.surfaces[state], growth_rate[state+1] = growth(self.age_dday, iStep, 
-                                                                tEnd[state], 
-                                                                self.surfaces[state],
-                                                                dt, self.nbFrac, growth_rate[state])
-
-
-    @property
-    def surface(self):
-        """ Compute the surface of the lesion.
-        """
-        surf = sum(self.surfaces)
-        return surf
-    
-    @property
-    def status(self):
-        """ Compute the status of the lesion.
-        """
-        if self.rings:
-            return self.rings[0].status
     
         
         
