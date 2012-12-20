@@ -10,7 +10,7 @@ def initiate(g, lesion_factory, label="LeafElement"):
     infected = random.sample(vids,nbinfected)
     for i in infected:
         n = g.node(i)
-        les = lesion_factory.instantiate()
+        les = lesion_factory.instantiate_at_stage()
         if not 'lesions' in n.properties():
             n.lesions=[]
         n.lesions.append(les)
@@ -31,7 +31,41 @@ def update(g, dt):
           
     return g,
     
-def disperse(g, disperion_algo):
-    """ Spores emit by the lesions """
-    # TODO : envoi spores a l'algo + recuperation depots/creation nouvelle lesions
+def disperse(g, dispersion_model, lesion_factory, label="LeafElement"):
+    """ Disperse spores of the lesions of fungus identified by fungus_name.
+    
+    New infections occur only on nodes identified by label.
+    """
+    fungus_name = lesion_factory.fungus
+    # arrachage
+    spores = {} # dict of mtg id -> quantity of spores/udin emitted by lesions of a given type
+    lesions = g.property('lesions')
+    for vid, l in lesions.iteritems():
+        for lesion in l:
+            if l.fungus is fungus_name:
+                leaf = g.node(vid)
+                spores[vid] = l.spores_emission(leaf) # other derterminant (microclimate...) are expected on leaf
+    # dispersion
+    deposits = dispersion_model.disperse(g, spores) # deposits is a list of aggregates of spores defined by a (mtg_id, relative_position, nbSpores_in_the_aggregate)
+    # creation of new lesions
+    for d in deposits:
+        vid, pos, NbSpores = d
+        if g.label(vid).startswith(label):
+            leaf = g.node(vid)
+            les = lesion_factory.instantiate(NbSpores)
+            if not 'lesions' in n.properties():
+                n.lesions=[]
+            n.lesions.append(les)
+
     return g,
+
+    
+# def wash(g, washing_model): 
+    # """ compute spores loss by washing """
+    # lesions = g.property('lesions')
+    # spores = {}
+    # for vid, l in lesions.iteritems():
+        # for lesion in l:
+            # spores[vid] = l.getSpores()
+    # losses = washing_model(g,spores)
+    

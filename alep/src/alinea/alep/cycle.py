@@ -24,9 +24,17 @@ class LesionFactory(object):
         """
         self.fungus = fungus    
     
-    def instantiate(self):
-        """ instantiate a Lesion """
-        return self.fungus()
+    def instantiate(self, spores) :
+        """ instantiate a Lesion"""
+        l = Lesion(self.fungus)
+        #to do : deal with spores
+        return l
+        
+    def instantiate_at_stage(self) :
+        """ force the instantiation of a Lesion at a given stage"""
+        l = Lesion(self.fungus)
+        #to do : deal with spores
+        return l
 
 class Lesion(object):
     """ 
@@ -44,7 +52,7 @@ class Lesion(object):
         - status
     """
     
-    def __init__(self, fungus):
+    def __init__(self, fungus, spores = None):
         """ Initialize the lesion. 
 
         """
