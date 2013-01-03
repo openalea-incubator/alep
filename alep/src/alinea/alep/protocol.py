@@ -49,10 +49,10 @@ def disperse(g, dispersion_model, lesion_factory, label="LeafElement"):
     deposits = dispersion_model.disperse(g, spores) # deposits is a list of aggregates of spores defined by a (mtg_id, relative_position, nbSpores_in_the_aggregate)
     # creation of new lesions
     for d in deposits:
-        vid, pos, NbSpores = d
+        vid, pos, nbSpores = d
         if g.label(vid).startswith(label):
             leaf = g.node(vid)
-            les = lesion_factory.instantiate(NbSpores)
+            les = lesion_factory.instantiate(nbSpores)
             if not 'lesions' in n.properties():
                 n.lesions=[]
             n.lesions.append(les)
