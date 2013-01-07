@@ -10,7 +10,7 @@ def initiate(g, lesion_factory, label="LeafElement"):
     infected = random.sample(vids,nbinfected)
     for i in infected:
         n = g.node(i)
-        les = lesion_factory.instantiate_at_stage()
+        les = lesion_factory.instantiate_at_stage(spores = 1)
         if not 'lesions' in n.properties():
             n.lesions=[]
         n.lesions.append(les)
