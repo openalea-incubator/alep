@@ -86,16 +86,9 @@ class Septoria(Lesion):
     
     def update(self, dt, leaf, **kwds):
         """ Update the status of the lesion and create a new growth ring if needed.
-        
-        If it has enough space, a lesion grows in a concentric way until it reaches
-        its maximum size. At each time step, it forms a new ring of mycelium. 
-        This ring passes through different stages of an automaton (see 'Ring' class).
-        The status of the lesion is updated according the status of its first ring.
-         
+                
         :Parameters:
-          - `dt` (float): delta time.
-          - `leaf` (class): a leaf sector with properties (e.g. healthy surface,
-          senescence, rain intensity, wetness, temperature, lesions).
+          - `...`
 
         """        
 
@@ -174,7 +167,7 @@ class Septoria(Lesion):
                 return False
             else:
                 return True
-        else
+        else:
             return False
         
         # Keep it in mind --> To be integrated later
@@ -358,7 +351,7 @@ class PowderyMildew(Lesion):
                            ((1. + exp(growth_rate * (half_growth_time - lesion.age)))**2))**2)
 
     def latent(self, leaf, **kwds):
-        """ Set the status of the ring to SPORULATING when needed.
+        """ Set the status of the lesion to SPORULATING when needed.
                
         :Parameters:
           - 
@@ -388,8 +381,8 @@ class PowderyMildew(Lesion):
             self.status = self.fungus.SPORULATING
      
     def sporulating(self, leaf, **kwds):
-        """ Compute the number of rain events on the ring, 
-        and update the status of the ring when needed.
+        """ Compute the number of dispersal events on the lesion, 
+        and update the status of the lesion to EMPTY when needed.
                
         :Parameters:
           -
@@ -540,6 +533,8 @@ class SeptoriaRing(Ring):
                 self.surface += min(free_space, size_before_Smax, lesion.fungus.growth_rate * ddday)           
         
         # TODO : Actually, free space must be an input from the leaf --> It will simplify the calculation
+        # Or here just calculation of the potential of growth of the lesion.
+        # The external model of competition will allow it or not.
         
     def chlorotic(self, lesion=None, **kwds):
         """ Set the status of the ring to NECROTIC when needed.
