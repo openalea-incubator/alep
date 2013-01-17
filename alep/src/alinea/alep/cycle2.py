@@ -66,7 +66,6 @@ class Lesion(object):
         """
         pass
 
-
 class Septoria(Lesion):
     """ 
     """
@@ -225,7 +224,6 @@ class Septoria(Lesion):
         if self.rings:
             self.rings[0].status = value
 
-
 class PowderyMildew(Lesion):
     """ 
     """
@@ -238,36 +236,28 @@ class PowderyMildew(Lesion):
           the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
 
         """
-        super(Septoria, self).__init__(fungus=fungus)
-        self.surface = 0.
+        super(PowderyMildew, self).__init__(fungus=fungus)
+        self.rings = []
         self.status = self.fungus.DEPOSIT
-        self.age = 0.
-        self.latency_progress = 0.
-        self.sporulation_progress = 0.
-        self.nb_du = 0.
-        self.cumul_wetness = 0.
     
     def update(self, dt, leaf, **kwds):
-        """ Update the status of the lesion and make it grow
+        """ Update the status of the lesion and create a new growth ring if needed.
+                
+        :Parameters:
+          - `...`
+
         """        
 
         # When the lesion is not created yet : check if infection successful
         if self.status == self.fungus.DEPOSIT:
             if self.infection(dt, leaf, self.spores, **kwds):
-                self.status = self.fungus.LATENT
+                ring = SeptoriaRing(dt=1, self, self.fungus.LATENT)
+                self.rings.append(ring)
         elif self.status < self.fungus.DEAD:
-            
-            # TODO : MANAGE TIME SCALE
-            self.age += dt
-            ddday = (leaf.temp - lesion.fungus.basis_for_dday)/(24/dt)
-            self.age_dday += ddday
-            # TODO : What if dt > 24 ?
-                       
-            # Update the surface of the entire lesion
-            self.growth(dt, leaf, **kwds)
-            # Update the status of the entire lesion
-            self.stage(dt=dt, leaf=leaf)
-    
+            # Update the status of each ring
+            for ring in self.rings:
+                ring.update(dt, leaf, self, **kwds)
+                    
     def infection(self, dt, leaf, spores, **kwds):
         """ Compute the success of infection by the deposited dispersal unit...
         
@@ -316,142 +306,46 @@ class PowderyMildew(Lesion):
         # - Gerer le delai avant l'infection --> Changement d'echelle temporelle
         # - Duree de vie d'une spore si elle n'a pas fait d'infection --> Introduction
         # d'un loss_rate.
-
-    def growth(self, dt, leaf, **kwds):
-        """ Compute growth of the lesion.
-        
-        """
-        
-        # External variables
-        temp = leaf.temp
-        healthy_surface = leaf.healthy_surface
-        lesions = leaf.lesions
-        nb_lesions = len(lesions)
-        
-        # Raw parameters for the calculation
-        diameter_max = self.fungus.diameter_max
-        diameter_min = self.fungus.diameter_min
-        leaf_age_effect = self.fungus.leaf_age_effect
-        temp_min = self.fungus.temp_min_for_growth
-        temp_max = self.fungus.temp_max_for_growth
-        m = self.fungus.m_for_growth
-        n = self.fungus.n_for_growth
-        growth_rate = self.fungus.growth_rate
-        half_growth_time = self.fungus.half_growth_time
-
-        # Maximum diameter of the lesion according to leaf age
-        kmax = diameter_min + (diameter_max - diameter_min) * exp(-leaf_age_effect * leaf.age)
-        
-        # Ring surface according to temperature
-        free_space = healthy_surface / nb_lesions
-        temp_norm_function_for_growth = temp_norm_function(temp, temp_min, temp_max, m, n)
-        self.surface += min(free_space, 
-                           (pi/4) * (kmax * temp_norm_function_for_growth * 
-                           growth_rate * exp(growth_rate * (half_growth_time - lesion.age)) /
-                           ((1. + exp(growth_rate * (half_growth_time - lesion.age)))**2))**2)
-
-    def latent(self, leaf, **kwds):
-        """ Set the status of the lesion to SPORULATING when needed.
-               
-        :Parameters:
-          - 
-        
-        :Returns:
-          - 
-        """
-        assert(self.status == self.fungus.LATENT)
-        
-        # External variables
-        leaf = self.leaf
-        temp = leaf.temp
-       
-        # Raw parameters for the calculation
-        temp_min = self.fungus.temp_min_for_latency
-        temp_max = self.fungus.temp_max_for_latency
-        m = self.fungus.m_for_latency
-        n = self.fungus.n_for_latency
-        min_latency_duration = self.fungus.min_latency_duration
-        
-        # Latency progress
-        temp_norm_function_for_latency = temp_norm_function(temp, temp_min, temp_max, m, n)
-        self.latency_progress += temp_norm_function_for_latency / min_latency_duration
-        
-        # Status update
-        if self.latency_progress >= 1.:
-            self.status = self.fungus.SPORULATING
-     
-    def sporulating(self, leaf, **kwds):
-        """ Compute the number of dispersal events on the lesion, 
-        and update the status of the lesion to EMPTY when needed.
-               
-        :Parameters:
-          -
-        
-        :Returns:
-          - 
-        """
-        assert(self.status == self.fungus.SPORULATING)
-        
-        # External variables
-        dispersal_rate = random() # TODO : Ajouter lien vers module de dispersion !!!!!!
-        temp = leaf.temp
-        
-        # Raw parameters for the calculation
-        a_for_sporulation = self.fungus.a_for_sporulation # TODO : diviser par 24 par rapport au Matlab
-        b_for_sporulation = self.fungus.b_for_sporulation
-        temp_min = self.fungus.temp_min_for_sporulation
-        temp_max = self.fungus.temp_max_for_sporulation
-        m = self.fungus.m_for_sporulation
-        n = self.fungus.n_for_sporulation
-        nb_du_max = self.fungus.nb_du_max
-        treshold_nb_du_to_empty = self.fungus.treshold_nb_du_to_empty
-        
-        # Number of passed dispersal events
-        if self.nb_du_dispersed > 0.:
-            self.cumul_dispersal_events += 1
-            
-        # Progress of the sporulating period
-        if temp_max > temp > temp_min:
-            self.sporulation_progress += a_for_sporulation * exp(b_for_sporulation * temp)
-        
-        # Number of dispersal units produced by surface unit by time step
-        if self.sporulation_progress < 1.:
-            temp_norm_function_for_sporulation = temp_norm_function(temp, temp_min, temp_max, m, n)
-            self.nb_du_on_ring += temp_norm_function_for_sporulation * nb_du_max * self.surface
-        
-        self.nb_du_dispersed = self.nb_du_on_ring * dispersal_rate
-        self.nb_du_on_ring -= self.nb_du_dispersed
-
-        # Status update
-        if self.nb_du_on_ring < treshold_nb_du_to_empty:
-            self.status = self.fungus.EMPTY
-        
-        # TODO : Calculs a revoir... + Integrer stochasticite.
-        
-    def empty(self, *args, **kwds):
-        """ Assert if the status of the ring is 'EMPTY'.
-        """
-        assert(self.status == self.fungus.EMPTY)
-    
-    def dead(self, *args, **kwds):
-        """ Assert if the status of the ring is 'DEAD'.
-
-        """
-        assert(self.status == self.fungus.DEAD)  
+ 
+    def is_dead(self):
+        """ Update the status of all the rings to 'DEAD' if the lesion is dead. """
+        return all(ring.is_dead() for ring in self.rings)
   
     @property
-    def stage(self):
-        elif self.status == self.LATENT:
-            return self.latent
-        elif self.status == self.SPORULATING:
-            return self.sporulating
-        elif self.status == self.EMPTY:
-            return self.empty
-        elif self.status == self.DEAD:
-            return self.dead
-        else:
-            return
+    def surface(self):
+        """ Compute the surface of the lesion.
+        """
+        surf = sum(ring.surface for ring in self.rings)
+        return surf
+
+    @property
+    def status(self):
+        """ Compute the status of the lesion.
+        """
+        if self.rings:
+            return self.rings[0].status
+    
+    @property
+    def age(self):
+        """ Compute the age of the lesion.
+        """
+        if self.rings:
+            return self.rings[0].age
             
+    @property
+    def age_dday(self):
+        """ Compute the thermal age of the lesion.
+        """
+        if self.rings:
+            return self.rings[0].age_dday
+
+    @status.setter
+    def status(self, value):
+        """ Set the status of the lesion to the chosen value.
+        """
+        if self.rings:
+            self.rings[0].status = value
+                      
  ####################################################################################################
 def proba(p):
     """ p in 0,1 """
@@ -617,22 +511,190 @@ class SeptoriaRing(Ring):
     
     @property
     def stage(self):
-        if self.status == self.IN_FORMATION:
+        if self.status == lesion.fungus.IN_FORMATION:
             return self.in_formation
-        elif self.status == self.CHLOROTIC:
+        elif self.status == lesion.fungus.CHLOROTIC:
             return self.chlorotic
-        elif self.status == self.NECROTIC:
+        elif self.status == lesion.fungus.NECROTIC:
             return self.necrotic
-        elif self.status == self.SPORULATING:
+        elif self.status == lesion.fungus.SPORULATING:
             return self.sporulating
-        elif self.status == self.EMPTY:
+        elif self.status == lesion.fungus.EMPTY:
             return self.empty
         else:
             return
-
-        
+       
 class PowderyMildewRing(Ring):
+    """ Ring of Lesion of PowderyMildew at a given age.
+    """
+    
+    def __init__(self, dt=1, lesion=None, status = status):
+        """ Initialize each new ring. 
+        
+        :Parameters:
+          - `...` (int): 
 
+        """
+        super(PowderyMildewRing, self).__init__()
+        self.status = status
+        self.surface = 0.     
+        self.age = 0.
+        self.age_dday = 0.
+        self.latency_progress = 0.
+        self.sporulation_progress = 0.
+        self.nb_du_dispersed = 0.
+        self.nb_du_on_ring -= 0.
+    
+    def update(self, dt, leaf, lesion=None):
+        """ Update the surface and the status of the ring.
+                  
+        """
+        self.leaf = leaf
+        
+        # TODO : MANAGE TIME SCALE
+        self.age += dt
+        ddday = (leaf.temp - lesion.fungus.basis_for_dday)/(24/dt)
+        self.age_dday += ddday
+        # TODO : What if dt > 24 ?
+                   
+        # Update the surface of the entire lesion
+        self.growth(dt, leaf, lesion, **kwds)
+        # Update the status of the entire lesion
+        self.stage(dt=dt, ddday=ddday, lesion=lesion)
+    
+    def growth(self, dt, leaf, lesion=None, **kwds):
+        """ Compute growth of the ring.
+        
+        """
+        
+        # External variables
+        temp = leaf.temp
+        healthy_surface = leaf.healthy_surface
+        lesions = leaf.lesions
+        nb_lesions = len(lesions)
+        
+        # Raw parameters for the calculation
+        diameter_max = lesion.fungus.diameter_max
+        diameter_min = lesion.fungus.diameter_min
+        leaf_age_effect = lesion.fungus.leaf_age_effect
+        temp_min = lesion.fungus.temp_min_for_growth
+        temp_max = lesion.fungus.temp_max_for_growth
+        m = lesion.fungus.m_for_growth
+        n = lesion.fungus.n_for_growth
+        growth_rate = lesion.fungus.growth_rate
+        half_growth_time = lesion.fungus.half_growth_time
+
+        # Maximum diameter of the lesion according to leaf age
+        kmax = diameter_min + (diameter_max - diameter_min) * exp(-leaf_age_effect * leaf.age)
+        
+        # Ring surface according to temperature
+        free_space = healthy_surface / nb_lesions
+        temp_norm_function_for_growth = temp_norm_function(temp, temp_min, temp_max, m, n)
+        self.surface += min(free_space, 
+                           (pi/4) * (kmax * temp_norm_function_for_growth * 
+                           growth_rate * exp(growth_rate * (half_growth_time - self.age)) /
+                           ((1. + exp(growth_rate * (half_growth_time - self.age)))**2))**2)
+    
+    def latent(self, leaf, **kwds):
+        """ Set the status of the lesion to SPORULATING when needed.
+               
+        :Parameters:
+          - 
+        
+        :Returns:
+          - 
+        """
+        assert(self.status == lesion.fungus.LATENT)
+        
+        # External variables
+        leaf = self.leaf
+        temp = leaf.temp
+       
+        # Raw parameters for the calculation
+        temp_min = lesion.fungus.temp_min_for_latency
+        temp_max = lesion.fungus.temp_max_for_latency
+        m = lesion.fungus.m_for_latency
+        n = lesion.fungus.n_for_latency
+        min_latency_duration = lesion.fungus.min_latency_duration
+        
+        # Latency progress
+        temp_norm_function_for_latency = temp_norm_function(temp, temp_min, temp_max, m, n)
+        self.latency_progress += temp_norm_function_for_latency / min_latency_duration
+        
+        # Status update
+        if self.latency_progress >= 1.:
+            self.status = self.fungus.SPORULATING
+     
+    def sporulating(self, leaf, **kwds):
+        """ Compute the number of dispersal events on the lesion, 
+        and update the status of the lesion to EMPTY when needed.
+               
+        :Parameters:
+          -
+        
+        :Returns:
+          - 
+        """
+        assert(self.status == lesion.fungus.SPORULATING)
+        
+        # External variables
+        dispersal_rate = random() # TODO : Ajouter lien vers module de dispersion !!!!!!
+        temp = leaf.temp
+        
+        # Raw parameters for the calculation
+        a_for_sporulation = lesion.fungus.a_for_sporulation # TODO : diviser par 24 par rapport au Matlab
+        b_for_sporulation = lesion.fungus.b_for_sporulation
+        temp_min = lesion.fungus.temp_min_for_sporulation
+        temp_max = lesion.fungus.temp_max_for_sporulation
+        m = lesion.fungus.m_for_sporulation
+        n = lesion.fungus.n_for_sporulation
+        nb_du_max = lesion.fungus.nb_du_max
+        treshold_nb_du_to_empty = lesion.fungus.treshold_nb_du_to_empty
+        
+        # Number of passed dispersal events
+        if self.nb_du_dispersed > 0.:
+            self.cumul_dispersal_events += 1
+            
+        # Progress of the sporulating period
+        if temp_max > temp > temp_min:
+            self.sporulation_progress += a_for_sporulation * exp(b_for_sporulation * temp)
+        
+        # Number of dispersal units produced by surface unit by time step
+        if self.sporulation_progress < 1.:
+            temp_norm_function_for_sporulation = temp_norm_function(temp, temp_min, temp_max, m, n)
+            self.nb_du_on_ring += temp_norm_function_for_sporulation * nb_du_max * self.surface
+        
+        self.nb_du_dispersed = self.nb_du_on_ring * dispersal_rate
+        self.nb_du_on_ring -= self.nb_du_dispersed
+
+        # Status update
+        if self.nb_du_on_ring < treshold_nb_du_to_empty:
+            self.status = lesion.fungus.EMPTY
+        
+        # TODO : Calculs a revoir... + Integrer stochasticite.
+        
+    def empty(self, *args, **kwds):
+        """ Assert if the status of the ring is 'EMPTY'.
+        """
+        assert(self.status == lesion.fungus.EMPTY)
+    
+    def dead(self, *args, **kwds):
+        """ Assert if the status of the ring is 'DEAD'.
+
+        """
+        assert(self.status == lesion.fungus.DEAD)
+     
+    @property
+    def stage(self):
+        if self.status == lesion.fungus.LATENT:
+            return self.latent
+        elif self.status == lesion.fungus.SPORULATING:
+            return self.sporulating
+        elif self.status == lesion.fungus.EMPTY:
+            return self.empty
+        else:
+            return
+    
     pass
 
 def temp_norm_function(temp_mean, temp_min, temp_max, m, n):
@@ -666,8 +728,7 @@ class Parameters(object):
     
     @staticmethod
     def read(filename):
-        pass
-        
+        pass     
     
 class SeptoriaParameters(Parameters):
     def __init__(self,
@@ -751,13 +812,10 @@ def septoria(**kwds):
 class PowderyMildewParameters(Parameters):
     def __init__(self,
                  DEPOSIT = 0
-                 EMERGENT = 1
-                 INCUBATING = 2
-                 CHLOROTIC = 3
-                 NECROTIC = 4
-                 SPORULATING = 5
-                 EMPTY = 6
-                 DEAD = 7
+                 LATENT = 1
+                 SPORULATING = 2
+                 EMPTY = 3
+                 DEAD = 4
                  temp_min_for_infection = 5.,
                  temp_max_for_infection = 33.,
                  m_for_infection = 0.338,
@@ -849,10 +907,7 @@ class PowderyMildewParameters(Parameters):
         """
         self.name = "PowderyMildew"
         self.DEPOSIT = DEPOSIT
-        self.IN_FORMATION = IN_FORMATION
-        self.INCUBATING = INCUBATING
-        self.CHLOROTIC = CHLOROTIC
-        self.NECROTIC = NECROTIC
+        self.LATENT = LATENT
         self.SPORULATING = SPORULATING
         self.EMPTY = EMPTY
         self.DEAD = DEAD

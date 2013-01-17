@@ -14,6 +14,12 @@ def initiate(g, lesion_factory, label="LeafElement"):
         if not 'lesions' in n.properties():
             n.lesions=[]
         n.lesions.append(les)
+        
+    # TODO : Au-dessus c'est plus un cas d'application.
+    # De facon plus generique, comme pour le modele de dispersion :
+    # - appel a un modele d'initiation (ou plusieurs --> a determiner, depend de la maladie)
+    # qui calcule un 'deposits = initiation_model(g,...)'
+    # - puis appel de 'instantiate' pour les lesions deposees.
     return g,
 
 def update(g, dt):
@@ -42,9 +48,9 @@ def disperse(g, dispersion_model, lesion_factory, label="LeafElement"):
     lesions = g.property('lesions')
     for vid, l in lesions.iteritems():
         for lesion in l:
-            if l.fungus is fungus_name:
+            if lesion.fungus is fungus_name:
                 leaf = g.node(vid)
-                dispersal_units[vid] = l.emission(leaf) # other derterminant (microclimate...) are expected on leaf
+                dispersal_units[vid] = lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
     # dispersion
     deposits = dispersion_model.disperse(g, dispersal_units) # deposits is a list of aggregates of spores defined by a (mtg_id, relative_position, nbSpores_in_the_aggregate)
     # creation of new lesions
