@@ -59,7 +59,8 @@ class Lesion(object):
         self.fungus = fungus
         self.nbSpores = nbSpores
         #to do : Is it the right way to keep track of spores ?
-    
+        self.rings = []
+            
     def update(self, dt, leaf, **kwds):
         """ Update the status of the lesion and create a new growth ring if needed.
        
@@ -70,7 +71,7 @@ class Septoria(Lesion):
     """ 
     """
     
-    def __init__(self, fungus):
+    def __init__(self, fungus, nbSpores):
         """ Initialize the lesion. 
         
         :Parameters:
@@ -78,8 +79,7 @@ class Septoria(Lesion):
           the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
 
         """
-        super(Septoria, self).__init__(fungus=fungus)
-        self.rings = []
+        super(Septoria, self).__init__(fungus=fungus, nbSpores=nbSpores)
         self.status = self.fungus.DEPOSIT
         self.cumul_wetness = 0.
     
@@ -89,7 +89,7 @@ class Septoria(Lesion):
         :Parameters:
           - `...`
 
-        """        
+        """
 
         # When the lesion is not created yet : check if infection successful
         if self.status == self.fungus.DEPOSIT:
@@ -228,7 +228,7 @@ class PowderyMildew(Lesion):
     """ 
     """
     
-    def __init__(self, fungus):
+    def __init__(self, fungus, nbSpores):
         """ Initialize the lesion. 
         
         :Parameters:
@@ -236,8 +236,7 @@ class PowderyMildew(Lesion):
           the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
 
         """
-        super(PowderyMildew, self).__init__(fungus=fungus)
-        self.rings = []
+        super(PowderyMildew, self).__init__(fungus=fungus, nbSpores=nbSpores)
         self.status = self.fungus.DEPOSIT
     
     def update(self, dt, leaf, **kwds):
