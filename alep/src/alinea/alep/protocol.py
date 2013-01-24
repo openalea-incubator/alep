@@ -39,7 +39,6 @@ def infect(g, dt, lesion_factory):
             leaf = g.node(vid)
             if dispersal_unit.infect(dt, leaf):
                 les = lesion_factory.instantiate(nbSpores = dispersal_unit.nbSpores)
-                # TODO : Right way to do this ?
                 if not 'lesions' in vid.properties():
                     vid.lesions=[]
                 vid.lesions.append(les)
