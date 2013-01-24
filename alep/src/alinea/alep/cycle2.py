@@ -82,7 +82,9 @@ class Septoria(Lesion):
 
         """
         super(Septoria, self).__init__(fungus=fungus, nbSpores=nbSpores)
-        self.status = self.fungus.DEPOSIT
+        self.status = self.fungus.IN_FORMATION
+        ring = SeptoriaRing(dt=1, self, self.status)
+        self.rings.append(ring)
         self.cumul_wetness = 0.
     
     def update(self, dt, leaf, **kwds):
@@ -92,13 +94,7 @@ class Septoria(Lesion):
           - `...`
 
         """
-
-        # When the lesion is not created yet : check if infection successful
-        if self.status == self.fungus.DEPOSIT:
-            if self.infection(dt, leaf, self.spores, **kwds):
-                ring = SeptoriaRing(dt=1, self, self.fungus.IN_FORMATION)
-                self.rings.append(ring)
-        elif self.status < self.fungus.DEAD:
+        if self.status < self.fungus.DEAD:
             # Update the status of each ring
             for ring in self.rings:
                 ring.update(dt, leaf, self, **kwds)
@@ -116,47 +112,6 @@ class Septoria(Lesion):
                 self.rings.append(ring)
                 self.rings[-1].age_ddday += remaining_age
     
-    def infection(self, dt, leaf, spores, **kwds):
-        """ Compute the success of infection by the deposited dispersal unit...
-        
-        """
-        
-        leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
-        temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in °C).
-        rain_intensity = leaf.rain_intensity # (float) : rain intensity on the leaf sector during the time step (in mm/h).
-        healthy_surface = leaf.healthy_surface # (float) : healthy surface (=with no lesion) on the leaf sector during the time step (in cm^2).
-        
-        # TODO: design a new equation : see Magarey (2005)
-        if leaf_wet:
-            self.cumul_wetness += 1
-        elif self.cumul_wetness > 0: 
-            assert not leaf_wet
-            self.cumul_wetness = 0
-            self.status = self.DEAD 
-        else:
-            assert not leaf_wet
-            assert self.cumul_wetness == 0
-        
-        # TODO: Sortir ce processus du modele de lesion
-        # AND design a new equation : coherente (adimesionnelle)
-        washing_rate = rain_intensity / (healthy_surface + rain_intensity)
-        
-        if proba(washing_rate):
-            self.status = self.DEAD 
-        
-        if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :
-            # TODO : create a function of the number of spores            
-            spores_factor = nbSpores / nbSpores # always equals 1 for now
-            if proba(spores_factor):
-                return True
-            else:
-                return False
-        elif self.cumul_wetness == 0 :
-            return False
-            # TODO : Proba conditionnelle doit se cumuler.
-            if proba(self.fungus.loss_rate): 
-                self.status = self.DEAD 
-
     def can_form_new_ring(self, Dt):
         """ Check if the lesion can form a new ring.
         
@@ -239,7 +194,11 @@ class PowderyMildew(Lesion):
 
         """
         super(PowderyMildew, self).__init__(fungus=fungus, nbSpores=nbSpores)
-        self.status = self.fungus.DEPOSIT
+        self.status = self.fungus.LATENT
+        ring = SeptoriaRing(dt=1, self, self.status)
+        self.rings.append(ring)
+        self.cumul_wetness = 0.
+        self.rings.append(ring)
     
     def update(self, dt, leaf, **kwds):
         """ Update the status of the lesion and create a new growth ring if needed.
@@ -248,66 +207,11 @@ class PowderyMildew(Lesion):
           - `...`
 
         """        
-
-        # When the lesion is not created yet : check if infection successful
-        if self.status == self.fungus.DEPOSIT:
-            if self.infection(dt, leaf, self.spores, **kwds):
-                ring = SeptoriaRing(dt=1, self, self.fungus.LATENT)
-                self.rings.append(ring)
-        elif self.status < self.fungus.DEAD:
+        if self.status < self.fungus.DEAD:
             # Update the status of each ring
             for ring in self.rings:
                 ring.update(dt, leaf, self, **kwds)
                     
-    def infection(self, dt, leaf, spores, **kwds):
-        """ Compute the success of infection by the deposited dispersal unit...
-        
-        """
-        
-        # External variables
-        leaf_wet = leaf.wetness
-        temp = leaf.temp
-        relative_humidity = leaf.relative_humidity
-        
-        # Raw parameters for the calculation
-        temp_min = self.fungus.temp_min_for_infection
-        temp_max = self.fungus.temp_max_for_infection
-        m = self.fungus.m_for_infection
-        n = self.fungus.n_for_infection
-        max_infection_rate = self.fungus.max_infection_rate
-        decay_rate = self.fungus.decay_rate
-        a_RH_effect = self.fungus.a_RH_effect
-        b_RH_effect = self.fungus.b_RH_effect
-        RH_opt = self.fungus.RH_opt_for_infection
-        c_wetness_effect = self.fungus.c_wetness_effect
-        d_wetness_effect = self.fungus.d_wetness_effect
-       
-        # Temperature factor
-        temp_norm_function_for_infection = temp_norm_function(temp, temp_min, temp_max, m, n)
-        temp_factor = max_infection_rate * temp_norm_function_for_infection * exp(-decay_rate * leaf.age)
-        
-        # Relative humidity factor
-        RH_factor = min(1., a_RH_effect * relative_humidity + b_RH_effect)
-        
-        # Wetness factor
-        if relative_humidity >= RH_opt or leaf_wet:
-            wetness_factor = min(1., c_wetness_effect - d_wetness_effect * temp)
-        else:
-            wetness_factor = 1.
-        
-        # Infection rate 
-        infection_rate = temp_factor * RH_factor * wetness_factor
-        if proba(infection_rate):
-            return True
-        else:
-            self.status = self.DEAD
-            return False
-        
-        # TODO : A ameliorer :
-        # - Gerer le delai avant l'infection --> Changement d'echelle temporelle
-        # - Duree de vie d'une spore si elle n'a pas fait d'infection --> Introduction
-        # d'un loss_rate.
- 
     def is_dead(self):
         """ Update the status of all the rings to 'DEAD' if the lesion is dead. """
         return all(ring.is_dead() for ring in self.rings)
@@ -427,7 +331,7 @@ class SeptoriaRing(Ring):
                 size_before_Smax = lesion.fungus.Smax - lesion.surface
                 self.surface += min(free_space, size_before_Smax, lesion.fungus.growth_rate * ddday)           
         
-        # TODO : Actually, free space must be an input from the leaf --> It will simplify the calculation
+        # TODO : free space must be an input from the leaf --> It will simplify the calculation
         # Or here just calculation of the potential of growth of the lesion.
         # The external model of competition will allow it or not.
         
@@ -733,13 +637,12 @@ class Parameters(object):
     
 class SeptoriaParameters(Parameters):
     def __init__(self,
-                 DEPOSIT = 0
-                 IN_FORMATION = 1
-                 CHLOROTIC = 2
-                 NECROTIC = 3
-                 SPORULATING = 4
-                 EMPTY = 5
-                 DEAD = 6
+                 IN_FORMATION = 0
+                 CHLOROTIC = 1
+                 NECROTIC = 2
+                 SPORULATING = 3
+                 EMPTY = 4
+                 DEAD = 5
                  Dt = 10,
                  basis_for_dday = -2,
                  temp_min = 10,
@@ -780,7 +683,6 @@ class SeptoriaParameters(Parameters):
             
         """
         self.name = "Septoria"
-        self.DEPOSIT = DEPOSIT
         self.IN_FORMATION = IN_FORMATION
         self.CHLOROTIC = CHLOROTIC
         self.NECROTIC = NECROTIC
@@ -812,11 +714,10 @@ def septoria(**kwds):
     
 class PowderyMildewParameters(Parameters):
     def __init__(self,
-                 DEPOSIT = 0
-                 LATENT = 1
-                 SPORULATING = 2
-                 EMPTY = 3
-                 DEAD = 4
+                 LATENT = 0
+                 SPORULATING = 1
+                 EMPTY = 2
+                 DEAD = 3
                  temp_min_for_infection = 5.,
                  temp_max_for_infection = 33.,
                  m_for_infection = 0.338,
@@ -907,7 +808,6 @@ class PowderyMildewParameters(Parameters):
 
         """
         self.name = "PowderyMildew"
-        self.DEPOSIT = DEPOSIT
         self.LATENT = LATENT
         self.SPORULATING = SPORULATING
         self.EMPTY = EMPTY
