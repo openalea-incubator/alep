@@ -14,25 +14,27 @@ class LesionFactory(object):
     """
     """
 
-    def __init__(self, fungus, nbSpores):
+    def __init__(self, fungus):
         """ Initialize the lesion. 
         
         :Parameters:
           - `fungus` (function): returns a class of specific parameters for 
           the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
-
         """
-        self.fungus = fungus 
-        self.nbSpores = nbSpores
-    
-    def instantiate(self) :
-        """ instantiate a Lesion"""
-        l = Lesion(self.fungus, self.nbSpores)
+        self.fungus = fungus
+        
+    def instantiate(self, nbSpores) :
+        """ instantiate a Lesion
+     
+        :Parameters:
+          - `nbSpores` (int): 
+        """
+        l = Lesion(self.fungus, nbSpores)
         return l
         
-    def instantiate_at_stage(self) :
+    def instantiate_at_stage(self, nbSpores) :
         """ force the instantiation of a Lesion at a given stage"""
-        l = Lesion(self.fungus, self.nbSpores)
+        l = Lesion(self.fungus, nbSpores)
         #to do : deal with spores
         return l
 
