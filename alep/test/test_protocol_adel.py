@@ -101,7 +101,8 @@ def plot_DU(g):
 def test_initiate():
     g = adel_mtg2()
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
-    initiate(g, stock, RandomInoculation)
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
     plot_lesions(g)
     return g
     
