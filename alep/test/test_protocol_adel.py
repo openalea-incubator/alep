@@ -1,14 +1,17 @@
 """ Test the protocol of communication between adel and alep """
 
+import random
+
 from alinea.adel.newmtg import *
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 import alinea.adel.fitting as fitting
 from alinea.adel.AdelR import devCsv,setAdel,RunAdel,genGeoLeaf,genGeoAxe
 
-from alinea.alep import cycle
-from alinea.alep.cycle import septoria
-from alinea.alep.cycle import powdery_mildew
+from alinea.alep import cycle2
+from alinea.alep.cycle2 import septoria
+from alinea.alep.cycle2 import SeptoriaDU
+from alinea.alep.cycle2 import powdery_mildew
 
 from alinea.alep.protocol import *
 
@@ -77,14 +80,28 @@ def plot_lesions(g):
             n.color = green
     
     scene = plot3d(g)
-    Viewer.display(scene)    
+    Viewer.display(scene)  
+
+def plot_DU(g):
+    """ plot the plant with infected elements in red """
+    green = (0,180,0)
+    red = (180, 0, 0)
+    for v in g.vertices(scale=g.max_scale()) : 
+        n = g.node(v)
+        if 'dispersal_units' in n.properties():
+            n.color = red
+        else : 
+            n.color = green
+    
+    scene = plot3d(g)
+    Viewer.display(scene)     
 
     
     
 def test_initiate():
     g = adel_mtg2()
-    les = cycle.LesionFactory(fungus = septoria())
-    initiate(g,les)
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    initiate(g, stock, RandomInoculation)
     plot_lesions(g)
     return g
     
