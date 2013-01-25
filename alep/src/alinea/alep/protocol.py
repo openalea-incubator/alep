@@ -1,9 +1,10 @@
 """ Define the protocol between plant architecture and lesions """
 
+import random
+
 def initiate(g, 
              dispersal_units_stock, 
              initiation_model, 
-             dispersal_unit_factory, 
              label="LeafElement"):
     """ 
     Allocates dispersal units (objects) on elements of the MTG according to initiation_model 
@@ -18,19 +19,19 @@ def initiate(g,
     =======
 
         >>> g = MTG()
-        >>> stock = [SeptoriaDU(nb_spores=randint(1,100)) for i in range(100)]
-        >>> initiate(g,stock,RandomInnoculation,emited or deposited)
+        >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=randint(1,100), nature='emitted') for i in range(100)]
+        >>> initiate(g,stock,RandomInnoculation)
     """
     # Allocation of stock of inoculum
-    deposits = initiation_model.disperse(g, dispersal_units_stock)
+    initiation_model.disperse(g, dispersal_units_stock)
     
-    for d in deposits:
-        vid, position, fungus, nbSpores = d
-        if g.label(vid).startswith(label):
-            du = dispersal_unit_factory.instantiate(position = position, nbSpores = nbSpores)
-            if not 'dispersal_units' in vid.properties():
-                vid.dispersal_units=[]
-            vid.dispersal_units.append(du)
+    # for d in deposits:
+        # vid, position, fungus, nbSpores = d
+        # if g.label(vid).startswith(label):
+            # du = dispersal_unit_factory.instantiate(position = position, nbSpores = nbSpores)
+            # if not 'dispersal_units' in vid.properties():
+                # vid.dispersal_units=[]
+            # vid.dispersal_units.append(du)
     
     # import random
     # vids = [n for n in g if g.label(n).startswith(label)]
@@ -48,19 +49,20 @@ def initiate(g,
 
 class RandomInoculation:
     
-    def disperse(g, inoculum, label='LeafElement'):
+    def disperse(self, g, inoculum, label='LeafElement'):
         import random
         vids = [n for n in g if g.label(n).startswith(label)]
         infected = random.sample(vids,len(inoculum))
         n = len(vids)
-        deposits = []
+        for vid in vids:
+            g.node(vid).dispersal_units = []
+            
         for i in inoculum:
             idx = random.randint(0,n)
             v = vids[idx]
-            # Create a deposit 
-            deposit = inoclum.instantiate(g,v)
-            deposits.append(deposit)
-        return deposits
+            # Deposit a DU from inoculum on node v of the MTG  
+            i.deposited()
+            g.node(v).dispersal_units.append(i)
 
 
 def infect(g, dt, lesion_factory):

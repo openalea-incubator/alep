@@ -10,6 +10,172 @@ from random  import random
 from math import exp
 from math import pi
 
+# Dispersal units #########################################################################
+
+class DispersalUnit(object):
+    """ Generic class for a dispersal unit.
+    
+    """
+    def __init__(self, fungus, position=None, nbSpores=None, nature=None):
+        """ Initialize the dispersal unit.
+        
+        :Parameters:
+          - `fungus` (function): returns a class of specific parameters for the chosen fungus
+          (e.g. 'septoria()' or 'powderyMildew()').
+          - `position` (???) : position of the dispersal unit on the phyto-element.
+          - `nbSpores` (int) : number of spores aggregated in the dispersal unit.
+          - `nature` (str) : 'emitted' or 'deposited'
+          
+        """
+        self.position = position
+        self.fungus = fungus
+        self.nbSpores = nbSpores
+        self.nature = nature
+        self.active = True
+    
+    def inactive(self):
+        """ Inactivate a dispersal unit.
+        
+        """
+        self.active = False
+    
+    def deposited(self):
+        """ Change the nature of the spore to 'deposited'.
+        
+        """
+        self.nature = 'deposited'
+
+    def create_lesion(self, leaf):
+        """ Create a new lesion of fungus and inactivate dispersal unit.
+        
+        """
+        les = Lesion(self.fungus, self.nbSpores, self.position)
+        leaf.lesions.append(les)
+        self.inactive()
+        
+class SeptoriaDU(DispersalUnit):
+    """ Define a dispersal unit specific of septoria.
+    
+    """
+    def __init__(self, fungus, position=None, nbSpores=None, nature=None):
+        """ Initialize the dispersal unit of septoria.
+        
+        :Parameters:
+          - `fungus` (function): returns a class of specific parameters for the chosen fungus
+          (e.g. 'septoria()' or 'powderyMildew()').
+          - `position` (???) : position of the dispersal unit on the phyto-element.
+          - `nbSpores` (int) : number of spores aggregated in the dispersal unit.
+          - `nature` (str) : 'emitted' or 'deposited'
+        
+        """
+        super(SeptoriaDU, self).__init__(fungus=fungus, position=position, nbSpores=nbSpores, nature=nature)
+        self.cumul_wetness = 0.
+    
+    def infect(self, dt, leaf, **kwds):
+        """ Compute infection by the dispersal unit of Septoria.
+        
+        """
+        leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
+        temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).
+        healthy_surface = leaf.healthy_surface # (float) : healthy surface (=with no lesion) on the leaf sector during the time step (in cm^2).
+        
+        # TODO : Right way to do this ?
+        if self.nbSpores == 0.:
+            self.inactive()
+        
+        else:
+            # TODO: design a new equation : see Magarey (2005)
+            if leaf_wet:
+                self.cumul_wetness += 1
+            elif self.cumul_wetness > 0: 
+                assert not leaf_wet
+                self.cumul_wetness = 0.
+                self.inactive()
+            else:
+                assert not leaf_wet
+                assert self.cumul_wetness == 0.
+            
+            if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :
+                # TODO : create a function of the number of spores            
+                spores_factor = nbSpores / nbSpores # always equals 1 for now
+                if proba(spores_factor):
+                    self.create_lesion(leaf)
+            elif self.cumul_wetness == 0 :
+                # TODO : Proba conditionnelle doit se cumuler.
+                if proba(self.fungus.loss_rate): 
+                    self.inactive()
+
+class PowderyMildewDU(DispersalUnit):
+    """ Define a dispersal unit specific of powdery mildew.
+    
+    """
+    def __init__(self, fungus, position=None, nbSpores=None, nature=None):
+        """ Initialize the dispersal unit of powdery mildew.
+        
+        :Parameters:
+          - `fungus` (function): returns a class of specific parameters for the chosen fungus
+          (e.g. 'septoria()' or 'powderyMildew()').
+          - `position` (???) : position of the dispersal unit on the phyto-element.
+          - `nbSpores` (int) : number of spores aggregated in the dispersal unit.
+          - `nature` (str) : 'emitted' or 'deposited'
+        
+        """
+        super(SeptoriaDU, self).__init__(fungus=fungus, position=position, nbSpores=nbSpores, nature=nature)
+        
+    def infect(self, dt, leaf, **kwds):
+        """ Compute infection by the dispersal unit of Septoria.
+        
+        """
+        # External variables
+        leaf_wet = leaf.wetness
+        temp = leaf.temp
+        relative_humidity = leaf.relative_humidity
+        
+        # Raw parameters for the calculation
+        temp_min = self.fungus.temp_min_for_infection
+        temp_max = self.fungus.temp_max_for_infection
+        m = self.fungus.m_for_infection
+        n = self.fungus.n_for_infection
+        max_infection_rate = self.fungus.max_infection_rate
+        decay_rate = self.fungus.decay_rate
+        a_RH_effect = self.fungus.a_RH_effect
+        b_RH_effect = self.fungus.b_RH_effect
+        RH_opt = self.fungus.RH_opt_for_infection
+        c_wetness_effect = self.fungus.c_wetness_effect
+        d_wetness_effect = self.fungus.d_wetness_effect
+       
+        # TODO : Right way to do this ?
+        if self.nbSpores == 0.:
+            self.inactive()
+        
+        else:
+            # Temperature factor
+            temp_norm_function_for_infection = temp_norm_function(temp, temp_min, temp_max, m, n)
+            temp_factor = max_infection_rate * temp_norm_function_for_infection * exp(-decay_rate * leaf.age)
+            
+            # Relative humidity factor
+            RH_factor = min(1., a_RH_effect * relative_humidity + b_RH_effect)
+            
+            # Wetness factor
+            if relative_humidity >= RH_opt or leaf_wet:
+                wetness_factor = min(1., c_wetness_effect - d_wetness_effect * temp)
+            else:
+                wetness_factor = 1.
+            
+            # Spores factor
+            # TODO : create a function of the number of spores            
+            spores_factor = nbSpores / nbSpores # always equals 1 for now
+            
+            # Infection rate 
+            infection_rate = temp_factor * RH_factor * wetness_factor * spores_factor
+            if proba(infection_rate):
+                self.create_lesion(leaf)
+            else:
+                self.inactive()
+                # TODO : review because too extreme.        
+    
+# Lesions #################################################################################
+
 class LesionFactory(object):
     """
     """
@@ -23,18 +189,18 @@ class LesionFactory(object):
         """
         self.fungus = fungus
         
-    def instantiate(self, nbSpores) :
+    def instantiate(self, nbSpores, position) :
         """ instantiate a Lesion
      
         :Parameters:
           - `nbSpores` (int): 
         """
-        l = Lesion(self.fungus, nbSpores)
+        l = Lesion(self.fungus, nbSpores, position)
         return l
         
-    def instantiate_at_stage(self, nbSpores) :
+    def instantiate_at_stage(self, nbSpores, position) :
         """ force the instantiation of a Lesion at a given stage"""
-        l = Lesion(self.fungus, nbSpores)
+        l = Lesion(self.fungus, nbSpores, position)
         #to do : deal with spores
         return l
 

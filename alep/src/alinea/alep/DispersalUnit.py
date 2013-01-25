@@ -17,7 +17,7 @@ class DispersalUnitFactory(object):
         return du
 
 class DispersalUnit(object):
-    """    
+    """
     Define a dispersal unit protocol.
     
     """

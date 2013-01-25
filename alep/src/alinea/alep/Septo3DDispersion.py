@@ -46,5 +46,5 @@ class SplashDispersal(object):
             self.disp.addEclin(elcin, QSpores)
             DispSplash(Ip,Dp)
             Udin = getQL(Sleaf[j], &(Disp.Udin),&(Disp.LAI), ISect[j]);
-            #here compute relatiove position
+            #here compute relative position
             deposits[d.vid].NSpores = udin.NSpores

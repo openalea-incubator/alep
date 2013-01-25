@@ -184,7 +184,7 @@ class Septoria(Lesion):
                 return False
             else:
                 return True
-        else
+        else:
             return False
         
         # Keep it in mind --> To be integrated later
@@ -914,14 +914,14 @@ def septoria(**kwds):
     
 class PowderyMildewParameters(Parameters):
     def __init__(self,
-                 DEPOSIT = 0
-                 EMERGENT = 1
-                 INCUBATING = 2
-                 CHLOROTIC = 3
-                 NECROTIC = 4
-                 SPORULATING = 5
-                 EMPTY = 6
-                 DEAD = 7
+                 DEPOSIT = 0,
+                 EMERGENT = 1,
+                 INCUBATING = 2,
+                 CHLOROTIC = 3,
+                 NECROTIC = 4,
+                 SPORULATING = 5,
+                 EMPTY = 6,
+                 DEAD = 7,
                  temp_min_for_infection = 5.,
                  temp_max_for_infection = 33.,
                  m_for_infection = 0.338,
