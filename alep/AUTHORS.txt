@@ -1,4 +1,7 @@
-* Name of Author number 1
-* Name of Author number 2
-* Name of Author number 3
+* Guillaume Garin
+* Bruno Andrieu
+* Christian Fournier
+* Vianney Houlès
+* Christophe Pradal
+* Corinne Robert
 

@@ -1,3 +1,4 @@
-The text in this box is a short overview of your package
-that is written in ./doc/user/overview.txt and should be 
-compatible with restructured format
+Alep is a generic model to simulate foliar desease pathogen.
+It currently implements two pathogens: 
+    * Septoria tritici (aka Septoria)
+    * Erisyphe necator (aka Powdery Mildew)

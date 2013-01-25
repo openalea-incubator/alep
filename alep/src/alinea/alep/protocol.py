@@ -1,8 +1,26 @@
 """ Define the protocol between plant architecture and lesions """
 
-def initiate(g, dispersal_units_stock, initiation_model, 
-                dispersal_unit_factory, label="LeafElement"):
-    """ Allocates dispersal units (objects) on elements of the MTG according to initiation_model """
+def initiate(g, 
+             dispersal_units_stock, 
+             initiation_model, 
+             dispersal_unit_factory, 
+             label="LeafElement"):
+    """ 
+    Allocates dispersal units (objects) on elements of the MTG according to initiation_model 
+
+    Parameters
+    ==========
+        - `g` : MTG representing the canopy (and the soil)
+        - `dispersal_units_stock` : source of dispersal units to disperse in the scene
+        - `initiation_model` : model that allows positioning each DU in stock on g
+
+    Example
+    =======
+
+        >>> g = MTG()
+        >>> stock = [SeptoriaDU(nb_spores=randint(1,100)) for i in range(100)]
+        >>> initiate(g,stock,RandomInnoculation,emited or deposited)
+    """
     # Allocation of stock of inoculum
     deposits = initiation_model.disperse(g, dispersal_units_stock)
     
@@ -27,6 +45,23 @@ def initiate(g, dispersal_units_stock, initiation_model,
         # n.lesions.append(les)
         
     return g,
+
+class RandomInoculation:
+    
+    def disperse(g, inoculum, label='LeafElement'):
+        import random
+        vids = [n for n in g if g.label(n).startswith(label)]
+        infected = random.sample(vids,len(inoculum))
+        n = len(vids)
+        deposits = []
+        for i in inoculum:
+            idx = random.randint(0,n)
+            v = vids[idx]
+            # Create a deposit 
+            deposit = inoclum.instantiate(g,v)
+            deposits.append(deposit)
+        return deposits
+
 
 def infect(g, dt, lesion_factory):
     """ Compute infection success by dispersal units.

@@ -10,9 +10,27 @@ Reference guide
 .. currentmodule:: alinea.alep.__init__
 
 
-:mod:`alinea.alep` module
+:mod:`cycle2` module
 ===============================================
-.. automodule:: alinea.alep.__init__
+.. automodule:: alinea.alep.cycle2
+    :members:
+    :undoc-members:
+    :inherited-members:
+    :show-inheritance:
+    :synopsis: doc todo
+
+:mod:`protocol` module
+===============================================
+.. automodule:: alinea.alep.protocol
+    :members:
+    :undoc-members:
+    :inherited-members:
+    :show-inheritance:
+    :synopsis: doc todo
+
+:mod:`DispersalUnit` module
+===============================================
+.. automodule:: alinea.alep.DispersalUnit
     :members:
     :undoc-members:
     :inherited-members:

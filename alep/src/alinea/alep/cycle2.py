@@ -83,7 +83,7 @@ class Septoria(Lesion):
         """
         super(Septoria, self).__init__(fungus=fungus, nbSpores=nbSpores)
         self.status = self.fungus.IN_FORMATION
-        ring = SeptoriaRing(dt=1, self, self.status)
+        ring = SeptoriaRing( self, self.status, dt=1)
         self.rings.append(ring)
         self.cumul_wetness = 0.
     
@@ -108,7 +108,7 @@ class Septoria(Lesion):
             if can_form_new_ring(Dt):
                 remaining_age = self.rings[-1].age_dday - Dt
                 self.rings[-1].status += 1
-                new_ring=SeptoriaRing(dt=1, self, self.fungus.IN_FORMATION)
+                new_ring=SeptoriaRing(dt=1, lesion=self, status=self.fungus.IN_FORMATION)
                 self.rings.append(ring)
                 self.rings[-1].age_ddday += remaining_age
     
@@ -195,7 +195,7 @@ class PowderyMildew(Lesion):
         """
         super(PowderyMildew, self).__init__(fungus=fungus, nbSpores=nbSpores)
         self.status = self.fungus.LATENT
-        ring = SeptoriaRing(dt=1, self, self.status)
+        ring = SeptoriaRing(dt=1, lesion=self, status=self.status)
         self.rings.append(ring)
         self.cumul_wetness = 0.
         self.rings.append(ring)
@@ -264,7 +264,7 @@ class SeptoriaRing(Ring):
     """ Ring of Lesion of Septoria at a given age.
     """
 
-    def __init__(self, dt=1, lesion=None, status = status):
+    def __init__(self, lesion, status, dt=1.):
         """ Initialize each new ring. 
         
         :Parameters:
@@ -433,7 +433,7 @@ class PowderyMildewRing(Ring):
     """ Ring of Lesion of PowderyMildew at a given age.
     """
     
-    def __init__(self, dt=1, lesion=None, status = status):
+    def __init__(self, lesion, status, dt=1.):
         """ Initialize each new ring. 
         
         :Parameters:
@@ -637,12 +637,12 @@ class Parameters(object):
     
 class SeptoriaParameters(Parameters):
     def __init__(self,
-                 IN_FORMATION = 0
-                 CHLOROTIC = 1
-                 NECROTIC = 2
-                 SPORULATING = 3
-                 EMPTY = 4
-                 DEAD = 5
+                 IN_FORMATION = 0,
+                 CHLOROTIC = 1,
+                 NECROTIC = 2,
+                 SPORULATING = 3,
+                 EMPTY = 4,
+                 DEAD = 5,
                  Dt = 10,
                  basis_for_dday = -2,
                  temp_min = 10,
@@ -714,10 +714,10 @@ def septoria(**kwds):
     
 class PowderyMildewParameters(Parameters):
     def __init__(self,
-                 LATENT = 0
-                 SPORULATING = 1
-                 EMPTY = 2
-                 DEAD = 3
+                 LATENT = 0,
+                 SPORULATING = 1,
+                 EMPTY = 2,
+                 DEAD = 3,
                  temp_min_for_infection = 5.,
                  temp_max_for_infection = 33.,
                  m_for_infection = 0.338,

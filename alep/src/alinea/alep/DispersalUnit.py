@@ -56,11 +56,11 @@ class SeptoriaDU(DispersalUnit):
         """
         
         leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
-        temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in °C).
+        temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).
         healthy_surface = leaf.healthy_surface # (float) : healthy surface (=with no lesion) on the leaf sector during the time step (in cm^2).
         
         # TODO : Right way to do this ?
-        if self.nbSpores = 0.:
+        if self.nbSpores == 0.:
             self.kill()
         
         # TODO: design a new equation : see Magarey (2005)
@@ -121,7 +121,7 @@ class PowderyMildewDU(DispersalUnit):
         d_wetness_effect = self.fungus.d_wetness_effect
        
         # TODO : Right way to do this ?
-        if self.nbSpores = 0.:
+        if self.nbSpores == 0.:
             self.kill()
             
         # Temperature factor
@@ -166,9 +166,9 @@ def temp_norm_function(temp_mean, temp_min, temp_max, m, n):
     Compute the normalized temperature function as in Calonnec et al., 2008
     
     :Parameters:
-      - `temp_mean` (float): mean temperature during the time step (°C).
-      - `temp_min` (float): minimum temperature during the time step (°C).
-      - `temp_max` (float): maximum temperature during the time step (°C).
+      - `temp_mean` (float): mean temperature during the time step (degree C).
+      - `temp_min` (float): minimum temperature during the time step (degree C).
+      - `temp_max` (float): maximum temperature during the time step (degree C).
       - `m` (float): shape parameter.
       - `n` (float): shape parameter.
     
@@ -242,8 +242,8 @@ class PowderyMildewDUParameters(Parameters):
         """ Parameters for septoria.
         
         :Parameters:
-            - `temp_min_for_infection` (float): minimal temperature for infection (°C).
-            - `temp_max_for_infection` (float): maximal temperature for infection (°C).
+            - `temp_min_for_infection` (float): minimal temperature for infection (degree C).
+            - `temp_max_for_infection` (float): maximal temperature for infection (degree C).
             - `m_for_infection` (float): shape parameter for the calculation of the
                normalized temperature for infection.
             - `n_for_infection` (float): shape parameter for the calculation of the
