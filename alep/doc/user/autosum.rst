@@ -28,12 +28,3 @@ Reference guide
     :show-inheritance:
     :synopsis: doc todo
 
-:mod:`DispersalUnit` module
-===============================================
-.. automodule:: alinea.alep.DispersalUnit
-    :members:
-    :undoc-members:
-    :inherited-members:
-    :show-inheritance:
-    :synopsis: doc todo
-

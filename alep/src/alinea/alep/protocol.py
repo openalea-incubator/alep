@@ -6,8 +6,7 @@ def initiate(g,
              dispersal_units_stock, 
              initiation_model, 
              label="LeafElement"):
-    """ 
-    Allocates dispersal units (objects) on elements of the MTG according to initiation_model 
+    """ Allocates dispersal units (objects) on elements of the MTG according to initiation_model 
 
     :Parameters:
       - `g` : MTG representing the canopy (and the soil).
@@ -19,6 +18,7 @@ def initiate(g,
       >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
       >>> initiate(g, stock, inoculator)
+      >>> return g
     """
     # Allocation of stock of inoculum
     initiation_model.disperse(g, dispersal_units_stock)
@@ -54,7 +54,22 @@ class RandomInoculation:
 def infect(g, dt):
     """ Compute infection success by dispersal units.
     
-    Dispersal units are stored in the MTG as lesions property.
+    :Parameters:
+      - `g` : MTG representing the canopy (and the soil). 'dispersal_units' are stored in the MTG as a property.
+      - `dt` : time step of the simulation.
+    
+    :Example:
+      >>> g = MTG()
+      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+      >>> inoculator = RandomInoculation()
+      >>> initiate(g, stock, inoculator)
+      >>> dt = 1
+      >>> nb_steps = 50
+      >>> for i in range(nb_steps):
+      >>>     update_climate(g)
+      >>>     infect(g, dt)
+      >>> return g
+      
     """
     dispersal_units = g.property('dispersal_units')
     for vid, du in dispersal_units.iteritems():
@@ -66,9 +81,25 @@ def infect(g, dt):
     return g,
     
 def update(g, dt):
-    """ Update lesion status.
+    """ Update the status of every lesion on the MTG.
     
-    Lesions are stored in the MTG as lesions property.
+    :Parameters:
+      - `g` : MTG representing the canopy (and the soil). 'lesions' are stored in the MTG as a property.
+      - `dt` : time step of the simulation.
+    
+    :Example:
+      >>> g = MTG()
+      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+      >>> inoculator = RandomInoculation()
+      >>> initiate(g, stock, inoculator)
+      >>> dt = 1
+      >>> nb_steps = 1000
+      >>> for i in range(nb_steps):
+      >>>     update_climate(g)
+      >>>     infect(g, dt)
+      >>>     update(g,dt)
+      >>> return g
+    
     """   
     lesions = g.property('lesions')
     for vid, l in lesions.iteritems():
@@ -80,10 +111,22 @@ def update(g, dt):
           
     return g,
     
-def disperse(g, dispersal_model, lesion_factory, label="LeafElement"):
+def disperse(g, 
+             dispersal_model,
+             lesion_factory, 
+             label="LeafElement"):
     """ Disperse spores of the lesions of fungus identified by fungus_name.
     
     New infections occur only on nodes identified by label.
+    
+    :Parameters:
+      - `g` : MTG representing the canopy (and the soil).
+      - `dispersal_model` : model that allows positioning each DU in stock on g.
+      - `lesion_factory` : class that generates a lesion of a given fungus.
+
+    :Example:
+      >>> 
+    
     """
     fungus_name = lesion_factory.fungus.name
     # arrachage
