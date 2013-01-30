@@ -1,5 +1,7 @@
 """ Test the protocol of communication between adel and alep """
 
+# Imports #########################################################################
+
 import random
 
 from alinea.adel.newmtg import *
@@ -15,6 +17,7 @@ from alinea.alep.cycle2 import powdery_mildew
 
 from alinea.alep.protocol import *
 
+# Construction ####################################################################
 
 def adelR(nplants,dd):
     devT = devCsv('../../adel/test/data/axeTCa0N.csv','../../adel/test/data/dimTCa0N.csv','../../adel/test/data/phenTCa0N.csv','../../adel/test/data/earTCa0N.csv','../../adel/test/data/ssi2sen.csv')
@@ -32,7 +35,6 @@ def leaves_db():
     f.close()
     leaves = fitting.fit_leaves(leaves, 9)
     return leaves
-
 
 def adel_mtg():
     """ create a very simple adel mtg """
@@ -61,12 +63,20 @@ def update_climate(g, label = 'LeafElement'):
         n.healthy_surface = 10.
         n.rain_intensity = 0.
         n.relative_humidity = 85.
-    
-    
-def test_adel():
-    g = adel_mtg()
-    scene = plot3d(g)
-    Viewer.display(scene)    
+
+def update_climate_with_rain(g, label = 'LeafElement'):
+    """ simulate an environmental program with rain """
+    vids = [n for n in g if g.label(n).startswith(label)]
+    for v in vids : 
+        n = g.node(v)
+        n.wetness = True
+        n.temp = 18.
+        n.age = 1.
+        n.healthy_surface = 10.
+        n.rain_intensity = 5.
+        n.relative_humidity = 85.
+
+# Representation ##################################################################
 
 def plot_lesions(g):
     """ plot the plant with infected elements in red """
@@ -83,7 +93,7 @@ def plot_lesions(g):
     Viewer.display(scene)  
 
 def plot_DU(g):
-    """ plot the plant with infected elements in red """
+    """ plot the plant with elements carrying dispersal units in red """
     green = (0,180,0)
     red = (180, 0, 0)
     for v in g.vertices(scale=g.max_scale()) : 
@@ -94,28 +104,122 @@ def plot_DU(g):
             n.color = green
     
     scene = plot3d(g)
-    Viewer.display(scene)     
+    Viewer.display(scene)
 
+def plot_lesions_after_DU(g):
+    """ plot the plant with :
+        - elements carrying dispersal units in yellow
+        - infected elements in red
+        
+    """
+    green = (0,180,0)
+    yellow = (247, 220, 17)
+    red = (180, 0, 0)
+    for v in g.vertices(scale=g.max_scale()) : 
+        n = g.node(v)
+        if 'lesions' in n.properties():
+            n.color = red
+        else :
+            if 'dispersal_units' in n.properties():
+                n.color = yellow
+            else : 
+                n.color = green
     
+    scene = plot3d(g)
+    Viewer.display(scene)
+
+def plot_lesions_in_state(g, state):
+    """ plot the plant with elements carrying lesions in given state in red """
+    green = (0,180,0)
+    red = (180, 0, 0)
+    for v in g.vertices(scale=g.max_scale()) : 
+        n = g.node(v)
+        if 'lesions' in n.properties():
+            for les in n.lesions:
+                if les.status == state:
+                    n.color = red
+        else : 
+            n.color = green
     
+    scene = plot3d(g)
+    Viewer.display(scene)
+
+# Tests ########################################################################### 
+
+def test_adel_mtg():
+    """ Check the proper functioning of 'adel_mtg'.
+    
+    """
+    g = adel_mtg()
+    scene = plot3d(g)
+    Viewer.display(scene)
+    
+def test_adel_mtg2():
+    """ Check the proper functioning of 'adel_mtg2'.
+    
+    """
+    g = adel_mtg2()
+    scene = plot3d(g)
+    Viewer.display(scene)
+
 def test_initiate():
+    """ Check if 'initiate' from 'protocol.py' deposits dispersal units on the MTG.
+    
+    """
     g = adel_mtg2()
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
-    plot_lesions(g)
+    plot_DU(g)
+    return g
+    
+def test_infect():
+    """ Check if 'infect' from 'protocol.py' leads to infection by dispersal units on the MTG.
+
+    """
+    g = adel_mtg2()
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+    
+    dt = 1
+    nb_steps = 50
+    for i in range(nb_steps):
+        update_climate(g)
+        infect(g, dt)
+    
+    plot_lesions_after_DU(g)
     return g
     
 def test_update():
-    g = adel_mtg()
-    update_climate(g)
-    les = cycle.LesionFactory(fungus = septoria())
-    initiate(g,les)
+    """ Check if 'update' from 'protocol.py' provokes the growth of a lesion instantiated on the MTG.
+
+    """
+    g = adel_mtg2()
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+   
     dt = 1
     nb_steps = 1000
     for i in range(nb_steps):
+        print('time step %d' % i)
+        
+        if i%100 == 0:
+            update_climate_with_rain(g)
+        else:
+            update_climate(g)
+            
         #grow(g)
-        update_climate(g)   
+        infect(g, dt)        
         update(g,dt)
+        # lesions = g.property('lesions')
+        # for vid,l in lesions.iteritems():
+            # for lesion in l:
+                # print('statut = %d' % lesion.status)
+                # print('nb rings = %d' % len(lesion.rings))
+                # print([ring.age_dday for ring in lesion.rings])
+        
+    plot_lesions_after_DU(g)
     return g
     
