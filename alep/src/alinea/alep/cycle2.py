@@ -44,6 +44,18 @@ class DispersalUnit(object):
         """
         self.nature = 'deposited'
         
+    def create_lesion(self, leaf):
+        """ Create a new lesion of fungus and inactivate dispersal unit.
+        
+        """
+        # TODO : Make more generic and move in Lesion
+        les = self.fungus(fungus = self.fungus, nbSpores = self.nbSpores, position = self.position)
+        if not 'lesions' in leaf.properties():
+            leaf.lesions=[]
+        leaf.lesions.append(les)
+        self.inactive()
+
+        
 class SeptoriaDU(DispersalUnit):
     """ Define a dispersal unit specific of septoria.
     
@@ -101,16 +113,6 @@ class SeptoriaDU(DispersalUnit):
                         self.inactive()
                         
     
-    def create_lesion(self, leaf):
-        """ Create a new lesion of fungus and inactivate dispersal unit.
-        
-        """
-        # TODO : Make more generic and move in Lesion
-        les = Septoria(self.fungus, self.nbSpores, self.position)
-        if not 'lesions' in leaf.properties():
-            leaf.lesions=[]
-        leaf.lesions.append(les)
-        self.inactive()
 
 class PowderyMildewDU(DispersalUnit):
     """ Define a dispersal unit specific of powdery mildew.
@@ -915,7 +917,7 @@ class SeptoriaParameters(Parameters):
         self.rain_events_to_empty = rain_events_to_empty       
 
     def __call__(self):
-        return Septoria(fungus=self)
+        return Septoria(fungus=self,nbSpores = None, position = None)
 
 def septoria(**kwds):
     return SeptoriaParameters(**kwds)
