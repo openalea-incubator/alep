@@ -39,7 +39,6 @@ class RandomInoculation:
         """        
         import random
         vids = [n for n in g if g.label(n).startswith(label)]
-        infected = random.sample(vids,len(inoculum))
         n = len(vids)
         for vid in vids:
             g.node(vid).dispersal_units = []
@@ -112,8 +111,9 @@ def update(g, dt):
     return g,
     
 def disperse(g, 
+             scene,
              dispersal_model,
-             lesion_factory, 
+             fungus_name, 
              label="LeafElement"):
     """ Disperse spores of the lesions of fungus identified by fungus_name.
     
@@ -128,25 +128,28 @@ def disperse(g,
       >>> 
     
     """
-    fungus_name = lesion_factory.fungus.name
+  
     # arrachage
     lesions = g.property('lesions')
+    DU = {}
     for vid, l in lesions.iteritems():
         for lesion in l:
             if lesion.fungus.name is fungus_name:
                 leaf = g.node(vid)
-                dispersal_units = lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
-    # dispersion
-    deposits = dispersal_model.disperse(g, dispersal_units) # deposits is a list of aggregates of spores defined by a (mtg_id, relative_position, nbSpores_in_the_aggregate)
+                if vid not in DU:
+                    DU[vid] = []
+                DU[vid].append(lesion.emission(leaf)) # other derterminant (microclimate...) are expected on leaf
+    # dispersion, position a sortir de du ??
+    deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, nature
     # allocation of new dispersal units
-    for d in deposits:
-        vid, pos, nbSpores = d
+    for vid,dlist in deposits.iteritems():
         if g.label(vid).startswith(label):
             leaf = g.node(vid)
-            du = dispersal_unit(nbSpores)
-            if not 'dispersal_units' in vid.properties():
-                vid.dispersal_units=[]
-            vid.dispersal_units.append(du)
+            for d in dlist:
+                d.deposited()
+                if not 'dispersal_units' in vid.properties():
+                    vid.dispersal_units=[]
+                vid.dispersal_units.append(d)
 
     return g,
 

@@ -198,7 +198,7 @@ def test_update():
 
     """
     g = adel_mtg2()
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(1000)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
    
@@ -224,32 +224,63 @@ def test_update():
         
     plot_lesions_after_DU(g)
     return g
-    
-# def test_disperse():
-    # """ Check if 'disperse' from 'protocol.py' disperse new dispersal units on the MTG.
+   
 
-    # """
-    # g = adel_mtg2()
-    # stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
-    # inoculator = RandomInoculation()
-    # initiate(g, stock, inoculator)
-      
-    # dt = 1
-    # nb_steps = 1000
-    # for i in range(nb_steps):
-        # print('time step %d' % i)
+class StubDispersal(object):
+
+    def __init__(self):
+        pass
         
-        # if i%100 == 0:
-            # update_climate_with_rain(g)
-        # else:
-            # update_climate(g)
+        
+    def disperse(self,scene, DU):
+        print DU
+        import random
+        vids = [geom.id for geom in scene]
+        n = len(vids)
+        deposits = {}
+    
+        for vid,dlist in DU.iteritems():
+            for d in dlist:
+                idx = random.randint(0,n-1)
+                v = vids[idx]
+                if v not in deposits:
+                    deposits[v] = []
+                deposits[v].append(d)
+        
+        print deposits
+        return(deposits)
             
-        # # grow(g)
-        # infect(g, dt)
-        # update(g,dt)
-        # dispersor = SplashDispersal()
-        # disperse(g, dispersor, fungus = septoria())
+            
+def test_disperse():
+    """ Check if 'disperse' from 'protocol.py' disperse new dispersal units on the MTG.
+
+    """
+    g = adel_mtg2()
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(10)]
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+    dispersor = StubDispersal()
+    
+    dt = 1
+    nb_steps = 1000
+    for i in range(nb_steps):
+        print('time step %d' % i)
         
-    # plot_lesions_after_DU(g)
-    # return g
+        if i%100 == 0:
+            update_climate_with_rain(g)
+            rain = 10
+        else:
+            update_climate(g)
+            rain=0
+            
+            
+        # grow(g)
+        infect(g, dt)
+        update(g,dt)
+        if rain != 0:
+            scene = plot3d(g)
+            disperse(g, scene, dispersor, "septoria")
+        
+    plot_lesions_after_DU(g)
+    return g
     
