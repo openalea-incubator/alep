@@ -49,7 +49,7 @@ class DispersalUnit(object):
         
         """
         # TODO : Make more generic and move in Lesion
-        les = self.fungus(fungus = self.fungus, nbSpores = self.nbSpores, position = self.position)
+        les = self.fungus(nbSpores = self.nbSpores, position = self.position)
         if not 'lesions' in leaf.properties():
             leaf.lesions=[]
         leaf.lesions.append(les)
@@ -916,7 +916,7 @@ class SeptoriaParameters(Parameters):
         self.rh_min = rh_min
         self.rain_events_to_empty = rain_events_to_empty       
 
-    def __call__(self):
+    def __call__(self,nbSpores = None, position = None):
         return Septoria(fungus=self,nbSpores = None, position = None)
 
 def septoria(**kwds):
