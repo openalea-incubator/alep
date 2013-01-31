@@ -2,30 +2,24 @@
  fake class for septo3D dispersion model
 """
 
-
-
-
-class Septoria(object):
+# class Septoria(object):
     
-    def emission(leaf):
+    # def emission(leaf):
        
-        """change state of rings"""
-        return NSpores
-        
+        # """change state of rings"""
+        # return NSpores
         
 class SplashDispersal(object):
     
     from alinea.Ldisp.Dispersor import *
     
-    def __init__(RainItensity,RainDuration)
+    def __init__(RainItensity,RainDuration):
         self.Ip = RainItensity
         self.Dp=RainDuration
         self.parD = parDisp()
         disp = newDispersor()
         pass
-        
-    
-        
+
     def disperse(g, dispersal_units):
         
         ilayers = [newILayerts(leaf) for leaf in g]
@@ -45,6 +39,6 @@ class SplashDispersal(object):
             Qspores = dispersal_unit.NSpores / eclins
             self.disp.addEclin(elcin, QSpores)
             DispSplash(Ip,Dp)
-            Udin = getQL(Sleaf[j], &(Disp.Udin),&(Disp.LAI), ISect[j]);
+            Udin = getQL(Sleaf[j], &(Disp.Udin), &(Disp.LAI), ISect[j]);
             #here compute relative position
             deposits[d.vid].NSpores = udin.NSpores

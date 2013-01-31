@@ -251,6 +251,7 @@ class Lesion(object):
         self.nbSpores = nbSpores
         self.position = position
         self.rings = []
+        self.emissions = []
 
 class Septoria(Lesion):
     """ 
@@ -322,9 +323,20 @@ class Septoria(Lesion):
             # return True
 
         #return ring.can_form_new_ring(leaf, lesion)
+        
+    def emission(self, leaf, **kwds):
+        """ Create a list of dispersal units emitted by the entire lesion.
+        
+        """
+        for ring in self.rings:
+            emissions = ring.emission(leaf, lesion=self)
+            if emissions:
+                self.emissions.append(emissions)
 
     def is_dead(self):
-        """ Update the status of all the rings to 'DEAD' if the lesion is dead. """
+        """ Update the status of all the rings to 'DEAD' if the lesion is dead.
+
+        """
         return all(ring.is_dead() for ring in self.rings)
   
     @property
@@ -584,6 +596,21 @@ class SeptoriaRing(Ring):
             self.rain_before = False
         else:
             self.rain_before = True
+    
+    def emission(self, leaf, lesion=None, **kwds):
+        """ Create a list of dispersal units emitted by the ring.
+        
+        .. Todo:: Implement a real formalism.
+        
+        """
+        if self.status == lesion.fungus.SPORULATING and leaf.rain_intensity > 0 and leaf.relative_humidity >= lesion.fungus.rh_min and not self.rain_before:
+            emissions = [SeptoriaDU(fungus = septoria(),
+                                   nbSpores=random.randint(1,100), 
+                                   nature='emitted') for i in range(10)]
+        else:
+            emissions = []
+        
+        return emissions
         
     def empty(self, lesion=None, **kwds):
         """ Assert if the status of the ring is 'EMPTY'.

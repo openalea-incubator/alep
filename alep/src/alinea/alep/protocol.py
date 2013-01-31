@@ -130,24 +130,23 @@ def disperse(g,
     """
     fungus_name = lesion_factory.fungus.name
     # arrachage
-    dispersal_units = {} # dict of mtg id -> quantity of spores/udin emitted by lesions of a given type
     lesions = g.property('lesions')
     for vid, l in lesions.iteritems():
         for lesion in l:
-            if lesion.fungus is fungus_name:
+            if lesion.fungus.name is fungus_name:
                 leaf = g.node(vid)
-                dispersal_units[vid] = lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
+                dispersal_units = lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
     # dispersion
     deposits = dispersal_model.disperse(g, dispersal_units) # deposits is a list of aggregates of spores defined by a (mtg_id, relative_position, nbSpores_in_the_aggregate)
-    # creation of new lesions
+    # allocation of new dispersal units
     for d in deposits:
         vid, pos, nbSpores = d
         if g.label(vid).startswith(label):
             leaf = g.node(vid)
-            les = lesion_factory.instantiate(nbSpores)
-            if not 'lesions' in vid.properties():
-                vid.lesions=[]
-            vid.lesions.append(les)
+            du = dispersal_unit(nbSpores)
+            if not 'dispersal_units' in vid.properties():
+                vid.dispersal_units=[]
+            vid.dispersal_units.append(du)
 
     return g,
 

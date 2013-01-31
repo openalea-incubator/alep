@@ -15,6 +15,8 @@ from alinea.alep.cycle2 import septoria
 from alinea.alep.cycle2 import SeptoriaDU
 from alinea.alep.cycle2 import powdery_mildew
 
+# from alinea.alep.Septo3DDispersion import SplashDispersal
+
 from alinea.alep.protocol import *
 
 # Construction ####################################################################
@@ -222,4 +224,32 @@ def test_update():
         
     plot_lesions_after_DU(g)
     return g
+    
+# def test_disperse():
+    # """ Check if 'disperse' from 'protocol.py' disperse new dispersal units on the MTG.
+
+    # """
+    # g = adel_mtg2()
+    # stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    # inoculator = RandomInoculation()
+    # initiate(g, stock, inoculator)
+      
+    # dt = 1
+    # nb_steps = 1000
+    # for i in range(nb_steps):
+        # print('time step %d' % i)
+        
+        # if i%100 == 0:
+            # update_climate_with_rain(g)
+        # else:
+            # update_climate(g)
+            
+        # # grow(g)
+        # infect(g, dt)
+        # update(g,dt)
+        # dispersor = SplashDispersal()
+        # disperse(g, dispersor, fungus = septoria())
+        
+    # plot_lesions_after_DU(g)
+    # return g
     
