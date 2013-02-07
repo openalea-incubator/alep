@@ -25,31 +25,6 @@ def initiate(g,
 
     return g,
 
-class RandomInoculation:
-    """ Example of class created to allocate inoculum on MTG randomly.
-    
-    """
-    
-    def disperse(self, g, inoculum, label='LeafElement'):
-        """ Select randomly elements of the MTG and allocate them a random part of the inoculum.
-
-        :Parameters:
-          - `g` : MTG representing the canopy (and the soil).
-          - `inoculum` : source of dispersal units to disperse in the scene.
-        """        
-        import random
-        vids = [n for n in g if g.label(n).startswith(label)]
-        n = len(vids)
-        for vid in vids:
-            g.node(vid).dispersal_units = []
-            
-        for i in inoculum:
-            idx = random.randint(0,n-1)
-            v = vids[idx]
-            # Deposit a DU from inoculum on node v of the MTG  
-            i.deposited()
-            g.node(v).dispersal_units.append(i)
-
 def infect(g, dt):
     """ Compute infection success by dispersal units.
     
@@ -136,9 +111,11 @@ def disperse(g,
         for lesion in l:
             if lesion.fungus.name is fungus_name:
                 leaf = g.node(vid)
-                if vid not in DU:
-                    DU[vid] = []
-                DU[vid].append(lesion.emission(leaf)) # other derterminant (microclimate...) are expected on leaf
+                if lesion.emissions:
+                    if vid not in DU:
+                        DU[vid] = []
+                    DU[vid] += lesion.emissions # other derterminant (microclimate...) are expected on leaf
+    
     # dispersion, position a sortir de du ??
     deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, nature
     # allocation of new dispersal units
@@ -147,9 +124,9 @@ def disperse(g,
             leaf = g.node(vid)
             for d in dlist:
                 d.deposited()
-                if not 'dispersal_units' in vid.properties():
-                    vid.dispersal_units=[]
-                vid.dispersal_units.append(d)
+                if not 'dispersal_units' in leaf.properties():
+                    leaf.dispersal_units=[]
+                leaf.dispersal_units.append(d)
 
     return g,
 
@@ -159,12 +136,7 @@ def wash(g, washing_model):
     for vid, du in dispersal_units.iteritems():
         for dispersal_unit in du:
             leaf = g.node(vid)
-            if washing_model(g, dispersal_unit):
-                dispersal_unit.inactive()
-                        
-    # A washing model could use the formalism of Rapilly :
-    # washing_rate = rain_intensity / (healthy_surface + rain_intensity)
-    # The implementation above must be wrong. Each du will not be treated individually.
+            washing_model.wash(dispersal_unit, leaf)
 
 def growth_control(g):
     pass

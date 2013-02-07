@@ -6,7 +6,7 @@
 """ Descrition Lesion
 
 """
-from random  import random
+from random import random
 from math import exp
 from math import pi
 
@@ -188,16 +188,16 @@ class PowderyMildewDU(DispersalUnit):
                     self.inactive()
                     # TODO : review because too extreme.        
        
-    def create_lesion(self, leaf):
-        """ Create a new lesion of fungus and inactivate dispersal unit.
+    # def create_lesion(self, leaf):
+        # """ Create a new lesion of fungus and inactivate dispersal unit.
         
-        """
+        # """
         # TODO : Make more generic and move in Lesion
-        les = PowderyMildew(self.fungus, self.nbSpores, self.position)
-        if not 'lesions' in leaf.properties():
-            leaf.lesions=[]
-        leaf.lesions.append(les)
-        self.inactive()
+        # les = PowderyMildew(self.fungus, self.nbSpores, self.position)
+        # if not 'lesions' in leaf.properties():
+            # leaf.lesions=[]
+        # leaf.lesions.append(les)
+        # self.inactive()
 
 # Lesions #################################################################################
 
@@ -296,6 +296,9 @@ class Septoria(Lesion):
                 new_ring = SeptoriaRing(lesion = self, status = self.fungus.IN_FORMATION, dt=1.)
                 self.rings.append(new_ring)
                 self.rings[-1].age_dday += remaining_age
+                
+            # Compute emissions
+            self.emission(leaf)
                     
     def can_form_new_ring(self, Dt):
         """ Check if the lesion can form a new ring.
@@ -333,8 +336,8 @@ class Septoria(Lesion):
         for ring in self.rings:
             emissions = ring.emission(leaf, lesion=self)
             if emissions:
-                self.emissions.append(emissions)
-
+                self.emissions += emissions
+                
     def is_dead(self):
         """ Update the status of all the rings to 'DEAD' if the lesion is dead.
 
@@ -593,11 +596,6 @@ class SeptoriaRing(Ring):
         
         if self.cumul_rain_event >= lesion.fungus.rain_events_to_empty:
             self.status = lesion.fungus.EMPTY # The ring is empty.
-            
-        if rain_intensity == 0:
-            self.rain_before = False
-        else:
-            self.rain_before = True
     
     def emission(self, leaf, lesion=None, **kwds):
         """ Create a list of dispersal units emitted by the ring.
@@ -605,12 +603,18 @@ class SeptoriaRing(Ring):
         .. Todo:: Implement a real formalism.
         
         """
-        if self.status == lesion.fungus.SPORULATING and leaf.rain_intensity > 0 and leaf.relative_humidity >= lesion.fungus.rh_min and not self.rain_before:
+        import random
+        if self.status == lesion.fungus.SPORULATING and leaf.rain_intensity > 0. and leaf.relative_humidity >= lesion.fungus.rh_min and not self.rain_before:
             emissions = [SeptoriaDU(fungus = septoria(),
-                                   nbSpores=random.randint(1,100), 
-                                   nature='emitted') for i in range(10)]
+                                   nbSpores = random.randint(1,100), 
+                                   nature='emitted') for i in range(2)]
         else:
             emissions = []
+
+        if leaf.rain_intensity == 0:
+            self.rain_before = False
+        else:
+            self.rain_before = True
         
         return emissions
         
@@ -854,10 +858,10 @@ class SeptoriaParameters(Parameters):
                  EMPTY = 4,
                  DEAD = 5,
                  Dt = 20,
-                 basis_for_dday = -2,
-                 temp_min = 10,
-                 temp_max = 30,
-                 wd_min = 10,
+                 basis_for_dday = -2.,
+                 temp_min = 10.,
+                 temp_max = 30.,
+                 wd_min = 10.,
                  loss_rate = 1./120,
                  degree_days_to_chlorosis = 220,
                  degree_days_to_necrosis = 110,
@@ -866,7 +870,7 @@ class SeptoriaParameters(Parameters):
                  Smin = 0.03,
                  Smax = 0.3,
                  growth_rate = 0.0006,
-                 rh_min = 85,
+                 rh_min = 85.,
                  rain_events_to_empty = 3,            
                  *args, **kwds):
         """ Parameters for septoria.

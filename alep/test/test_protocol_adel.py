@@ -14,12 +14,13 @@ from alinea.alep import cycle2
 from alinea.alep.cycle2 import septoria
 from alinea.alep.cycle2 import SeptoriaDU
 from alinea.alep.cycle2 import powdery_mildew
+from alinea.alep.cycle2 import proba
 
 # from alinea.alep.Septo3DDispersion import SplashDispersal
 
 from alinea.alep.protocol import *
 
-# Construction ####################################################################
+# Plant ###########################################################################
 
 def adelR(nplants,dd):
     devT = devCsv('../../adel/test/data/axeTCa0N.csv','../../adel/test/data/dimTCa0N.csv','../../adel/test/data/phenTCa0N.csv','../../adel/test/data/earTCa0N.csv','../../adel/test/data/ssi2sen.csv')
@@ -53,7 +54,12 @@ def adel_mtg2():
     g=mtg_factory(d,adel_metamer,leaf_db=leaves_db(),stand=[((0,0,0),0),((10,0,0),90), ((0,10,0), 0)])
     g=mtg_interpreter(g)
     return g
-   
+
+# Climate #########################################################################
+
+# def create_climate_list():
+    # wetness = [True]
+
 def update_climate(g, label = 'LeafElement'):
     """ simulate an environmental program """
     vids = [n for n in g if g.label(n).startswith(label)]
@@ -66,19 +72,77 @@ def update_climate(g, label = 'LeafElement'):
         n.rain_intensity = 0.
         n.relative_humidity = 85.
 
-def update_climate_with_rain(g, label = 'LeafElement'):
+def rain_interception(g, rain_intensity = None, label = 'LeafElement'):
     """ simulate an environmental program with rain """
     vids = [n for n in g if g.label(n).startswith(label)]
     for v in vids : 
         n = g.node(v)
-        n.wetness = True
-        n.temp = 18.
-        n.age = 1.
-        n.healthy_surface = 10.
-        n.rain_intensity = 5.
-        n.relative_humidity = 85.
+        n.rain_intensity = rain_intensity
 
-# Representation ##################################################################
+class RandomInoculation:
+    """ Example of class created to allocate inoculum on MTG randomly.
+    
+    """
+    
+    def disperse(self, g, inoculum, label='LeafElement'):
+        """ Select randomly elements of the MTG and allocate them a random part of the inoculum.
+
+        :Parameters:
+          - `g` : MTG representing the canopy (and the soil).
+          - `inoculum` : source of dispersal units to disperse in the scene.
+        """        
+        import random
+        vids = [n for n in g if g.label(n).startswith(label)]
+        n = len(vids)
+        for vid in vids:
+            g.node(vid).dispersal_units = []
+            
+        for i in inoculum:
+            idx = random.randint(0,n-1)
+            v = vids[idx]
+            # Deposit a DU from inoculum on node v of the MTG  
+            i.deposited()
+            g.node(v).dispersal_units.append(i)
+            
+class StubDispersal(object):
+
+    def __init__(self):
+        pass
+
+    def disperse(self, scene, DU):
+        vids = [geom.id for geom in scene]
+        n = len(vids)
+        deposits = {}
+    
+        for vid,dlist in DU.iteritems():
+            for d in dlist:
+                idx = random.randint(0,n-1)
+                v = vids[idx]
+                if v not in deposits:
+                    deposits[v] = []
+                deposits[v].append(d)
+         
+        return deposits
+        
+class StubWashing(object):
+    def __init__(self):
+        pass
+        
+    def wash(self, DU, leaf):
+        rain_intensity = leaf.rain_intensity
+        # rain_duration = leaf.rain_duration
+        healthy_surface = leaf.healthy_surface
+        rain_duration = 1 # temp
+        
+        if rain_duration == 0.:
+            washing_rate = 0.
+        else:
+            washing_rate = max(0,min(1, rain_intensity / (healthy_surface + rain_intensity)))
+        
+        if proba(washing_rate):
+            DU.inactive()            
+            
+# Display #########################################################################
 
 def plot_lesions(g):
     """ plot the plant with infected elements in red """
@@ -95,13 +159,13 @@ def plot_lesions(g):
     Viewer.display(scene)  
 
 def plot_DU(g):
-    """ plot the plant with elements carrying dispersal units in red """
+    """ plot the plant with elements carrying dispersal units in yellow """
     green = (0,180,0)
-    red = (180, 0, 0)
+    yellow = (247, 220, 17)
     for v in g.vertices(scale=g.max_scale()) : 
         n = g.node(v)
         if 'dispersal_units' in n.properties():
-            n.color = red
+            n.color = yellow
         else : 
             n.color = green
     
@@ -145,7 +209,35 @@ def plot_lesions_in_state(g, state):
     
     scene = plot3d(g)
     Viewer.display(scene)
-
+ 
+class DisplayLesions(object):
+    """ Print the ID of Leaf Elements where new lesions appear. """
+    
+    def __init__(self):
+        self.old_lesions = []
+        
+    def print_new_lesions(self, g):
+        lesions = g.property('lesions')
+        
+        for vid, l in lesions.iteritems():
+            for lesion in l:
+                if not lesion in self.old_lesions:
+                    self.old_lesions.append(lesion)
+                    print('New Lesions on : ' + g.label(vid) + ' %d' % vid)
+        
+    def print_all_lesions(self, g):
+        from pprint import pprint
+        lesions = g.property('lesions')
+        ldict = {}
+        for vid, l in lesions.iteritems():
+            for lesion in l:
+                if vid not in ldict:
+                    ldict[vid] = 0
+                ldict[vid] += 1
+        print('\n' + 'Number of lesions by leaf element : ' + '\n')             
+        pprint(ldict)
+        # print('You can find lesions on LeafElements : ' + str(llist).strip('[]'))
+    
 # Tests ########################################################################### 
 
 def test_adel_mtg():
@@ -189,8 +281,8 @@ def test_infect():
     for i in range(nb_steps):
         update_climate(g)
         infect(g, dt)
-    
-    plot_lesions_after_DU(g)
+            
+        plot_lesions_after_DU(g)
     return g
     
 def test_update():
@@ -198,7 +290,7 @@ def test_update():
 
     """
     g = adel_mtg2()
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(1000)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
    
@@ -207,10 +299,9 @@ def test_update():
     for i in range(nb_steps):
         print('time step %d' % i)
         
+        update_climate(g)
         if i%100 == 0:
-            update_climate_with_rain(g)
-        else:
-            update_climate(g)
+            rain_interception(g, rain_intensity = 5.)          
             
         #grow(g)
         infect(g, dt)        
@@ -221,66 +312,92 @@ def test_update():
                 # print('statut = %d' % lesion.status)
                 # print('nb rings = %d' % len(lesion.rings))
                 # print([ring.age_dday for ring in lesion.rings])
-        
+    
+    displayer = DisplayLesions()
+    displayer.print_all_lesions(g)
+    
     plot_lesions_after_DU(g)
     return g
-   
 
-class StubDispersal(object):
-
-    def __init__(self):
-        pass
-        
-        
-    def disperse(self,scene, DU):
-        print DU
-        import random
-        vids = [geom.id for geom in scene]
-        n = len(vids)
-        deposits = {}
-    
-        for vid,dlist in DU.iteritems():
-            for d in dlist:
-                idx = random.randint(0,n-1)
-                v = vids[idx]
-                if v not in deposits:
-                    deposits[v] = []
-                deposits[v].append(d)
-        
-        print deposits
-        return(deposits)
-            
-            
 def test_disperse():
     """ Check if 'disperse' from 'protocol.py' disperse new dispersal units on the MTG.
 
     """
     g = adel_mtg2()
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(10)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(2)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
-    dispersor = StubDispersal()
+    
+    displayer = DisplayLesions()
     
     dt = 1
     nb_steps = 1000
     for i in range(nb_steps):
         print('time step %d' % i)
         
+        update_climate(g)
         if i%100 == 0:
-            update_climate_with_rain(g)
-            rain = 10
+            rain_intensity = 5.
+            rain_interception(g, rain_intensity)
         else:
-            update_climate(g)
-            rain=0
-            
+            rain_intensity = 0.
             
         # grow(g)
         infect(g, dt)
         update(g,dt)
-        if rain != 0:
+        if rain_intensity != 0:
             scene = plot3d(g)
-            disperse(g, scene, dispersor, "septoria")
-        
-    plot_lesions_after_DU(g)
-    return g
+            dispersor = StubDispersal()
+            disperse(g, scene, dispersor, "Septoria")
+
+        displayer.print_new_lesions(g)
     
+    print('-----------------------------------')
+    displayer.print_all_lesions(g)
+    plot_lesions(g)
+    
+    return g
+
+def test_washing():
+    """ Check if 'washing' from 'protocol.py' washes dispersal units out of the MTG.
+
+    """
+    g = adel_mtg2()
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+    
+    washor = StubWashing()
+    
+    dt = 1
+    nb_steps = 100
+    for i in range(nb_steps):
+    
+        update_climate(g)
+        if i%5 == 0:
+            rain_intensity = 5.
+            rain_interception(g, rain_intensity)
+        else:
+            rain_intensity = 0.
+    
+        if rain_intensity != 0:
+            wash(g, washor)
+        
+            dispersal_units = g.property('dispersal_units')
+            nbDU = 0.
+            for vid, dlist in dispersal_units.iteritems():
+                for d in dlist:
+                    if d.active:
+                        nbDU += 1
+            print('\n')
+            print('   _ _ _')
+            print('  (pluie)')
+            print(' (_ _ _ _)')
+            print('   |  |')
+            print('    |  | ')
+            print('\n')
+
+            print('Sur le MTG il y a %d DU actives en tout' % nbDU)
+        # plot_DU(g)
+    
+    return g
