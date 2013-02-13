@@ -25,7 +25,7 @@ def initiate(g,
 
     return g,
 
-def infect(g, dt):
+def infect(g, dt, label="LeafElement"):
     """ Compute infection success by dispersal units.
     
     :Parameters:
@@ -47,14 +47,15 @@ def infect(g, dt):
     """
     dispersal_units = g.property('dispersal_units')
     for vid, du in dispersal_units.iteritems():
-        for dispersal_unit in du:
-            leaf = g.node(vid)
-            if dispersal_unit.active: # TODO : Condition here ?
-                dispersal_unit.infect(dt, leaf)
+        if g.label(vid).startswith(label):
+            for dispersal_unit in du:
+                leaf = g.node(vid)
+                if dispersal_unit.active: # TODO : Condition here ?
+                    dispersal_unit.infect(dt, leaf)
 
     return g,
     
-def update(g, dt):
+def update(g, dt, label="LeafElement"):
     """ Update the status of every lesion on the MTG.
     
     :Parameters:
@@ -77,11 +78,12 @@ def update(g, dt):
     """   
     lesions = g.property('lesions')
     for vid, l in lesions.iteritems():
-        for lesion in l:
-            # proposition 1 on fait ici une correspondance nom attendus dans g <-> noms caracterisant un environnement de lesion (classe a faire ??)
-            leaf=g.node(vid)
-            #proposition 2 : les conventions de nommage noms sont definies ailleurs (ou???) et on passe juste une leaf qui repond a cette convention
-            lesion.update(dt, leaf)
+        if g.label(vid).startswith(label):
+            for lesion in l:
+                # proposition 1 on fait ici une correspondance nom attendus dans g <-> noms caracterisant un environnement de lesion (classe a faire ??)
+                leaf=g.node(vid)
+                #proposition 2 : les conventions de nommage noms sont definies ailleurs (ou???) et on passe juste une leaf qui repond a cette convention
+                lesion.update(dt, leaf)
           
     return g,
     
@@ -130,17 +132,50 @@ def disperse(g,
 
     return g,
 
-def wash(g, washing_model): 
-    """ compute spores loss by washing """
+def wash(g, washing_model, global_rain_intensity, label="LeafElement"): 
+    """ Compute spores loss by washing.
+    
+    """
+    washing_model.compute_washing_rate(g, global_rain_intensity) # compute washing rate on each leaf
+    
     dispersal_units = g.property('dispersal_units')
     for vid, du in dispersal_units.iteritems():
-        for dispersal_unit in du:
-            leaf = g.node(vid)
-            washing_model.wash(dispersal_unit, leaf)
-
-def growth_control(g):
-    pass
+        if g.label(vid).startswith(label):
+            for dispersal_unit in du:
+                leaf = g.node(vid)
+                # inactive the DU according to the washing_rate on the leaf
+                washing_model.wash(dispersal_unit, leaf.washing_rate)
     
+    return g,
+
+def growth_control(g, label="LeafElement"):
+    """ Coordinate the growth of lesions according to the available space on the leaves.
+    
+    """
+    vids = [v for v in g if g.label(v).startswith("LeafElement")]
+    for v in vids:
+        leaf = g.node(v)
+        if 'lesions' in leaf.properties():
+            lesions = leaf.lesions
+            healthy_surface = leaf.healthy_surface
+            total_demand = sum(l.growth_demand for l in lesions)
+            
+            if total_demand > healthy_surface:
+                available_surface_by_lesion = healthy_surface / len(lesions)
+                for l in lesions:
+                    if available_surface_by_lesion < l.growth_demand:
+                        l.growth_control(reduce_up_to = available_surface_by_lesion)                      
+    
+            # Update of 'healthy_surface' :
+            total_lesions_surface = sum([l.surface for l in lesions])
+            healthy_surface = max(0., leaf.surface - total_lesions_surface) 
+            # FIXME : Should not need the 'max' operator ...
+            leaf.healthy_surface = healthy_surface 
+            # TODO : Right way to do this ???
+            
+    return g,
+
 def nutrients_uptake(g):
     pass
+
     

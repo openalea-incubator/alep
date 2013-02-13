@@ -51,11 +51,10 @@ class DispersalUnit(object):
         # TODO : Make more generic and move in Lesion
         les = self.fungus(nbSpores = self.nbSpores, position = self.position)
         if not 'lesions' in leaf.properties():
-            leaf.lesions=[]
+            leaf.lesions = []
         leaf.lesions.append(les)
         self.inactive()
-
-        
+  
 class SeptoriaDU(DispersalUnit):
     """ Define a dispersal unit specific of septoria.
     
@@ -85,34 +84,38 @@ class SeptoriaDU(DispersalUnit):
         temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).
         healthy_surface = leaf.healthy_surface # (float) : healthy surface (=with no lesion) on the leaf sector during the time step (in cm^2).
         
-        # TODO : Right way to do this ?
-        if self.nbSpores == 0.:
-            self.inactive()
-        
+        if healthy_surface > 0. :
+            # TODO : Right way to do this ?
+            if self.nbSpores == 0.:
+                self.inactive()
+           
+            else:
+                if self.nature == 'deposited':
+                    # TODO: design a new equation : see Magarey (2005)
+                    if leaf_wet:
+                        self.cumul_wetness += 1
+                    elif self.cumul_wetness > 0: 
+                        assert not leaf_wet
+                        self.cumul_wetness = 0.
+                        # TODO : find a way to reduce inoculum if wet then dry. 
+                        # Following lines are a hack - NO biological meaning
+                        if proba(self.fungus.loss_rate):
+                            self.inactive()
+                    else:
+                        assert not leaf_wet
+                        assert self.cumul_wetness == 0.
+                    
+                    if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :
+                        # TODO : create a function of the number of spores            
+                        spores_factor = self.nbSpores / self.nbSpores # always equals 1 for now
+                        if proba(spores_factor):
+                            self.create_lesion(leaf)
+                    elif self.cumul_wetness == 0 :
+                        # TODO : Proba conditionnelle doit se cumuler.
+                        if proba(self.fungus.loss_rate): 
+                            self.inactive()
         else:
-            if self.nature == 'deposited':
-                # TODO: design a new equation : see Magarey (2005)
-                if leaf_wet:
-                    self.cumul_wetness += 1
-                elif self.cumul_wetness > 0: 
-                    assert not leaf_wet
-                    self.cumul_wetness = 0.
-                    self.inactive()
-                else:
-                    assert not leaf_wet
-                    assert self.cumul_wetness == 0.
-                
-                if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :
-                    # TODO : create a function of the number of spores            
-                    spores_factor = self.nbSpores / self.nbSpores # always equals 1 for now
-                    if proba(spores_factor):
-                        self.create_lesion(leaf)
-                elif self.cumul_wetness == 0 :
-                    # TODO : Proba conditionnelle doit se cumuler.
-                    if proba(self.fungus.loss_rate): 
-                        self.inactive()
-                        
-    
+            self.inactive()
 
 class PowderyMildewDU(DispersalUnit):
     """ Define a dispersal unit specific of powdery mildew.
@@ -307,7 +310,7 @@ class Septoria(Lesion):
              
         """
         if self.surface < self.fungus.Smax:
-            if self.rings[-1].age_dday < Dt:
+            if self.rings[-1].age_dday < Dt :
                 return False
             else:
                 return True
@@ -337,7 +340,14 @@ class Septoria(Lesion):
             emissions = ring.emission(leaf, lesion=self)
             if emissions:
                 self.emissions += emissions
-                
+    
+    def growth_control(self, reduce_up_to = 0.):
+        """ Reduce surface of the last ring up to available surface on leaf.
+        
+        """
+        if self.rings:
+            self.rings[-1].growth_control(reduce_up_to)
+        
     def is_dead(self):
         """ Update the status of all the rings to 'DEAD' if the lesion is dead.
 
@@ -350,7 +360,14 @@ class Septoria(Lesion):
         """
         surf = sum(ring.surface for ring in self.rings)
         return surf
-
+    
+    @property
+    def growth_demand(self):
+        """ Compute the growth demand of the lesion.
+        """
+        if self.rings:
+            return self.rings[-1].growth_demand
+    
     @property
     def status(self):
         """ Compute the status of the lesion.
@@ -471,9 +488,10 @@ class SeptoriaRing(Ring):
         """
         super(SeptoriaRing, self).__init__()
         self.status = status
+        self.growth_demand = 0.
         
         if not lesion.rings:
-            self.surface = lesion.fungus.epsilon
+            self.surface = lesion.fungus.epsilon # TOPO : see later with growth_demand
         else:
             self.surface = 0.
         
@@ -509,30 +527,47 @@ class SeptoriaRing(Ring):
         """     
         assert(self.status == lesion.fungus.IN_FORMATION)
         
-        leaf = self.leaf
-        lesions = leaf.lesions # (class) : Lesions on the leaf sector with their properties.
-        nb_lesions = len(lesions) # (int) : number of lesions on the leaf sector.
-        nb_incubating_lesions = len([les for les in lesions if les.status == lesion.fungus.IN_FORMATION])
-        # (int) : number of lesions in incubation on the leaf sector.
-        incubating_surface = sum([les.surface for les in lesions if les.status == lesion.fungus.IN_FORMATION])
-        # (int) : surface of the lesions in incubation on the leaf sector (in cm^2).
-        healthy_surface = leaf.healthy_surface
-        # (int) : surface with no lesion on the leaf sector (in cm^2).
+        # leaf = self.leaf
+        # lesions = leaf.lesions # (class) : Lesions on the leaf sector with their properties.
+        # nb_lesions = len(lesions) # (int) : number of lesions on the leaf sector.
+        # nb_incubating_lesions = len([les for les in lesions if les.status == lesion.fungus.IN_FORMATION])
+        # # (int) : number of lesions in incubation on the leaf sector.
+        # incubating_surface = sum([les.surface for les in lesions if les.status == lesion.fungus.IN_FORMATION])
+        # # (int) : surface of the lesions in incubation on the leaf sector (in cm^2).
+        # healthy_surface = leaf.healthy_surface
+        # # (int) : surface with no lesion on the leaf sector (in cm^2).
                 
-        if healthy_surface > 0:
-            if self == lesion.rings[0]: # First ring appears in incubation
-                free_space = healthy_surface / nb_incubating_lesions # An incubating ring can emerge only on an healthy surface.
-                self.surface += min(free_space, lesion.fungus.Smin * ddday / lesion.fungus.degree_days_to_chlorosis)
-            else:
-                free_space = (healthy_surface + incubating_surface)/ (nb_lesions - nb_incubating_lesions)
-                # A chlorotic ring can emerge only on green surface (= healthy surface + incubating surface)
-                size_before_Smax = lesion.fungus.Smax - lesion.surface
-                self.surface += min(free_space, size_before_Smax, lesion.fungus.growth_rate * ddday)           
+        # if healthy_surface > 0:
+            # if self == lesion.rings[0]: # First ring appears in incubation
+                # free_space = healthy_surface / nb_incubating_lesions # An incubating ring can emerge only on an healthy surface.
+                # self.surface += min(free_space, lesion.fungus.Smin * ddday / lesion.fungus.degree_days_to_chlorosis)
+            # else:
+                # free_space = (healthy_surface + incubating_surface)/ (nb_lesions - nb_incubating_lesions)
+                # # A chlorotic ring can emerge only on green surface (= healthy surface + incubating surface)
+                # size_before_Smax = lesion.fungus.Smax - lesion.surface
+                # self.surface += min(free_space, size_before_Smax, lesion.fungus.growth_rate * ddday)           
         
         # TODO : free space must be an input from the leaf --> It will simplify the calculation
         # Or here just calculation of the potential of growth of the lesion.
         # The external model of competition will allow it or not.
         
+        leaf = self.leaf
+
+        if self == lesion.rings[0]: # First ring appears in incubation
+            self.growth_demand = lesion.fungus.Smin * ddday / lesion.fungus.degree_days_to_chlorosis
+        else:
+            size_before_Smax = lesion.fungus.Smax - lesion.surface
+            self.growth_demand = min(size_before_Smax, lesion.fungus.growth_rate * ddday)
+        
+        self.surface += self.growth_demand
+    
+    def growth_control(self, reduce_up_to = 0.):
+        """ Reduce surface of the last ring up to available surface on leaf.
+        
+        """
+        surface_reduction = self.growth_demand - reduce_up_to
+        self.surface -= surface_reduction
+    
     def chlorotic(self, lesion=None, **kwds):
         """ Set the status of the ring to NECROTIC when needed.
         
