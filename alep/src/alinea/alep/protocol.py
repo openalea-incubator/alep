@@ -158,6 +158,8 @@ def growth_control(g, label="LeafElement"):
         if 'lesions' in leaf.properties():
             lesions = leaf.lesions
             healthy_surface = leaf.healthy_surface
+            # if n.parent() is None:#this is a new plant base
+                # p = n.complex_at_scale(scale=1)
             total_demand = sum(l.growth_demand for l in lesions)
             
             if total_demand > healthy_surface:

@@ -16,6 +16,9 @@ __alias__ = []
 
 __all__ = []
 
-
-    
+protocol_update = Factory(name='update',
+                nodemodule='protocol_nodes',
+                nodeclass='update',
+               )
+__all__.append('protocol_update') 
 

@@ -565,6 +565,7 @@ class SeptoriaRing(Ring):
         """ Reduce surface of the last ring up to available surface on leaf.
         
         """
+        #if lesion.ring[-1]
         surface_reduction = self.growth_demand - reduce_up_to
         self.surface -= surface_reduction
     

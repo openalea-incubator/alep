@@ -570,8 +570,8 @@ def test_simul_with_weather():
         
         wash(g, washor, weather_data)
     
-    displayer = DisplayLesions()
-    displayer.print_all_lesions(g)
+        displayer = DisplayLesions()
+        displayer.print_all_lesions(g)
 
     plot_lesions(g)
     return g
