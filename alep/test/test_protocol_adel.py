@@ -23,7 +23,7 @@ from alinea.alep.protocol import *
 # Plant ###########################################################################
 
 def adelR(nplants,dd):
-    devT = devCsv('../../adel/test/data/axeTCa0N.csv','../../adel/test/data/dimTCa0N.csv','../../adel/test/data/phenTCa0N.csv','../../adel/test/data/earTCa0N.csv','../../adel/test/data/ssi2sen.csv')
+    devT = devCsv('../../adel/example/data/axeTCa0N.csv','../../adel/example/data/dimTCa0N.csv','../../adel/example/data/phenTCa0N.csv','../../adel/example/data/earTCa0N.csv','../../adel/example/data/ssi2sen.csv')
     geoLeaf = genGeoLeaf()
     geoAxe = genGeoAxe()
     pars = setAdel(devT,geoLeaf,geoAxe,nplants)
