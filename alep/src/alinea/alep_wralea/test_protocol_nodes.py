@@ -1,3 +1,4 @@
+#TODO : DO NOT DUPLICATE CODE
 """ Test the protocol of communication between adel and alep """
 
 # Imports #########################################################################
@@ -612,4 +613,3 @@ def test_simul_with_weather():
 
     plot_lesions(g)
     return g
-    

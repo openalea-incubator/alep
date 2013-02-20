@@ -22,3 +22,8 @@ protocol_update = Factory(name='update',
                )
 __all__.append('protocol_update') 
 
+adel_mtg3 = Factory(name='adel_mtg3',
+                nodemodule='test_protocol_nodes',
+                nodeclass='adel_mtg3',
+               )
+__all__.append('adel_mtg3') 
