@@ -37,3 +37,22 @@ protocol_nodes_update = Factory(name='update',
                )
 __all__.append('protocol_nodes_update')
 
+protocol_nodes_disperse = Factory(name='disperse',
+                nodemodule='protocol_nodes',
+                nodeclass='disperse',
+               )
+__all__.append('protocol_nodes_disperse')
+
+protocol_nodes_wash = Factory(name='wash',
+                nodemodule='protocol_nodes',
+                nodeclass='wash',
+               )
+__all__.append('protocol_nodes_wash')
+
+protocol_nodes_growth_control = Factory(name='growth_control',
+                nodemodule='protocol_nodes',
+                nodeclass='growth_control',
+               )
+__all__.append('protocol_nodes_growth_control')
+
+

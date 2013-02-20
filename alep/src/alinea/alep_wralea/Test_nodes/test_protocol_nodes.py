@@ -125,18 +125,20 @@ class ReadWeather(object):
         return self
 
 def update_on_leaves(data, time_step, g, label = 'LeafElement'):
-        """ Read weather data for a step of simulation and apply it to each leaf.
+    """ Read weather data for a step of simulation and apply it to each leaf.
+    
+    """        
+    vids = [n for n in g if g.label(n).startswith(label)]
+    for v in vids : 
+        n = g.node(v)
         
-        """        
-        vids = [n for n in g if g.label(n).startswith(label)]
-        for v in vids : 
-            n = g.node(v)
-            
-            n.temp = data.temp[time_step]
-            n.rain_intensity = data.rain[time_step]
-            n.relative_humidity = data.RH[time_step]
-            n.wetness = data.wetness[time_step]
+        n.temp = data.temp[time_step]
+        n.rain_intensity = data.rain[time_step]
+        n.relative_humidity = data.RH[time_step]
+        n.wetness = data.wetness[time_step]
 
+    return g
+    
 def initiate_g(g, label = 'LeafElement'):
     """ Give initial values for plant properties of each LeafElement. 
     
@@ -159,6 +161,8 @@ def update_climate(g, label = 'LeafElement'):
         n.temp = 18.
         n.rain_intensity = 0.
         n.relative_humidity = 85.
+    
+    return g
 
 def rain_interception(g, rain_intensity = None, label = 'LeafElement'):
     """ simulate an environmental program with rain """
@@ -166,6 +170,8 @@ def rain_interception(g, rain_intensity = None, label = 'LeafElement'):
     for v in vids : 
         n = g.node(v)
         n.rain_intensity = rain_intensity
+        
+    return g
 
 # Stub models for disease #########################################################
 
@@ -211,6 +217,22 @@ def inoculator():
     # Temp : Do better. How to instantiate a class in Dataflow ?
     inoculator = RandomInoculation()
     return inoculator
+
+def dispersor():            
+    """ Instantiate the class RandomInoculation().
+    
+    """
+    # Temp : Do better. How to instantiate a class in Dataflow ?
+    dispersor = StubDispersal()
+    return dispersor
+    
+def washor():            
+    """ Instantiate the class RandomInoculation().
+    
+    """
+    # Temp : Do better. How to instantiate a class in Dataflow ?
+    washor = StubWashing()
+    return washor
     
 class StubDispersal(object):
 
@@ -277,19 +299,6 @@ def temp_plot3D(g):
     scene = plot3d(g)
     Viewer.display(scene)
 
-def plot_lesions(g):
-    """ plot the plant with infected elements in red """
-    green = (0,180,0)
-    red = (180, 0, 0)
-    for v in g.vertices(scale=g.max_scale()) : 
-        n = g.node(v)
-        if 'lesions' in n.properties():
-            n.color = red
-        else : 
-            n.color = green
-    
-    scene = plot3d(g)
-    Viewer.display(scene)  
 
 def plot_DU(g):
     """ plot the plant with elements carrying dispersal units in yellow """
@@ -299,6 +308,20 @@ def plot_DU(g):
         n = g.node(v)
         if 'dispersal_units' in n.properties() and n.dispersal_units:
             n.color = yellow
+        else : 
+            n.color = green
+    
+    scene = plot3d(g)
+    Viewer.display(scene)
+    
+def plot_lesions(g):
+    """ plot the plant with infected elements in red """
+    green = (0,180,0)
+    red = (180, 0, 0)
+    for v in g.vertices(scale=g.max_scale()) : 
+        n = g.node(v)
+        if 'lesions' in n.properties():
+            n.color = red
         else : 
             n.color = green
     
@@ -426,7 +449,7 @@ def test_initiate():
     g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    g = initiate(g, stock, inoculator)
     plot_DU(g)
     return g
     
@@ -438,14 +461,14 @@ def test_infect():
     g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    g = initiate(g, stock, inoculator)
     
     dt = 1
     nb_steps = 100
     plot_DU(g)
     for i in range(nb_steps):
-        update_climate(g)
-        infect(g, dt)
+        g = update_climate(g)
+        g = infect(g, dt)
             
     plot_lesions(g)
     return g
@@ -458,23 +481,23 @@ def test_update():
     g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    g = initiate(g, stock, inoculator)
    
     dt = 1
     nb_steps = 1000
     for i in range(nb_steps):
         print('time step %d' % i)
         
-        update_climate(g)
+        g = update_climate(g)
         if i%100 == 0:
             global_rain_intensity = 4.
-            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
+            g = rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
         else:
             global_rain_intensity = 0.
             
         #grow(g)
-        infect(g, dt)        
-        update(g,dt)
+        g = infect(g, dt)        
+        g = update(g,dt)
     
     displayer = DisplayLesions()
     displayer.print_all_lesions(g)
@@ -490,7 +513,7 @@ def test_disperse():
     g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(2)]
     inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    g = initiate(g, stock, inoculator)
     
     displayer = DisplayLesions()
     
@@ -499,7 +522,7 @@ def test_disperse():
     for i in range(nb_steps):
         print('time step %d' % i)
         
-        update_climate(g)
+        g = update_climate(g)
         if i%100 == 0:
             global_rain_intensity = 4.
             rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
@@ -507,12 +530,12 @@ def test_disperse():
             global_rain_intensity = 0.
         
         # grow(g)
-        infect(g, dt)
-        update(g,dt)
+        g = infect(g, dt)
+        g = update(g,dt)
         if global_rain_intensity != 0.:
             scene = plot3d(g)
             dispersor = StubDispersal()
-            disperse(g, scene, dispersor, "Septoria")
+            g = disperse(g, scene, dispersor, "Septoria")
 
         displayer.print_new_lesions(g)
     
@@ -530,7 +553,7 @@ def test_washing():
     g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    g = initiate(g, stock, inoculator)
     
     washor = StubWashing()
     
@@ -538,14 +561,14 @@ def test_washing():
     nb_steps = 100
     for i in range(nb_steps):
     
-        update_climate(g)
+        g = update_climate(g)
         if i>2 and i%5 == 0 or (i-1)%5 == 0:
                 global_rain_intensity = 4.
-                rain_interception(g, rain_intensity = global_rain_intensity*0.75)      
+                g = rain_interception(g, rain_intensity = global_rain_intensity*0.75)      
         else:
             global_rain_intensity = 0.
         
-        wash(g, washor, global_rain_intensity)
+        g = wash(g, washor, global_rain_intensity)
         
         if global_rain_intensity != 0:
                    
@@ -574,24 +597,24 @@ def test_growth_control():
     g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(1000)]
     inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    g = initiate(g, stock, inoculator)
    
     dt = 1
     nb_steps = 1000
     for i in range(nb_steps):
         print('time step %d' % i)
         
-        update_climate(g)
+        g = update_climate(g)
         if i%100 == 0:
             global_rain_intensity = 4.
-            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
+            g = rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
         else:
             global_rain_intensity = 0.
             
         #grow(g)
-        infect(g, dt)        
-        update(g,dt)
-        growth_control(g)
+        g = infect(g, dt)        
+        g = update(g,dt)
+        g = growth_control(g)
         
         vids = [v for v in g if g.label(v).startswith("LeafElement")]
         for v in vids:
@@ -614,7 +637,7 @@ def test_simul_with_weather():
     weather_data = weather.read_weather_data()
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    g = initiate(g, stock, inoculator)
     
     washor = StubWashing()
    
@@ -627,22 +650,21 @@ def test_simul_with_weather():
         for t in range(len(weather_data.date)):
             if weather_data.date[t] == date:
                 time_step = t
-        update_on_leaves(weather_data, time_step, g)     
+        g = update_on_leaves(weather_data, time_step, g)     
         
         #grow(g)
-        infect(g, dt)        
-        update(g,dt)
-        growth_control(g)
+        g = infect(g, dt)        
+        g = update(g,dt)
+        g = growth_control(g)
         
         scene = plot3d(g)
         dispersor = StubDispersal()
-        disperse(g, scene, dispersor, "Septoria")
+        g = disperse(g, scene, dispersor, "Septoria")
         
-        wash(g, washor, weather_data)
+        g = wash(g, washor, weather_data)
     
         displayer = DisplayLesions()
         displayer.print_all_lesions(g)
 
     plot_lesions(g)
     return g
-    

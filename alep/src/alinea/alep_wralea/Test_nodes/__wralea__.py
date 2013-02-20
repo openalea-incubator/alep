@@ -49,6 +49,30 @@ test_protocol_nodes_inoculator = Factory(name='inoculator',
                )
 __all__.append('test_protocol_nodes_inoculator')
 
+test_protocol_nodes_dispersor = Factory(name='dispersor',
+                nodemodule='test_protocol_nodes',
+                nodeclass='dispersor',
+               )
+__all__.append('test_protocol_nodes_dispersor')
+
+test_protocol_nodes_washor = Factory(name='washor',
+                nodemodule='test_protocol_nodes',
+                nodeclass='washor',
+               )
+__all__.append('test_protocol_nodes_washor')
+
+test_protocol_nodes_update_climate = Factory(name='update_climate',
+                nodemodule='test_protocol_nodes',
+                nodeclass='update_climate',
+               )
+__all__.append('test_protocol_nodes_update_climate')
+
+test_protocol_nodes_rain_interception = Factory(name='rain_interception',
+                nodemodule='test_protocol_nodes',
+                nodeclass='rain_interception',
+               )
+__all__.append('test_protocol_nodes_rain_interception')
+
 test_protocol_nodes_temp_plot3D = Factory(name='temp_plot3D',
                 nodemodule='test_protocol_nodes',
                 nodeclass='temp_plot3D',
@@ -60,6 +84,19 @@ test_protocol_nodes_plot_DU = Factory(name='plot_DU',
                 nodeclass='plot_DU',
                )
 __all__.append('test_protocol_nodes_plot_DU')
+
+test_protocol_nodes_plot_lesions = Factory(name='plot_DU',
+                nodemodule='test_protocol_nodes',
+                nodeclass='plot_DU',
+               )
+__all__.append('test_protocol_nodes_plot_lesions')
+
+test_protocol_nodes_plot_lesions_in_state = Factory(name='lesions_in_state',
+                nodemodule='test_protocol_nodes',
+                nodeclass='lesions_in_state',
+               )
+__all__.append('test_protocol_nodes_plot_lesions')
+
 
 
 
