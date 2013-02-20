@@ -1,3 +1,4 @@
+#TODO : DO NOT DUPLICATE CODE
 """ Test the protocol of communication between adel and alep """
 
 # Imports #########################################################################
@@ -146,7 +147,7 @@ def initiate_g(g, label = 'LeafElement'):
         n.age = 1.
         n.surface = 10.
         n.healthy_surface = n.surface # TODO : Manage properly
-        
+           
     return g
 
 def update_climate(g, label = 'LeafElement'):
@@ -199,8 +200,7 @@ class RandomInoculation:
             # Deposit a DU from inoculum on node v of the MTG  
             i.deposited()
             g.node(v).dispersal_units.append(i)
-
-def inoculate            
+            
             
 class StubDispersal(object):
 
@@ -413,7 +413,7 @@ def test_initiate():
     
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -425,7 +425,7 @@ def test_infect():
 
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -445,7 +445,7 @@ def test_update():
 
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -477,7 +477,7 @@ def test_disperse():
 
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(2)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -517,7 +517,7 @@ def test_washing():
 
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -599,7 +599,7 @@ def test_simul_with_weather():
     from dateutil import rrule
     
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     weather = ReadWeather()
     weather_data = weather.read_weather_data()
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
@@ -635,4 +635,3 @@ def test_simul_with_weather():
 
     plot_lesions(g)
     return g
-    
