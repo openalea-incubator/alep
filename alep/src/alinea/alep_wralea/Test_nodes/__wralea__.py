@@ -55,5 +55,11 @@ test_protocol_nodes_temp_plot3D = Factory(name='temp_plot3D',
                )
 __all__.append('test_protocol_nodes_temp_plot3D')
 
+test_protocol_nodes_plot_DU = Factory(name='plot_DU',
+                nodemodule='test_protocol_nodes',
+                nodeclass='plot_DU',
+               )
+__all__.append('test_protocol_nodes_plot_DU')
+
 
 

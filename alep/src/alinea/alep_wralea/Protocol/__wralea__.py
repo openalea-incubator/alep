@@ -19,14 +19,21 @@ __icon__ = ''
 
 __all__ = []
         
-protocol_nodes_update = Factory(name='update',
+protocol_nodes_initiate = Factory(name='initiate',
                 nodemodule='protocol_nodes',
-                nodeclass='update',
+                nodeclass='initiate',
                )
-__all__.append('protocol_nodes_update')
+__all__.append('protocol_nodes_initiate')
 
 protocol_nodes_infect = Factory(name='infect',
                 nodemodule='protocol_nodes',
                 nodeclass='infect',
                )
 __all__.append('protocol_nodes_infect')
+
+protocol_nodes_update = Factory(name='update',
+                nodemodule='protocol_nodes',
+                nodeclass='update',
+               )
+__all__.append('protocol_nodes_update')
+

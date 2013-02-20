@@ -172,7 +172,7 @@ def generate_stock_DU(fungus = septoria(), nb_Spores=random.randint(1,100), nb_D
     """ Generate a stock of DU as a list of DU 
     
     """
-    stock_DU = [SeptoriaDU(fungus = fungus, nbSpores=nb_Spores, nature='emitted') for i in range(nb_DU = nb_DU)]
+    stock_DU = [SeptoriaDU(fungus = fungus, nbSpores=nb_Spores, nature='emitted') for i in range(nb_DU)]
     return stock_DU
 
 class RandomInoculation:
@@ -196,12 +196,21 @@ class RandomInoculation:
         for i in inoculum:
             idx = random.randint(0,n-1)
             v = vids[idx]
-            # Deposit a DU from inoculum on node v of the MTG  
+            leaf = g.node(v)
+            if not 'dispersal_units' in leaf.properties():
+                leaf.dispersal_units = []
+            # Deposit a DU from inoculum on node v of the MTG
             i.deposited()
-            g.node(v).dispersal_units.append(i)
+            leaf.dispersal_units.append(i)
 
-def inoculate            
-            
+def inoculator():            
+    """ Instantiate the class RandomInoculation().
+    
+    """
+    # Temp : Do better. How to instantiate a class in Dataflow ?
+    inoculator = RandomInoculation()
+    return inoculator
+    
 class StubDispersal(object):
 
     def __init__(self):

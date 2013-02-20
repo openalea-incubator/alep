@@ -147,7 +147,7 @@ def initiate_g(g, label = 'LeafElement'):
         n.age = 1.
         n.surface = 10.
         n.healthy_surface = n.surface # TODO : Manage properly
-           
+        
     return g
 
 def update_climate(g, label = 'LeafElement'):
@@ -173,7 +173,7 @@ def generate_stock_DU(fungus = septoria(), nb_Spores=random.randint(1,100), nb_D
     """ Generate a stock of DU as a list of DU 
     
     """
-    stock_DU = [SeptoriaDU(fungus = fungus, nbSpores=nb_Spores, nature='emitted') for i in range(nb_DU = nb_DU)]
+    stock_DU = [SeptoriaDU(fungus = fungus, nbSpores=nb_Spores, nature='emitted') for i in range(nb_DU)]
     return stock_DU
 
 class RandomInoculation:
@@ -197,11 +197,21 @@ class RandomInoculation:
         for i in inoculum:
             idx = random.randint(0,n-1)
             v = vids[idx]
-            # Deposit a DU from inoculum on node v of the MTG  
+            leaf = g.node(v)
+            if not 'dispersal_units' in leaf.properties():
+                leaf.dispersal_units = []
+            # Deposit a DU from inoculum on node v of the MTG
             i.deposited()
-            g.node(v).dispersal_units.append(i)
-            
-            
+            leaf.dispersal_units.append(i)
+
+def inoculator():            
+    """ Instantiate the class RandomInoculation().
+    
+    """
+    # Temp : Do better. How to instantiate a class in Dataflow ?
+    inoculator = RandomInoculation()
+    return inoculator
+    
 class StubDispersal(object):
 
     def __init__(self):
@@ -413,7 +423,7 @@ def test_initiate():
     
     """
     g = adel_mtg2()
-    initiate_g(g)
+    g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -425,7 +435,7 @@ def test_infect():
 
     """
     g = adel_mtg2()
-    initiate_g(g)
+    g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -445,7 +455,7 @@ def test_update():
 
     """
     g = adel_mtg2()
-    initiate_g(g)
+    g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -477,7 +487,7 @@ def test_disperse():
 
     """
     g = adel_mtg2()
-    initiate_g(g)
+    g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(2)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -517,7 +527,7 @@ def test_washing():
 
     """
     g = adel_mtg2()
-    initiate_g(g)
+    g = initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -599,7 +609,7 @@ def test_simul_with_weather():
     from dateutil import rrule
     
     g = adel_mtg2()
-    initiate_g(g)
+    g = initiate_g(g)
     weather = ReadWeather()
     weather_data = weather.read_weather_data()
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
@@ -635,3 +645,4 @@ def test_simul_with_weather():
 
     plot_lesions(g)
     return g
+    
