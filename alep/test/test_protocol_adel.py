@@ -177,6 +177,7 @@ class RandomInoculation:
             i.deposited()
             g.node(v).dispersal_units.append(i)
             
+            
 class StubDispersal(object):
 
     def __init__(self):
@@ -257,7 +258,7 @@ def plot_DU(g):
     yellow = (247, 220, 17)
     for v in g.vertices(scale=g.max_scale()) : 
         n = g.node(v)
-        if 'dispersal_units' in n.properties():
+        if 'dispersal_units' in n.properties() and n.dispersal_units:
             n.color = yellow
         else : 
             n.color = green
@@ -265,6 +266,26 @@ def plot_DU(g):
     scene = plot3d(g)
     Viewer.display(scene)
 
+def plot_DU_deposited(g):
+    """ plot the plant with elements carrying deposited dispersal units in yellow """
+    green = (0,180,0)
+    yellow = (247, 220, 17)
+    for v in g.vertices(scale=g.max_scale()) : 
+        n = g.node(v)
+        ind_deposited = 0.
+        if 'dispersal_units' in n.properties():
+            for du in n.dispersal_units:
+                if du.nature == 'deposited':
+                    ind_deposited += 1
+            
+        if ind_deposited > 0 :
+            n.color = yellow
+        else : 
+            n.color = green
+    
+    scene = plot3d(g)
+    Viewer.display(scene)
+    
 def plot_lesions_after_DU(g):
     """ plot the plant with :
         - elements carrying dispersal units in yellow
@@ -372,12 +393,13 @@ def test_infect():
     initiate(g, stock, inoculator)
     
     dt = 1
-    nb_steps = 50
+    nb_steps = 100
+    plot_DU(g)
     for i in range(nb_steps):
         update_climate(g)
         infect(g, dt)
             
-    plot_lesions_after_DU(g)
+    plot_lesions(g)
     return g
        
 def test_update():
