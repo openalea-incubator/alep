@@ -446,10 +446,10 @@ def test_initiate():
     
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    g = initiate(g, stock, inoculator)
+    initiate(g, stock, inoculator)
     plot_DU(g)
     return g
     
@@ -458,17 +458,17 @@ def test_infect():
 
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    g = initiate(g, stock, inoculator)
+    initiate(g, stock, inoculator)
     
     dt = 1
     nb_steps = 100
     plot_DU(g)
     for i in range(nb_steps):
-        g = update_climate(g)
-        g = infect(g, dt)
+        update_climate(g)
+        infect(g, dt)
             
     plot_lesions(g)
     return g
@@ -488,16 +488,16 @@ def test_update():
     for i in range(nb_steps):
         print('time step %d' % i)
         
-        g = update_climate(g)
+        update_climate(g)
         if i%100 == 0:
             global_rain_intensity = 4.
-            g = rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
+            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
         else:
             global_rain_intensity = 0.
             
         #grow(g)
-        g = infect(g, dt)        
-        g = update(g,dt)
+        infect(g, dt)        
+        update(g,dt)
     
     displayer = DisplayLesions()
     displayer.print_all_lesions(g)
@@ -510,10 +510,10 @@ def test_disperse():
 
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(2)]
     inoculator = RandomInoculation()
-    g = initiate(g, stock, inoculator)
+    initiate(g, stock, inoculator)
     
     displayer = DisplayLesions()
     
@@ -522,7 +522,7 @@ def test_disperse():
     for i in range(nb_steps):
         print('time step %d' % i)
         
-        g = update_climate(g)
+        update_climate(g)
         if i%100 == 0:
             global_rain_intensity = 4.
             rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
@@ -535,7 +535,7 @@ def test_disperse():
         if global_rain_intensity != 0.:
             scene = plot3d(g)
             dispersor = StubDispersal()
-            g = disperse(g, scene, dispersor, "Septoria")
+            disperse(g, scene, dispersor, "Septoria")
 
         displayer.print_new_lesions(g)
     
@@ -550,10 +550,10 @@ def test_washing():
 
     """
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    g = initiate(g, stock, inoculator)
+    initiate(g, stock, inoculator)
     
     washor = StubWashing()
     
@@ -564,11 +564,11 @@ def test_washing():
         g = update_climate(g)
         if i>2 and i%5 == 0 or (i-1)%5 == 0:
                 global_rain_intensity = 4.
-                g = rain_interception(g, rain_intensity = global_rain_intensity*0.75)      
+                rain_interception(g, rain_intensity = global_rain_intensity*0.75)      
         else:
             global_rain_intensity = 0.
         
-        g = wash(g, washor, global_rain_intensity)
+        wash(g, washor, global_rain_intensity)
         
         if global_rain_intensity != 0:
                    
@@ -594,10 +594,10 @@ def test_washing():
 
 def test_growth_control():
     g = adel_mtg()
-    g = initiate_g(g)
+    initiate_g(g)
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(1000)]
     inoculator = RandomInoculation()
-    g = initiate(g, stock, inoculator)
+    initiate(g, stock, inoculator)
    
     dt = 1
     nb_steps = 1000
@@ -607,14 +607,14 @@ def test_growth_control():
         g = update_climate(g)
         if i%100 == 0:
             global_rain_intensity = 4.
-            g = rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
+            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
         else:
             global_rain_intensity = 0.
             
         #grow(g)
-        g = infect(g, dt)        
-        g = update(g,dt)
-        g = growth_control(g)
+        infect(g, dt)        
+        update(g,dt)
+        growth_control(g)
         
         vids = [v for v in g if g.label(v).startswith("LeafElement")]
         for v in vids:
@@ -632,12 +632,12 @@ def test_simul_with_weather():
     from dateutil import rrule
     
     g = adel_mtg2()
-    g = initiate_g(g)
+    initiate_g(g)
     weather = ReadWeather()
     weather_data = weather.read_weather_data()
     stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
     inoculator = RandomInoculation()
-    g = initiate(g, stock, inoculator)
+    initiate(g, stock, inoculator)
     
     washor = StubWashing()
    
@@ -650,18 +650,18 @@ def test_simul_with_weather():
         for t in range(len(weather_data.date)):
             if weather_data.date[t] == date:
                 time_step = t
-        g = update_on_leaves(weather_data, time_step, g)     
+        update_on_leaves(weather_data, time_step, g)     
         
         #grow(g)
-        g = infect(g, dt)        
-        g = update(g,dt)
-        g = growth_control(g)
+        infect(g, dt)        
+        update(g,dt)
+        growth_control(g)
         
         scene = plot3d(g)
         dispersor = StubDispersal()
-        g = disperse(g, scene, dispersor, "Septoria")
+        disperse(g, scene, dispersor, "Septoria")
         
-        g = wash(g, washor, weather_data)
+        wash(g, washor, weather_data)
     
         displayer = DisplayLesions()
         displayer.print_all_lesions(g)
