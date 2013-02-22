@@ -668,3 +668,19 @@ def test_simul_with_weather():
 
     plot_lesions(g)
     return g
+ 
+def bidon(g, label = "LeafElement"):
+    print('coucou')
+    import random
+    vids = [n for n in g if g.label(n).startswith(label)]
+    n = len(vids)
+    
+    for i in range(50):
+        idx = random.randint(0,n-1)
+        v = vids[idx]
+        leaf = g.node(v)
+        if not 'coucou' in leaf.properties():
+            leaf.coucou = []
+        else :
+            leaf.coucou.append('coucou')
+    return g

@@ -85,9 +85,9 @@ test_protocol_nodes_plot_DU = Factory(name='plot_DU',
                )
 __all__.append('test_protocol_nodes_plot_DU')
 
-test_protocol_nodes_plot_lesions = Factory(name='plot_DU',
+test_protocol_nodes_plot_lesions = Factory(name='plot_lesions',
                 nodemodule='test_protocol_nodes',
-                nodeclass='plot_DU',
+                nodeclass='plot_lesions',
                )
 __all__.append('test_protocol_nodes_plot_lesions')
 
@@ -95,8 +95,13 @@ test_protocol_nodes_plot_lesions_in_state = Factory(name='lesions_in_state',
                 nodemodule='test_protocol_nodes',
                 nodeclass='lesions_in_state',
                )
-__all__.append('test_protocol_nodes_plot_lesions')
+__all__.append('test_protocol_nodes_plot_lesions_in_state')
 
+test_protocol_nodes_bidon = Factory(name='bidon',
+                nodemodule='test_protocol_nodes',
+                nodeclass='bidon',
+               )
+__all__.append('test_protocol_nodes_bidon')
 
 
 
