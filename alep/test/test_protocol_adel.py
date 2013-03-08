@@ -154,7 +154,8 @@ def generate_stock_DU(fungus = septoria(), nb_Spores=random.randint(1,100), nb_D
     """ Generate a stock of DU as a list of DU 
     
     """
-    stock_DU = [SeptoriaDU(fungus = fungus, nbSpores=nb_Spores, status='emitted') for i in range(nb_DU)]
+    SeptoriaDU.fungus = fungus
+    stock_DU = [SeptoriaDU(nbSpores=nb_Spores, status='emitted') for i in range(nb_DU)]
     return stock_DU
 
 class RandomInoculation:
@@ -290,23 +291,16 @@ class StubGrowthControl(object):
                     if 'lesions' in le.properties():
                         leaf_lesions.extend(le.lesions)
                 
-                leaf_surface = sum([lf.surface for lf in leaf])
-                leaf_healthy_surface = sum([lf.healthy_surface for lf in leaf])
+                leaf_surface = sum(lf.surface for lf in leaf)
+                leaf_healthy_surface = sum(lf.healthy_surface for lf in leaf)
                 
                 total_demand = sum(l.growth_demand for l in leaf_lesions)
                 
-                if total_demand > 0. and total_demand > leaf_healthy_surface:
+                if total_demand > leaf_healthy_surface:
                     for l in leaf_lesions:
                         growth_offer = leaf_healthy_surface * l.growth_demand / total_demand
-                        l.growth_control(reduce_up_to = growth_offer)                 
-        
-                # Update of 'healthy_surface' by leaf element:
-                for le in leaf:
-                    if 'lesions' in le.properties():
-                        lesions_surface = sum([l.surface for l in le.lesions])
-                        hs = round(le.surface - lesions_surface, 5)
-                        le.healthy_surface = hs
-            
+                        l.growth_control(growth_offer = growth_offer)                 
+
 # Display #########################################################################
 
 def temp_plot3D(g):
@@ -512,7 +506,9 @@ def test_initiate():
     """
     g = adel_mtg2()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
+    fungus = septoria()
+    SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     plot_DU(g)
@@ -524,7 +520,8 @@ def test_infect():
     """
     g = adel_mtg2()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
+    fungus = septoria(); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -544,7 +541,8 @@ def test_update():
     """
     g = adel_mtg2()
     g = initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
+    fungus = septoria(); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
    
@@ -595,7 +593,8 @@ def test_disperse():
     """
     g = adel_mtg2()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(10)]
+    fungus = septoria(); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nbSpores=random.randint(1,100), status='emitted') for i in range(10)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -643,7 +642,8 @@ def test_washing():
     """
     g = adel_mtg2()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
+    fungus = septoria(); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -689,7 +689,8 @@ def test_washing():
 def test_growth_control():
     g = adel_mtg()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(1000)]
+    fungus = septoria(); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nbSpores=random.randint(1,100), status='emitted') for i in range(1000)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
    
@@ -745,7 +746,8 @@ def test_simul_with_weather():
     initiate_g(g)
     
     # Deposit first dispersal units on the MTG :
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
+    fungus = septoria(); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
