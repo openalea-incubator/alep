@@ -15,7 +15,7 @@ def initiate(g,
 
     :Example:
       >>> g = MTG()
-      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
       >>> initiate(g, stock, inoculator)
       >>> return g
@@ -34,7 +34,7 @@ def infect(g, dt, label="LeafElement"):
     
     :Example:
       >>> g = MTG()
-      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
       >>> initiate(g, stock, inoculator)
       >>> dt = 1
@@ -64,7 +64,7 @@ def update(g, dt, label="LeafElement"):
     
     :Example:
       >>> g = MTG()
-      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
       >>> initiate(g, stock, inoculator)
       >>> dt = 1
@@ -83,7 +83,8 @@ def update(g, dt, label="LeafElement"):
                 # proposition 1 on fait ici une correspondance nom attendus dans g <-> noms caracterisant un environnement de lesion (classe a faire ??)
                 leaf=g.node(vid)
                 #proposition 2 : les conventions de nommage noms sont definies ailleurs (ou???) et on passe juste une leaf qui repond a cette convention
-                lesion.update(dt, leaf)
+                if lesion.active: # TODO : Condition here ?
+                    lesion.update(dt, leaf)
           
     return g,
     
@@ -119,7 +120,7 @@ def disperse(g,
                     DU[vid] += lesion.emissions # other derterminant (microclimate...) are expected on leaf
     
     # dispersion, position a sortir de du ??
-    deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, nature
+    deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, status
     # allocation of new dispersal units
     for vid,dlist in deposits.iteritems():
         if g.label(vid).startswith(label):
@@ -132,48 +133,40 @@ def disperse(g,
 
     return g,
 
-def wash(g, washing_model, global_rain_intensity, label="LeafElement"): 
+def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label="LeafElement"): 
     """ Compute spores loss by washing.
     
     """
     washing_model.compute_washing_rate(g, global_rain_intensity) # compute washing rate on each leaf
     
     dispersal_units = g.property('dispersal_units')
+    # TODO : sort DU with chosen status before the loop.
     for vid, du in dispersal_units.iteritems():
         if g.label(vid).startswith(label):
-            for dispersal_unit in du:
-                leaf = g.node(vid)
-                # inactive the DU according to the washing_rate on the leaf
-                washing_model.wash(dispersal_unit, leaf.washing_rate)
+            leaf = g.node(vid)
+            if du: # Sometimes, the list is created but is empty
+                for dispersal_unit in du:
+                    if DU_status.startswith("all"):
+                        # disable the DU according to the washing_rate on the leaf
+                        if random.random() < leaf.washing_rate:
+                            dispersal_unit.disable()  
+                        # Other solution : Requires to implement such a method in every washing model
+                        # washing_model.wash(dispersal_unit, leaf.washing_rate)
+                    else: 
+                        if dispersal_unit.status.startswith(DU_status):
+                            if random.random() < leaf.washing_rate:
+                                dispersal_unit.disable()
+    
+    # TODO : Raise error if DU_status does not exist.
     
     return g,
 
-def growth_control(g, label="LeafElement"):
-    """ Coordinate the growth of lesions according to the available space on the leaves.
+def growth_control(g, control_model, label="LeafElement"):
+    """ Regulate the growth of lesion according to their growth demand,
+    the free space on leaves and a set of rules in the growth model.
     
     """
-    vids = [v for v in g if g.label(v).startswith("LeafElement")]
-    for v in vids:
-        leaf = g.node(v)
-        if 'lesions' in leaf.properties():
-            lesions = leaf.lesions
-            healthy_surface = leaf.healthy_surface
-            # if n.parent() is None:#this is a new plant base
-                # p = n.complex_at_scale(scale=1)
-            total_demand = sum(l.growth_demand for l in lesions)
-            
-            if total_demand > healthy_surface:
-                available_surface_by_lesion = healthy_surface / len(lesions)
-                for l in lesions:
-                    if available_surface_by_lesion < l.growth_demand:
-                        l.growth_control(reduce_up_to = available_surface_by_lesion)                      
-    
-            # Update of 'healthy_surface' :
-            total_lesions_surface = sum([l.surface for l in lesions])
-            healthy_surface = max(0., leaf.surface - total_lesions_surface) 
-            # FIXME : Should not need the 'max' operator ...
-            leaf.healthy_surface = healthy_surface 
-            # TODO : Right way to do this ???
+    control_model.control(g, label)
             
     return g,
 

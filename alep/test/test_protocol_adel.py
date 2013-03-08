@@ -4,7 +4,7 @@
 
 import random
 import numpy
-import csv
+import pandas
 from pylab import *
 
 from alinea.adel.newmtg import *
@@ -20,6 +20,8 @@ from alinea.alep.cycle2 import powdery_mildew
 from alinea.alep.cycle2 import proba
 
 from alinea.alep.protocol import *
+
+from datetime import datetime
 
 # Plant ###########################################################################
 
@@ -72,59 +74,32 @@ def adel_mtg3(nb_sect=1, leaf_db=None, d=None, p=None):
 
 # Climate #########################################################################
 
-class ReadWeather(object):
-    """ Class that reads weather data.
+def read_weather(filename):
+    """ Use pandas to save data from a .txt file into a dataframe.
     
     """
-    def __init__(self):
-        """ Initialize lists of weather data.
-        
-        """
-        self.date = []
-        self.hhmm = []
-        self.PAR = []
-        self.temp = []
-        self.RH = []
-        self.wind_speed = []
-        self.rain = []
-        self.wetness = []
+    raw_data = pandas.read_table(filename)
     
-    def read_weather_data(self):
-        """ Open a txt file and save required weather data line after line.
-        
-        Reading is rough and not flexible for this example.
-        Filename could be an input argument if all weather files have the same structure.
-        """
-        from datetime import datetime
-        filename = 'meteo01.txt'
-        with open(filename) as f:
-            reader = csv.reader(f, delimiter='\t')
-            reader.next()
-            ind_line = 0
-            for line in reader:
-                year = int(line[0])
-                julian_day = int(line[1])
-                hour = ind_line%24
-                t = datetime.fromordinal(datetime(year, 1, 1).toordinal() + julian_day - 1)
-                t = t.replace(hour = hour)
-                self.date.append(t)
-                
-                self.hhmm.append(float(line[3]))
-                self.PAR.append(float(line[4]))
-                self.temp.append(float(line[5]))
-                self.RH.append(float(line[6]))
-                self.wind_speed.append(float(line[7]))
-                self.rain.append(float(line[8]))
-                if float(line[8]) > 0. or (float(line[4]) < 644 and float(line[6]) > 85):
-                    self.wetness.append(True)
-                else:
-                    self.wetness.append(False)
-                
-                ind_line +=1
-        
-        return self
+    # Addition of wetness variable :
+    wet = dict(wetness=[])
+    for i_line in range(len(raw_data.An)):
+        if raw_data.Pluie[i_line] > 0. or (raw_data.PAR[i_line] < 644. and raw_data.HR[i_line] > 85.):
+            wet['wetness'].append(True)
+        else:
+            wet['wetness'].append(True)
+    wetness = pandas.DataFrame(wet)
+    
+    weather_data = raw_data.join(wetness)
+    
+    # Creation of date time indexes :
+    first_date = datetime.fromordinal(datetime(weather_data.An[0], 1, 1).toordinal() + weather_data.Jour[0] - 1)
+    rng = pandas.date_range(first_date, periods = len(weather_data.An), freq ='H')
+    
+    weather_data.index = rng
+    
+    return weather_data
 
-def update_on_leaves(data, time_step, g, label = 'LeafElement'):
+def update_on_leaves(data, date, g, label = 'LeafElement'):
     """ Read weather data for a step of simulation and apply it to each leaf.
     
     """        
@@ -132,10 +107,10 @@ def update_on_leaves(data, time_step, g, label = 'LeafElement'):
     for v in vids : 
         n = g.node(v)
         
-        n.temp = data.temp[time_step]
-        n.rain_intensity = data.rain[time_step]
-        n.relative_humidity = data.RH[time_step]
-        n.wetness = data.wetness[time_step]
+        n.temp = data.Tair[date]
+        n.rain_intensity = data.Pluie[date]
+        n.relative_humidity = data.HR[date]
+        n.wetness = data.wetness[date]
 
     return g
     
@@ -179,7 +154,7 @@ def generate_stock_DU(fungus = septoria(), nb_Spores=random.randint(1,100), nb_D
     """ Generate a stock of DU as a list of DU 
     
     """
-    stock_DU = [SeptoriaDU(fungus = fungus, nbSpores=nb_Spores, nature='emitted') for i in range(nb_DU)]
+    stock_DU = [SeptoriaDU(fungus = fungus, nbSpores=nb_Spores, status='emitted') for i in range(nb_DU)]
     return stock_DU
 
 class RandomInoculation:
@@ -246,15 +221,17 @@ class StubDispersal(object):
     
         for vid,dlist in DU.iteritems():
             for d in dlist:
-                idx = random.randint(0,n-1)
-                v = vids[idx]
-                if v not in deposits:
-                    deposits[v] = []
-                deposits[v].append(d)
+                if proba(0.5):
+                    idx = random.randint(0,n-1)
+                    v = vids[idx]
+                    if v not in deposits:
+                        deposits[v] = []
+                    deposits[v].append(d)
          
         return deposits
         
 class StubWashing(object):
+
     def __init__(self):
         self.rain_duration = 0.
         self.rain_intensity = {}
@@ -284,13 +261,51 @@ class StubWashing(object):
                 else:
                     leaf.washing_rate = 0.
             self.rain_duration = 0.
+        
     
-    def wash(self, dispersal_unit, washing_rate):
-        """ On the given LeafElement, inactive the DU as a function of the washing_rate.
+    # def wash(self, dispersal_unit, washing_rate):
+        # """ On the given LeafElement, disable the DU as a function of the washing_rate.
+        
+        # """
+        # if proba(washing_rate):
+            # dispersal_unit.disable()      
+
+class StubGrowthControl(object):
+
+    def __init__(self):
+        pass
+        
+    def control(self, g, label='LeafElement'):
+        """ Limit lesion growth to the healthy surface on leaves.
         
         """
-        if proba(washing_rate):
-            dispersal_unit.inactive()      
+        vids = [v for v in g if g.label(v).startswith(label)]
+        for v in vids:
+            leaf_element = g.node(v)
+            if 'lesions' in leaf_element.properties():
+                leaf = [le for le in leaf_element.complex().components() if le.label.startswith(label)] # Gather leaf elements of the leaf
+                # Does it work for powdery mildew too ?
+                leaf_lesions = []
+                for le in leaf:
+                    if 'lesions' in le.properties():
+                        leaf_lesions.extend(le.lesions)
+                
+                leaf_surface = sum([lf.surface for lf in leaf])
+                leaf_healthy_surface = sum([lf.healthy_surface for lf in leaf])
+                
+                total_demand = sum(l.growth_demand for l in leaf_lesions)
+                
+                if total_demand > 0. and total_demand > leaf_healthy_surface:
+                    for l in leaf_lesions:
+                        growth_offer = leaf_healthy_surface * l.growth_demand / total_demand
+                        l.growth_control(reduce_up_to = growth_offer)                 
+        
+                # Update of 'healthy_surface' by leaf element:
+                for le in leaf:
+                    if 'lesions' in le.properties():
+                        lesions_surface = sum([l.surface for l in le.lesions])
+                        hs = round(le.surface - lesions_surface, 5)
+                        le.healthy_surface = hs
             
 # Display #########################################################################
 
@@ -337,7 +352,7 @@ def plot_DU_deposited(g):
         ind_deposited = 0.
         if 'dispersal_units' in n.properties():
             for du in n.dispersal_units:
-                if du.nature == 'deposited':
+                if du.status == 'deposited':
                     ind_deposited += 1
             
         if ind_deposited > 0 :
@@ -451,6 +466,18 @@ class DisplayLesions(object):
         print('\n' + 'Number of lesions by leaf element : ' + '\n')             
         pprint(ldict)
         # print('You can find lesions on LeafElements : ' + str(llist).strip('[]'))
+        
+    def print_lesion_surfaces(self, g):
+        from pprint import pprint
+        lesions = g.property('lesions')
+        ldict = {}
+        for vid, l in lesions.iteritems():
+            for lesion in l:
+                if vid not in ldict:
+                    ldict[vid] = 0
+                ldict[vid] += lesion.surface
+        print('\n' + 'Sum of lesion surfaces by leaf element : ' + '\n')             
+        pprint(ldict)
     
 # Tests ########################################################################### 
 
@@ -485,7 +512,7 @@ def test_initiate():
     """
     g = adel_mtg2()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     plot_DU(g)
@@ -497,7 +524,7 @@ def test_infect():
     """
     g = adel_mtg2()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -517,26 +544,26 @@ def test_update():
     """
     g = adel_mtg2()
     g = initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
    
     dt = 1
     nb_steps = 750
-    nb_les_inc = numpy.array([0 for i in range(nb_steps)])
-    # nb_les_chlo = numpy.array([0 for i in range(nb_steps)])
-    # nb_les_nec = numpy.array([0 for i in range(nb_steps)])
-    nb_les_spo = numpy.array([0 for i in range(nb_steps)])
-    # nb_les_empty = numpy.array([0 for i in range(nb_steps)])
+    nb_les_inc = numpy.array([0. for i in range(nb_steps)])
+    # nb_les_chlo = numpy.array([0. for i in range(nb_steps)])
+    # nb_les_nec = numpy.array([0. for i in range(nb_steps)])
+    nb_les_spo = numpy.array([0. for i in range(nb_steps)])
+    # nb_les_empty = numpy.array([0. for i in range(nb_steps)])
     for i in range(nb_steps):
         print('time step %d' % i)
         
         update_climate(g)
-        if i%100 == 0:
-            global_rain_intensity = 4.
-            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
-        else:
-            global_rain_intensity = 0.
+        # if i%100 == 0:
+            # global_rain_intensity = 4.
+            # rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
+        # else:
+            # global_rain_intensity = 0.
             
         #grow(g)
         infect(g, dt)        
@@ -548,18 +575,18 @@ def test_update():
         # nb_les_nec[i] = count_lesions_in_state(g, state = 2)
         nb_les_spo[i] = count_lesions_in_state(g, state = 3)
         # nb_les_empty[i] = count_lesions_in_state(g, state = 4)
-  
+    
     # Display results
     plot(nb_les_inc)
     plot(nb_les_spo)
     ylabel('Nombre de lesions dans cet etat sur le MTG')
     xlabel('Pas de temps de simulation')
     ylim([0, 120])
-    show()
+       
     # displayer = DisplayLesions()
     # displayer.print_all_lesions(g)
 
-    plot_lesions(g)
+    # plot_lesions(g)
     return g
 
 def test_disperse():
@@ -568,14 +595,14 @@ def test_disperse():
     """
     g = adel_mtg2()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(10)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(10)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
-    displayer = DisplayLesions()
+    dispersor = StubDispersal()
     
     dt = 1
-    nb_steps = 1000
+    nb_steps = 750
     nb_les = numpy.array([0 for i in range(nb_steps)])
     for i in range(nb_steps):
         print('time step %d' % i)
@@ -592,7 +619,6 @@ def test_disperse():
         update(g,dt)
         if global_rain_intensity != 0.:
             scene = plot3d(g)
-            dispersor = StubDispersal()
             disperse(g, scene, dispersor, "Septoria")
 
         # Count of lesions :
@@ -601,6 +627,7 @@ def test_disperse():
         # Display results
         plot_lesions(g)
         
+        # displayer = DisplayLesions()
         # displayer.print_new_lesions(g)
     
     plot(nb_les)
@@ -616,7 +643,7 @@ def test_washing():
     """
     g = adel_mtg2()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -624,7 +651,7 @@ def test_washing():
     
     dt = 1
     nb_steps = 100
-    nb_DU = numpy.array([0 for i in range(nb_steps)])
+    nb_DU = numpy.array([0. for i in range(nb_steps)])
     for i in range(nb_steps):
     
         g = update_climate(g)
@@ -634,7 +661,7 @@ def test_washing():
         else:
             global_rain_intensity = 0.
         
-        wash(g, washor, global_rain_intensity)
+        wash(g, washor, global_rain_intensity, DU_status='deposited')
            
         # Count of DU :
         nb_DU[i] = count_DU(g)
@@ -647,7 +674,7 @@ def test_washing():
             print(' (_ _ _ _)')
             print('   |  |')
             print('    |  | ')
-            print('\n') 
+            print('\n')
             print('Sur le MTG il y a %d DU actives en tout' % nb_DU[i])
 
     # Display results
@@ -662,13 +689,15 @@ def test_washing():
 def test_growth_control():
     g = adel_mtg()
     initiate_g(g)
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(1000)]
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(1000)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
    
+    controler = StubGrowthControl()
+
     dt = 1
-    nb_steps = 100
-    sum_surface = numpy.array([0 for i in range(nb_steps)])
+    nb_steps = 500
+    sum_surface = numpy.array([0. for i in range(nb_steps)])
     for i in range(nb_steps):
         print('time step %d' % i)
         
@@ -682,14 +711,15 @@ def test_growth_control():
         #grow(g)
         infect(g, dt)        
         update(g,dt)
-        growth_control(g)
+        growth_control(g, controler)
         
         vids = [v for v in g if g.label(v).startswith("LeafElement")]
         count_surf = 0.
         for v in vids:
             leaf = g.node(v)
-            count_surf += leaf.healthy_surface
-            # if 'lesions' in leaf.properties():
+            # count_surf += leaf.healthy_surface
+            if 'lesions' in leaf.properties():
+                count_surf += sum([l.surface for l in leaf.lesions])
                 # print('leaf element %d - ' % v + 'Healthy surface : %f'  % leaf.healthy_surface) 
         
         sum_surface[i] = count_surf
@@ -706,44 +736,50 @@ def test_simul_with_weather():
     """ Check if 'update' from 'protocol.py' provokes the growth of a lesion instantiated on the MTG.
 
     """
-    from datetime import datetime
-    from dateutil import rrule
+    # Read weather data : 
+    filename = 'meteo01.txt'
+    weather_data = read_weather(filename)
     
+    # Generate a MTG with required properties :
     g = adel_mtg2()
     initiate_g(g)
-    weather = ReadWeather()
-    weather_data = weather.read_weather_data()
-    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), nature='emitted') for i in range(100)]
+    
+    # Deposit first dispersal units on the MTG :
+    stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
+    # Call the models that will be used during the simulation :
+    controler = StubGrowthControl()
     washor = StubWashing()
+    dispersor = StubDispersal()
    
+    # Prepare the simulation loop
     dt = 1
     start_date = datetime(2000, 10, 1)
     end_date = datetime(2001, 7, 31)
-    for date in rrule.rrule(rrule.HOURLY, dtstart = start_date, until = end_date):
+    for date in pandas.date_range(start_date, end_date, freq='H'):
         print(date)
         
-        for t in range(len(weather_data.date)):
-            if weather_data.date[t] == date:
-                time_step = t
-        update_on_leaves(weather_data, time_step, g)     
+        # Update climate on leaf elements : 
+        update_on_leaves(weather_data, date, g)     
         
+        # Run a disease cycle
         #grow(g)
         infect(g, dt)        
         update(g,dt)
-        growth_control(g)
+        growth_control(g, controler)
         
         scene = plot3d(g)
-        dispersor = StubDispersal()
         disperse(g, scene, dispersor, "Septoria")
         
-        wash(g, washor, weather_data)
+        global_rain_intensity = weather_data.Pluie[date]
+        wash(g, washor, global_rain_intensity)
     
-        displayer = DisplayLesions()
-        displayer.print_all_lesions(g)
-
+        # displayer = DisplayLesions()
+        # displayer.print_all_lesions(g)
+    
+    # Display results:
     plot_lesions(g)
     return g
     
