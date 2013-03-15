@@ -8,12 +8,22 @@ def initiate(g,
              label="LeafElement"):
     """ Allocates dispersal units (objects) on elements of the MTG according to initiation_model 
 
-    :Parameters:
-      - `g` : MTG representing the canopy (and the soil).
-      - `dispersal_units_stock` : source of dispersal units to disperse in the scene.
-      - `initiation_model` : model that allows positioning each DU in stock on g.
-
-    :Example:
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy (and the soil)
+    dispersal_units_stock: list of DUs
+        Source of dispersal units to disperse in the scene
+    initiation_model:
+        Model that allows positioning each DU in stock on g
+    
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy (and the soil)
+    
+    Example
+    ------- 
       >>> g = MTG()
       >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
@@ -28,11 +38,21 @@ def initiate(g,
 def infect(g, dt, label="LeafElement"):
     """ Compute infection success by dispersal units.
     
-    :Parameters:
-      - `g` : MTG representing the canopy (and the soil). 'dispersal_units' are stored in the MTG as a property.
-      - `dt` : time step of the simulation.
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy (and the soil)
+        'dispersal_units' are stored in the MTG as a property
+    dt: int
+        Time step of the simulation
     
-    :Example:
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy (and the soil)
+    
+    Example
+    -------
       >>> g = MTG()
       >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
@@ -58,11 +78,21 @@ def infect(g, dt, label="LeafElement"):
 def update(g, dt, label="LeafElement"):
     """ Update the status of every lesion on the MTG.
     
-    :Parameters:
-      - `g` : MTG representing the canopy (and the soil). 'lesions' are stored in the MTG as a property.
-      - `dt` : time step of the simulation.
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy (and the soil)
+        'lesions' are stored in the MTG as a property
+    dt: int
+        Time step of the simulation
     
-    :Example:
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy (and the soil)
+    
+    Example
+    -------
       >>> g = MTG()
       >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
@@ -94,16 +124,40 @@ def disperse(g,
              fungus_name, 
              label="LeafElement"):
     """ Disperse spores of the lesions of fungus identified by fungus_name.
+        
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy (and the soil)
+    scene : 
+        Scene containing the simulated system
+    dispersal_model: 
+        Model that used to position each DU in stock on g
+    fungus_name: str
+        Name of the fungus
     
-    New infections occur only on nodes identified by label.
-    
-    :Parameters:
-      - `g` : MTG representing the canopy (and the soil).
-      - `dispersal_model` : model that allows positioning each DU in stock on g.
-      - `lesion_factory` : class that generates a lesion of a given fungus.
-
-    :Example:
-      >>> 
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy (and the soil)
+        
+    Example
+    -------
+      >>> g = MTG()
+      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
+      >>> inoculator = RandomInoculation()
+      >>> initiate(g, stock, inoculator)
+      >>> dispersor = SplashModel()
+      >>> dt = 1
+      >>> nb_steps = 1000
+      >>> for i in range(nb_steps):
+      >>>     update_climate(g)
+      >>>     infect(g, dt)
+      >>>     update(g,dt)
+      >>>     if dispersal_event():
+      >>>       scene = plot3d(g)
+      >>>       disperse(g, scene, dispersor, "septoria")
+      >>> return g
     
     """
   
@@ -136,6 +190,36 @@ def disperse(g,
 def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label="LeafElement"): 
     """ Compute spores loss by washing.
     
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy (and the soil)
+    washing_model: 
+        Model used to wash the DUs out of the leaf
+    global_rain_intensity: float
+        Rain intensity over the canopy to trigger washing
+    DU_status: str
+        Status of the washed DUs ('emitted' or 'deposited' or 'all')
+    
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy (and the soil)
+    
+    Example
+    -------
+      >>> g = MTG()
+      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
+      >>> inoculator = RandomInoculation()
+      >>> initiate(g, stock, inoculator)
+      >>> washor = WashingModel()
+      >>> dt = 1
+      >>> nb_steps = 1000
+      >>> for i in range(nb_steps):
+      >>>     update_climate(g)
+      >>>     if global_rain_intensity > 0.:
+      >>>       wash(g, washor, global_rain_intensity, DU_status="all")
+      >>> return g
     """
     washing_model.compute_washing_rate(g, global_rain_intensity) # compute washing rate on each leaf
     
@@ -164,6 +248,18 @@ def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label
 def growth_control(g, control_model, label="LeafElement"):
     """ Regulate the growth of lesion according to their growth demand,
     the free space on leaves and a set of rules in the growth model.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy (and the soil)
+    control_model: 
+        Model with rules of competition between the lesions
+    
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy (and the soil)
     
     """
     control_model.control(g, label)
