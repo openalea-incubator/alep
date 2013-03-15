@@ -307,7 +307,6 @@ class Lesion(object):
 class Septoria(Lesion):
     """ Define a lesion specific of septoria.
     """
-    
     def __init__(self, nb_spores=None, position=None):
         """ Initialize the lesion of septoria. 
         
@@ -556,11 +555,9 @@ class Septoria(Lesion):
         if self.rings:
             self.rings[0].status = value
 
-
 class PowderyMildew(Lesion):
     """ 
     """
-    
     def __init__(self, nb_spores=None):
         """ Initialize the lesion. 
         
@@ -686,7 +683,7 @@ class PowderyMildew(Lesion):
         if self.rings:
             self.rings[0].status = value
                       
- ####################################################################################################
+# Rings ##################################################################################
 def proba(p):
     """ Compute the occurence of an event according to p.
 
@@ -708,7 +705,6 @@ class Ring(object):
 class SeptoriaRing(Ring):
     """ Ring of Lesion of Septoria at a given age.
     """
-
     def __init__(self, lesion, status, dt=1.):
         """ Initialize each new ring of septoria. 
         
@@ -1057,7 +1053,6 @@ class PowderyMildewRing(Ring):
     """ Ring of Lesion of PowderyMildew at a given age.
     
     """
-    
     def __init__(self, status, dt=1.):
         """ Initialize each new ring. 
         
@@ -1299,8 +1294,7 @@ def temp_norm_function(temp_mean, temp_min, temp_max, m, n):
     temp_norm_function = (temp_norm**n)*((1-temp_norm)**m)*((m+n)**(m+n))/(n**n*m**m);
     return temp_norm_function
     
-##############################################################################
-# Fungus Parameters (e.g. .ini): config of the fungus
+# Fungus Parameters (e.g. .ini): config of the fungus ####################################
 
 class Parameters(object):
     def write(self, filename):
