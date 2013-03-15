@@ -107,14 +107,16 @@ def update(g, dt, label="LeafElement"):
     
     """   
     lesions = g.property('lesions')
+    labels = g.property('label') 
+    
     for vid, l in lesions.iteritems():
-        if g.label(vid).startswith(label):
-            for lesion in l:
-                # proposition 1 on fait ici une correspondance nom attendus dans g <-> noms caracterisant un environnement de lesion (classe a faire ??)
-                leaf=g.node(vid)
-                #proposition 2 : les conventions de nommage noms sont definies ailleurs (ou???) et on passe juste une leaf qui repond a cette convention
-                if lesion.active: # TODO : Condition here ?
-                    lesion.update(dt, leaf)
+        l = [les for les in l if les.active]
+        lesions[vid] = l
+        for lesion in l:
+            # proposition 1 on fait ici une correspondance nom attendus dans g <-> noms caracterisant un environnement de lesion (classe a faire ??)
+            leaf=g.node(vid)
+            #proposition 2 : les conventions de nommage noms sont definies ailleurs (ou???) et on passe juste une leaf qui repond a cette convention
+            lesion.update(dt, leaf)
           
     return g,
     

@@ -22,6 +22,8 @@ from alinea.alep.cycle2 import proba
 from alinea.alep.protocol import *
 
 from datetime import datetime
+import time
+from math import ceil, sqrt
 
 # Plant ###########################################################################
 
@@ -68,7 +70,14 @@ def adel_mtg2(nb_sect=1):
     
 def adel_mtg3(nb_sect=1, leaf_db=None, d=None, p=None):
     """ create a less simple adel mtg """
-    g=mtg_factory(d,adel_metamer, leaf_sectors=nb_sect,leaf_db=leaf_db,stand=[((0,0,0),0),((10,0,0),90), ((0,10,0), 0)])
+    if p: # nb_plants
+        size = int(ceil(sqrt(p)))
+        stand = numpy.array([(i, j) for i in range(size) for j in range(size)])
+        numpy.random.shuffle(stand)
+        stand = [((i, j, 0),random.randint(0,90)) for i, j in stand[:p]]
+    else:
+        stand = [((0,0,0),0),((10,0,0),90), ((0,10,0), 0)]
+    g=mtg_factory(d,adel_metamer, leaf_sectors=nb_sect,leaf_db=leaf_db,stand=stand)
     g=mtg_interpreter(g)
     return g
 
@@ -280,26 +289,25 @@ class StubGrowthControl(object):
         """ Limit lesion growth to the healthy surface on leaves.
         
         """
-        vids = [v for v in g if g.label(v).startswith(label)]
-        for v in vids:
-            leaf_element = g.node(v)
-            if 'lesions' in leaf_element.properties():
-                leaf = [le for le in leaf_element.complex().components() if le.label.startswith(label)] # Gather leaf elements of the leaf
-                # Does it work for powdery mildew too ?
-                leaf_lesions = []
-                for le in leaf:
-                    if 'lesions' in le.properties():
-                        leaf_lesions.extend(le.lesions)
-                
-                leaf_surface = sum(lf.surface for lf in leaf)
-                leaf_healthy_surface = sum(lf.healthy_surface for lf in leaf)
-                
-                total_demand = sum(l.growth_demand for l in leaf_lesions)
-                
-                if total_demand > leaf_healthy_surface:
-                    for l in leaf_lesions:
-                        growth_offer = leaf_healthy_surface * l.growth_demand / total_demand
-                        l.growth_control(growth_offer = growth_offer)                 
+        lesions = g.property('lesions')
+        surfaces = g.property('surface')
+        healthy_surfaces = g.property('healthy_surface')
+        labels = g.property('label')
+
+        # Select all the leaves
+        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        for blade in bids:
+            leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
+            leaf_surface = sum(surfaces[lf] for lf in leaf)
+            leaf_healthy_surface = sum(healthy_surfaces[lf] for lf in leaf)
+            
+            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[])]
+            total_demand = sum(l.growth_demand for l in leaf_lesions)
+
+            if total_demand > leaf_healthy_surface:
+                for l in leaf_lesions:
+                    growth_offer = leaf_healthy_surface * l.growth_demand / total_demand
+                    l.growth_control(growth_offer=growth_offer)                 
 
 # Display #########################################################################
 
@@ -400,13 +408,8 @@ def count_lesions_in_state(g, state):
     
     """
     count = 0.
-    for v in g.vertices(scale=g.max_scale()) : 
-        n = g.node(v)
-        if 'lesions' in n.properties():
-            for les in n.lesions:
-                if les.status == state:
-                    count +=1
-    return count
+    lesions = g.property('lesions')
+    return sum(1 for l in lesions.itervalues() for lesion in l if lesion.status == state)
     
 def count_DU(g):
     """ count DU of the mtg.
@@ -548,13 +551,15 @@ def test_update():
    
     dt = 1
     nb_steps = 750
-    nb_les_inc = numpy.array([0. for i in range(nb_steps)])
+    nb_les_inc = numpy.zeros(nb_steps)
     # nb_les_chlo = numpy.array([0. for i in range(nb_steps)])
     # nb_les_nec = numpy.array([0. for i in range(nb_steps)])
-    nb_les_spo = numpy.array([0. for i in range(nb_steps)])
+    nb_les_spo = numpy.zeros(nb_steps)
     # nb_les_empty = numpy.array([0. for i in range(nb_steps)])
     for i in range(nb_steps):
-        print('time step %d' % i)
+
+        ts = time.clock()
+        #print('time step %d' % i)
         
         update_climate(g)
         # if i%100 == 0:
@@ -573,6 +578,9 @@ def test_update():
         # nb_les_nec[i] = count_lesions_in_state(g, state = 2)
         nb_les_spo[i] = count_lesions_in_state(g, state = 3)
         # nb_les_empty[i] = count_lesions_in_state(g, state = 4)
+
+        te = time.clock()
+        #print "time ", i, " : ", te-ts
     
     # Display results
     plot(nb_les_inc)
@@ -786,3 +794,46 @@ def test_simul_with_weather():
     plot_lesions(g)
     return g
     
+def test_all():
+    
+    # Generate a MTG with required properties :
+    g = adel_mtg2()
+    initiate_g(g)
+    
+    # Deposit first dispersal units on the MTG :
+    fungus = septoria(); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+    
+    # Call the models that will be used during the simulation :
+    controler = StubGrowthControl()
+    washor = StubWashing()
+    dispersor = StubDispersal()
+   
+    # Prepare the simulation loop
+    dt = 1
+
+    nb_steps = 750
+    for i in range(nb_steps):
+        update_climate(g)
+        if i%100 == 0:
+            global_rain_intensity = 4.
+            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
+        else:
+            global_rain_intensity = 0.
+        
+        # grow(g)
+        infect(g, dt)
+        update(g,dt)
+        growth_control(g, controler)
+        
+        if global_rain_intensity != 0.:
+            scene = plot3d(g)
+            disperse(g, scene, dispersor, "Septoria")
+            wash(g, washor, global_rain_intensity, DU_status='deposited')
+
+    return g
+
+if __name__ == '__main__':
+    g=test_all()

@@ -166,7 +166,7 @@ class PowderyMildewDU(DispersalUnit):
             None
         
         """
-        super(SeptoriaDU, self).__init__( position=position, nb_spores=nb_spores, status=status)
+        super(PowderyMildewDU, self).__init__( position=position, nb_spores=nb_spores, status=status)
         
     def infect(self, dt, leaf, **kwds):
         """ Compute infection by the dispersal unit of powdery mildew.
@@ -373,7 +373,8 @@ class Septoria(Lesion):
                 # self.rings[-1].disable()
 
         # Compute emissions
-        self.emission(leaf)
+        if leaf.rain_intensity:
+            self.emission(leaf)
 
     def can_form_new_ring(self, Dt):
         """ Check if the lesion can form a new ring.
@@ -956,7 +957,10 @@ class SeptoriaRing(Ring):
         .. Todo:: Implement a real formalism.
         """
         emissions = []
-        if self.stock_du and self.status == lesion.fungus.SPORULATING and leaf.rain_intensity > 0. and leaf.relative_humidity >= lesion.fungus.rh_min and not self.rain_before:
+        if (self.stock_du and self.status == lesion.fungus.SPORULATING and 
+            leaf.rain_intensity > 0. and 
+            leaf.relative_humidity >= lesion.fungus.rh_min and 
+            not self.rain_before ):
             nb_du = len(self.stock_du)
             nb_emitted = min(nb_du, int(floor((leaf.rain_intensity / 10) * nb_du)))
             for i in range(nb_emitted):
