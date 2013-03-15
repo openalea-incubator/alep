@@ -15,16 +15,24 @@ class DispersalUnit(object):
     """ Generic class for a dispersal unit.
     
     """
-    def __init__(self, position=None, nbSpores=None, status=None):
+    def __init__(self, position=None, nb_spores=None, status=None):
         """ Initialize the dispersal unit.
         
-        :Parameters:
-          - `position` (???) : position of the dispersal unit on the phyto-element.
-          - `nbSpores` (int) : number of spores aggregated in the dispersal unit.
-          - `status` (str) : 'emitted' or 'deposited'
+        Parameters
+        ----------
+        position: non defined
+            Position of the dispersal unit on the phyto-element
+        nb_spores: int
+            Number of spores aggregated in the dispersal unit
+        status: str
+            'emitted' or 'deposited'
+        
+        Returns
+        -------
+            None
         """
         self.position = position
-        self.nbSpores = nbSpores
+        self.nb_spores = nb_spores
         self.status = status
         self.active = True
     
@@ -43,8 +51,18 @@ class DispersalUnit(object):
     def create_lesion(self, leaf):
         """ Create a new lesion of fungus and disable dispersal unit.
         
+        Parameters
+        ----------
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+        
+        Returns
+        -------
+            None
+        
         """
-        les = self.fungus(nbSpores = self.nbSpores, position = self.position)
+        les = self.fungus(nb_spores = self.nb_spores, position = self.position)
         if not 'lesions' in leaf.properties():
             leaf.lesions = []
         leaf.lesions.append(les)
@@ -55,15 +73,23 @@ class SeptoriaDU(DispersalUnit):
     
     """
     fungus = None
-    def __init__(self, position=None, nbSpores=None, status=None):
+    def __init__(self, position=None, nb_spores=None, status=None):
         """ Initialize the dispersal unit of septoria.
         
-        :Parameters:
-          - `position` (???) : position of the dispersal unit on the phyto-element.
-          - `nbSpores` (int) : number of spores aggregated in the dispersal unit.
-          - `status` (str) : 'emitted' or 'deposited'
+        Parameters
+        ----------
+        position: non defined
+            Position of the dispersal unit on the phyto-element
+        nb_spores: int
+            Number of spores aggregated in the dispersal unit
+        status: str
+            'emitted' or 'deposited'
+        
+        Returns
+        -------
+            None
         """
-        super(SeptoriaDU, self).__init__(position=position, nbSpores=nbSpores, status=status)
+        super(SeptoriaDU, self).__init__(position=position, nb_spores=nb_spores, status=status)
         self.cumul_wetness = 0.
     
     def infect(self, dt, leaf, **kwds):
@@ -72,14 +98,14 @@ class SeptoriaDU(DispersalUnit):
         Parameters
         ----------
         dt: int
-            time step of the simulation (in hours).
+            Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
             A leaf sector with properties (e.g. healthy surface,
-            senescence, rain intensity, wetness, temperature, lesion)
+            senescence, rain intensity, wetness, temperature, lesions)
 
         Returns
         -------
-            Nothing.
+            None
         """
         leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
         temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).
@@ -87,7 +113,7 @@ class SeptoriaDU(DispersalUnit):
         
         if healthy_surface > 0. :
             # TODO : Right way to do this ?
-            if self.nbSpores == 0.:
+            if self.nb_spores == 0.:
                 self.disable()
            
             else:
@@ -108,7 +134,7 @@ class SeptoriaDU(DispersalUnit):
                     
                     if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :
                         # TODO : create a function of the number of spores            
-                        spores_factor = self.nbSpores / self.nbSpores # always equals 1 for now
+                        spores_factor = self.nb_spores / self.nb_spores # always equals 1 for now
                         if proba(spores_factor):
                             self.create_lesion(leaf)
                     elif self.cumul_wetness == 0 :
@@ -123,24 +149,39 @@ class PowderyMildewDU(DispersalUnit):
     
     """
     fungus = None
-    def __init__(self, position=None, nbSpores=None, status=None):
+    def __init__(self, position=None, nb_spores=None, status=None):
         """ Initialize the dispersal unit of powdery mildew.
         
-        :Parameters:
-          - `position` (???) : position of the dispersal unit on the phyto-element.
-          - `nbSpores` (int) : number of spores aggregated in the dispersal unit.
-          - `status` (str) : 'emitted' or 'deposited'
+        Parameters
+        ----------
+        position: non defined
+            Position of the dispersal unit on the phyto-element
+        nb_spores: int
+            Number of spores aggregated in the dispersal unit
+        status: str
+            'emitted' or 'deposited'
+        
+        Returns
+        -------
+            None
         
         """
-        super(SeptoriaDU, self).__init__( position=position, nbSpores=nbSpores, status=status)
+        super(SeptoriaDU, self).__init__( position=position, nb_spores=nb_spores, status=status)
         
     def infect(self, dt, leaf, **kwds):
         """ Compute infection by the dispersal unit of powdery mildew.
         
-        :Parameters:
-          - `dt` (int) : time step of the simulation (in hours).
-          - `leaf` (class): a leaf sector with properties (e.g. healthy surface,
-          senescence, rain intensity, wetness, temperature, lesions).  
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+
+        Returns
+        -------
+            None  
         """
         # External variables
         leaf_wet = leaf.wetness
@@ -161,7 +202,7 @@ class PowderyMildewDU(DispersalUnit):
         d_wetness_effect = self.fungus.d_wetness_effect
        
         # TODO : Right way to do this ?
-        if self.nbSpores == 0.:
+        if self.nb_spores == 0.:
             self.disable()
         
         else:
@@ -181,7 +222,7 @@ class PowderyMildewDU(DispersalUnit):
                 
                 # Spores factor
                 # TODO : create a function of the number of spores            
-                spores_factor = nbSpores / nbSpores # always equals 1 for now
+                spores_factor = nb_spores / nb_spores # always equals 1 for now
                 
                 # Infection rate 
                 infection_rate = temp_factor * RH_factor * wetness_factor * spores_factor
@@ -191,17 +232,6 @@ class PowderyMildewDU(DispersalUnit):
                     self.disable()
                     # TODO : review because too extreme.        
        
-    # def create_lesion(self, leaf):
-        # """ Create a new lesion of fungus and disable dispersal unit.
-        
-        # """
-        # TODO : Make more generic and move in Lesion
-        # les = PowderyMildew(self.fungus, self.nbSpores, self.position)
-        # if not 'lesions' in leaf.properties():
-            # leaf.lesions=[]
-        # leaf.lesions.append(les)
-        # self.disable()
-
 # Lesions #################################################################################
 
 #X class LesionFactory(object):
@@ -217,63 +247,83 @@ class PowderyMildewDU(DispersalUnit):
 #X         """
 #X         self.fungus = fungus
 #X         
-#X     def instantiate(self, nbSpores, position) :
+#X     def instantiate(self, nb_spores, position) :
 #X         """ instantiate a Lesion
 #X      
 #X         :Parameters:
-#X           - `nbSpores` (int): 
+#X           - `nb_spores` (int): 
 #X         """
-#X         l = Lesion(self.fungus, nbSpores, position)
+#X         l = Lesion(self.fungus, nb_spores, position)
 #X         return l
 #X         
-#X     def instantiate_at_stage(self, nbSpores, position) :
+#X     def instantiate_at_stage(self, nb_spores, position) :
 #X         """ force the instantiation of a Lesion at a given stage"""
-#X         l = Lesion(self.fungus, nbSpores, position)
+#X         l = Lesion(self.fungus, nb_spores, position)
 #X         #to do : deal with spores
 #X         return l
 #X 
 
 class Lesion(object):
-    """ 
-    Define a lesion protocol.
+    """ Define a lesion interface.
 
     To implement a lesion, you need to implement the following methods:
-        - update(dt, leaf, ...)
-
+        - update()
+        - growth_control()
+        - stock_spores()
+        - emission()
+        - disable()        
+    
     And the lesion have to answer to a set of queries:
         - is_dead
         - surface
         - status
         - age
-        - age_dday
-        - status
+        - age_physio
+        
+    ..todo:: improve header and doc
     """
     fungus = None
-
-    def __init__(self,  nbSpores = None, position = None):
+    def __init__(self, position=None, nb_spores=None):
         """ Initialize the lesion. 
-
+        
+        Parameters
+        ----------
+        position: non defined
+            Position of the dispersal unit on the phyto-element
+        nb_spores: int
+            Number of spores aggregated in the dispersal unit
+        
+        Returns
+        -------
+            None
         """
         self.active = True
-        self.nbSpores = nbSpores
+        self.nb_spores = nb_spores
         self.position = position
         self.rings = []
         self.stock_du = []
         self.emissions = []
 
 class Septoria(Lesion):
-    """ 
+    """ Define a lesion specific of septoria.
     """
     
-    def __init__(self, nbSpores, position):
-        """ Initialize the lesion. 
+    def __init__(self, nb_spores=None, position=None):
+        """ Initialize the lesion of septoria. 
         
-        :Parameters:
-          - `fungus` (function): returns a class of specific parameters for 
-          the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
+        Parameters
+        ----------
+        position: non defined
+            Position of the dispersal unit on the phyto-element
+        nb_spores: int
+            Number of spores aggregated in the dispersal unit
+        
+        Returns
+        -------
+            None
 
         """
-        super(Septoria, self).__init__(nbSpores=nbSpores, position=position)
+        super(Septoria, self).__init__(nb_spores=nb_spores, position=position)
         ring = SeptoriaRing(lesion = self, status = self.fungus.IN_FORMATION, dt=1.)
         self.rings.append(ring)
         self.surface_dead = 0.
@@ -281,9 +331,17 @@ class Septoria(Lesion):
     def update(self, dt, leaf, **kwds):
         """ Update the status of the lesion and create a new growth ring if needed.
                 
-        :Parameters:
-          - `...`
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
 
+        Returns
+        -------
+            None
         """
         assert self.active
 
@@ -322,7 +380,15 @@ class Septoria(Lesion):
         """ Check if the lesion can form a new ring.
         
         A new ring is created when the physiologic age is reached.
-             
+        
+        Parameters
+        ----------
+        Dt : int
+            Time step in degree days to create a new ring
+        
+        Returns
+        -------
+            None
         """
         
         if self.surface < self.fungus.Smax:
@@ -351,18 +417,35 @@ class Septoria(Lesion):
     def emission(self, leaf, **kwds):
         """ Create a list of dispersal units emitted by the entire lesion.
         
+        Parameters
+        ----------
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+
+        Returns
+        -------
+            None
         """
         for ring in self.rings:
             emissions = ring.emission(leaf, lesion=self)
             if emissions:
                 self.emissions += emissions
     
-    def growth_control(self, reduce_up_to = 0.):
+    def growth_control(self, growth_offer = 0.):
         """ Reduce surface of the last ring up to available surface on leaf.
         
+        Parameters
+        ----------
+        growth_offer: float
+            Surface available on the leaf for the ring to grow (cm2)
+        
+        Returns
+        -------
+            None
         """
         if self.rings:
-            self.rings[-1].growth_control(reduce_up_to)
+            self.rings[-1].growth_control(growth_offer)
     
     def disable(self):
         """ Set the activity of the lesion to False.
@@ -380,6 +463,15 @@ class Septoria(Lesion):
     @property
     def surface(self):
         """ Compute the surface of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        surface: float
+            Surface of the whole lesion (cm2)
         """
         surf = self.surface_dead + sum(ring.surface for ring in self.rings)
         return surf
@@ -387,6 +479,15 @@ class Septoria(Lesion):
     @property
     def growth_demand(self):
         """ Compute the growth demand of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        growth_demand: float
+            Potential growth of the lesion if surface non limiting
         """
         if self.rings:
             return self.rings[-1].growth_demand
@@ -394,6 +495,15 @@ class Septoria(Lesion):
     @property
     def status(self):
         """ Compute the status of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        status: int
+            Status of the lesion
         """
         if self.rings:
             return self.rings[0].status
@@ -401,6 +511,15 @@ class Septoria(Lesion):
     @property
     def age(self):
         """ Compute the age of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        age_dday: float
+            Age of the lesion in hours
         """
         if self.rings:
             return self.rings[0].age
@@ -408,6 +527,15 @@ class Septoria(Lesion):
     @property
     def age_dday(self):
         """ Compute the thermal age of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        age_dday: float
+            Age of the lesion in degree days
         """
         if self.rings:
             return self.rings[0].age_dday
@@ -415,23 +543,37 @@ class Septoria(Lesion):
     @status.setter
     def status(self, value):
         """ Set the status of the lesion to the chosen value.
+        
+        Parameters
+        ----------
+        value : int
+            Chosen value to set lesion status
+            
+        Returns
+        -------
+            None
         """
         if self.rings:
             self.rings[0].status = value
-
 
 
 class PowderyMildew(Lesion):
     """ 
     """
     
-    def __init__(self, nbSpores):
+    def __init__(self, nb_spores=None):
         """ Initialize the lesion. 
         
-        :Parameters:
-            - nbSpores
+        Parameters
+        ----------
+        nb_spores: int
+            Number of spores into the DU
+            
+        Returns
+        -------
+            None
         """
-        super(PowderyMildew, self).__init__(nbSpores=nbSpores)
+        super(PowderyMildew, self).__init__(nb_spores=nb_spores)
         self.status = self.fungus.LATENT
         ring = PowderyMildewRing(dt=1, lesion=self, status=self.status)
         self.rings.append(ring)
@@ -441,9 +583,17 @@ class PowderyMildew(Lesion):
     def update(self, dt, leaf, **kwds):
         """ Update the status of the lesion and create a new growth ring if needed.
                 
-        :Parameters:
-          - `...`
-
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+        
+        Returns
+        -------
+            None
         """        
         if self.status < self.fungus.DEAD:
             # Update the status of each ring
@@ -451,12 +601,23 @@ class PowderyMildew(Lesion):
                 ring.update(dt, leaf, self, **kwds)
                     
     def is_dead(self):
-        """ Update the status of all the rings to 'DEAD' if the lesion is dead. """
+        """ Update the status of all the rings to 'DEAD' if the lesion is dead.
+        
+        """
         return all(ring.is_dead() for ring in self.rings)
   
     @property
     def surface(self):
         """ Compute the surface of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        surface: float
+            Surface of the whole lesion (cm2)
         """
         surf = sum(ring.surface for ring in self.rings)
         return surf
@@ -464,6 +625,15 @@ class PowderyMildew(Lesion):
     @property
     def status(self):
         """ Compute the status of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        status: int
+            Status of the lesion
         """
         if self.rings:
             return self.rings[0].status
@@ -471,6 +641,15 @@ class PowderyMildew(Lesion):
     @property
     def age(self):
         """ Compute the age of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        age_dday: float
+            Age of the lesion in hours
         """
         if self.rings:
             return self.rings[0].age
@@ -478,6 +657,15 @@ class PowderyMildew(Lesion):
     @property
     def age_dday(self):
         """ Compute the thermal age of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        age_dday: float
+            Age of the lesion in degree days
         """
         if self.rings:
             return self.rings[0].age_dday
@@ -485,13 +673,32 @@ class PowderyMildew(Lesion):
     @status.setter
     def status(self, value):
         """ Set the status of the lesion to the chosen value.
+        
+        Parameters
+        ----------
+        value : int
+            Chosen value to set lesion status
+            
+        Returns
+        -------
+            None
         """
         if self.rings:
             self.rings[0].status = value
                       
  ####################################################################################################
 def proba(p):
-    """ p in 0,1 """
+    """ Compute the occurence of an event according to p.
+
+    Parameters
+    ----------
+    p : float
+        Probability of the event in [0,1]
+    
+    Returns
+    -------
+    True or False
+    """
     return random() < p
 
 class Ring(object):
@@ -503,11 +710,19 @@ class SeptoriaRing(Ring):
     """
 
     def __init__(self, lesion, status, dt=1.):
-        """ Initialize each new ring. 
+        """ Initialize each new ring of septoria. 
         
-        :Parameters:
-          - `...` (int): 
-
+        Parameters
+        ----------
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
+        status : int
+            Status of the ring when initiated
+            
+        Returns
+        -------
+            None 
         """
         super(SeptoriaRing, self).__init__()
         self.status = status
@@ -527,7 +742,7 @@ class SeptoriaRing(Ring):
         
 
     def is_in_formation(self, fungus):
-        """ Can grow again!!! """
+        """ Can keep growing!!! """
         ok = self.status in (fungus.INCUBATING, fungus.IN_FORMATION)
         if not ok:
             ok = self.is_chlorotic(fungus) and self.age_dday < fungus.Dt
@@ -558,8 +773,20 @@ class SeptoriaRing(Ring):
         * Assign leaf data to the ring in order to access it in the methods.
         * Call the property 'stage' depending on the current status of the ring.
         
-        :Parameters:
-          - `...`
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
+            
+        Returns
+        -------
+            None
           
         """
         self.leaf = leaf
@@ -574,7 +801,18 @@ class SeptoriaRing(Ring):
           
     def in_formation(self, ddday, lesion=None, **kwds):
         """ Cumulate surface while Dt in the state is not reached.        
-   
+        
+        Parameters
+        ----------
+        ddday: float
+            Number of degree days in 'dt'
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
+            
+        Returns
+        -------
+            None
         """     
         fungus = lesion.fungus
         leaf = self.leaf
@@ -592,6 +830,14 @@ class SeptoriaRing(Ring):
     def growth_control(self, growth_offer = 0.):
         """ Reduce surface of the last ring up to available surface on leaf.
         
+        Parameters
+        ----------
+        growth_offer: float
+            Surface available on the leaf for the ring to grow (cm2)
+        
+        Returns
+        -------
+            None
         """
         self.surface += growth_offer
         hs = self.leaf.healthy_surface
@@ -603,11 +849,15 @@ class SeptoriaRing(Ring):
         Each ring entering in the CHLOROTIC stage must wait 110 DD 
         to be NECROTIC.
         
-        :Parameters:
-          - `...
+        Parameters
+        ----------
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
         
-        :Returns:
-          - `...
+        Returns
+        -------
+            None
         """
         fungus = lesion.fungus
         assert self.is_chlorotic(fungus)
@@ -622,11 +872,15 @@ class SeptoriaRing(Ring):
         Each ring entering in the CHLOROTIC stage must wait ??? DD 
         to be SPORULATING.
         
-        :Parameters:
-          - `...
+        Parameters
+        ----------
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
         
-        :Returns:
-          - `...
+        Returns
+        -------
+            None
         """
         fungus = lesion.fungus
 
@@ -646,13 +900,17 @@ class SeptoriaRing(Ring):
         is greater than or equal to 85%. It is assumed that the ring is EMPTY
         after 3 separate rain events.
         
-        :Parameters:
-          - `...
+        Parameters
+        ----------
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
         
-        :Returns:
-          - ...
+        Returns
+        -------
+            None
 
-        :todo: Enhance the code to parametrize the code with a function.
+        .. Todo:: Enhance the code to parametrize the code with a function.
         """
         fungus = lesion.fungus
         leaf = self.leaf
@@ -679,14 +937,27 @@ class SeptoriaRing(Ring):
             if proba(1 - (ceil(production) - production)):
                 nb_du_produced += 1
             
-            self.stock_du = [SeptoriaDU(nbSpores = randint(1,100), status='emitted')
+            self.stock_du = [SeptoriaDU(nb_spores = randint(1,100), status='emitted')
                                 for i in range(nb_du_produced)]
                 
     def emission(self, leaf, lesion=None, **kwds):
         """ Create a list of dispersal units emitted by the ring.
         
-        .. Todo:: Implement a real formalism.
+        Parameters
+        ----------
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
         
+        Returns
+        -------
+        emissions: list of DUs
+            DUs emitted by the ring
+        
+        .. Todo:: Implement a real formalism.
         """
         emissions = []
         if self.stock_du and self.status == lesion.fungus.SPORULATING and leaf.rain_intensity > 0. and leaf.relative_humidity >= lesion.fungus.rh_min and not self.rain_before:
@@ -708,12 +979,32 @@ class SeptoriaRing(Ring):
         
     def empty(self, lesion=None, **kwds):
         """ Disable the 'EMPTY' ring.
+        
+        Parameters
+        ----------
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
+        
+        Returns
+        -------
+            None
         """
         self.status = lesion.fungus.EMPTY
         self.disable()
         
     def dead(self, lesion=None, **kwds):
         """ Disable the 'DEAD' ring.
+        
+        Parameters
+        ----------
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
+            
+        Returns
+        -------
+            None
         """
         self.status = lesion.fungus.DEAD
         self.disable()
@@ -721,6 +1012,13 @@ class SeptoriaRing(Ring):
     def disable(self, **kwds):
         """ Set the activity of the ring to 'False'.
         
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+            None
         """
         self.active = False
         
@@ -728,6 +1026,19 @@ class SeptoriaRing(Ring):
     def stage(self, dt, ddday, lesion=None):
         """ Orient the ring to toward the proper function according to its status.
         
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        ddday: int 
+            Number of degree days in 'dt'
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
+            
+        Returns
+        -------
+            Call the method corresponding to ring status  
         """
         if self.status == lesion.fungus.IN_FORMATION:
             return self.in_formation(ddday=ddday, lesion=lesion)
@@ -744,14 +1055,20 @@ class SeptoriaRing(Ring):
        
 class PowderyMildewRing(Ring):
     """ Ring of Lesion of PowderyMildew at a given age.
+    
     """
     
-    def __init__(self, lesion, status, dt=1.):
+    def __init__(self, status, dt=1.):
         """ Initialize each new ring. 
         
-        :Parameters:
-          - `...` (int): 
-
+        Parameters
+        ----------
+        status: int
+            Status of the lesion carrying the ring
+        
+        Returns
+        -------
+            None
         """
         super(PowderyMildewRing, self).__init__()
         self.status = status
@@ -765,7 +1082,21 @@ class PowderyMildewRing(Ring):
     
     def update(self, dt, leaf, lesion=None):
         """ Update the surface and the status of the ring.
-                  
+        
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
+            
+        Returns
+        -------
+            None
         """
         self.leaf = leaf
         
@@ -783,6 +1114,20 @@ class PowderyMildewRing(Ring):
     def growth(self, dt, leaf, lesion=None, **kwds):
         """ Compute growth of the ring.
         
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+        lesion : Lesion instantiation
+            The lesion carrying the ring, with properties 
+            (e.g. fungus parameters, surface, status, age, rings, etc.)
+
+        Returns
+        -------
+            None
         """
         
         # External variables
@@ -816,11 +1161,15 @@ class PowderyMildewRing(Ring):
     def latent(self, leaf, **kwds):
         """ Set the status of the lesion to SPORULATING when needed.
                
-        :Parameters:
-          - 
-        
-        :Returns:
-          - 
+        Parameters
+        ----------
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+            
+        Returns
+        -------
+            None
         """
         assert(self.status == lesion.fungus.LATENT)
         
@@ -847,11 +1196,15 @@ class PowderyMildewRing(Ring):
         """ Compute the number of dispersal events on the lesion, 
         and update the status of the lesion to EMPTY when needed.
                
-        :Parameters:
-          -
-        
-        :Returns:
-          - 
+        Parameters
+        ----------
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+            
+        Returns
+        -------
+            None 
         """
         assert(self.status == lesion.fungus.SPORULATING)
         
@@ -893,6 +1246,7 @@ class PowderyMildewRing(Ring):
         
     def empty(self, *args, **kwds):
         """ Assert if the status of the ring is 'EMPTY'.
+        
         """
         assert(self.status == lesion.fungus.EMPTY)
     
@@ -920,15 +1274,23 @@ def temp_norm_function(temp_mean, temp_min, temp_max, m, n):
     
     Compute the normalized temperature function as in Calonnec et al., 2008
     
-    :Parameters:
-      - `temp_mean` (float): mean temperature during the time step (°C).
-      - `temp_min` (float): minimum temperature during the time step (°C).
-      - `temp_max` (float): maximum temperature during the time step (°C).
-      - `m` (float): shape parameter.
-      - `n` (float): shape parameter.
+    Parameters
+    ----------
+    temp_mean: float
+        Mean temperature during the time step (°C)
+    temp_min: float
+        Minimum temperature during the time step (°C)
+    temp_max: float
+        Maximum temperature during the time step (°C)
+    m: float
+        Shape parameter
+    n: float
+        Shape parameter
     
-    :Returns:
-      - `temp_norm_function` : normalized temperature function.
+    Returns
+    -------
+    temp_norm_function: float
+        Normalized temperature function
     """
     # Calculation of the normalized temperature
     temp_norm =  min(max(0.,(temp_mean-temp_min)/(temp_max-temp_min)), 1.);
@@ -976,26 +1338,40 @@ class SeptoriaParameters(Parameters):
                  *args, **kwds):
         """ Parameters for septoria.
         
-        :Parameters:
-            - `Dt` (int) : time step in degree days to create a new ring. 
-            - `basis_for_dday` (float): basis temperature for the accumulation of degree days (°C)
-            - `temp_min` (float): Minimal temperature for infection.
-            - `temp_max` (float): Maximal temperature for infection.
-            - `wd_min` (float): Minimal wetness duration for infection.
-            - `loss_rate` (float): Loss rate of dispersal units in 1 hour.
-            - `degree_days_to_chlorosis` (float): Thermal time between emergence 
-            and chlorosis (i.e. incubation for the first rings).
-            - `degree_days_to_necrosis` (float): Thermal time between chlorosis 
-            and necrosis (i.e. incubation for the first rings).
-            - `degree_days_to_sporulation` (float): Thermal time between necrosis 
-            and sporulation.
-            - `epsilon` (float): Initial size of incubating lesion (cm2).
-            - `Smin` (float): Initial size of chlorotic lesion (cm2).
-            - `Smax` (float): Lesion maximum size (cm2).
-            - `growth_rate` (float): Lesion growth rate (cm2.dday-1).
-            - `rh_min` (float): Minimal relative humidity for sporulation.
-            - `rain_events_to_empty` (int): number of rain events to empty a sporulating ring.
-            
+        Parameters
+        ----------
+        Dt: int
+            Time step in degree days to create a new ring
+        basis_for_dday: float
+            Basis temperature for the accumulation of degree days (°C)
+        temp_min: float
+            Minimal temperature for infection
+        temp_max: float
+            Maximal temperature for infection
+        wd_min: float
+            Minimal wetness duration for infection
+        loss_rate: float
+            Loss rate of dispersal units in 1 hour
+        degree_days_to_chlorosis: float
+            Thermal time between emergence and chlorosis
+            (i.e. incubation for the first rings)
+        degree_days_to_necrosis: float
+            Thermal time between chlorosis and necrosis
+            (i.e. incubation for the first rings)
+        degree_days_to_sporulation: float
+            Thermal time between necrosis and sporulation
+        epsilon: float
+            Initial size of incubating lesion (cm2)
+        Smin: float
+            Initial size of chlorotic lesion (cm2)
+        Smax: float
+            Lesion maximum size (cm2)
+        growth_rate: float
+            Lesion growth rate (cm2.dday-1)
+        rh_min: float
+            Minimal relative humidity for sporulation
+        rain_events_to_empty: int
+            Number of rain events to empty a sporulating ring
         """
         self.name = "Septoria"
         self.IN_FORMATION = IN_FORMATION
@@ -1025,12 +1401,12 @@ class SeptoriaParameters(Parameters):
         # TODO : Improve this parameter. 
         # Rapilly would say : RI = 10 mm/h * fDU = 0.36 * pDr = 6.19e3 spores produced by cm2.
 
-    def __call__(self,nbSpores = None, position = None):
+    def __call__(self,nb_spores = None, position = None):
         if Septoria.fungus is None:
             Septoria.fungus = self
         if SeptoriaDU.fungus is None:
             SeptoriaDU.fungus = self
-        return Septoria(nbSpores = None, position = None)
+        return Septoria(nb_spores = None, position = None)
 
 def septoria(**kwds):
     return SeptoriaParameters(**kwds)
@@ -1079,56 +1455,75 @@ class PowderyMildewParameters(Parameters):
                  *args, **kwds):
         """ Parameters for septoria.
         
-        :Parameters:
-            - `temp_min_for_infection` (float): minimal temperature for infection (°C).
-            - `temp_max_for_infection` (float): maximal temperature for infection (°C).
-            - `m_for_infection` (float): shape parameter for the calculation of the
-               normalized temperature for infection.
-            - `n_for_infection` (float): shape parameter for the calculation of the
-               normalized temperature for infection.
-            - `max_infection_rate` (float): maximal infection rate ([0;1]).
-            - `decay_rate` (float): leaf susceptibility decay with age ([0;1]).
-            - `a_RH_effect` (float): shape parameter for the calculation of the effect
-            of relative humidity on infection.
-            - `b_RH_effect` (float): shape parameter for the calculation of the effect
-            of relative humidity on infection.
-            - `RH_opt_for_infection` (float): optimal relative humidity for infection (%).
-            - `c_wetness_effect` (float): shape parameter for the calculation of the effect
-            of leaf wetness on infection.
-            - `d_wetness_effect` (float): shape parameter for the calculation of the effect
-            of leaf wetness on infection.
-            - `diameter_max` (float): maximum diameter of the lesion (cm).
-            - `diameter_min` (float): minimum diameter of the lesion (cm).
-            - `leaf_age_effect` (float): rate of colony growth with the leaves age ([0;1]).
-            - `temp_min_for_growth` (float): minimal temperature for growth (°C).
-            - `temp_max_for_growth` (float): maximal temperature for growth (°C).
-            - `m_for_growth` (float): shape parameter for the calculation of the
-               normalized temperature for growth.
-            - `n_for_growth` (float): shape parameter for the calculation of the
-               normalized temperature for growth.
-            - `half_growth_time` (float): time before 50% of colony growth (hours).
-            - `temp_min_for_latency` (float): minimal temperature for latency (°C).
-            - `temp_max_for_latency` (float): maximal temperature for latency (°C).
-            - `m_for_latency` (float): shape parameter for the calculation of the
-               normalized temperature for latency.
-            - `n_for_latency` (float): shape parameter for the calculation of the
-               normalized temperature for latency.
-            - `min_latency_duration` (float): minimum latency duration (hours).
-            - `a_for_sporulation` (float) : shape parameter for the calculation of the
-               progress of the sporulation period according to temperature.
-            - `b_for_sporulation` (float) : shape parameter for the calculation of the
-               progress of the sporulation period according to temperature.                 temp_min_for_sporulation
-            - `temp_min_for_sporulation` (float) : minimal temperature for sporulation (°C).
-            - `temp_max_for_sporulation` (float) : maximal temperature for sporulation (°C).
-            - `m_for_sporulation` (float): shape parameter for the calculation of the
-               normalized temperature for sporulation.
-            - `n_for_sporulation` (float) : shape parameter for the calculation of the
-               normalized temperature for sporulation.
-            - `nb_du_max` (int) : number of dispersal unit produced by a sporulating
-            surface unit by time step (dispersal unit / cm2 / hour).
-            - `treshold_nb_du_to_empty` (int) : treshold of dispersal unit on a surface to 
-            consider it empty.
-
+        Parameters
+        ----------
+        temp_min_for_infection: float
+            Minimal temperature for infection (°C)
+        temp_max_for_infection: float
+            Maximal temperature for infection (°C)
+        m_for_infection: float
+            Shape parameter for the calculation of the normalized temperature for infection
+        n_for_infection: float
+            Shape parameter for the calculation of the normalized temperature for infection
+        max_infection_rate: float
+            Maximal infection rate ([0;1])
+        decay_rate: float
+            Leaf susceptibility decay with age ([0;1])
+        a_RH_effect: float
+            Shape parameter for the calculation of the effect of relative humidity on infection
+        b_RH_effect: float
+            Shape parameter for the calculation of the effect of relative humidity on infection
+        RH_opt_for_infection: float
+            Optimal relative humidity for infection (%)
+        c_wetness_effect: float
+            Shape parameter for the calculation of the effect of leaf wetness on infection
+        d_wetness_effect: float
+            Shape parameter for the calculation of the effect of leaf wetness on infection
+        diameter_max: float
+            Maximum diameter of the lesion (cm)
+        diameter_min: float
+            Minimum diameter of the lesion (cm)
+        leaf_age_effect: float
+            Rate of colony growth with the leaves age ([0;1])
+        temp_min_for_growth: float
+            Minimal temperature for growth (°C)
+        temp_max_for_growth: float
+            Maximal temperature for growth (°C)
+        m_for_growth: float
+            Shape parameter for the calculation of the normalized temperature for growth
+        n_for_growth: float
+            Shape parameter for the calculation of the normalized temperature for growth
+        half_growth_time: float
+            Time before 50% of colony growth (hours)
+        temp_min_for_latency: float
+            Minimal temperature for latency (°C)
+        temp_max_for_latency: float
+            Maximal temperature for latency (°C)
+        m_for_latency: float
+            Shape parameter for the calculation of the normalized temperature for latency
+        n_for_latency: float
+            Shape parameter for the calculation of the normalized temperature for latency
+        min_latency_duration: float
+            Minimum latency duration (hours)
+        a_for_sporulation: float
+            Shape parameter for the calculation of the progress 
+            of the sporulation period according to temperature
+        b_for_sporulation: float
+            Shape parameter for the calculation of the progress 
+            of the sporulation period according to temperature
+        temp_min_for_sporulation: float
+            Minimal temperature for sporulation (°C)
+        temp_max_for_sporulation: float
+            Maximal temperature for sporulation (°C)
+        m_for_sporulation: float
+            Shape parameter for the calculation of the normalized temperature for sporulation
+        n_for_sporulation: float
+            Shape parameter for the calculation of the normalized temperature for sporulation
+        nb_du_max: int
+            Number of dispersal unit produced by a sporulating
+            surface unit by time step (dispersal unit / cm2 / hour)
+        treshold_nb_du_to_empty: int
+            Treshold of dispersal unit on a surface to consider it empty
         """
         self.name = "PowderyMildew"
         self.LATENT = LATENT

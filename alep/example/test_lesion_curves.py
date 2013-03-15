@@ -175,6 +175,8 @@ class SeptoriaLesion(Lesion):
                 z[j] = self.age_dday
             else:
                 z[j] = max(0., -(1/self.fungus.r2)*(x - self.surface_total))
+                # a = self.age_dday/((self.age_dday-self.fungus.degree_days_to_chlorosis)*self.fungus.r2)
+                # z[j] = max(0., - a * x + a*self.surface_total)
                 
         return z
                 
