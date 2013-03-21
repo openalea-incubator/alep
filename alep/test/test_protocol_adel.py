@@ -19,6 +19,11 @@ from alinea.alep.cycle2 import SeptoriaDU
 from alinea.alep.cycle2 import powdery_mildew
 from alinea.alep.cycle2 import proba
 
+from alinea.alep.dispersal import RandomDispersal
+from alinea.alep.washing import RapillyWashing
+from alinea.alep.growth_control import NoPriorityGrowthControl
+from alinea.alep.inoculation import RandomInoculation
+
 from alinea.alep.protocol import *
 
 from datetime import datetime
@@ -167,39 +172,10 @@ def generate_stock_DU(fungus = septoria(), nb_Spores=random.randint(1,100), nb_D
     stock_DU = [SeptoriaDU(nb_spores=nb_Spores, status='emitted') for i in range(nb_DU)]
     return stock_DU
 
-class RandomInoculation:
-    """ Example of class created to allocate inoculum on MTG randomly.
-    
-    """
-    
-    def disperse(self, g, inoculum, label='LeafElement'):
-        """ Select randomly elements of the MTG and allocate them a random part of the inoculum.
-
-        :Parameters:
-          - `g` : MTG representing the canopy (and the soil).
-          - `inoculum` : source of dispersal units to disperse in the scene.
-        """        
-        import random
-        vids = [n for n in g if g.label(n).startswith(label)]
-        n = len(vids)
-        for vid in vids:
-            g.node(vid).dispersal_units = []
-            
-        for i in inoculum:
-            idx = random.randint(0,n-1)
-            v = vids[idx]
-            leaf = g.node(v)
-            if not 'dispersal_units' in leaf.properties():
-                leaf.dispersal_units = []
-            # Deposit a DU from inoculum on node v of the MTG
-            i.deposited()
-            leaf.dispersal_units.append(i)
-
 def inoculator():            
     """ Instantiate the class RandomInoculation().
     
     """
-    # Temp : Do better. How to instantiate a class in Dataflow ?
     inoculator = RandomInoculation()
     return inoculator
 
@@ -207,107 +183,15 @@ def dispersor():
     """ Instantiate the class RandomInoculation().
     
     """
-    # Temp : Do better. How to instantiate a class in Dataflow ?
-    dispersor = StubDispersal()
+    dispersor = RandomDispersal()
     return dispersor
     
 def washor():            
     """ Instantiate the class RandomInoculation().
     
     """
-    # Temp : Do better. How to instantiate a class in Dataflow ?
-    washor = StubWashing()
+    washor = RapillyWashing()
     return washor
-    
-class StubDispersal(object):
-
-    def __init__(self):
-        pass
-
-    def disperse(self, scene, DU):
-        vids = [geom.id for geom in scene]
-        n = len(vids)
-        deposits = {}
-    
-        for vid,dlist in DU.iteritems():
-            for d in dlist:
-                if proba(0.5):
-                    idx = random.randint(0,n-1)
-                    v = vids[idx]
-                    if v not in deposits:
-                        deposits[v] = []
-                    deposits[v].append(d)
-         
-        return deposits
-        
-class StubWashing(object):
-
-    def __init__(self):
-        self.rain_duration = 0.
-        self.rain_intensity = {}
-        
-    def compute_washing_rate(self, g, global_rain_intensity, label='LeafElement'):
-        """ For each LeafElement of the MTG, compute the washing rate.
-        
-        """
-        if global_rain_intensity > 0.:
-            self.rain_duration += 1
-            
-            vids = [n for n in g if g.label(n).startswith(label)]
-            for v in vids : 
-                leaf = g.node(v)
-                if not v in self.rain_intensity:
-                    self.rain_intensity[v] = []
-                self.rain_intensity[v].append(leaf.rain_intensity)
-                leaf.washing_rate = 0.
-        else:
-            vids = [n for n in g if g.label(n).startswith(label)]
-            for v in vids : 
-                leaf = g.node(v)
-                if v in self.rain_intensity:
-                    mean_rain_intensity = numpy.mean(self.rain_intensity[v])
-                    leaf.washing_rate = max(0,min(1, mean_rain_intensity / (leaf.healthy_surface + mean_rain_intensity)*self.rain_duration))
-                    self.rain_intensity.pop(v)
-                else:
-                    leaf.washing_rate = 0.
-            self.rain_duration = 0.
-        
-    
-    # def wash(self, dispersal_unit, washing_rate):
-        # """ On the given LeafElement, disable the DU as a function of the washing_rate.
-        
-        # """
-        # if proba(washing_rate):
-            # dispersal_unit.disable()      
-
-class StubGrowthControl(object):
-
-    def __init__(self):
-        pass
-        
-    def control(self, g, label='LeafElement'):
-        """ Limit lesion growth to the healthy surface on leaves.
-        
-        """
-        lesions = g.property('lesions')
-        surfaces = g.property('surface')
-        healthy_surfaces = g.property('healthy_surface')
-        labels = g.property('label')
-
-        # Select all the leaves
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
-        for blade in bids:
-            leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
-            leaf_surface = sum(surfaces[lf] for lf in leaf)
-            leaf_healthy_surface = sum(healthy_surfaces[lf] for lf in leaf)
-            
-            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[])]
-            total_demand = sum(l.growth_demand for l in leaf_lesions)
-
-            if total_demand > leaf_healthy_surface:
-                for l in leaf_lesions:
-                    growth_offer = leaf_healthy_surface * l.growth_demand / total_demand
-                    l.growth_control(growth_offer=growth_offer)                 
 
 # Display #########################################################################
 
@@ -606,8 +490,6 @@ def test_disperse():
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
-    dispersor = StubDispersal()
-    
     dt = 1
     nb_steps = 750
     nb_les = numpy.array([0 for i in range(nb_steps)])
@@ -624,10 +506,11 @@ def test_disperse():
         # grow(g)
         infect(g, dt)
         update(g,dt)
+        
         if global_rain_intensity != 0.:
             scene = plot3d(g)
-            disperse(g, scene, dispersor, "Septoria")
-
+            disperse(g, scene, dispersor(), "Septoria")
+               
         # Count of lesions :
         nb_les[i] = count_lesions(g)
         
@@ -648,27 +531,30 @@ def test_washing():
     """ Check if 'washing' from 'protocol.py' washes dispersal units out of the MTG.
 
     """
-    g = adel_mtg2()
+    g = adel_mtg()
     initiate_g(g)
     fungus = septoria(); SeptoriaDU.fungus = fungus
     stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
-    washor = StubWashing()
+    washor = RapillyWashing()
     
     dt = 1
     nb_steps = 100
     nb_DU = numpy.array([0. for i in range(nb_steps)])
     for i in range(nb_steps):
-    
         g = update_climate(g)
+        
+        # Add artificial rain:
         if i>2 and i%5 == 0 or (i-1)%5 == 0:
                 global_rain_intensity = 4.
                 rain_interception(g, rain_intensity = global_rain_intensity*0.75)      
         else:
             global_rain_intensity = 0.
         
+        # Compute washing 
+        # (needs to be done even if no rain to update variables in the washing model)
         wash(g, washor, global_rain_intensity, DU_status='deposited')
            
         # Count of DU :
@@ -702,7 +588,7 @@ def test_growth_control():
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
    
-    controler = StubGrowthControl()
+    controler = NoPriorityGrowthControl()
 
     dt = 1
     nb_steps = 500
@@ -726,9 +612,9 @@ def test_growth_control():
         count_surf = 0.
         for v in vids:
             leaf = g.node(v)
-            # count_surf += leaf.healthy_surface
-            if 'lesions' in leaf.properties():
-                count_surf += sum([l.surface for l in leaf.lesions])
+            count_surf += leaf.healthy_surface
+            # if 'lesions' in leaf.properties():
+                # count_surf += sum([l.surface for l in leaf.lesions])
                 # print('leaf element %d - ' % v + 'Healthy surface : %f'  % leaf.healthy_surface) 
         
         sum_surface[i] = count_surf
@@ -760,10 +646,11 @@ def test_simul_with_weather():
     initiate(g, stock, inoculator)
     
     # Call the models that will be used during the simulation :
-    controler = StubGrowthControl()
-    washor = StubWashing()
-    dispersor = StubDispersal()
-   
+    controler = NoPriorityGrowthControl()
+    washor = RapillyWashing()
+    dispersor = RandomDispersal()
+
+  
     # Prepare the simulation loop
     dt = 1
     start_date = datetime(2000, 10, 1)
@@ -780,11 +667,11 @@ def test_simul_with_weather():
         infect(g, dt)        
         update(g,dt)
         growth_control(g, controler)
-        
-        scene = plot3d(g)
-        disperse(g, scene, dispersor, "Septoria")
-        
+               
         global_rain_intensity = weather_data.Pluie[date]
+        if global_rain_intensity != 0. :
+            scene = plot3d(g)
+            disperse(g, scene, dispersor, "Septoria") 
         wash(g, washor, global_rain_intensity)
     
         # displayer = DisplayLesions()
@@ -802,20 +689,20 @@ def test_all():
     
     # Deposit first dispersal units on the MTG :
     fungus = septoria(); SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
+    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(10)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
     # Call the models that will be used during the simulation :
-    controler = StubGrowthControl()
-    washor = StubWashing()
-    dispersor = StubDispersal()
+    controler = NoPriorityGrowthControl()
+    washor = RapillyWashing()
+    dispersor = RandomDispersal()
    
     # Prepare the simulation loop
-    dt = 1
-
+    dt = 10
     nb_steps = 750
-    for i in range(nb_steps):
+
+    for i in range(0,nb_steps,dt):
         update_climate(g)
         if i%100 == 0:
             global_rain_intensity = 4.
@@ -831,8 +718,9 @@ def test_all():
         if global_rain_intensity != 0.:
             scene = plot3d(g)
             disperse(g, scene, dispersor, "Septoria")
-            wash(g, washor, global_rain_intensity, DU_status='deposited')
-
+        
+        wash(g, washor, global_rain_intensity, DU_status='deposited')
+        
     return g
 
 if __name__ == '__main__':

@@ -16,6 +16,8 @@ def initiate(g,
         Source of dispersal units to disperse in the scene
     initiation_model:
         Model that allows positioning each DU in stock on g
+    label: str
+        Label of the part of the MTG concerned by the calculation
     
     Returns
     -------
@@ -31,9 +33,9 @@ def initiate(g,
       >>> return g
     """
     # Allocation of stock of inoculum
-    initiation_model.disperse(g, dispersal_units_stock)
+    initiation_model.allocate(g, dispersal_units_stock)
 
-    return g,
+    return g
 
 def infect(g, dt, label="LeafElement"):
     """ Compute infection success by dispersal units.
@@ -45,6 +47,8 @@ def infect(g, dt, label="LeafElement"):
         'dispersal_units' are stored in the MTG as a property
     dt: int
         Time step of the simulation
+    label: str
+        Label of the part of the MTG concerned by the calculation
     
     Returns
     -------
@@ -68,12 +72,14 @@ def infect(g, dt, label="LeafElement"):
     dispersal_units = g.property('dispersal_units')
     for vid, du in dispersal_units.iteritems():
         if g.label(vid).startswith(label):
+            leaf = g.node(vid)
             for dispersal_unit in du:
-                leaf = g.node(vid)
                 if dispersal_unit.active: # TODO : Condition here ?
                     dispersal_unit.infect(dt, leaf)
 
-    return g,
+    for vid, du in dispersal_units.iteritems():
+        dispersal_units[vid] = [d for d in du if d.active]
+    return g
     
 def update(g, dt, label="LeafElement"):
     """ Update the status of every lesion on the MTG.
@@ -85,6 +91,8 @@ def update(g, dt, label="LeafElement"):
         'lesions' are stored in the MTG as a property
     dt: int
         Time step of the simulation
+    label: str
+        Label of the part of the MTG concerned by the calculation
     
     Returns
     -------
@@ -118,7 +126,7 @@ def update(g, dt, label="LeafElement"):
             #proposition 2 : les conventions de nommage noms sont definies ailleurs (ou???) et on passe juste une leaf qui repond a cette convention
             lesion.update(dt, leaf)
           
-    return g,
+    return g
     
 def disperse(g, 
              scene,
@@ -174,8 +182,7 @@ def disperse(g,
                     if vid not in DU:
                         DU[vid] = []
                     DU[vid] += lesion.emissions # other derterminant (microclimate...) are expected on leaf
-    
-    # dispersion, position a sortir de du ??
+    # dispersion, transport
     deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, status
     # allocation of new dispersal units
     for vid,dlist in deposits.iteritems():
@@ -187,7 +194,7 @@ def disperse(g,
                     leaf.dispersal_units=[]
                 leaf.dispersal_units.append(d)
 
-    return g,
+    return g
 
 def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label="LeafElement"): 
     """ Compute spores loss by washing.
@@ -202,6 +209,8 @@ def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label
         Rain intensity over the canopy to trigger washing
     DU_status: str
         Status of the washed DUs ('emitted' or 'deposited' or 'all')
+    label: str
+        Label of the part of the MTG concerned by the calculation
     
     Returns
     -------
@@ -245,7 +254,7 @@ def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label
     
     # TODO : Raise error if DU_status does not exist.
     
-    return g,
+    return g
 
 def growth_control(g, control_model, label="LeafElement"):
     """ Regulate the growth of lesion according to their growth demand,
@@ -257,6 +266,8 @@ def growth_control(g, control_model, label="LeafElement"):
         MTG representing the canopy (and the soil)
     control_model: 
         Model with rules of competition between the lesions
+    label: str
+        Label of the part of the MTG concerned by the calculation
     
     Returns
     -------
