@@ -1,4 +1,4 @@
-""" Gather existing models of inoculation of fungus dispersal units on a MTG.
+""" Gather different strategies for modeling inoculation of fungus dispersal units on a MTG.
 
 """
 

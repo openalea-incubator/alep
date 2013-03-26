@@ -14,10 +14,9 @@ import alinea.adel.fitting as fitting
 from alinea.adel.AdelR import devCsv,setAdel,RunAdel,genGeoLeaf,genGeoAxe
 
 from alinea.alep import cycle2
-from alinea.alep.cycle2 import septoria
-from alinea.alep.cycle2 import SeptoriaDU
-from alinea.alep.cycle2 import powdery_mildew
-from alinea.alep.cycle2 import proba
+from alinea.alep import septoria
+from alinea.alep.septoria import *
+from alinea.alep import powdery_mildew
 
 from alinea.alep.dispersal import RandomDispersal
 from alinea.alep.washing import RapillyWashing
@@ -79,7 +78,7 @@ def adel_mtg3(nb_sect=1, leaf_db=None, d=None, p=None):
         size = int(ceil(sqrt(p)))
         stand = numpy.array([(i, j) for i in range(size) for j in range(size)])
         numpy.random.shuffle(stand)
-        stand = [((i, j, 0),random.randint(0,90)) for i, j in stand[:p]]
+        stand = [((int(i)-10*size/2., int(j)-10*size/2., 0),random.randint(0,90)) for i, j in 10*stand[:p]]
     else:
         stand = [((0,0,0),0),((10,0,0),90), ((0,10,0), 0)]
     g=mtg_factory(d,adel_metamer, leaf_sectors=nb_sect,leaf_db=leaf_db,stand=stand)

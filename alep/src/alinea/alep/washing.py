@@ -1,4 +1,5 @@
-""" Gather existing models of washing of fungus dispersal units on leaves by rain.
+""" Gather different strategies for modeling the washing of fungus dispersal units 
+    on leaves by rain.
 
 """
 

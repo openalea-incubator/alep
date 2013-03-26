@@ -1,4 +1,4 @@
-""" Gather existing models of dispersal of fungus propagules.
+""" Gather different strategies for modeling dispersal of fungus propagules.
 
 """
 

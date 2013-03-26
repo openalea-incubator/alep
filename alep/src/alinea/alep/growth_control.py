@@ -1,5 +1,5 @@
-""" Gather existing models that coordinate growth of lesion on leaves according 
-to surface available (i.e. competition).
+""" Gather different strategies for models that coordinate growth of lesion on 
+    leaves according to surface available (i.e. competition).
 
 """
 
