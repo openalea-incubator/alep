@@ -145,6 +145,8 @@ def disperse(g,
         Model that used to position each DU in stock on g
     fungus_name: str
         Name of the fungus
+    label: str
+        Label of the part of the MTG concerned by the calculation
     
     Returns
     -------

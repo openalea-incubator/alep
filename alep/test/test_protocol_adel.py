@@ -161,7 +161,7 @@ def rain_interception(g, rain_intensity = None, label = 'LeafElement'):
         
     return g
 
-# Stub models for disease #########################################################
+# Call models for disease #########################################################
 
 def generate_stock_DU(fungus = septoria(), nb_Spores=random.randint(1,100), nb_DU = 100):
     """ Generate a stock of DU as a list of DU 
