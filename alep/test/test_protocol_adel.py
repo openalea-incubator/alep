@@ -368,6 +368,7 @@ def test_adel_mtg():
     g = adel_mtg()
     scene = plot3d(g)
     Viewer.display(scene)
+    return g
     
 def test_adel_mtg2():
     """ Check the proper functioning of 'adel_mtg2'.
@@ -376,6 +377,7 @@ def test_adel_mtg2():
     g = adel_mtg2()
     scene = plot3d(g)
     Viewer.display(scene)
+    return g
 
 def test_adel_mtg3():
     """ Check the proper functioning of 'adel_mtg2'.
@@ -385,6 +387,7 @@ def test_adel_mtg3():
     g = adel_mtg3(leaf_db=leaves_db(fn = r'../../adel/adel/data/leaves_simple.db'), d=d, p=p)
     scene = plot3d(g)
     Viewer.display(scene)
+    return g
     
 def test_initiate():
     """ Check if 'initiate' from 'protocol.py' deposits dispersal units on the MTG.
@@ -436,7 +439,7 @@ def test_update():
     nb_steps = 750
     nb_les_inc = numpy.zeros(nb_steps)
     # nb_les_chlo = numpy.array([0. for i in range(nb_steps)])
-    # nb_les_nec = numpy.array([0. for i in range(nb_steps)])
+    # nb_lezs_nec = numpy.array([0. for i in range(nb_steps)])
     nb_les_spo = numpy.zeros(nb_steps)
     # nb_les_empty = numpy.array([0. for i in range(nb_steps)])
     for i in range(nb_steps):

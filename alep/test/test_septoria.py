@@ -48,6 +48,15 @@ def adel_mtg():
     g=mtg_interpreter(g)
     return g
     
+def adel_one_leaf():
+    """ create a very simple adel mtg """
+    d = {'plant':[1],'axe_id':['MS'],'ms_insertion':[0],'numphy':[1], 
+         'Laz': [0], 'Ll' :[3], 'Lv' :[3] , 'Lsen':[0], 'L_shape':[3], 'Lw_shape':[.3], 'Linc':[0],
+         'Einc':[0],'El':[1],'Ev':[1],'Esen':[0],'Ed': [0.1]}
+    g=mtg_factory(d,adel_metamer,leaf_db=leaves_db(), leaf_sectors=1)
+    g=mtg_interpreter(g)
+    return g
+    
 def adel_mtg2(nb_sect=1):
     """ create a less simple adel mtg """
     p, d = adelR(3,1000)
@@ -132,7 +141,7 @@ def test_initiate():
     None
     """
     # Generate a wheat MTG
-    g = adel_mtg()
+    g = adel_one_leaf()
     set_initial_properties_g(g, surface_leaf_element=5.)
     
     # Generate a stock of septoria dispersal units
@@ -168,7 +177,7 @@ def test_infect():
     None
     """
     # Generate a wheat MTG
-    g = adel_mtg()
+    g = adel_one_leaf()
     set_initial_properties_g(g, surface_leaf_element=5.)
     
     # Generate a stock of septoria dispersal units
@@ -193,3 +202,103 @@ def test_infect():
     lesions = g.property('lesions')
     nb_lesions_on_leaves = sum(len(l) for l in lesions.itervalues())
     assert nb_lesions_on_leaves == nb_dus_in_stock
+    
+def test_update():
+    """ Check if 'update' from 'protocol.py' provokes the growth of a lesion
+        instantiated on the MTG.
+    
+    Generate a wheat MTG and deposit 1 dispersal unit on a leaf element.
+    Run a loop to compute infection and update. Check that all the stages
+    of a lesion of septoria have been reached eventually.
+    
+    Parameters
+    ----------
+    None
+    
+    Returns
+    -------
+    None
+    """
+    # Generate a wheat MTG
+    g = adel_one_leaf()
+    set_initial_properties_g(g, surface_leaf_element=5.)
+    
+    # Generate a stock of septoria dispersal units
+    fungus = septoria()
+    SeptoriaDU.fungus = fungus
+    nb_dus_in_stock = 1
+    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(nb_dus_in_stock)]
+    
+    # Call the protocol of initiation with a model distributing the DUs randomly
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+        
+    # Loop of simulation
+    dt = 1
+    nb_steps = 500
+    di = 0. # delay before infection
+    for i in range(0,nb_steps,dt):
+        # After infection, the lesion 'age_dday' will be added 1 DD by time step
+        # Note : base temperature for septoria = -2 degrees celsius
+        update_climate_all(g, wetness=True, temp=22.)
+        infect(g, dt)
+        update(g, dt)
+
+        # Check that the lesion is in the right status
+        lesion = g.property('lesions')
+        if lesion and di==0.:
+            di = i 
+            assert sum(len(l) for l in lesion.itervalues()) == 1
+            l = lesion.values()[0][0]
+            print(l.status)
+            if (220.+di) <= i < (330.+di):
+                assert l.status == 1
+            elif (330.+di) <= i < (350.+di):
+                assert l.status == 2
+            elif i >= (350.+di):
+                assert l.status == 3
+                
+def test_disperse():
+    """ Check if 'disperse' from 'protocol.py' disperse new 
+        dispersal units on the MTG.
+    
+    Generate a wheat MTG and distribute dispersal units randomly on leaf elements.
+    Run a loop to compute infection and update. Create artificial rains in the loop
+    on a regular basis. Check that the number of lesions on the MTG increases.
+    
+    Parameters
+    ----------
+    None
+    
+    Returns
+    -------
+    None
+    """
+    # Generate a wheat MTG
+    g = adel_one_leaf()
+    set_initial_properties_g(g, surface_leaf_element=5.)
+    
+    # Generate a stock of septoria dispersal units
+    fungus = septoria()
+    SeptoriaDU.fungus = fungus
+    nb_dus_in_stock = 1
+    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(nb_dus_in_stock)]
+    
+    # Call the protocol of initiation with a model distributing the DUs randomly
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+        
+    # Loop of simulation
+    dt = 1
+    nb_steps = 700
+    for i in range(0,nb_steps,dt):
+        update_climate_all(g, wetness=True, temp=22.)
+        infect(g, dt)
+        update(g, dt)
+        
+        # Force rain occurences
+        if i>400 & i%100 == 0:
+            global_rain_intensity = 4.
+            update_climate_all(g, rain_intensity = global_rain_intensity*0.75)  
+            
+            
