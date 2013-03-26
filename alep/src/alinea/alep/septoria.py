@@ -5,6 +5,7 @@
 from alinea.alep.cycle2 import *
 from random import random, randint
 from math import floor, ceil
+import numpy as np
 
 # Dispersal unit ##################################################################
 class SeptoriaDU(DispersalUnit):
@@ -717,6 +718,102 @@ class SeptoriaRing(Ring):
             return self.empty(lesion=lesion)
         else:
             return self.dead(lesion=lesion)
+
+class ContinuousSeptoria(Lesion):
+    """ Septoria Lesion implemented as a continuous model. """
+
+    def __init__(self, nb_spores=None, position=None):
+        """ Initialize the lesion of septoria. 
+        
+        Parameters
+        ----------
+        position: non defined
+            Position of the dispersal unit on the phyto-element
+        nb_spores: int
+            Number of spores aggregated in the dispersal unit
+        
+        """
+        super(ContinuousSeptoria, self).__init__(nb_spores=nb_spores, position=position)
+        self.surface_dead = 0.
+
+        # Continuous model
+        self.stock = 0.
+        self.age_dday = 0.
+        self.param_dday = 0. # for competition otherelse == age_dday
+        
+        self.first_rain_event = False
+
+    def update(self, dt, leaf, **kwds):
+        """ Update the status of the lesion and create a new growth ring if needed.
+
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+
+        """
+        ddday = (leaf.temp - lesion.fungus.basis_for_dday)/(24./dt)
+        self.age_dday += ddday
+        self.param_dday += ddday
+
+        if leaf.rain_intensity > 0.:
+            self.first_rain_event = True if not self.first_rain_event else False
+        else:
+            self.first_rain_event = False
+
+        self.stage()
+
+        self.stock += self.sporulating_ds * self.fungus.production_rate
+
+        if leaf.rain_intensity:
+            self.emission(leaf)
+
+    def stage(self):
+        """Compute status of the lesion
+
+        TODO: add another time for competition
+        Manage the time for each state when competition
+        """
+        f = self.fungus
+        r1 = f.Smin / f.degree_days_to_chlorosis
+        r2 = f.growth_rate
+
+        _status = [f.SPORULATING, f.INCUBATING, f.CHLOROTIC, f.NECROTIC]
+        times = [0,f.degree_days_to_chlorosis, f.degree_days_to_necrosis, f.degree_days_to_sporulation]
+        times = np.cumsum(times)
+        
+        status = _status[np.argmin(times<=self.age_dday)] 
+        
+        if status == f.INCUBATING:
+            surface = r1 * self.age_dday
+        else:
+            surface = f.Smin + r2 * (self.age_dday-f.degree_days_to_chlorosis)
+
+        old_surface_sporulating = self.surface_sporulating
+        self.surface_sporulating = 0 if (status != f.SPORULATING) else r2 * (self.age_dday-f.degree_days_to_sporulation)
+
+        self.sporulating_ds = self.surface_sporulating - old_surface_sporulating
+        self._status = status
+
+
+    @property
+    def status(self):
+        """ Compute the status of the lesion.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        status: int
+            Status of the lesion
+        """
+        return self._status
+
 
 # Fungus parameters (e.g. .ini): config of the fungus #############################
 class SeptoriaParameters(Parameters):
