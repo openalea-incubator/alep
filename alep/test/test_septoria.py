@@ -12,6 +12,9 @@ from alinea.adel.AdelR import devCsv,setAdel,RunAdel,genGeoLeaf,genGeoAxe
 from alinea.alep.protocol import *
 from alinea.alep.septoria import *
 from alinea.alep.inoculation import RandomInoculation
+from alinea.alep.growth_control import NoPriorityGrowthControl
+from alinea.alep.dispersal import RandomDispersal
+from alinea.alep.washing import RapillyWashing
 
 # Plant ###########################################################################
 def adelR(nplants,dd):
@@ -192,7 +195,7 @@ def test_infect():
         
     # Loop of simulation
     dt = 1
-    nb_steps = 11
+    nb_steps = 12
     for i in range(0,nb_steps,dt):
         # Offer good conditions for at least 10h:
         update_climate_all(g, wetness=True, temp=20.)
@@ -209,7 +212,8 @@ def test_update():
     
     Generate a wheat MTG and deposit 1 dispersal unit on a leaf element.
     Run a loop to compute infection and update. Check that all the stages
-    of a lesion of septoria have been reached eventually.
+    of a lesion of septoria have been reached eventually. Check that the 
+    lesion size does not exceed Smax.
     
     Parameters
     ----------
@@ -232,10 +236,12 @@ def test_update():
     # Call the protocol of initiation with a model distributing the DUs randomly
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
+    
+    controler = NoPriorityGrowthControl()
         
     # Loop of simulation
     dt = 1
-    nb_steps = 500
+    nb_steps = 400
     di = 0. # delay before infection
     for i in range(0,nb_steps,dt):
         # After infection, the lesion 'age_dday' will be added 1 DD by time step
@@ -243,21 +249,112 @@ def test_update():
         update_climate_all(g, wetness=True, temp=22.)
         infect(g, dt)
         update(g, dt)
-
-        # Check that the lesion is in the right status
+        control_growth(g, controler)
+        
+        # Check that the lesion is in the right status and has the right surface
         lesion = g.property('lesions')
-        if lesion and di==0.:
-            di = i 
+        if lesion:
+            if di==0.:
+                di = i
             assert sum(len(l) for l in lesion.itervalues()) == 1
             l = lesion.values()[0][0]
-            print(l.status)
-            if (220.+di) <= i < (330.+di):
+            f = l.fungus
+            if i < (220.+di-1):
+                assert l.status == 0
+                assert round(l.surface, 6) < round(f.Smin, 6)
+            if (220.+di-1) <= i < (330.+di-1):
                 assert l.status == 1
-            elif (330.+di) <= i < (350.+di):
+                assert round(f.Smin, 6) <= round(l.surface, 6)
+                assert round(l.surface, 6) < round(f.Smin + f.growth_rate * f.degree_days_to_necrosis, 6)
+            elif (330.+di-1) <= i < (350.+di-1):
                 assert l.status == 2
-            elif i >= (350.+di):
+                assert round(f.Smin + f.growth_rate * f.degree_days_to_necrosis, 6) <= round(l.surface, 6)
+                assert round(l.surface, 6) < round(f.Smin + f.growth_rate * (f.degree_days_to_necrosis + f.degree_days_to_sporulation), 6)
+            elif i >= (350.+di-1):
                 assert l.status == 3
+                assert round(f.Smin + f.growth_rate * f.degree_days_to_sporulation, 6) <= round(l.surface, 6)
+                assert round(l.surface, 6) <= round(l.fungus.Smax, 6)       
                 
+def test_growth_control():
+    """ Check if 'control_growth' from 'protocol.py' limits the lesion growth
+        up to available surface on the leaf.
+    
+    Generate a wheat MTG and deposit sumultaneously 1000 dispersal unit on a leaf element.
+    Run a loop to compute infection and update. Check that the healthy surface of the leaf
+    decreases up to 0. Check that lesion growth is stopped after this point.
+    
+    Parameters
+    ----------
+    None
+    
+    Returns
+    -------
+    None
+    """
+    # Generate a wheat MTG
+    g = adel_one_leaf()
+    initial_leaf_surface = 5.
+    set_initial_properties_g(g, surface_leaf_element=initial_leaf_surface)
+    
+    # Generate a stock of septoria dispersal units
+    fungus = septoria()
+    SeptoriaDU.fungus = fungus
+    nb_dus_in_stock = 1000
+    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(nb_dus_in_stock)]
+    
+    # Call the protocol of initiation with a model distributing the DUs randomly
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+    
+    # Call a model of growth control
+    controler = NoPriorityGrowthControl()
+        
+    # Loop of simulation
+    dt = 1
+    nb_steps = 150
+    # Healthy surface the day before
+    healthy_surface_before = []
+    for i in range(0,nb_steps,dt):
+        # After infection, the lesion 'age_dday' will be added 1 DD by time step
+        # Note : base temperature for septoria = -2 degrees celsius
+        update_climate_all(g, wetness=True, temp=22.)
+        infect(g, dt)
+        update(g, dt)
+        control_growth(g, controler)
+        
+        # Find the value of interest on the MTG (total healthy surface of the leaf)
+        lesions = g.property('lesions')
+        healthy_surfaces = g.property('healthy_surface')
+        labels = g.property('label')
+        
+        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        for blade in bids:
+            leaf = [vid for vid in g.components(blade) if labels[vid].startswith('LeafElement')]
+            leaf_healthy_surface = sum(healthy_surfaces[lf] for lf in leaf)
+        
+        # Check that healthy surface + lesion surface = initial healthy surface 
+        if i==0.:
+            total_initial_surface = leaf_healthy_surface
+            
+        if lesions:
+            leaf_lesion_surface = sum(l.surface for les in lesions.itervalues() for l in les)
+            assert round(leaf_healthy_surface,6)+round(leaf_lesion_surface,6)==round(total_initial_surface,6)
+        
+        # Check that healthy surface decreases after emergence of the first lesion
+        if lesions and not healthy_surface_before:
+            # Emergence of the first lesion
+            healthy_surface_before.append(leaf_healthy_surface)
+        elif lesions and healthy_surface_before[0] > 0.:
+            # Check that healthy surface decreases
+            assert leaf_healthy_surface < healthy_surface_before
+            # Update of 'healthy_surface_before' for next step
+            healthy_surface_before[0] = leaf_healthy_surface
+        elif lesions and healthy_surface_before[0] == 0.:
+            # Check that healthy surface stays null
+            assert leaf_healthy_surface == 0.
+            # Update of 'healthy_surface_before' for next step
+            healthy_surface_before[0] = leaf_healthy_surface
+            
 def test_disperse():
     """ Check if 'disperse' from 'protocol.py' disperse new 
         dispersal units on the MTG.
@@ -287,18 +384,46 @@ def test_disperse():
     # Call the protocol of initiation with a model distributing the DUs randomly
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
-        
+    
+    # Call a model of growth control and a model of dispersal
+    controler = NoPriorityGrowthControl()
+    dispersor = RandomDispersal()
+    
     # Loop of simulation
     dt = 1
-    nb_steps = 700
-    for i in range(0,nb_steps,dt):
-        update_climate_all(g, wetness=True, temp=22.)
+    nb_steps = 750
+    for i in range(0,nb_steps,dt):      
+        # Update climate and force rain occurences       
+        if i>400 and i%100 == 0:
+            global_rain_intensity = 4.
+        else:
+            global_rain_intensity = 0.
+        update_climate_all(g, wetness=True, temp=22., rain_intensity = global_rain_intensity*0.75)
+        
+        # Run protocols
         infect(g, dt)
         update(g, dt)
+        control_growth(g, controler)
         
-        # Force rain occurences
-        if i>400 & i%100 == 0:
-            global_rain_intensity = 4.
-            update_climate_all(g, rain_intensity = global_rain_intensity*0.75)  
+        # Force rain occurences       
+        if global_rain_intensity != 0:
+            # Count objects on the MTG before dispersal event
+            lesions = g.property('lesions')
+            dispersal_units = g.property('dispersal_units')
+            total_stock_spores_before = sum(l.stock for les in lesions.values() for l in les)
+            total_DUs_before = sum(len(du) for du in dispersal_units.itervalues())
             
+            # Dispersal event
+            scene = plot3d(g)
+            disperse(g, scene, dispersor, "Septoria")
+            
+            # Check that stocks of spores on lesions decrease
+            if total_stock_spores_before != 0.:              
+                total_stock_spores_after = sum(l.stock for les in lesions.values() for l in les)
+                assert total_stock_spores_after < total_stock_spores_before
+                
+                # Check that new DUs are deposited on the MTG
+                total_DUs_after = sum(len(du) for du in dispersal_units.itervalues())            
+                if total_DUs_after != 0:
+                    assert total_DUs_after > total_DUs_before
             

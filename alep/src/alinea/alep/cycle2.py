@@ -137,17 +137,25 @@ class Lesion(object):
         nb_spores: int
             Number of spores aggregated in the dispersal unit
         
-        Returns
-        -------
-            None
         """
         self.active = True
         self.nb_spores = nb_spores
         self.position = position
-        self.rings = []
-        self.stock_du = []
+        self.stock_spores = []
         self.emissions = []
-                      
+    
+    def disable(self):
+        """ Disable the lesion.
+        
+        Set the activity of the lesion to False and its growth demand to 0.
+        
+        Parameters
+        ----------
+            None
+        """
+        self.active = False
+        self.growth_demand = 0.
+    
 # Rings ##################################################################################
 class Ring(object):
     """ Ring of Lesion at a given age.

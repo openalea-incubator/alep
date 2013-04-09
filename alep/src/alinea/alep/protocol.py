@@ -105,12 +105,14 @@ def update(g, dt, label="LeafElement"):
       >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
       >>> initiate(g, stock, inoculator)
+      >>> controler = GrowthControlModel()
       >>> dt = 1
       >>> nb_steps = 1000
       >>> for i in range(nb_steps):
       >>>     update_climate(g)
       >>>     infect(g, dt)
       >>>     update(g,dt)
+      >>>     control_growth(g, controler)
       >>> return g
     
     """   
@@ -159,6 +161,7 @@ def disperse(g,
       >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
       >>> initiate(g, stock, inoculator)
+      >>> controler = GrowthControlModel()
       >>> dispersor = SplashModel()
       >>> dt = 1
       >>> nb_steps = 1000
@@ -166,6 +169,7 @@ def disperse(g,
       >>>     update_climate(g)
       >>>     infect(g, dt)
       >>>     update(g,dt)
+      >>>     control_growth(g, controler)
       >>>     if dispersal_event():
       >>>       scene = plot3d(g)
       >>>       disperse(g, scene, dispersor, "septoria")
@@ -178,14 +182,15 @@ def disperse(g,
     DU = {}
     for vid, l in lesions.iteritems():
         for lesion in l:
-            if lesion.fungus.name is fungus_name:
+            if lesion.fungus.name is fungus_name and lesion.stock > 0.:
                 leaf = g.node(vid)
-                if lesion.emissions:
-                    if vid not in DU:
-                        DU[vid] = []
-                    DU[vid] += lesion.emissions # other derterminant (microclimate...) are expected on leaf
+                if vid not in DU:
+                    DU[vid] = []
+                DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
+    # print(sum(len(du) for du in DU.itervalues()))
     # dispersion, transport
     deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, status
+    # print(sum(len(du) for du in deposits.itervalues()))
     # allocation of new dispersal units
     for vid,dlist in deposits.iteritems():
         if g.label(vid).startswith(label):
@@ -258,7 +263,7 @@ def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label
     
     return g
 
-def growth_control(g, control_model, label="LeafElement"):
+def control_growth(g, control_model, label="LeafElement"):
     """ Regulate the growth of lesion according to their growth demand,
     the free space on leaves and a set of rules in the growth model.
     

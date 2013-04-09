@@ -35,7 +35,7 @@ class RandomDispersal:
 
         for vid, dlist in dispersal_units.iteritems():
             for d in dlist:
-                if random.random() < 0.5:
+                if random.random() < 0.1:
                     idx = random.randint(0,n-1)
                     v = vids[idx]
                     deposits.setdefault(v,[]).append(d)

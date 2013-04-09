@@ -140,15 +140,40 @@ def initiate_g(g, label = 'LeafElement'):
         
     return g
 
-def update_climate(g, label = 'LeafElement'):
-    """ simulate an environmental program """
+def update_climate_all(g, wetness=True,
+                          temp = 18.,
+                          rain_intensity=0.,
+                          relative_humidity=85.,
+                          label = 'LeafElement'):
+    """ Simulate an environmental program.
+    
+    All leaf elements have the same values for all variables.
+    
+    Parameters
+    ----------
+    wetness: bool
+        True if the leaf element is wet, False otherwise
+    temp: float
+        Temperature of the leaf element (degrees celsius)
+    rain_intensity : float
+        Rain intensity on the leaf element (mm/h)
+    relative_humidity : float
+        Relative humidity on the leaf element (percent)
+    label: str
+        Label of the part of the MTG concerned by the calculation ('LeafElement')
+     
+    Returns
+    -------
+    None
+        Update directly the MTG
+    """
     vids = [n for n in g if g.label(n).startswith(label)]
     for v in vids : 
         n = g.node(v)
-        n.wetness = True
-        n.temp = 18.
-        n.rain_intensity = 0.
-        n.relative_humidity = 85.
+        n.wetness = wetness
+        n.temp = temp
+        n.rain_intensity = rain_intensity
+        n.relative_humidity = relative_humidity
     
     return g
 
@@ -198,7 +223,6 @@ def temp_plot3D(g):
     """ plot g """
     scene = plot3d(g)
     Viewer.display(scene)
-
 
 def plot_DU(g):
     """ plot the plant with elements carrying dispersal units in yellow """
@@ -290,7 +314,6 @@ def count_lesions_in_state(g, state):
     """ count lesions of the mtg in give state.
     
     """
-    count = 0.
     lesions = g.property('lesions')
     return sum(1 for l in lesions.itervalues() for lesion in l if lesion.status == state)
     
@@ -298,26 +321,15 @@ def count_DU(g):
     """ count DU of the mtg.
     
     """
-    count = 0.
-    for v in g.vertices(scale=g.max_scale()) : 
-        n = g.node(v)
-        if 'dispersal_units' in n.properties():
-            for du in n.dispersal_units:
-                if du.active:
-                    count +=1
-    return count
+    dispersal_units = g.property('dispersal_units')
+    return sum(len(du) for du in dispersal_units.itervalues())
 
 def count_lesions(g):
-    """ count DU of the mtg.
+    """ count lesions of the mtg.
     
     """
-    count = 0.
-    for v in g.vertices(scale=g.max_scale()) : 
-        n = g.node(v)
-        if 'lesions' in n.properties():
-            for l in n.lesions:
-                count +=1
-    return count
+    lesions = g.property('lesions')
+    return sum(len(l) for l in lesions.itervalues())
     
 class DisplayLesions(object):
     """ Print the ID of Leaf Elements where new lesions appear. """
@@ -339,11 +351,7 @@ class DisplayLesions(object):
         lesions = g.property('lesions')
         ldict = {}
         for vid, l in lesions.iteritems():
-            for lesion in l:
-                if vid not in ldict:
-                    ldict[vid] = 0
-                ldict[vid] += 1
-        print('\n' + 'Number of lesions by leaf element : ' + '\n')             
+            ldict[vid] = len(l)
         pprint(ldict)
         # print('You can find lesions on LeafElements : ' + str(llist).strip('[]'))
         
@@ -418,7 +426,7 @@ def test_infect():
     nb_steps = 100
     plot_DU(g)
     for i in range(nb_steps):
-        update_climate(g)
+        update_climate_all(g)
         infect(g, dt)
             
     plot_lesions(g)
@@ -434,20 +442,23 @@ def test_update():
     stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
-   
+    
+    controler = NoPriorityGrowthControl()
+    
     dt = 1
     nb_steps = 750
     nb_les_inc = numpy.zeros(nb_steps)
     # nb_les_chlo = numpy.array([0. for i in range(nb_steps)])
-    # nb_lezs_nec = numpy.array([0. for i in range(nb_steps)])
+    # nb_les_nec = numpy.array([0. for i in range(nb_steps)])
     nb_les_spo = numpy.zeros(nb_steps)
     # nb_les_empty = numpy.array([0. for i in range(nb_steps)])
+    nb_les = 0.
     for i in range(nb_steps):
 
         ts = time.clock()
         #print('time step %d' % i)
         
-        update_climate(g)
+        update_climate_all(g)
         # if i%100 == 0:
             # global_rain_intensity = 4.
             # rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
@@ -457,6 +468,7 @@ def test_update():
         #grow(g)
         infect(g, dt)        
         update(g,dt)
+        control_growth(g, controler)
         
         # Count of lesions :
         nb_les_inc[i] = count_lesions_in_state(g, state = 0)
@@ -467,17 +479,17 @@ def test_update():
 
         te = time.clock()
         #print "time ", i, " : ", te-ts
-    
+                
     # Display results
     plot(nb_les_inc)
     plot(nb_les_spo)
     ylabel('Nombre de lesions dans cet etat sur le MTG')
     xlabel('Pas de temps de simulation')
     ylim([0, 120])
-       
+    
     # displayer = DisplayLesions()
     # displayer.print_all_lesions(g)
-
+  
     # plot_lesions(g)
     return g
 
@@ -492,22 +504,25 @@ def test_disperse():
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
+    controler = NoPriorityGrowthControl()
+    
     dt = 1
     nb_steps = 750
     nb_les = numpy.array([0 for i in range(nb_steps)])
     for i in range(nb_steps):
         print('time step %d' % i)
         
-        update_climate(g)
-        if i%100 == 0:
+        # Update climate and force rain occurences       
+        if i>400 and i%100 == 0:
             global_rain_intensity = 4.
-            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
         else:
             global_rain_intensity = 0.
+        update_climate_all(g, wetness=True, temp=22., rain_intensity = global_rain_intensity*0.75)
         
         # grow(g)
         infect(g, dt)
         update(g,dt)
+        control_growth(g, controler)
         
         if global_rain_intensity != 0.:
             scene = plot3d(g)
@@ -546,15 +561,13 @@ def test_washing():
     nb_steps = 100
     nb_DU = numpy.array([0. for i in range(nb_steps)])
     for i in range(nb_steps):
-        g = update_climate(g)
-        
-        # Add artificial rain:
+        # Update climate and force rain occurences       
         if i>2 and i%5 == 0 or (i-1)%5 == 0:
-                global_rain_intensity = 4.
-                rain_interception(g, rain_intensity = global_rain_intensity*0.75)      
+            global_rain_intensity = 4.
         else:
             global_rain_intensity = 0.
-        
+        update_climate_all(g, wetness=True, temp=22., rain_intensity = global_rain_intensity*0.75)
+                
         # Compute washing 
         # (needs to be done even if no rain to update variables in the washing model)
         wash(g, washor, global_rain_intensity, DU_status='deposited')
@@ -596,19 +609,13 @@ def test_growth_control():
     nb_steps = 500
     sum_surface = numpy.array([0. for i in range(nb_steps)])
     for i in range(nb_steps):
-        print('time step %d' % i)
-        
-        g = update_climate(g)
-        if i%100 == 0:
-            global_rain_intensity = 4.
-            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
-        else:
-            global_rain_intensity = 0.
+        print('time step %d' % i)       
+        update_climate_all(g)
             
         #grow(g)
         infect(g, dt)        
         update(g,dt)
-        growth_control(g, controler)
+        control_growth(g, controler)
         
         vids = [v for v in g if g.label(v).startswith("LeafElement")]
         count_surf = 0.
@@ -652,7 +659,6 @@ def test_simul_with_weather():
     washor = RapillyWashing()
     dispersor = RandomDispersal()
 
-  
     # Prepare the simulation loop
     dt = 1
     start_date = datetime(2000, 10, 1)
@@ -668,7 +674,7 @@ def test_simul_with_weather():
         #grow(g)
         infect(g, dt)        
         update(g,dt)
-        growth_control(g, controler)
+        control_growth(g, controler)
                
         global_rain_intensity = weather_data.Pluie[date]
         if global_rain_intensity != 0. :
@@ -701,21 +707,22 @@ def test_all():
     dispersor = RandomDispersal()
    
     # Prepare the simulation loop
-    dt = 10
+    dt = 1
     nb_steps = 750
-
+    nb_max_les = 0.
+    nb_les = 0.
     for i in range(0,nb_steps,dt):
-        update_climate(g)
-        if i%100 == 0:
+        # Update climate and force rain occurences       
+        if i>400 and i%100 == 0:
             global_rain_intensity = 4.
-            rain_interception(g, rain_intensity = global_rain_intensity*0.75)  
         else:
             global_rain_intensity = 0.
+        update_climate_all(g, wetness=True, temp=22., rain_intensity = global_rain_intensity*0.75)
         
         # grow(g)
         infect(g, dt)
         update(g,dt)
-        growth_control(g, controler)
+        control_growth(g, controler)
         
         if global_rain_intensity != 0.:
             scene = plot3d(g)
@@ -723,6 +730,13 @@ def test_all():
         
         wash(g, washor, global_rain_intensity, DU_status='deposited')
         
+        # Count how many lesions are simultaneously active on the MTG at maximum charge
+        nb_les = count_lesions(g)
+        if nb_les > nb_max_les:
+            nb_max_les = nb_les
+    
+    print('max number lesions %d' % nb_max_les)
+    
     return g
 
 if __name__ == '__main__':
