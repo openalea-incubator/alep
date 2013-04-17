@@ -55,7 +55,7 @@ def adel_one_leaf():
     """ create a very simple adel mtg """
     d = {'plant':[1],'axe_id':['MS'],'ms_insertion':[0],'numphy':[1], 
          'Laz': [0], 'Ll' :[3], 'Lv' :[3] , 'Lsen':[0], 'L_shape':[3], 'Lw_shape':[.3], 'Linc':[0],
-         'Einc':[0],'El':[1],'Ev':[1],'Esen':[0],'Ed': [0.1]}
+         'Einc':[0],'El':[0],'Ev':[0],'Esen':[0],'Ed': [0.1]}
     g=mtg_factory(d,adel_metamer,leaf_db=leaves_db(), leaf_sectors=1)
     g=mtg_interpreter(g)
     return g
