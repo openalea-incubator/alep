@@ -137,6 +137,7 @@ def initiate_g(g, label = 'LeafElement'):
         n.age = 1.
         n.surface = 10.
         n.healthy_surface = n.surface # TODO : Manage properly
+        n.position_senescence = None
         
     return g
 
@@ -467,8 +468,8 @@ def test_update():
             
         #grow(g)
         infect(g, dt)        
-        update(g,dt)
-        control_growth(g, controler)
+        update(g,dt, growth_control_model=controler)
+        # control_growth(g, controler)
         
         # Count of lesions :
         nb_les_inc[i] = count_lesions_in_state(g, state = 0)
@@ -521,8 +522,8 @@ def test_disperse():
         
         # grow(g)
         infect(g, dt)
-        update(g,dt)
-        control_growth(g, controler)
+        update(g,dt, growth_control_model=controler)
+        # control_growth(g, controler)
         
         if global_rain_intensity != 0.:
             scene = plot3d(g)
@@ -604,35 +605,47 @@ def test_growth_control():
     initiate(g, stock, inoculator)
    
     controler = NoPriorityGrowthControl()
-
-    dt = 1
-    nb_steps = 500
-    sum_surface = numpy.array([0. for i in range(nb_steps)])
-    for i in range(nb_steps):
+    
+    # compute infection:
+    nb_steps_inf = 11  
+    for i in range(nb_steps_inf):
         print('time step %d' % i)       
-        update_climate_all(g)
-            
+        update_climate_all(g)           
         #grow(g)
-        infect(g, dt)        
-        update(g,dt)
-        control_growth(g, controler)
-        
-        vids = [v for v in g if g.label(v).startswith("LeafElement")]
-        count_surf = 0.
-        for v in vids:
-            leaf = g.node(v)
-            count_surf += leaf.healthy_surface
-            # if 'lesions' in leaf.properties():
-                # count_surf += sum([l.surface for l in leaf.lesions])
-                # print('leaf element %d - ' % v + 'Healthy surface : %f'  % leaf.healthy_surface) 
-        
-        sum_surface[i] = count_surf
-        
-    # Display results:
-    plot(sum_surface)
-    ylabel('Surface saine totale sur le MTG')
-    xlabel('Pas de temps de simulation')
-    show()
+        infect(g, dt=1.)
+    
+    lesions = g.property('lesions')
+    if lesions:
+        # compute competition
+        dt = 50
+        nb_steps = 500
+        dates = range(0,nb_steps,dt)
+        sum_surface = numpy.array([0. for i in dates])
+        for i in dates:
+            print('time step %d' % i)       
+            update_climate_all(g)
+                
+            #grow(g)      
+            update(g,dt, growth_control_model=controler)
+            # control_growth(g, controler)
+            
+            vids = [v for v in g if g.label(v).startswith("LeafElement")]
+            count_surf = 0.
+            for v in vids:
+                leaf = g.node(v)
+                count_surf += leaf.healthy_surface
+                # if 'lesions' in leaf.properties():
+                    # count_surf += sum([l.surface for l in leaf.lesions])
+                    # print('leaf element %d - ' % v + 'Healthy surface : %f'  % leaf.healthy_surface) 
+            
+            index = i/dt
+            sum_surface[index] = count_surf
+            
+        # Display results:
+        plot(dates, sum_surface)
+        ylabel('Surface saine totale sur le MTG')
+        xlabel('Pas de temps de simulation')
+        show()
         
     return g
         
@@ -673,8 +686,8 @@ def test_simul_with_weather():
         # Run a disease cycle
         #grow(g)
         infect(g, dt)        
-        update(g,dt)
-        control_growth(g, controler)
+        update(g,dt, growth_control_model=controler)
+        # control_growth(g, controler)
                
         global_rain_intensity = weather_data.Pluie[date]
         if global_rain_intensity != 0. :
@@ -721,8 +734,8 @@ def test_all():
         
         # grow(g)
         infect(g, dt)
-        update(g,dt)
-        control_growth(g, controler)
+        update(g,dt, growth_control_model=controler)
+        # control_growth(g, controler)
         
         if global_rain_intensity != 0.:
             scene = plot3d(g)
@@ -739,5 +752,5 @@ def test_all():
     
     return g
 
-if __name__ == '__main__':
-    g=test_all()
+# if __name__ == '__main__':
+    # g=test_all()

@@ -15,7 +15,7 @@ class NoPriorityGrowthControl:
     same leaf, the older lesions grow before the others only because of the way the 
     calculation is performed.
     
-    """
+    """   
     def control(self, g, label='LeafElement'):
         """ Example to limit lesion growth to the healthy surface on leaves.
         

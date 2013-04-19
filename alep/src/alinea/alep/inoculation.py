@@ -46,4 +46,5 @@ class RandomInoculation:
                 leaf.dispersal_units = []
             # Deposit a DU from inoculum on node v of the MTG
             i.deposited()
+            i.position = [0, 0] # TODO : improve
             leaf.dispersal_units.append(i)

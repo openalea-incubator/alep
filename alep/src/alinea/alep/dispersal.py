@@ -38,6 +38,7 @@ class RandomDispersal:
                 if random.random() < 0.1:
                     idx = random.randint(0,n-1)
                     v = vids[idx]
+                    d.position = [0, 0]
                     deposits.setdefault(v,[]).append(d)
          
         return deposits

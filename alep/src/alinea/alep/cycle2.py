@@ -31,13 +31,13 @@ class DispersalUnit(object):
         self.position = position
         self.nb_spores = nb_spores
         self.status = status
-        self.active = True
+        self.is_active = True
     
     def disable(self):
         """ disable a dispersal unit.
         
         """
-        self.active = False
+        self.is_active = False
     
     def deposited(self):
         """ Change the status of the spore to 'deposited'.
@@ -138,7 +138,7 @@ class Lesion(object):
             Number of spores aggregated in the dispersal unit
         
         """
-        self.active = True
+        self.is_active = True
         self.nb_spores = nb_spores
         self.position = position
         self.stock_spores = []
@@ -153,7 +153,7 @@ class Lesion(object):
         ----------
             None
         """
-        self.active = False
+        self.is_active = False
         self.growth_demand = 0.
     
 # Rings ##################################################################################

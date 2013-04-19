@@ -74,14 +74,14 @@ def infect(g, dt, label="LeafElement"):
         if g.label(vid).startswith(label):
             leaf = g.node(vid)
             for dispersal_unit in du:
-                if dispersal_unit.active: # TODO : Condition here ?
+                if dispersal_unit.is_active: # TODO : Condition here ?
                     dispersal_unit.infect(dt, leaf)
 
     for vid, du in dispersal_units.iteritems():
-        dispersal_units[vid] = [d for d in du if d.active]
+        dispersal_units[vid] = [d for d in du if d.is_active]
     return g
     
-def update(g, dt, label="LeafElement"):
+def update(g, dt, growth_control_model, label="LeafElement"):
     """ Update the status of every lesion on the MTG.
     
     Parameters
@@ -91,6 +91,8 @@ def update(g, dt, label="LeafElement"):
         'lesions' are stored in the MTG as a property
     dt: int
         Time step of the simulation
+    growth_control_model:
+        Model with rules of competition between the lesions
     label: str
         Label of the part of the MTG concerned by the calculation
     
@@ -117,17 +119,18 @@ def update(g, dt, label="LeafElement"):
     
     """   
     lesions = g.property('lesions')
-    labels = g.property('label') 
     
+    # 1. Compute growth demand
     for vid, l in lesions.iteritems():
-        l = [les for les in l if les.active]
+        l = [les for les in l if les.is_active]
         lesions[vid] = l
         for lesion in l:
-            # proposition 1 on fait ici une correspondance nom attendus dans g <-> noms caracterisant un environnement de lesion (classe a faire ??)
             leaf=g.node(vid)
-            #proposition 2 : les conventions de nommage noms sont definies ailleurs (ou???) et on passe juste une leaf qui repond a cette convention
             lesion.update(dt, leaf)
-          
+    
+    # 2. Allocate or not growth demand, and compute corresponding production of spores 
+    growth_control_model.control(g, label)
+    
     return g
     
 def disperse(g, 
@@ -187,10 +190,8 @@ def disperse(g,
                 if vid not in DU:
                     DU[vid] = []
                 DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
-    # print(sum(len(du) for du in DU.itervalues()))
     # dispersion, transport
     deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, status
-    # print(sum(len(du) for du in deposits.itervalues()))
     # allocation of new dispersal units
     for vid,dlist in deposits.iteritems():
         if g.label(vid).startswith(label):
@@ -283,10 +284,27 @@ def control_growth(g, control_model, label="LeafElement"):
     
     """
     control_model.control(g, label)
-            
     return g,
 
+def senescence(g, senescence_model):
+    """ Regulate the growth of lesion if senescence.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    senescence_model:
+        Model of that calls fungal response to senescence
+        depending on the way senescence is modeled
+    
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy
+    
+    """
+    senescence_model.senescence(g)    
+    return g,
+    
 def nutrients_uptake(g):
     pass
-
-    
