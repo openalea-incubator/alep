@@ -70,6 +70,7 @@ def infect(g, dt, label="LeafElement"):
       
     """
     dispersal_units = g.property('dispersal_units')
+    # print('nb dus %d' % sum(len(du) for du in dispersal_units.itervalues()))
     for vid, du in dispersal_units.iteritems():
         if g.label(vid).startswith(label):
             leaf = g.node(vid)
@@ -117,13 +118,20 @@ def update(g, dt, growth_control_model, label="LeafElement"):
       >>>     control_growth(g, controler)
       >>> return g
     
-    """   
+    """ 
     lesions = g.property('lesions')
+    # if lesions:
+        # les = sum(lesions.values(), [])
+        # print('nb lesions %d' % len(les))
+        # print('lesion surface %f' % sum(l.surface for l in les))
+        # print('')
     
     # 1. Compute growth demand
     for vid, l in lesions.iteritems():
+        # Remove inactive lesions
         l = [les for les in l if les.is_active]
         lesions[vid] = l
+        # Update active lesions
         for lesion in l:
             leaf=g.node(vid)
             lesion.update(dt, leaf)
@@ -182,6 +190,16 @@ def disperse(g,
   
     # arrachage
     lesions = g.property('lesions')
+    # print([sum(len(l) for l in lesions.itervalues())])
+    # lesion = lesions.values()[0][0]
+    # print('status %d' % lesion.status)
+    # print('age %f' % lesion.age_dday)
+    
+    
+    # TEMP
+    # healthy_surfaces = g.property('healthy_surface')
+    # print(sum(healthy_surfaces.values()))
+    
     DU = {}
     for vid, l in lesions.iteritems():
         for lesion in l:
@@ -286,25 +304,5 @@ def control_growth(g, control_model, label="LeafElement"):
     control_model.control(g, label)
     return g,
 
-def senescence(g, senescence_model):
-    """ Regulate the growth of lesion if senescence.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    senescence_model:
-        Model of that calls fungal response to senescence
-        depending on the way senescence is modeled
-    
-    Returns
-    -------
-    g: MTG
-        Updated MTG representing the canopy
-    
-    """
-    senescence_model.senescence(g)    
-    return g,
-    
 def nutrients_uptake(g):
     pass

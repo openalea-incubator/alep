@@ -164,7 +164,8 @@ class ContinuousSeptoria(Lesion):
         
         # Compute delta degree days in dt
         # TODO : modify if list of temp coming from weather data
-        self.compute_delta_ddays(dt, leaf)
+        # self.compute_delta_ddays(dt, leaf)
+        self.compute_delta_ddays_from_weather(leaf)
         ddday = self.ddday
 
         # Update the age of the lesion
@@ -213,6 +214,26 @@ class ContinuousSeptoria(Lesion):
         # Save variable
         self.ddday = ddday 
     
+    def compute_delta_ddays_from_weather(self, leaf=None):
+        """ Compute delta degree days from weather data since last call.
+        
+        Parameters
+        ----------
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions) 
+        """
+        f = self.fungus
+        temp_list = np.array(leaf.temp_list)
+        dt = len(temp_list)
+        # Calculation
+        if dt != 0.:
+            ddday = max(0, sum((temp_list - f.basis_for_dday))/24.)
+        else:
+            ddday = 0.
+        # Save variable
+        self.ddday = ddday
+        
     def update_growth_rate(self):
         """ Update the growth rate of the lesion in cm2/degree days.
         
@@ -791,7 +812,8 @@ class SeptoriaWithRings(Lesion):
         
         # Compute delta degree days in dt
         # TODO : modify if list of temp coming from weather data
-        self.compute_delta_ddays(dt, leaf)
+        # self.compute_delta_ddays(dt, leaf)
+        self.compute_delta_ddays_from_weather(leaf)
         ddday = self.ddday
         
         # Save senescence position and speed if it is given as MTG property
@@ -874,6 +896,26 @@ class SeptoriaWithRings(Lesion):
         # Calculation
         if dt != 0.:
             ddday = max(0,(leaf.temp - f.basis_for_dday)/(24./dt))
+        else:
+            ddday = 0.
+        # Save variable
+        self.ddday = ddday 
+
+    def compute_delta_ddays_from_weather(self, leaf=None):
+        """ Compute delta degree days from weather data since last call.
+        
+        Parameters
+        ----------
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions) 
+        """
+        f = self.fungus
+        temp_list = np.array(leaf.temp_list)
+        dt = len(temp_list)
+        # Calculation
+        if dt != 0.:
+            ddday = max(0, sum((temp_list - f.basis_for_dday))/(24./dt))
         else:
             ddday = 0.
         # Save variable
@@ -1741,19 +1783,19 @@ class SeptoriaParameters(Parameters):
         self.production_rate = production_rate
         # TODO : Improve this parameter. 
 
-    def __call__(self, nb_spores = None, position = None):
-        if SeptoriaWithRings.fungus is None:
-            SeptoriaWithRings.fungus = self
-        if SeptoriaDU.fungus is None:
-            SeptoriaDU.fungus = self
-        return SeptoriaWithRings(nb_spores=nb_spores, position=position)
-        
     # def __call__(self, nb_spores = None, position = None):
-        # if ContinuousSeptoria.fungus is None:
-            # ContinuousSeptoria.fungus = self
+        # if SeptoriaWithRings.fungus is None:
+            # SeptoriaWithRings.fungus = self
         # if SeptoriaDU.fungus is None:
             # SeptoriaDU.fungus = self
-        # return ContinuousSeptoria(nb_spores=nb_spores, position=position)
+        # return SeptoriaWithRings(nb_spores=nb_spores, position=position)
+        
+    def __call__(self, nb_spores = None, position = None):
+        if ContinuousSeptoria.fungus is None:
+            ContinuousSeptoria.fungus = self
+        if SeptoriaDU.fungus is None:
+            SeptoriaDU.fungus = self
+        return ContinuousSeptoria(nb_spores=nb_spores, position=position)
 
 def septoria(**kwds):
     return SeptoriaParameters(**kwds)
