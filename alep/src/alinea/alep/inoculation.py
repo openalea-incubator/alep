@@ -32,7 +32,6 @@ class RandomInoculation:
         None
             Update directly the MTG
         """        
-        import random
         vids = [n for n in g if g.label(n).startswith(label)]
         n = len(vids)
         for vid in vids:

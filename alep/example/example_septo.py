@@ -390,21 +390,23 @@ def compute_state_one_leaf(g, status="SPORULATING"):
     """
     lesions = g.property('lesions')
     if lesions:
+        for vid,l in lesions.iteritems():
+            for les in l:
+                les.compute_all_surfaces()
+    
         if status=="INCUBATING":
-            lesions = [l for les in lesions.values() for l in les if l.status==l.fungus.INCUBATING]
+            surface = sum([l.surface_inc for les in lesions.values() for l in les])
         if status=="CHLOROTIC":
-            lesions = [l for les in lesions.values() for l in les if l.status==l.fungus.CHLOROTIC]
+            surface = sum([l.surface_chlo for les in lesions.values() for l in les])
         if status=="NECROTIC":
-            lesions = [l for les in lesions.values() for l in les if l.status==l.fungus.NECROTIC]
+            surface = sum([l.surface_nec for les in lesions.values() for l in les])
         if status=="SPORULATING":
-            lesions = [l for les in lesions.values() for l in les if l.status==l.fungus.SPORULATING]
-        surface = sum(l.surface for l in lesions)
+            surface = sum([l.surface_spo for les in lesions.values() for l in les])
     else:
         surface = 0.
     
     return surface
-    
-    
+
 def count_DU(g, status='deposited'):
     """ count DU of the mtg.
     
@@ -518,11 +520,11 @@ def simulate_severity():
     """
     # Read weather data : 
     filename = 'meteo01.txt'
-    weather_data = read_weather(filename, "dispersal")
+    weather_data = read_weather(filename, "step_by_step")
     
     # Generate a MTG with required properties :
-    # g = adel_one_leaf()
-    g = adel_mtg2()
+    g = adel_one_leaf()
+    # g = adel_mtg2()
     set_initial_properties_g(g)
     
     # Deposit first dispersal units on the MTG :
@@ -539,8 +541,8 @@ def simulate_severity():
     # Prepare the simulation loop
     dt = 1
     start_date = datetime(2000, 10, 1)
-    end_date = datetime(2001, 7, 31)
-    # end_date = datetime(2000, 11, 30)
+    # end_date = datetime(2001, 7, 31)
+    end_date = datetime(2000, 11, 30)
     severity = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     nb_DUs = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     nb_lesions = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
@@ -711,7 +713,7 @@ def simulate_states_one_leaf():
     
     # Deposit first dispersal units on the MTG :
     fungus = septoria(); SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(100)]
+    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(10)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -723,11 +725,13 @@ def simulate_states_one_leaf():
     # Prepare the simulation loop
     dt = 1
     start_date = datetime(2000, 10, 1)
-    end_date = datetime(2000, 11, 30)
+    end_date = datetime(2001, 2, 1)
     incubating = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     chlorotic = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     necrotic = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     sporulating = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    created_surface = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    sum_surface = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     for date in pandas.date_range(start_date, end_date, freq='H'):
         print(date)
         try:
@@ -756,40 +760,111 @@ def simulate_states_one_leaf():
         incubating[ind] = compute_state_one_leaf(g, status="INCUBATING")
         chlorotic[ind] = compute_state_one_leaf(g, status="CHLOROTIC")
         necrotic[ind] = compute_state_one_leaf(g, status="NECROTIC")
-        sporulating[ind]= compute_state_one_leaf(g, status="SPORULATING")
-    
+        sporulating[ind] = compute_state_one_leaf(g, status="SPORULATING")
+
     # Display results:
     nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
     
     y_max = max([max(incubating), max(chlorotic), max(necrotic), max(sporulating)])+1
     
-    fig = plt.figure()
+    # fig = plt.figure()
     
-    ax1 = fig.add_subplot(4,1,1)
+    # ax1 = fig.add_subplot(4,1,1)
     plot(pandas.date_range(start_date, end_date, freq='H'), incubating)
-    ylim([0, y_max])
-    ylabel('Incubating surface')
+    # ylim([0, y_max])
+    # ylabel('Incubating surface')
     
-    ax2 = fig.add_subplot(4,1,2)
-    plot(pandas.date_range(start_date, end_date, freq='H'), chlorotic)
-    ylabel('Chlorotic surface')
-    ylim([0, y_max])
+    # ax2 = fig.add_subplot(4,1,2)
+    plot(pandas.date_range(start_date, end_date, freq='H'), chlorotic, color='g')
+    # ylabel('Chlorotic surface')
+    # ylim([0, y_max])
     # xlim([0, nb_steps])
 
-    ax3 = fig.add_subplot(4,1,3)
-    plot(pandas.date_range(start_date, end_date, freq='H'), necrotic)
-    ylabel('Necrotic surface')
-    ylim([0, y_max])
+    # ax3 = fig.add_subplot(4,1,3)
+    plot(pandas.date_range(start_date, end_date, freq='H'), necrotic, color='r')
+    # ylabel('Necrotic surface')
+    # ylim([0, y_max])
     # xlim([0, nb_steps])
 
-    ax4 = fig.add_subplot(4,1,4)
-    plot(pandas.date_range(start_date, end_date, freq='H'), sporulating)
-    ylabel('Sporulating surface')
-    ylim([0, y_max])
+    # ax4 = fig.add_subplot(4,1,4)
+    plot(pandas.date_range(start_date, end_date, freq='H'), sporulating, color='k')
+    plot(pandas.date_range(start_date, end_date, freq='H'), created_surface, color='b', linestyle='--')
+    plot(pandas.date_range(start_date, end_date, freq='H'), sum_surface, color='k', linestyle='--')
+    # ylabel('Sporulating surface')
+    # ylim([0, y_max])
     # xlim([0, nb_steps])
-    xlabel('Simulation time step')
+    # xlabel('Simulation time step')
     
-    fig.subplots_adjust(hspace=1)
+    # fig.subplots_adjust(hspace=1)
+    
+    plt.show()
+    
+    return g
+    
+def fake_simulate_states_one_leaf():
+    """ Run a simulation with the model of continuous lesions of septoria.
+    
+    Lesions are updated only on dispersal events. Weather data is managed
+    by an adapter that pass it to the fungal model in the good format.
+
+    Parameters
+    ----------
+        None
+    """
+    # Read weather data : 
+    filename = 'meteo01.txt'
+    weather_data = read_weather(filename, "step_by_step")
+    
+    # Generate a MTG with required properties :
+    g = adel_one_leaf()
+    set_initial_properties_g(g)
+    
+    # Deposit first dispersal units on the MTG :
+    fungus = septoria(); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(1)]
+    inoculator = RandomInoculation()
+    initiate(g, stock, inoculator)
+    
+    # Call the models that will be used during the simulation :
+    controler = NoPriorityGrowthControl()
+    washor = RapillyWashing()
+    dispersor = RandomDispersal()
+
+    # Prepare the simulation loop
+    dt = 1
+    start_date = datetime(2000, 10, 1)
+    end_date = datetime(2000, 11, 30)
+    incubating = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    chlorotic = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    necrotic = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    sporulating = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    for date in pandas.date_range(start_date, end_date, freq='H'):
+        print(date)
+        try:
+            ind+=1.
+        except:
+            ind = 0.
+        # Update climate on leaf elements : 
+        update_climate_all(g, wetness=True, temp=22.)  
+        
+        # Run a disease cycle
+        infect(g, dt)
+        update(g, dt, growth_control_model=controler)
+                   
+        # Measure severity
+        incubating[ind] = compute_state_one_leaf(g, status="INCUBATING")
+        chlorotic[ind] = compute_state_one_leaf(g, status="CHLOROTIC")
+        necrotic[ind] = compute_state_one_leaf(g, status="NECROTIC")
+        sporulating[ind]= compute_state_one_leaf(g, status="SPORULATING")
+    
+    # Display results:
+    nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
+    
+    plot(range(nb_steps), incubating)
+    plot(range(nb_steps), chlorotic, color='g')
+    plot(range(nb_steps), necrotic, color='r')
+    plot(range(nb_steps), sporulating, color='k')
+    # xlim([0, nb_steps])
     
     plt.show()
     

@@ -12,15 +12,15 @@ class DispersalUnit(object):
     """ Generic class for a dispersal unit.
     
     """
-    def __init__(self, position=None, nb_spores=None, status=None):
+    def __init__(self, nb_spores=None, position=None, status=None):
         """ Initialize the dispersal unit.
         
         Parameters
         ----------
-        position: non defined
-            Position of the dispersal unit on the phyto-element
         nb_spores: int
             Number of spores aggregated in the dispersal unit
+        position: non defined
+            Position of the dispersal unit on the phyto-element
         status: str
             'emitted' or 'deposited'
         
@@ -28,8 +28,8 @@ class DispersalUnit(object):
         -------
             None
         """
-        self.position = position
         self.nb_spores = nb_spores
+        self.position = position
         self.status = status
         self.is_active = True
     
@@ -132,20 +132,36 @@ class Lesion(object):
         
         Parameters
         ----------
-        position: non defined
+        position: not defined
             Position of the dispersal unit on the phyto-element
         nb_spores: int
             Number of spores aggregated in the dispersal unit
         
         """
+        # Total activity of the lesion (growth and ageing)
         self.is_active = True
+        # Growth activity of the lesion
+        self.growth_is_active = True
+        # Is the lesion on senescent tissue
+        self.is_senescent = False
+        # Number of spores forming the lesion
         self.nb_spores = nb_spores
+        # Position of the center of the lesion
         self.position = position
-        self.stock_spores = []
+        # List of dispersal units emitted by the lesion
         self.emissions = []
     
+    def disable_growth(self):
+        """ Shut down lesion growth activity (turn it to False)
+        
+        Parameters
+        ----------
+            None
+        """
+        self.growth_is_active = False
+    
     def disable(self):
-        """ Disable the lesion.
+        """ Disable all activities of the lesion.
         
         Set the activity of the lesion to False and its growth demand to 0.
         

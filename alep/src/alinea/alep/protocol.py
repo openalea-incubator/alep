@@ -33,11 +33,11 @@ def initiate(g,
       >>> return g
     """
     # Allocation of stock of inoculum
-    initiation_model.allocate(g, dispersal_units_stock)
+    initiation_model.allocate(g, dispersal_units_stock, label)
 
     return g
 
-def infect(g, dt, label="LeafElement"):
+def infect(g, dt, position_checker_model=None, label="LeafElement"):
     """ Compute infection success by dispersal units.
     
     Parameters
@@ -45,6 +45,8 @@ def infect(g, dt, label="LeafElement"):
     g: MTG
         MTG representing the canopy (and the soil)
         'dispersal_units' are stored in the MTG as a property
+    position_checker_model: model
+        Model that disable the DU if it falls on an existing lesion or senescent tissue
     dt: int
         Time step of the simulation
     label: str
@@ -69,20 +71,25 @@ def infect(g, dt, label="LeafElement"):
       >>> return g
       
     """
+    # Find dispersal units on MTG
     dispersal_units = g.property('dispersal_units')
-    # print('nb dus %d' % sum(len(du) for du in dispersal_units.itervalues()))
     for vid, du in dispersal_units.iteritems():
-        if g.label(vid).startswith(label):
-            leaf = g.node(vid)
-            for dispersal_unit in du:
-                if dispersal_unit.is_active: # TODO : Condition here ?
-                    dispersal_unit.infect(dt, leaf)
-
-    for vid, du in dispersal_units.iteritems():
+        # By leaf element, keep only those which are deposited and active
+        du = [d for d in du if d.is_active and d.status=="deposited"]
+        leaf = g.node(vid)
+        for d in du:
+            # Check if its position prevent it from infecting (optional)
+            if position_checker_model:
+                position_checker_model.check_position(d, leaf)
+            # If not compute infection success
+            if d.is_active:
+                d.infect(dt, leaf)
+        # Update the list of dispersal unit by leaf element
         dispersal_units[vid] = [d for d in du if d.is_active]
+
     return g
     
-def update(g, dt, growth_control_model, label="LeafElement"):
+def update(g, dt, growth_control_model, senescence_model=None, label="LeafElement"):
     """ Update the status of every lesion on the MTG.
     
     Parameters
@@ -94,6 +101,8 @@ def update(g, dt, growth_control_model, label="LeafElement"):
         Time step of the simulation
     growth_control_model:
         Model with rules of competition between the lesions
+    senescence_model:
+        Model that find lesions on senescent tissue and provoke their response
     label: str
         Label of the part of the MTG concerned by the calculation
     
@@ -109,35 +118,40 @@ def update(g, dt, growth_control_model, label="LeafElement"):
       >>> inoculator = RandomInoculation()
       >>> initiate(g, stock, inoculator)
       >>> controler = GrowthControlModel()
+      >>> senescence_model = SenescenceModel()
       >>> dt = 1
       >>> nb_steps = 1000
       >>> for i in range(nb_steps):
       >>>     update_climate(g)
       >>>     infect(g, dt)
-      >>>     update(g,dt)
-      >>>     control_growth(g, controler)
+      >>>     update(g, dt, controler, senescence_model)
       >>> return g
     
-    """ 
-    lesions = g.property('lesions')
-    # if lesions:
-        # les = sum(lesions.values(), [])
-        # print('nb lesions %d' % len(les))
-        # print('lesion surface %f' % sum(l.surface for l in les))
-        # print('')
+    """
+    # 1. Determine which lesions will be affected by senescence (optional)
+    if senescence_model:
+        senescence_model.find_senescent_lesions(g, dt)
     
-    # 1. Compute growth demand
+    # 2. Compute growth demand
+    lesions = g.property('lesions')
     for vid, l in lesions.iteritems():
         # Remove inactive lesions
         l = [les for les in l if les.is_active]
-        lesions[vid] = l
+        # lesions[vid] = l
         # Update active lesions
         for lesion in l:
             leaf=g.node(vid)
             lesion.update(dt, leaf)
     
-    # 2. Allocate or not growth demand, and compute corresponding production of spores 
+    # 3. Allocate or not growth demand, and compute corresponding production of spores 
     growth_control_model.control(g, label)
+    
+    if senescence_model:
+        # 4. Call a specific response if lesions are on senescent tissue
+        lesions = g.property('lesions')
+        l = [l for les in lesions.values() for l in les if l.is_senescent]
+        for lesion in l:             
+            lesion.senescence_response()
     
     return g
     
@@ -154,8 +168,8 @@ def disperse(g,
         MTG representing the canopy (and the soil)
     scene : 
         Scene containing the simulated system
-    dispersal_model: 
-        Model that used to position each DU in stock on g
+    dispersal_model: model
+        Model that is used to position each DU in stock on g
     fungus_name: str
         Name of the fungus
     label: str
@@ -179,38 +193,26 @@ def disperse(g,
       >>> for i in range(nb_steps):
       >>>     update_climate(g)
       >>>     infect(g, dt)
-      >>>     update(g,dt)
-      >>>     control_growth(g, controler)
+      >>>     update(g,dt, controler)
       >>>     if dispersal_event():
       >>>       scene = plot3d(g)
       >>>       disperse(g, scene, dispersor, "septoria")
       >>> return g
     
     """
-  
-    # arrachage
-    lesions = g.property('lesions')
-    # print([sum(len(l) for l in lesions.itervalues())])
-    # lesion = lesions.values()[0][0]
-    # print('status %d' % lesion.status)
-    # print('age %f' % lesion.age_dday)
-    
-    
-    # TEMP
-    # healthy_surfaces = g.property('healthy_surface')
-    # print(sum(healthy_surfaces.values()))
-    
+    # Release of dispersal units 
+    lesions = g.property('lesions')   
     DU = {}
     for vid, l in lesions.iteritems():
         for lesion in l:
-            if lesion.fungus.name is fungus_name and lesion.stock > 0.:
+            if lesion.fungus.name is fungus_name and lesion.stock_spores > 0.:
                 leaf = g.node(vid)
                 if vid not in DU:
                     DU[vid] = []
                 DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
-    # dispersion, transport
+    # Transport of dispersal units
     deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, status
-    # allocation of new dispersal units
+    # Allocation of new dispersal units
     for vid,dlist in deposits.iteritems():
         if g.label(vid).startswith(label):
             leaf = g.node(vid)

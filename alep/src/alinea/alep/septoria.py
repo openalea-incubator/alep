@@ -13,15 +13,15 @@ class SeptoriaDU(DispersalUnit):
     
     """
     fungus = None
-    def __init__(self, position=None, nb_spores=None, status=None):
+    def __init__(self, nb_spores=None, position=None, status=None):
         """ Initialize the dispersal unit of septoria.
         
         Parameters
         ----------
-        position: non defined
-            Position of the dispersal unit on the phyto-element
         nb_spores: int
             Number of spores aggregated in the dispersal unit
+        position: non defined
+            Position of the dispersal unit on the phyto-element
         status: str
             'emitted' or 'deposited'
         
@@ -29,7 +29,7 @@ class SeptoriaDU(DispersalUnit):
         -------
             None
         """
-        super(SeptoriaDU, self).__init__(position=position, nb_spores=nb_spores, status=status)
+        super(SeptoriaDU, self).__init__(nb_spores=nb_spores, position=position, status=status)
         self.cumul_wetness = 0.
             
     def infect(self, dt, leaf, **kwds):
@@ -100,11 +100,10 @@ class ContinuousSeptoria(Lesion):
         
         Parameters
         ----------
-        position: non defined
-            Position of the dispersal unit on the phyto-element
         nb_spores: int
             Number of spores aggregated in the dispersal unit
-        
+        position: non defined
+            Position of the dispersal unit on the phyto-element
         """
         super(ContinuousSeptoria, self).__init__(nb_spores=nb_spores, position=position)
         # Status of the lesion
@@ -122,10 +121,11 @@ class ContinuousSeptoria(Lesion):
         self.age_dday = 0.
         # Delta age for each time step
         self.ddday = 0.
-        # Position of senescence
-        self.position_senescence = None
-        # Speed of senescence
-        self.speed_senescence = None
+        # Position of senescence the time step before (Useful in case of senescence
+        # to compute the time left for growth before senescence occur)
+        self.old_position_senescence = None
+        # Degree days before senescence if 'self.is_senescent'
+        self.ddday_before_senescence = None
         # Surface killed by senescence
         self.surface_dead = 0.
         # Growth activity of the lesion
@@ -134,10 +134,10 @@ class ContinuousSeptoria(Lesion):
         self.current_growth_rate = 0.        
         # Growth demand of the lesion (cm2)
         self.growth_demand = 0.
-        # Stock of spores (number of spores)
-        self.stock = 0.
         # Is first hour of rain
         self.first_rain_hour = False
+        # Stock of spores (number of spores)
+        self.stock_spores = 0.
         # List of DUs emitted
         self.emissions = []
 
@@ -158,16 +158,21 @@ class ContinuousSeptoria(Lesion):
         if (self.age_dday > 0. and
             self.surface_spo != 0. and
             self.surface_spo == self.surface_alive and
-            self.stock == 0.):
+            self.stock_spores == 0.):
             self.disable()
             return
         
         # Compute delta degree days in dt
         # TODO : modify if list of temp coming from weather data
-        # self.compute_delta_ddays(dt, leaf)
-        self.compute_delta_ddays_from_weather(leaf)
+        self.compute_delta_ddays(dt, leaf)
+        # self.compute_delta_ddays_from_weather(leaf)
         ddday = self.ddday
 
+        # If senescence, compute length of growth period before senescence during time step
+        if self.is_senescent:
+            self.compute_time_before_senescence(ddday=ddday, leaf=leaf)
+            ddday = self.ddday_before_senescence
+            
         # Update the age of the lesion
         self.age_dday += ddday
         
@@ -182,10 +187,7 @@ class ContinuousSeptoria(Lesion):
             self.update_growth_demand()
         else:
             self.current_growth_rate = 0.
-            self.growth_demand = 0.
-        
-        # Save senescence position and speed if it is given as MTG property
-        self.save_senescence(ddday=ddday, leaf=leaf)
+            self.growth_demand = 0.        
 
         # Update the perception of rain by the lesion
         if self.status == f.SPORULATING:
@@ -233,7 +235,49 @@ class ContinuousSeptoria(Lesion):
             ddday = 0.
         # Save variable
         self.ddday = ddday
+    
+    def compute_time_before_senescence(self, ddday=0., leaf=None):
+        """ Compute length of growth period before senescence during time step.
         
+        Parameters
+        ----------
+        ddday: float
+            Delta degree days during 'dt'
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+        """
+        old_pos = self.old_position_senescence
+        new_pos = leaf.position_senescence
+        speed = abs(new_pos-old_pos)/ddday if ddday > 0. else 0.
+        
+        self.ddday_before_senescence = abs(self.position[0]-old_pos)/speed if speed >0. else 0.
+    
+    def update_status(self):
+        """ Find the status of a lesion of septoria according to its age in degree days.
+        
+        Before 220 DD, a lesion of septoria is INCUBATING.
+        ______ 330 DD ________________________ CHLOROTIC.
+        ______ 350 DD ________________________ NECROTIC.
+        After, it is SPORULATING if not EMPTY or DEAD.
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        status: int
+            Status of the lesion
+        """
+        f = self.fungus
+        age_dday = self.age_dday
+        status = [f.SPORULATING, f.INCUBATING, f.CHLOROTIC, f.NECROTIC]
+        times = [0,f.degree_days_to_chlorosis, f.degree_days_to_necrosis, f.degree_days_to_sporulation]
+        times = np.cumsum(times)
+        
+        self.status = status[np.argmin(times<=age_dday)] 
+    
     def update_growth_rate(self):
         """ Update the growth rate of the lesion in cm2/degree days.
         
@@ -263,42 +307,7 @@ class ContinuousSeptoria(Lesion):
             r = f.growth_rate
 
         self.current_growth_rate = r
-    
-    def update_status(self):
-        """ Update the status of the lesion.
-        
-        Parameters
-        ----------
-            None
-        """
-        status = self.compute_status(age_dday = self.age_dday)
-        self.status = status
-    
-    def compute_status(self, age_dday):
-        """ Find the status of a lesion of septoria according to its age in degree days.
-        
-        Before 220 DD, a lesion of septoria is INCUBATING.
-        ______ 330 DD ________________________ CHLOROTIC.
-        ______ 350 DD ________________________ NECROTIC.
-        After, it is SPORULATING if not EMPTY or DEAD.
-        
-        Parameters
-        ----------
-        age_dday: float
-            Age of the lesion (degree days)
-            
-        Returns
-        -------
-        status: int
-            Status of the lesion
-        """
-        f = self.fungus
-        status = [f.SPORULATING, f.INCUBATING, f.CHLOROTIC, f.NECROTIC]
-        times = [0,f.degree_days_to_chlorosis, f.degree_days_to_necrosis, f.degree_days_to_sporulation]
-        times = np.cumsum(times)
-        
-        return status[np.argmin(times<=age_dday)] 
-        
+
     def update_growth_demand(self):
         """ Update the growth demand of the lesion according to its current growth rate.
         
@@ -309,11 +318,12 @@ class ContinuousSeptoria(Lesion):
         ----------
             None
         """
+        f = self.fungus
         ddday = self.ddday
         r = self.current_growth_rate
 
         # Compute demand
-        demand = r * ddday       
+        demand = min(r * ddday, f.Smax - self.surface)
         self.growth_demand = demand
     
     def compute_all_surfaces(self):
@@ -421,219 +431,60 @@ class ContinuousSeptoria(Lesion):
         self.surface_spo = surface_spo
     
     def control_growth(self, growth_offer = 0.):
-        """ Reduce surface of the lesion up to available surface on leaf.
+        """ update surface of the lesion according to its growth demand
+            and available surface on the leaf.
         
         Parameters
         ----------
         growth_offer: float
             Minimum between 'growth_demand' and the surface available on
-            the leaf for the lesion to grow (cm2) 
-
+            the leaf for the lesion to grow (cm2)
         """
         f = self.fungus
-        time_of_growth = None
         growth_demand = self.growth_demand
-        Smax = f.Smax
 
-        # By default, growth offer is added to surface alive
-        self.surface_alive += growth_offer
-        # surface_alive = self.surface_alive + growth_offer
-        
-        # Check if any interruption of growth:
         if self.growth_is_active:
-            if (self.surface + growth_offer) >= Smax:
-                # Interruption of growth because maximal size has been reached
+            # Growth offer is added to surface alive
+            self.surface_alive += growth_offer
+            
+            # Check if any interruption of growth:
+            if growth_offer < growth_demand or self.surface == f.Smax:
                 self.disable_growth()
-                # Compute length of growth period during time step
-                time_of_growth = self.compute_time_before_Smax()
-                # Compute surface alive
-                self.surface_alive = Smax
-                # surface_alive = Smax
-                
-            elif growth_offer < growth_demand:
-                # Not interrupted because Smax but interrupted because of competition
-                self.disable_growth()
-                # Surface alive is computed as in the calculation by default
-                # surface_alive = self.surface_alive + growth_offer
-                # Compute length of growth period during time step
-                time_of_growth = self.compute_time_before_compet(growth_offer)
-        
-            if self.is_senescent():
-                # Interruption because of senescence (independent of the two before)
-                self.disable_growth()
-                # Compute length of growth period during time step
-                time_sen = self.compute_time_before_senescence()
-                if time_of_growth:
-                    time_of_growth = min(time_of_growth, time_sen)
-                else:
-                    time_of_growth = time_sen
-                  
-                # Compute senescence response (update surfaces dead and alive):
-                self.senescence_response(time_of_growth, time_sen)
-                
+
         # Update the production of spores of the lesion
         if self.status == f.SPORULATING:
             self.update_stock()
-            
-    def disable_growth(self):
-        """ Shut down lesion growth activity (turn it to False)
-        
-        Parameters
-        ----------
-            None
-        """
-        self.growth_is_active = False
-
-    def compute_time_before_Smax(self):
-        """ Compute length of growth period before reaching Smax during time step.
-        
-        Parameters
-        ----------
-            None
-        """
-        f = self.fungus
-        Smax = f.Smax
-        r = f.growth_rate
-        surface = self.surface
-
-        diff = Smax - surface
-        time_of_growth = diff/r
-        
-        return time_of_growth
-        
-    def compute_time_before_compet(self, growth_offer = 0.):
-        """ Compute length of growth period before competition during time step.
-        
-        Parameters
-        ----------
-        growth_offer: float
-            Minimum between 'growth_demand' and the surface available on
-            the leaf for the lesion to grow (cm2) 
-        """
-        f = self.fungus
-        age_dday = self.age_dday
-        ddday = self.ddday
-        time_to_chlo = f.degree_days_to_chlorosis
-        r1 = f.Smin / time_to_chlo
-        r2 = f.growth_rate
-
-        # Age before last growth
-        age_before = age_dday - ddday
-        
-        if growth_offer == 0.:
-            time_of_growth = 0.
-        else:
-            if age_dday < time_to_chlo: 
-                # Competition occured before reaching chlorosis
-                # Growth rate has not changed yet and equals r1
-                time_of_growth = growth_offer/r1
-            elif age_before > time_to_chlo:
-                # Growth rate has not changed in the last time step and equals r2
-                time_of_growth = growth_offer/r2
-            else:
-                # Growth rate has changed in the last time step
-                time_with_r1 = time_to_chlo - age_before
-                time_with_r2 = (growth_offer - r1*time_with_r1)/r2
-                time_of_growth = time_with_r1 + time_with_r2
-                assert time_of_growth < ddday
-        
-        return time_of_growth
     
-    def save_senescence(self, ddday=0., leaf=None):
-        """ Save variables of senescence.
-        
-        Parameters
-        ----------
-        ddday: float
-            Delta degree days during 'dt'.
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
-            senescence, rain intensity, wetness, temperature, lesions)
-        """
-        try:
-            senescence = leaf.position_senescence
-        except:
-            # Senescence is not known in MTG properties
-            senescence = None
-        if senescence:
-            if not self.position_senescence:
-                # no senescence before --> Position senescence = position leaf edge
-                old_pos = 10. # TODO : Modify with real value
-            else:
-                old_pos = self.position_senescence
-            new_pos = leaf.position_senescence
-            if ddday != 0.:
-                speed = abs(new_pos-old_pos)/ddday if new_pos != 0. else 0.
-            else:
-                speed = 0.
-            self.position_senescence = new_pos
-            self.speed_senescence = speed
-    
-    def is_senescent(self):
-        """ Check if the lesion is affected by leaf senescence.
-        
-        Parameters
-        ----------
-            None
+    def become_senescent(self, old_position_senescence=0.):
+        """ The lesion will become senescent during this time step 
+            and save the position of senescence the time step before.
             
-        Returns
-        -------
-        True or False:
-            The lesion is affected or not by senescence
-        """       
-        if (self.position_senescence and 
-            self.position[0] >= self.position_senescence):
-            return True
-        else:
-            return False
-            
-    def compute_time_before_senescence(self):
-        """ Compute length of growth period before senescence during time step.
-        
         Parameters
         ----------
-            None
+        old_position_senescence: float
+            Position of senescence the time step before
         """
-        ddday = self.ddday
-        speed = self.speed_senescence
-        pos_sen = self.position_senescence
+        # Turn on 'is_senescent'
+        self.is_senescent = True
+        # Save position of senescence the time step before.
+        self.old_position_senescence = old_position_senescence
 
-        time_of_growth = ddday - (pos_sen-self.position)/speed if speed!=0. else 0.
-
-        return time_of_growth        
-    
-    def senescence_response(self, time_of_growth, time_sen):
+    def senescence_response(self):
         """ Compute surface alive and surface dead.
         
         Parameters
         ----------
-        time_of_growth: float
-            Time before the growth was interrupted (degree days)
-        time_sen: float
-            Time before the growth was interrupted by senescence
+            None
         """
         f = self.fungus
         ddday = self.ddday
-        age_dday = self.age_dday
-        time_to_chlo = f.degree_days_to_chlorosis
-        r1 = f.Smin / time_to_chlo
-        r2 = f.growth_rate
-        Smin = f.Smin
+        ddday_sen = self.ddday_before_senescence
         
-        # Find status of the lesion when senescence occured
-        age_sen = age_dday - ddday + time_sen
-        status = self.compute_status(age_dday = age_sen)
+        # Stop growth
+        self.disable_growth()
         
-        # Compute surface alive at this time
-        age_growth = age_dday - ddday + time_of_growth
-        if age_growth < time_to_chlo:
-            self.surface_alive = age_growth*r1
-        else:
-            diff = age_growth - time_to_chlo
-            self.surface_alive = f.Smin + diff*r2
-        
-        # Kill all surfaces under necrosis at this time
-        if status <= f.CHLOROTIC:
+        # Kill all surfaces under necrosis at senescence occurence
+        if self.status <= f.CHLOROTIC:
             self.disable()
             surface_dead = self.surface_alive
         else:
@@ -645,6 +496,9 @@ class ContinuousSeptoria(Lesion):
         # Update 'surface_alive' and 'surface_dead'
         self.surface_alive -= surface_dead if self.surface_alive > 0. else 0.
         self.surface_dead = surface_dead
+        
+        # Complete the age of the lesion up to the end of time step
+        self.age_dday += ddday - ddday_sen
 
     def update_stock(self):
         """ Update the stock of spores produced by the lesion.
@@ -666,7 +520,7 @@ class ContinuousSeptoria(Lesion):
         
         # Inputs of the stock
         delta_surface_spo = max(0, surface_spo - surface_spo_before)
-        self.stock += delta_surface_spo * f.production_rate
+        self.stock_spores += delta_surface_spo * f.production_rate
         
         # Save 'surface_spo_before' for next time step
         self.surface_spo_before = surface_spo
@@ -694,7 +548,7 @@ class ContinuousSeptoria(Lesion):
         """
         f = self.fungus
         
-        if (self.stock and self.status == f.SPORULATING and 
+        if (self.stock_spores>0. and self.status == f.SPORULATING and 
             leaf.relative_humidity >= f.rh_min and
             self.first_rain_hour):
             return True
@@ -715,7 +569,7 @@ class ContinuousSeptoria(Lesion):
         if self.is_stock_available(leaf):
             f = self.fungus
             emissions = []
-            stock_available = int(self.stock*2/3.)
+            stock_available = int(self.stock_spores*2/3.)
             
             # TODO : improve below
             nb_DU_emitted = int(leaf.rain_intensity * self.surface_spo * 1000)
@@ -725,15 +579,15 @@ class ContinuousSeptoria(Lesion):
                     nb_spores = min(randint(5,100), stock_available)
                     nb_spores_by_DU.append(nb_spores)
                     stock_available -= nb_spores
-                    # Update stock
-                    self.stock -= nb_spores
+                    # Update stock_spores
+                    self.stock_spores -= nb_spores
             
             # Get rid of DUs without spores
             nb_DU_emitted = len(nb_spores_by_DU)
             
-            # Empty stock
-            if self.stock < 1000:
-                self.stock = 0.
+            # Empty stock_spores
+            if self.stock_spores < 1000:
+                self.stock_spores = 0.
 
             # Return emissions
             emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU[i], status='emitted')
@@ -776,16 +630,17 @@ class SeptoriaWithRings(Lesion):
         super(SeptoriaWithRings, self).__init__(nb_spores=nb_spores, position=position)
         # List of rings, add a ring at lesion formation
         self.rings = []
-        ring = SeptoriaRing(lesion = self, status = self.fungus.INCUBATING)
+        ring = SeptoriaRing(lesion=self, status=self.fungus.INCUBATING)
         self.rings.append(ring)
         # Age of the center of the lesion (degree days)
         self.age_dday = 0.
         # Delta degree days during time step
         self.ddday = 0.
-        # Position of senescence
-        self.position_senescence = None
-        # Speed of senescence
-        self.speed_senescence = None        
+        # Position of senescence the time step before (Useful in case of senescence
+        # to compute the time left for growth before senescence occur)
+        self.old_position_senescence = None
+        # Degree days before senescence if 'self.is_senescent'
+        self.ddday_before_senescence = None       
         # Surface of disabled rings
         self.surface_dead = 0.
         # Growth activity of the lesion
@@ -812,16 +667,14 @@ class SeptoriaWithRings(Lesion):
         
         # Compute delta degree days in dt
         # TODO : modify if list of temp coming from weather data
-        # self.compute_delta_ddays(dt, leaf)
-        self.compute_delta_ddays_from_weather(leaf)
+        self.compute_delta_ddays(dt, leaf)
+        # self.compute_delta_ddays_from_weather(leaf)
         ddday = self.ddday
         
-        # Save senescence position and speed if it is given as MTG property
-        self.save_senescence(ddday=ddday, leaf=leaf)
-        
-        if self.is_senescent():           
-            # Compute ddday to stop lesion development at time of senescence
-            ddday -= self.compute_dday_since_senescence()
+        # If senescence, compute length of growth period before senescence during time step
+        if self.is_senescent:
+            self.compute_time_before_senescence(ddday=ddday, leaf=leaf)
+            ddday = self.ddday_before_senescence
 
         # Update the age of the lesion
         self.age_dday += ddday
@@ -840,36 +693,6 @@ class SeptoriaWithRings(Lesion):
                 self.first_rain_hour = True if not self.first_rain_hour else False
             else:
                 self.first_rain_hour = False
-
-    def save_senescence(self, ddday=0., leaf=None):
-        """ Save variables of senescence.
-        
-        Parameters
-        ----------
-        ddday: float
-            Delta degree days during 'dt'.
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
-            senescence, rain intensity, wetness, temperature, lesions)
-        """
-        try:
-            senescence = leaf.position_senescence
-        except:
-            # Senescence is not known in MTG properties
-            senescence = None
-        if senescence:
-            if not self.position_senescence:
-                # no senescence before --> Position senescence = position leaf edge
-                old_pos = 10. # TODO : Modify with real value
-            else:
-                old_pos = self.position_senescence
-            new_pos = leaf.position_senescence
-            if ddday != 0.:
-                speed = abs(new_pos-old_pos)/ddday if new_pos != 0. else 0.
-            else:
-                speed = 0.
-            self.position_senescence = new_pos
-            self.speed_senescence = speed
         
     def add_rings(self, list_of_rings=None):
         """ Add rings to list of rings if needed.
@@ -932,7 +755,7 @@ class SeptoriaWithRings(Lesion):
         f = self.fungus
         total_growth_demand = self.growth_demand
         growth_offer_left = min(growth_offer, f.Smax - self.surface)
-
+               
         rings_in_formation = [r for r in self.rings if r.is_in_formation(fungus=f)]
         if rings_in_formation:
             for ring in rings_in_formation:
@@ -940,9 +763,9 @@ class SeptoriaWithRings(Lesion):
                 growth_offer_left -= ring.growth_demand if growth_offer_left>0. else 0.
                 ring.control_growth(ring_growth_offer, lesion=self)
         
-        # Update stock
-        new_rings_sporulating = [r for r in self.rings if (r.is_sporulating(fungus=f) and r.stock==None)]
-        # Note: at initiation, stock=-1. It is only filled once.
+        # Update stock_spores
+        new_rings_sporulating = [r for r in self.rings if (r.is_sporulating(fungus=f) and r.stock_spores==None)]
+        # Note: at initiation, stock_spores=-1. It is only filled once.
         # The aim is to avoid refilling it when it falls back to 0.
         if new_rings_sporulating:
             for ring in new_rings_sporulating:
@@ -951,12 +774,19 @@ class SeptoriaWithRings(Lesion):
         # Disable growth when needed
         if growth_offer < total_growth_demand or self.surface == f.Smax:
             self.disable_growth()
+            for r in self.rings:
+                r.disable_growth()
+
+        # Update surface dead
+        self.update_surface_dead()
+                
+    def update_surface_dead(self):
+        """ Update surface dead of the lesion and disable it if no ring active.
         
-        if self.is_senescent():
-            self.disable_growth()
-            # Response to senescence
-            self.senescence_response()
-                        
+        Parameters
+        ----------
+            None
+        """
         # Remove non active rings
         self.surface_dead += sum(ring.surface for ring in self.rings if not ring.is_active)
         self.rings = [ring for ring in self.rings if ring.is_active]
@@ -964,38 +794,38 @@ class SeptoriaWithRings(Lesion):
         # Disable lesion when no ring left
         if not self.rings:
             self.disable()
-            return
         
-    def is_senescent(self):
-        """ Check if the lesion is affected by leaf senescence.
-        
-        Parameters
-        ----------
-            None
-            
-        Returns
-        -------
-        True or False:
-            The lesion is affected or not by senescence
-        """       
-        if (self.position_senescence and 
-            self.position[0] >= self.position_senescence):
-            return True
-        else:
-            return False
-        
-    def compute_dday_since_senescence(self):
-        """ Compute delta degree days after senescence during time step.
+    def compute_time_before_senescence(self, ddday=0., leaf=None):
+        """ Compute length of growth period before senescence during time step.
         
         Parameters
         ----------
-            None
+        ddday: float
+            Delta degree days during 'dt'
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
         """
-        speed = self.speed_senescence
-        pos_sen = self.position_senescence
-        dday_since_senescence = (pos_sen-self.position)/speed if speed!=0. else 0.
-        return dday_since_senescence  
+        old_pos = self.old_position_senescence
+        new_pos = leaf.position_senescence
+        speed = abs(new_pos-old_pos)/ddday if ddday > 0. else 0.
+        
+        self.ddday_before_senescence = abs(self.position[0]-old_pos)/speed if speed >0. else 0.
     
+    def become_senescent(self, old_position_senescence=0.):
+        """ The lesion will become senescent during this time step 
+            and save the position of senescence the time step before.
+            
+        Parameters
+        ----------
+        old_position_senescence: float
+            Position of senescence the time step before
+        """
+        # Turn on 'is_senescent'
+        self.is_senescent = True
+        # Save position of senescence the time step before.
+        self.old_position_senescence = old_position_senescence
+        
     def senescence_response(self, time_since_sen=0.):
         """ Kill rings affected by senescence and achieve ageing of the other rings
             up to the end of time step.
@@ -1012,8 +842,11 @@ class SeptoriaWithRings(Lesion):
         """
         f = self.fungus
         
-        dday_since_senescence = self.compute_dday_since_senescence()
+        dday_since_senescence = self.ddday - self.ddday_before_senescence 
         self.age_dday += dday_since_senescence
+        
+        # Stop growth
+        self.disable_growth()
         
         for ring in self.rings:
             if ring.status < f.NECROTIC:
@@ -1022,11 +855,11 @@ class SeptoriaWithRings(Lesion):
             else:
                 # To be sure, reset all useless ring variables
                 # Then update them to make them reach the end of time step
-                ring.growth_demand = 0.
-                ring.delta_growth = 0.
-                ring.delta_age_left = None
-                ring.growth_is_active = False
+                ring.disable_growth()
                 ring.update(ddday=dday_since_senescence, lesion=self)
+        
+        # Update surface dead
+        self.update_surface_dead()
     
     def emission(self, leaf, **kwds):
         """ Create a list of dispersal units emitted by the entire lesion.
@@ -1050,15 +883,6 @@ class SeptoriaWithRings(Lesion):
         
         return emissions    
         
-    def disable_growth(self):
-        """ Shut down lesion growth activity (turn it to False)
-        
-        Parameters
-        ----------
-            None
-        """
-        self.growth_is_active = False
-    
     def is_dead(self):
         """ Update the status of all the rings to 'DEAD' if the lesion is dead.
         
@@ -1138,7 +962,7 @@ class SeptoriaWithRings(Lesion):
         return self._growth_demand
     
     @property
-    def stock(self):
+    def stock_spores(self):
         """ Compute the stock of spores on the lesion.
         
         Parameters
@@ -1150,8 +974,8 @@ class SeptoriaWithRings(Lesion):
         surface: float
             Surface of the whole lesion (cm2)
         """
-        stock = sum(ring.stock for ring in self.rings if ring.stock >0.)
-        return stock
+        stock_spores = sum(ring.stock_spores for ring in self.rings if ring.stock_spores >0.)
+        return stock_spores
     
     @property
     def status(self):
@@ -1259,7 +1083,7 @@ class SeptoriaRing(Ring):
         # See later for dispersion
         self.cumul_rain_event = 0.
         self.rain_before = False
-        self.stock = None
+        self.stock_spores = None
 
     def is_in_formation(self, fungus):
         """ Can keep growing!!! """
@@ -1300,7 +1124,6 @@ class SeptoriaRing(Ring):
             (e.g. fungus parameters, surface, status, age, rings, etc.)            
         """
         f = lesion.fungus
-                
         # Ageing of the ring
         self.age_dday += ddday
         if not self.is_in_formation(fungus=f):
@@ -1353,7 +1176,7 @@ class SeptoriaRing(Ring):
             list_of_rings[-1].delta_growth = min(ddday, list_of_rings[-1].delta_age_left)
             
         list_of_rings[-1].delta_age_left -= list_of_rings[-1].age_dday
-        
+                
         # Status of new rings
         for ring in list_of_rings:
             # ring.delta_age_left -= ring.age_dday 
@@ -1406,7 +1229,7 @@ class SeptoriaRing(Ring):
             # Turn off growth activity if no delta age left before growth completion
             self.disable_growth()
 
-        # Update stock for sporulating rings
+        # Update stock_spores for sporulating rings
         # if self.is_sporulating(fungus=f):
             # self.update_stock(lesion=lesion)
         
@@ -1525,9 +1348,9 @@ class SeptoriaRing(Ring):
 
         production = self.surface * f.production_rate           
         nb_spores_produced = int(round(production))
-        self.stock = nb_spores_produced
+        self.stock_spores = nb_spores_produced
         # Note: explains the +1 above :
-        # At initiation stock=-1. It is only filled once.
+        # At initiation stock_spores=-1. It is only filled once.
         # The aim is to avoid refilling it when it falls back to 0.
 
     def emission(self, leaf=None, lesion=None, **kwds):
@@ -1551,7 +1374,7 @@ class SeptoriaRing(Ring):
         """
         f = lesion.fungus
         emissions = []
-        stock_available = int(self.stock*2/3.)
+        stock_available = int(self.stock_spores*2/3.)
         
         # TODO : improve below
         nb_DU_emitted = int(leaf.rain_intensity * self.surface * 1000)
@@ -1561,14 +1384,14 @@ class SeptoriaRing(Ring):
                 nb_spores = min(randint(5,100), stock_available)
                 nb_spores_by_DU.append(nb_spores)
                 stock_available -= nb_spores
-                # Update stock
-                self.stock -= nb_spores
+                # Update stock_spores
+                self.stock_spores -= nb_spores
                 
         # Get rid of DUs without spores
         nb_DU_emitted = len(nb_spores_by_DU)
         
-        # Empty stock
-        if self.stock < 100:
+        # Empty stock_spores
+        if self.stock_spores < 100:
             self.empty(lesion)
 
         # Return emissions
@@ -1599,7 +1422,7 @@ class SeptoriaRing(Ring):
         """
         f = lesion.fungus
         
-        if (self.stock and self.status == f.SPORULATING and 
+        if (self.stock_spores and self.status == f.SPORULATING and 
             lesion.first_rain_hour):
             return True
         else:
@@ -1656,6 +1479,8 @@ class SeptoriaRing(Ring):
         """
         self.growth_is_active = False
         self.growth_demand = 0.
+        self.delta_growth = 0.
+        self.delta_age_left = None
         
     def stage(self, lesion=None):
         """ Orient the ring to toward the proper function according to its status.
@@ -1783,14 +1608,14 @@ class SeptoriaParameters(Parameters):
         self.production_rate = production_rate
         # TODO : Improve this parameter. 
 
-    # def __call__(self, nb_spores = None, position = None):
+    # def __call__(self, nb_spores=None, position=None):
         # if SeptoriaWithRings.fungus is None:
             # SeptoriaWithRings.fungus = self
         # if SeptoriaDU.fungus is None:
             # SeptoriaDU.fungus = self
         # return SeptoriaWithRings(nb_spores=nb_spores, position=position)
         
-    def __call__(self, nb_spores = None, position = None):
+    def __call__(self, nb_spores=None, position=None):
         if ContinuousSeptoria.fungus is None:
             ContinuousSeptoria.fungus = self
         if SeptoriaDU.fungus is None:
