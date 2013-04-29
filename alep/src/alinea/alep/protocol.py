@@ -14,8 +14,9 @@ def initiate(g,
         MTG representing the canopy (and the soil)
     dispersal_units_stock: list of DUs
         Source of dispersal units to disperse in the scene
-    initiation_model:
-        Model that allows positioning each DU in stock on g
+    initiation_model: model
+        Model that sets the position of each DU in stock on g
+        Requires a method named 'allocate' (see doc)
     label: str
         Label of the part of the MTG concerned by the calculation
     
@@ -47,6 +48,7 @@ def infect(g, dt, position_checker_model=None, label="LeafElement"):
         'dispersal_units' are stored in the MTG as a property
     position_checker_model: model
         Model that disable the DU if it falls on an existing lesion or senescent tissue
+        Requires a method 'check position' (see doc)
     dt: int
         Time step of the simulation
     label: str
@@ -103,6 +105,7 @@ def update(g, dt, growth_control_model, senescence_model=None, label="LeafElemen
         Model with rules of competition between the lesions
     senescence_model:
         Model that find lesions on senescent tissue and provoke their response
+        Requires a method 'find_senescent_lesions' (see doc)
     label: str
         Label of the part of the MTG concerned by the calculation
     
