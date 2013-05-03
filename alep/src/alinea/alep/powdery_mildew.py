@@ -2,7 +2,7 @@
 
 """
 # Imports #########################################################################
-from alinea.alep.cycle2 import *
+from alinea.alep.fungal_objects import *
 from random import random, randint
 from math import (exp, pi, floor, ceil, sqrt)
 
@@ -34,7 +34,7 @@ class PowderyMildewDU(DispersalUnit):
         self.age_dday = 0.
         # Viability of the dispersal unit:
         # Scale from 1:viable to 0:not viable
-        self.viability = 1.
+        # self.viability = 1.
         
     def infect(self, dt, leaf, **kwds):
         """ Compute infection by the dispersal unit of powdery mildew.
@@ -102,9 +102,10 @@ class PowderyMildewDU(DispersalUnit):
             if proba(infection_rate):
                 self.create_lesion(leaf)
             else:
-                self.update_viability(dt, leaf)
-                if not self.is_viable():
-                    self.disable()
+                self.disable()
+                # self.update_viability(dt, leaf)
+                # if not self.is_viable():
+                    # self.disable()
                 
     def update_age_dday(self, dt=1., leaf=None):
         """ Update the age of the lesion.

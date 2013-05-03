@@ -1,21 +1,22 @@
 """ Define the protocol between plant architecture and lesions """
 
-import random
+from random import random
 
 def initiate(g, 
-             dispersal_units_stock, 
+             fungal_objects_stock, 
              initiation_model, 
              label="LeafElement"):
-    """ Allocates dispersal units (objects) on elements of the MTG according to initiation_model 
+    """ Allocates fungal objects (dispersal units OR lesions) on elements of the MTG
+        according to initiation_model.
 
     Parameters
     ----------
     g: MTG
         MTG representing the canopy (and the soil)
-    dispersal_units_stock: list of DUs
-        Source of dispersal units to disperse in the scene
+    fungal_objects_stock: list of fungal objects (dispersal units OR lesions)
+        Source of fungal objects to distribute in the scene
     initiation_model: model
-        Model that sets the position of each DU in stock on g
+        Model that sets the position of each DU/lesion in stock on g
         Requires a method named 'allocate' (see doc)
     label: str
         Label of the part of the MTG concerned by the calculation
@@ -34,7 +35,7 @@ def initiate(g,
       >>> return g
     """
     # Allocation of stock of inoculum
-    initiation_model.allocate(g, dispersal_units_stock, label)
+    initiation_model.allocate(g, fungal_objects_stock, label)
 
     return g
 
@@ -274,13 +275,13 @@ def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label
                 for dispersal_unit in du:
                     if DU_status.startswith("all"):
                         # disable the DU according to the washing_rate on the leaf
-                        if random.random() < leaf.washing_rate:
+                        if random() < leaf.washing_rate:
                             dispersal_unit.disable()  
                         # Other solution : Requires to implement such a method in every washing model
                         # washing_model.wash(dispersal_unit, leaf.washing_rate)
                     else: 
                         if dispersal_unit.status.startswith(DU_status):
-                            if random.random() < leaf.washing_rate:
+                            if random() < leaf.washing_rate:
                                 dispersal_unit.disable()
     
     # TODO : Raise error if DU_status does not exist.

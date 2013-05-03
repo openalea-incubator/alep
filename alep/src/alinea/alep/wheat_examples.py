@@ -5,6 +5,9 @@ from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 import alinea.adel.fitting as fitting
 from alinea.adel.AdelR import devCsv,setAdel,RunAdel,genGeoLeaf,genGeoAxe
+from math import ceil, sqrt
+import random
+import numpy
 
 # Plant ###########################################################################
 def adelR(nplants,dd):
@@ -66,7 +69,7 @@ def adel_mtg3(nb_sect=1, leaf_db=None, d=None, p=None):
         stand = [((int(i)-10*size/2., int(j)-10*size/2., 0),random.randint(0,90)) for i, j in 10*stand[:p]]
     else:
         stand = [((0,0,0),0),((10,0,0),90), ((0,10,0), 0)]
-    g=mtg_factory(d,adel_metamer, leaf_sectors=nb_sect,leaf_db=leaf_db,stand=stand)
+    g=mtg_factory(d,adel_metamer, leaf_sectors=nb_sect,leaf_db=leaves_db(),stand=stand)
     g=mtg_interpreter(g)
     return g
     

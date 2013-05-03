@@ -2,20 +2,21 @@
 
 # Imports #########################################################################
 
-import random
+import random as rd
 import numpy
 import pandas
 from pylab import *
 
-from wheat_examples import adel_mtg, adel_mtg2, adel_one_leaf
+from alinea.alep.wheat_examples import adel_mtg, adel_mtg2, adel_one_leaf
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 
-from alinea.alep import cycle2
+from alinea.alep import fungal_objects
 from alinea.alep import septoria
 from alinea.alep.septoria import *
 from alinea.alep import powdery_mildew
 
+from alinea.alep.du_position_checker import BiotrophDUProbaModel
 from alinea.alep.dispersal import RandomDispersal
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
@@ -60,8 +61,9 @@ def set_initial_properties_g(g,
     return g
 
 def update_climate_all(g, wetness=True,
-                          temp = 18.,
+                          temp = 22.,
                           rain_intensity=0.,
+                          rain_duration=0.,
                           relative_humidity=85.,
                           label = 'LeafElement'):
     """ Simulate an environmental program.
@@ -70,12 +72,16 @@ def update_climate_all(g, wetness=True,
     
     Parameters
     ----------
+    g: MTG
+        MTG representing the canopy
     wetness: bool
         True if the leaf element is wet, False otherwise
     temp: float
         Temperature of the leaf element (degrees celsius)
     rain_intensity : float
         Rain intensity on the leaf element (mm/h)
+    rain_duration: float
+        Rain duration (in hours)
     relative_humidity : float
         Relative humidity on the leaf element (percent)
     label: str
@@ -83,8 +89,8 @@ def update_climate_all(g, wetness=True,
      
     Returns
     -------
-    None
-        Update directly the MTG
+    g: MTG
+        Updated MTG representing the canopy
     """
     vids = [n for n in g if g.label(n).startswith(label)]
     for v in vids : 
@@ -92,12 +98,74 @@ def update_climate_all(g, wetness=True,
         n.wetness = wetness
         n.temp = temp
         n.rain_intensity = rain_intensity
+        n.rain_duration = rain_duration
         n.relative_humidity = relative_humidity
     
     return g
 
+# Fungus ##########################################################################
+def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaWithRings"):
+    """ Distribute new dispersal units on g. 
+    
+    Call the method 'initiate' from the protocol with dispersal units.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    nb_dus: int
+        Number of dispersal units to put on g
+        
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy
+    """
+    fungus = septoria(model=model)
+    fungus = septoria(model=model)
+    SeptoriaDU.fungus = fungus
+    dispersal_units = ([SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted')
+                        for i in range(nb_dus)])
+
+    inoculator = RandomInoculation()
+    initiate(g, dispersal_units, inoculator)
+    
+    return g
+    
+def distribute_lesions(g, nb_lesions=1, model="SeptoriaWithRings"):
+    """ Distribute new lesions on g. 
+    
+    Call the method 'initiate' from the protocol with lesions.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    nb_lesions: int
+        Number of lesions to put on g
+    model: str
+        Type of model of septoria lesion
+        
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy
+    """
+    fungus = septoria(model=model)
+    models = ({"SeptoriaExchangingRings":SeptoriaExchangingRings,
+                    "SeptoriaWithRings":SeptoriaWithRings, 
+                    "ContinuousSeptoria":ContinuousSeptoria})
+    if model in models:
+        models[model].fungus = fungus
+        lesions = [models[model](nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+
+    inoculator = RandomInoculation()
+    initiate(g, lesions, inoculator)
+    
+    return g
+    
 # Call models for disease #########################################################
-def generate_stock_DU(fungus = septoria(), nb_Spores=random.randint(1,100), nb_DU = 100):
+def generate_stock_DU(fungus = septoria(), nb_Spores=rd.randint(1,100), nb_DU = 100):
     """ Generate a stock of DU as a list of DU 
     
     """
@@ -127,7 +195,6 @@ def washor():
     return washor
 
 # Display #########################################################################
-
 def temp_plot3D(g):
     """ plot g """
     scene = plot3d(g)
@@ -523,15 +590,14 @@ def test_growth_control():
         
     return g
 
-def test_all():
-    
+def test_all(model="SeptoriaExchangingRings"):
     # Generate a MTG with required properties :
     g = adel_mtg2()
     set_initial_properties_g(g, surface_leaf_element=5.)
     
     # Deposit first dispersal units on the MTG :
-    fungus = septoria(); SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(10)]
+    fungus = septoria(model=model); SeptoriaDU.fungus = fungus
+    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(10)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -539,6 +605,7 @@ def test_all():
     controler = NoPriorityGrowthControl()
     washor = RapillyWashing()
     dispersor = RandomDispersal()
+    position_checker = BiotrophDUProbaModel()
    
     # Prepare the simulation loop
     dt = 1
@@ -554,15 +621,13 @@ def test_all():
         update_climate_all(g, wetness=True, temp=22., rain_intensity = global_rain_intensity*0.75)
         
         # grow(g)
-        infect(g, dt)
+        infect(g, dt, position_checker)
         update(g,dt, growth_control_model=controler)
-        # control_growth(g, controler)
         
         if global_rain_intensity != 0.:
             scene = plot3d(g)
-            disperse(g, scene, dispersor, "Septoria")
-        
-        wash(g, washor, global_rain_intensity, DU_status='deposited')
+            disperse(g, scene, dispersor, "Septoria")            
+            wash(g, washor, global_rain_intensity, DU_status='deposited')
         
         # Count how many lesions are simultaneously active on the MTG at maximum charge
         nb_les = count_lesions(g)

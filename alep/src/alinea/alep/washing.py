@@ -16,11 +16,7 @@ class RapillyWashing:
     'Construction d'un modele (episept) permettant la simulation d'une epidemie de 
     Septoria nodorum sur ble'
     
-    """
-    def __init__(self):
-        self.rain_duration = 0.
-        self.rain_intensity = {}
-        
+    """       
     def compute_washing_rate(self, g, global_rain_intensity, label='LeafElement'):
         """ Compute the washing rate on each leaf element.
         
@@ -29,7 +25,8 @@ class RapillyWashing:
         Parameters
         ----------
         g: MTG
-            MTG representing the canopy (and the soil)
+            MTG representing the canopy (and the soil).
+            Leaves must know the 'rain_intensity' and the 'rain_duration'
         global_rain_intensity: float
             Rain intensity over the canopy to trigger washing
         label: str
@@ -41,25 +38,33 @@ class RapillyWashing:
             Update directly the MTG
         """
         if global_rain_intensity > 0.:
-            self.rain_duration += 1
+            vids = [n for n in g if g.label(n).startswith(label)]
+            for v in vids : 
+                leaf = g.node(v)
+                rain_int = leaf.rain_intensity
+                rain_dur = leaf.rain_duration
+                healthy_surf = leaf.healthy_surface
+                leaf.washing_rate = max(0, min(1, rain_int/(healthy_surf+rain_int)*rain_dur))
             
-            vids = [n for n in g if g.label(n).startswith(label)]
-            for v in vids : 
-                leaf = g.node(v)
-                if not v in self.rain_intensity:
-                    self.rain_intensity[v] = []
-                self.rain_intensity[v].append(leaf.rain_intensity)
-                leaf.washing_rate = 0.
-        else:
-            vids = [n for n in g if g.label(n).startswith(label)]
-            for v in vids : 
-                leaf = g.node(v)
-                if v in self.rain_intensity.keys():
-                    mean_rain_intensity = numpy.mean(self.rain_intensity[v])
-                    leaf.washing_rate = max(0,min(1, mean_rain_intensity / (leaf.healthy_surface + mean_rain_intensity)*self.rain_duration))
-                    self.rain_intensity.pop(v)
-                else:
-                    leaf.washing_rate = 0.
-            self.rain_duration = 0.
+            # self.rain_duration += 1
+            
+            # vids = [n for n in g if g.label(n).startswith(label)]
+            # for v in vids : 
+                # leaf = g.node(v)
+                # if not v in self.rain_intensity:
+                    # self.rain_intensity[v] = []
+                # self.rain_intensity[v].append(leaf.rain_intensity)
+                # leaf.washing_rate = 0.
+        # else:
+            # vids = [n for n in g if g.label(n).startswith(label)]
+            # for v in vids : 
+                # leaf = g.node(v)
+                # if v in self.rain_intensity.keys():
+                    # mean_rain_intensity = numpy.mean(self.rain_intensity[v])
+                    # leaf.washing_rate = max(0,min(1, mean_rain_intensity / (leaf.healthy_surface + mean_rain_intensity)*self.rain_duration))
+                    # self.rain_intensity.pop(v)
+                # else:
+                    # leaf.washing_rate = 0.
+            # self.rain_duration = 0.
             
     # TODO : Check if the model of Rapilly is properly implemented above.

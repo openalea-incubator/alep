@@ -4,6 +4,7 @@
 
 # Imports #########################################################################
 import random
+from alinea.alep.fungal_objects import DispersalUnit, Lesion
 
 # Random inoculation ##############################################################
 
@@ -22,8 +23,8 @@ class RandomInoculation:
         ----------
         g: MTG
             MTG representing the canopy (and the soil)
-        inoculum: list of DUs
-            Source of dispersal units to distribute on the MTG
+        inoculum: list of dispersal units OR list of lesions
+            Source of fungal objects to distribute on the MTG
         label: str
             Label of the part of the MTG concerned by the calculation
             
@@ -41,9 +42,18 @@ class RandomInoculation:
             idx = random.randint(0,n-1)
             v = vids[idx]
             leaf = g.node(v)
-            if not 'dispersal_units' in leaf.properties():
-                leaf.dispersal_units = []
-            # Deposit a DU from inoculum on node v of the MTG
-            i.deposited()
+            # Set a position for i :
             i.position = [0, 0] # TODO : improve
-            leaf.dispersal_units.append(i)
+            
+            #  Attach it to the leaf
+            if isinstance(i, Lesion):
+                try:
+                    leaf.lesions.append(i)
+                except:
+                    leaf.lesions = [i]            
+            elif isinstance(i, DispersalUnit):
+                i.deposited()
+                try:
+                    leaf.dispersal_units.append(i)
+                except:
+                    leaf.dispersal_units = [i]

@@ -37,9 +37,9 @@ class BiotrophDUProbaModel:
         -------
         Turn off the activity of the DU if not on healthy tissue
         """
-        healty_surface = leaf.healty_surface
+        healthy_surface = leaf.healthy_surface
         surface = leaf.surface
-        ratio = healty_surface / surface if surface>0. else 0.
+        ratio = healthy_surface / surface if surface>0. else 0.
 
         if random() > ratio:
             # Then the dispersal unit can not infect

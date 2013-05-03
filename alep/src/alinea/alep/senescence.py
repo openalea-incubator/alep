@@ -62,7 +62,7 @@ class WheatSeptoriaPositionedSenescence:
         labels = g.property('label')
         vids = (v for v,l in labels.iteritems() if l.startswith(label))
         
-        # Find senescent lesion and transmit them useful data
+        # Find senescent lesions and transmit them useful data
         lesions = g.property('lesions')
         for v in vids:
             leaf = g.node(v)

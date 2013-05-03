@@ -43,7 +43,7 @@ class NoPriorityGrowthControl:
             leaf_surface = sum(surfaces[lf] for lf in leaf)
             leaf_healthy_surface = sum(healthy_surfaces[lf] for lf in leaf)
             
-            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.growth_is_active]
+            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[])]# if l.growth_is_active]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
             
             if total_demand > leaf_healthy_surface:

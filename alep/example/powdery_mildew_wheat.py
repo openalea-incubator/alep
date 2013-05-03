@@ -75,10 +75,10 @@ def update_leaf_age(g, dt=1., label='LeafElement'):
 
 # Climate #########################################################################            
 def update_climate_all(g, wetness=True,
-                          temp = 18.,
+                          temp = 22.,
                           rain_intensity=0.,
+                          rain_duration=0.,
                           relative_humidity=85.,
-                          wind_speed = 0.5,
                           label = 'LeafElement'):
     """ Simulate an environmental program.
     
@@ -86,12 +86,16 @@ def update_climate_all(g, wetness=True,
     
     Parameters
     ----------
+    g: MTG
+        MTG representing the canopy
     wetness: bool
         True if the leaf element is wet, False otherwise
     temp: float
         Temperature of the leaf element (degrees celsius)
     rain_intensity : float
         Rain intensity on the leaf element (mm/h)
+    rain_duration: float
+        Rain duration (in hours)
     relative_humidity : float
         Relative humidity on the leaf element (percent)
     label: str
@@ -99,8 +103,8 @@ def update_climate_all(g, wetness=True,
      
     Returns
     -------
-    None
-        Update directly the MTG
+    g: MTG
+        Updated MTG representing the canopy
     """
     vids = [n for n in g if g.label(n).startswith(label)]
     for v in vids : 
@@ -108,8 +112,62 @@ def update_climate_all(g, wetness=True,
         n.wetness = wetness
         n.temp = temp
         n.rain_intensity = rain_intensity
+        n.rain_duration = rain_duration
         n.relative_humidity = relative_humidity
-        n.wind_speed = wind_speed
+    
+    return g
+
+# Fungus ##########################################################################
+def distribute_dispersal_units(g, nb_dus=1):
+    """ Distribute new dispersal units on g. 
+    
+    Call the method 'initiate' from the protocol with dispersal units.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    nb_dus: int
+        Number of dispersal units to put on g
+        
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy
+    """
+    fungus = powdery_mildew()
+    PowderyMildewDU.fungus = fungus
+    dispersal_units = ([PowderyMildewDU(nb_spores=rd.randint(1,100), status='emitted')
+                        for i in range(nb_dus)])
+
+    inoculator = RandomInoculation()
+    initiate(g, dispersal_units, inoculator)
+    
+    return g
+    
+def distribute_lesions(g, nb_lesions=1):
+    """ Distribute new lesions on g. 
+    
+    Call the method 'initiate' from the protocol with lesions.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    nb_lesions: int
+        Number of lesions to put on g
+        
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy
+    """
+    fungus = powdery_mildew()
+    PowderyMildew.fungus = fungus
+    lesions = [PowderyMildew(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+
+    inoculator = RandomInoculation()
+    initiate(g, lesions, inoculator)
     
     return g
 
@@ -141,51 +199,19 @@ def plot_lesions(g):
     
     scene = plot3d(g)
     Viewer.display(scene)
-
-# Fungus ##########################################################################
-def set_lesions(g, nb_lesions=1., label='LeafElement'):
-    """ Put new lesions on g. 
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    nb_lesions: int
-        number of lesions to put on g
-    label: str
-        Label of the part of the MTG concerned by the calculation
-        
-    Returns
-    -------
-    g: MTG
-        Updated MTG representing the canopy
-    """
-    fungus = powdery_mildew()
-    PowderyMildew.fungus = fungus
-    lesions = [PowderyMildew(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
-    
-    vids = [n for n in g if g.label(n).startswith(label)]
-    for l in lesions:
-        idx = rd.randint(0, len(vids)-1)
-        v = vids[idx]
-        leaf = g.node(v)
-        try:
-            leaf.lesions.append(l)
-        except:
-            leaf.lesions = [l]
-    return g
     
 # Tests ###########################################################################    
 def test_initiate():
     """ Check if 'initiate' from 'protocol.py' deposits dispersal units on the MTG.
     
     """
+    # Generate a wheat MTG
     g = adel_mtg2()
     set_initial_properties_g(g)
-    fungus = powdery_mildew(); PowderyMildewDU.fungus = fungus
-    stock = [PowderyMildewDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(100)]
-    inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    # Generate a stock of powdery mildew dispersal units and distribute it on g
+    nb_dus_in_stock = 100
+    distribute_dispersal_units(g, nb_dus=nb_dus_in_stock)
+    # Display dispersal units
     plot_DU(g)
     return g
     
@@ -193,21 +219,22 @@ def test_infect():
     """ Check if 'infect' from 'protocol.py' leads to infection by dispersal units on the MTG.
 
     """
+    # Generate a wheat MTG
     g = adel_mtg2()
     set_initial_properties_g(g)
-    fungus = powdery_mildew(); PowderyMildewDU.fungus = fungus
-    stock = [PowderyMildewDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(100)]
-    inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
-    
+    # Generate a stock of septoria dispersal units and distribute it on g
+    nb_dus_in_stock = 100
+    distribute_dispersal_units(g, nb_dus=nb_dus_in_stock)
+    # Run a loop of simulation
     dt = 1
     nb_steps = 100
+    # Display dispersal units ...
     plot_DU(g)
     for i in range(nb_steps):
         update_climate_all(g)
         update_leaf_age(g, dt)
         infect(g, dt)
-            
+    # ... then display lesions       
     plot_lesions(g)
     return g
     
@@ -218,8 +245,8 @@ def test_update():
     # Generate a wheat MTG
     g = adel_one_leaf()
     set_initial_properties_g(g)  
-    # Set a lesion on MTG
-    set_lesions(g, nb_lesions=1)
+    # Attach a lesion on g
+    distribute_lesions(g, nb_lesions=1)
     # Call model of growth control
     controler = NoPriorityGrowthControl()
     # Loop of simulation
@@ -270,8 +297,8 @@ def test_growth_control():
     initial_leaf_surface = 5.
     set_initial_properties_g(g, surface_leaf_element=initial_leaf_surface)
     total_initial_surface = sum(g.node(v).surface for v in g if g.label(v).startswith('LeafElement'))
-    # Set lesions on MTG
-    set_lesions(g, nb_lesions=1000)
+    # Distribute lesions on MTG
+    distribute_lesions(g, nb_lesions=1000)
     # Call the model to check if DUs can infect where they are
     position_checker = BiotrophDUProbaModel()
     # Call models of growth control and senescence
@@ -340,8 +367,8 @@ def test_disperse():
     # Generate a wheat MTG
     g = adel_one_leaf()
     set_initial_properties_g(g)
-    # Set lesions on MTG
-    set_lesions(g, nb_lesions=10)
+    # Distribute lesions on MTG
+    distribute_lesions(g, nb_lesions=10)
     # Call a model of growth control and a model of dispersal
     controler = NoPriorityGrowthControl()
     dispersor = RandomDispersal()

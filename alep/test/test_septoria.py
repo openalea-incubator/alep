@@ -75,6 +75,7 @@ def set_senescence(g, position=0., label = 'LeafElement'):
 def update_climate_all(g, wetness=True,
                           temp = 22.,
                           rain_intensity=0.,
+                          rain_duration=0.,
                           relative_humidity=85.,
                           label = 'LeafElement'):
     """ Simulate an environmental program.
@@ -91,6 +92,8 @@ def update_climate_all(g, wetness=True,
         Temperature of the leaf element (degrees celsius)
     rain_intensity : float
         Rain intensity on the leaf element (mm/h)
+    rain_duration: float
+        Rain duration (in hours)
     relative_humidity : float
         Relative humidity on the leaf element (percent)
     label: str
@@ -107,34 +110,44 @@ def update_climate_all(g, wetness=True,
         n.wetness = wetness
         n.temp = temp
         n.rain_intensity = rain_intensity
+        n.rain_duration = rain_duration
         n.relative_humidity = relative_humidity
     
     return g
+    
 # Fungus ##########################################################################
-def set_infection(g):
-    """ Compute infection of DUs on g. 
+def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaWithRings"):
+    """ Distribute new dispersal units on g. 
+    
+    Call the method 'initiate' from the protocol with dispersal units.
     
     Parameters
     ----------
     g: MTG
         MTG representing the canopy
+    nb_dus: int
+        Number of dispersal units to put on g
         
     Returns
     -------
     g: MTG
         Updated MTG representing the canopy
     """
-    position_checker = BiotrophDUProbaModel()
-    nb_steps_inf = 10
-    for i in range(nb_steps_inf):
-        update_climate_all(g)           
-        #grow(g)
-        infect(g, dt=1., position_checker_model=position_checker)
-        
-    return g
+    fungus = septoria(model=model)
+    fungus = septoria(model=model)
+    SeptoriaDU.fungus = fungus
+    dispersal_units = ([SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted')
+                        for i in range(nb_dus)])
 
-def set_lesions(g, nb_lesions=1., model="SeptoriaWithRings", label='LeafElement'):
-    """ Put new lesions on g. 
+    inoculator = RandomInoculation()
+    initiate(g, dispersal_units, inoculator)
+    
+    return g
+    
+def distribute_lesions(g, nb_lesions=1, model="SeptoriaWithRings"):
+    """ Distribute new lesions on g. 
+    
+    Call the method 'initiate' from the protocol with lesions.
     
     Parameters
     ----------
@@ -144,35 +157,27 @@ def set_lesions(g, nb_lesions=1., model="SeptoriaWithRings", label='LeafElement'
         Number of lesions to put on g
     model: str
         Type of model of septoria lesion
-    label: str
-        Label of the part of the MTG concerned by the calculation
         
     Returns
     -------
     g: MTG
         Updated MTG representing the canopy
     """
-    fungus = septoria()
-    if model=="SeptoriaWithRings":
-        SeptoriaWithRings.fungus = fungus
-        lesions = [SeptoriaWithRings(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
-    elif model=="ContinuousSeptoria":
-        ContinuousSeptoria.fungus = fungus
-        lesions = [ContinuousSeptoria(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+    fungus = septoria(model=model)
+    models = ({"SeptoriaExchangingRings":SeptoriaExchangingRings,
+                    "SeptoriaWithRings":SeptoriaWithRings, 
+                    "ContinuousSeptoria":ContinuousSeptoria})
+    if model in models:
+        models[model].fungus = fungus
+        lesions = [models[model](nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+
+    inoculator = RandomInoculation()
+    initiate(g, lesions, inoculator)
     
-    vids = [n for n in g if g.label(n).startswith(label)]
-    for l in lesions:
-        idx = rd.randint(0, len(vids)-1)
-        v = vids[idx]
-        leaf = g.node(v)
-        try:
-            leaf.lesions.append(l)
-        except:
-            leaf.lesions = [l]
     return g
     
 # Tests ###########################################################################
-def test_initiate():
+def test_initiate(model="SeptoriaExchangingRings"):
     """ Check if 'initiate' from 'protocol.py' deposits dispersal units on the MTG.
     
     Generate a wheat MTG and distribute dispersal units randomly on leaf elements.
@@ -188,25 +193,19 @@ def test_initiate():
     """
     # Generate a wheat MTG
     g = adel_one_leaf()
-    set_initial_properties_g(g, surface_leaf_element=5.)
+    set_initial_properties_g(g)
     
-    # Generate a stock of septoria dispersal units
-    fungus = septoria()
-    SeptoriaDU.fungus = fungus
+    # Generate a stock of septoria dispersal units and distribute it on g
     nb_dus_in_stock = 100
-    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(nb_dus_in_stock)]
-    
-    # Call the protocol of initiation with a model distributing the DUs randomly
-    inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
-    
+    distribute_dispersal_units(g, nb_dus=nb_dus_in_stock, model=model)
+
     # Check that all the DUs that were in the stock are now instantiated 
     # on leaf elements :
     dispersal_units = g.property('dispersal_units')
     nb_dus_on_leaves = sum(len(dus) for dus in dispersal_units.itervalues())
     assert nb_dus_on_leaves == nb_dus_in_stock
     
-def test_infect():
+def test_infect(model="SeptoriaExchangingRings"):
     """ Check if 'infect' from 'protocol.py' leads to infection by dispersal units 
         on the MTG.
     
@@ -226,15 +225,9 @@ def test_infect():
     g = adel_one_leaf()
     set_initial_properties_g(g, surface_leaf_element=5.)
     
-    # Generate a stock of septoria dispersal units
-    fungus = septoria()
-    SeptoriaDU.fungus = fungus
+    # Generate a stock of septoria dispersal units and distribute it on g
     nb_dus_in_stock = 100
-    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(nb_dus_in_stock)]
-    
-    # Call the protocol of initiation with a model distributing the DUs randomly
-    inoculator = RandomInoculation()
-    initiate(g, stock, inoculator)
+    distribute_dispersal_units(g, nb_dus=nb_dus_in_stock, model=model)
     
     # Loop of simulation
     dt = 1
@@ -249,7 +242,7 @@ def test_infect():
     nb_lesions_on_leaves = sum(len(l) for l in lesions.itervalues())
     assert nb_lesions_on_leaves == nb_dus_in_stock
     
-def test_update():
+def test_update(model="SeptoriaExchangingRings"):
     """ Check if 'update' from 'protocol.py' provokes the growth of a lesion
         instantiated on the MTG.
     
@@ -257,13 +250,19 @@ def test_update():
     to compute update and growth. Check that all the stages of a lesion of 
     septoria have been reached eventually. Check that the lesion size does
     not exceed Smax.
+    
+    Parameters
+    ----------
+    model: model of lesion
+        Model of lesion among : "ContinuousSeptoria", "SeptoriaExchangingRings", 
+        "SeptoriaWithRings"
+    
     """
     # Generate a wheat MTG
     g = adel_one_leaf()
     set_initial_properties_g(g, surface_leaf_element=5.)
-    # Set lesions on MTG
-    set_lesions(g, nb_lesions=1, model="ContinuousSeptoria")
-    # set_lesions(g, nb_lesions=2, model="SeptoriaWithRings")
+    # Generate a stock of septoria lesions and distribute it on g
+    distribute_lesions(g, nb_lesions=1, model=model)
     # Call models of growth control
     controler = NoPriorityGrowthControl()
     # Loop of simulation
@@ -299,7 +298,7 @@ def test_update():
                 assert round(f.Smin + f.growth_rate * f.degree_days_to_sporulation, 6) <= round(l.surface, 6)
                 assert round(l.surface, 6) <= round(l.fungus.Smax, 6)       
                 
-def test_growth_control():
+def test_growth_control(model="SeptoriaExchangingRings"):
     """ Check if 'control_growth' from 'protocol.py' limits the lesion growth
         up to available surface on the leaf.
     
@@ -312,9 +311,8 @@ def test_growth_control():
     initial_leaf_surface = 5.
     set_initial_properties_g(g, surface_leaf_element=initial_leaf_surface)
     total_initial_surface = sum(g.node(v).surface for v in g if g.label(v).startswith('LeafElement'))
-    # Set lesions on MTG
-    set_lesions(g, nb_lesions=1000, model="ContinuousSeptoria")
-    # set_lesions(g, nb_lesions=2, model="SeptoriaWithRings")
+    # Generate a stock of septoria lesions and distribute it on g
+    distribute_lesions(g, nb_lesions=1000, model=model)
     # Call the model to check if DUs can infect where they are
     position_checker = BiotrophDUProbaModel()
     # Call the model of growth control
@@ -361,7 +359,7 @@ def test_growth_control():
             # Update of 'healthy_surface_before' for next step
             healthy_surface_before[0] = leaf_healthy_surface
             
-def test_disperse():
+def test_disperse(model="SeptoriaExchangingRings"):
     """ Check if 'disperse' from 'protocol.py' disperse new 
         dispersal units on the MTG.
     
@@ -380,9 +378,8 @@ def test_disperse():
     # Generate a wheat MTG
     g = adel_one_leaf()
     set_initial_properties_g(g, surface_leaf_element=5.)
-    # Set lesions on MTG
-    set_lesions(g, nb_lesions=1, model="ContinuousSeptoria")
-    # set_lesions(g, nb_lesions=2, model="SeptoriaWithRings")
+    # Generate a stock of septoria lesions and distribute it on g
+    distribute_lesions(g, nb_lesions=1, model=model)
     # Call a model of growth control and a model of dispersal
     controler = NoPriorityGrowthControl()
     dispersor = RandomDispersal()
@@ -421,9 +418,9 @@ def test_disperse():
                 # Check that new DUs are deposited on the MTG
                 total_DUs_after = sum(len(du) for du in dispersal_units.itervalues())            
                 if total_DUs_after != 0:
-                    assert total_DUs_after > total_DUs_before
+                    assert total_DUs_after >= total_DUs_before
  
-def test_senescence(status='CHLOROTIC'):
+def test_senescence(status='CHLOROTIC', model="SeptoriaExchangingRings"):
     """ Check if 'senescence' from 'protocol.py' compute the effects of 
     senescence on the lesions of the MTG
     
@@ -445,9 +442,8 @@ def test_senescence(status='CHLOROTIC'):
     # Generate a wheat MTG
     g = adel_one_leaf()
     set_initial_properties_g(g, surface_leaf_element=5., position_senescence=10.)
-    # Set lesions on MTG
-    set_lesions(g, nb_lesions=2, model="ContinuousSeptoria")
-    # set_lesions(g, nb_lesions=2, model="SeptoriaWithRings")
+    # Generate a stock of septoria lesions and distribute it on g
+    distribute_lesions(g, nb_lesions=2, model=model)
     lesions = g.property('lesions')
     assert sum(len(l) for l in lesions.itervalues())==2
     # create a flat list of lesions and fix their position
@@ -460,10 +456,18 @@ def test_senescence(status='CHLOROTIC'):
 
     # Test if lesion is CHLOROTIC when senescence occur
     if status == "CHLOROTIC":
-        dt = 300
-        update_climate_all(g, wetness=True, temp=22.) 
-        # Simulation to obtain a lesion
-        update(g, dt = dt, growth_control_model = controler, senescence_model=senescence_model)
+        if model != "SeptoriaExchangingRings":
+            dt = 300
+            update_climate_all(g, wetness=True, temp=22.) 
+            # Simulation to obtain a lesion in chosen status
+            update(g, dt = dt, growth_control_model = controler, senescence_model=senescence_model)
+        else:
+            dt=1
+            nb_steps=300
+            for i in range(0,nb_steps,dt):
+                # Simulation to obtain a lesion in chosen status
+                update_climate_all(g, wetness=True, temp=22.)
+                update(g, dt = dt, growth_control_model = controler, senescence_model=senescence_model)
         
         # 1. Compare lesions before senescence
         # Compute variables of interest
@@ -501,10 +505,18 @@ def test_senescence(status='CHLOROTIC'):
     
     # Test if lesion is SPORULATING when senescence occur
     elif status == "SPORULATING":
-        dt = 400
-        update_climate_all(g, wetness=True, temp=22.) 
-        # Simulation to obtain a lesion
-        update(g, dt = dt, growth_control_model=controler, senescence_model=senescence_model)
+        if model != "SeptoriaExchangingRings":
+            dt = 400
+            update_climate_all(g, wetness=True, temp=22.) 
+            # Simulation to obtain a lesion in chosen status
+            update(g, dt = dt, growth_control_model = controler, senescence_model=senescence_model)
+        else:
+            dt=1
+            nb_steps=400
+            for i in range(0,nb_steps,dt):
+                # Simulation to obtain a lesion in chosen status
+                update_climate_all(g, wetness=True, temp=22.)
+                update(g, dt = dt, growth_control_model = controler, senescence_model=senescence_model)
         
         # 1. Compare lesions before senescence
         # Compute variables of interest
