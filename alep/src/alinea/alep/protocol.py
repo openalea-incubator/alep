@@ -1,6 +1,6 @@
 """ Define the protocol between plant architecture and lesions """
 
-from random import random
+import random
 
 def initiate(g, 
              fungal_objects_stock, 
@@ -49,7 +49,7 @@ def infect(g, dt, position_checker_model=None, label="LeafElement"):
         'dispersal_units' are stored in the MTG as a property
     position_checker_model: model
         Model that disable the DU if it falls on an existing lesion or senescent tissue
-        Requires a method 'check position' (see doc)
+        Requires methods: 'check position' and 'disable' (see doc)
     dt: int
         Time step of the simulation
     label: str
@@ -74,16 +74,19 @@ def infect(g, dt, position_checker_model=None, label="LeafElement"):
       >>> return g
       
     """
+    # Check if its position prevent it from infecting (optional)
+    if position_checker_model:
+        position_checker_model.check_position(g)
+    
     # Find dispersal units on MTG
     dispersal_units = g.property('dispersal_units')
     for vid, du in dispersal_units.iteritems():
         # By leaf element, keep only those which are deposited and active
         du = [d for d in du if d.is_active and d.status=="deposited"]
-        leaf = g.node(vid)
+        leaf = g.node(vid)       
         for d in du:
-            # Check if its position prevent it from infecting (optional)
-            if position_checker_model:
-                position_checker_model.check_position(d, leaf)
+            if not d.can_infect_at_position:
+                d.disable()     
             # If not compute infection success
             if d.is_active:
                 d.infect(dt, leaf)
@@ -102,7 +105,7 @@ def update(g, dt, growth_control_model, senescence_model=None, label="LeafElemen
         'lesions' are stored in the MTG as a property
     dt: int
         Time step of the simulation
-    growth_control_model:
+    growth_control_model: model
         Model with rules of competition between the lesions
     senescence_model:
         Model that find lesions on senescent tissue and provoke their response
@@ -228,19 +231,17 @@ def disperse(g,
 
     return g
 
-def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label="LeafElement"): 
+def wash(g, washing_model, global_rain_intensity, label="LeafElement"): 
     """ Compute spores loss by washing.
     
     Parameters
     ----------
     g: MTG
         MTG representing the canopy (and the soil)
-    washing_model: 
+    washing_model: model
         Model used to wash the DUs out of the leaf
     global_rain_intensity: float
         Rain intensity over the canopy to trigger washing
-    DU_status: str
-        Status of the washed DUs ('emitted' or 'deposited' or 'all')
     label: str
         Label of the part of the MTG concerned by the calculation
     
@@ -261,10 +262,11 @@ def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label
       >>> for i in range(nb_steps):
       >>>     update_climate(g)
       >>>     if global_rain_intensity > 0.:
-      >>>       wash(g, washor, global_rain_intensity, DU_status="all")
+      >>>       wash(g, washor, global_rain_intensity)
       >>> return g
     """
-    washing_model.compute_washing_rate(g, global_rain_intensity) # compute washing rate on each leaf
+    # compute washing rate on each leaf
+    washing_model.compute_washing_rate(g, global_rain_intensity)
     
     dispersal_units = g.property('dispersal_units')
     # TODO : sort DU with chosen status before the loop.
@@ -272,20 +274,13 @@ def wash(g, washing_model, global_rain_intensity, DU_status = "deposited", label
         if g.label(vid).startswith(label):
             leaf = g.node(vid)
             if du: # Sometimes, the list is created but is empty
-                for dispersal_unit in du:
-                    if DU_status.startswith("all"):
-                        # disable the DU according to the washing_rate on the leaf
-                        if random() < leaf.washing_rate:
-                            dispersal_unit.disable()  
-                        # Other solution : Requires to implement such a method in every washing model
-                        # washing_model.wash(dispersal_unit, leaf.washing_rate)
-                    else: 
-                        if dispersal_unit.status.startswith(DU_status):
-                            if random() < leaf.washing_rate:
-                                dispersal_unit.disable()
-    
-    # TODO : Raise error if DU_status does not exist.
-    
+                nb_dus = len(du)
+                nb_washed = int(round(leaf.washing_rate*nb_dus))
+                for dispersal_unit in random.sample(du, nb_washed):
+                    # disable the DUs according to washing_rate on the leaf
+                    dispersal_unit.disable()
+                       
+        dispersal_units[vid] = [d for d in du if d.is_active]
     return g
 
 def control_growth(g, control_model, label="LeafElement"):

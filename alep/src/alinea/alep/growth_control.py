@@ -59,3 +59,6 @@ class NoPriorityGrowthControl:
                 for lf in leaf:
                     gd = sum(l.growth_demand for l in lesions.get(lf,[]) if l.growth_is_active)
                     healthy_surfaces[lf] -= gd
+                    # /!\ WARNING /!\
+                    # This method leads to local healthy surfaces < 0 for leaf elements.
+                    # But the global healthy surface on the entire leaf stays >= 0.

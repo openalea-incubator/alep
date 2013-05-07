@@ -32,6 +32,7 @@ class DispersalUnit(object):
         self.position = position
         self.status = status
         self.is_active = True
+        self.can_infect_at_position = True
     
     def disable(self):
         """ disable a dispersal unit.
@@ -54,7 +55,12 @@ class DispersalUnit(object):
             Position of the DU.
         """
         self.position = position
-        
+    
+    def can_not_infect_at_position(self):
+        """ Turn the property 'can_infect_at_position' to False.
+        """
+        self.can_infect_at_position = False
+    
     def create_lesion(self, leaf=None):
         """ Create a new lesion of fungus and disable dispersal unit.
         

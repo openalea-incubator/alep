@@ -3,7 +3,7 @@
 """
 # Imports #########################################################################
 from alinea.alep.fungal_objects import *
-from alinea.alep import septoria_continuous, septoria_with_rings, septoria_exchanging_rings
+# from alinea.alep import septoria_continuous, septoria_with_rings, septoria_exchanging_rings
 from alinea.alep.septoria_continuous import *
 from alinea.alep.septoria_with_rings import *
 from alinea.alep.septoria_exchanging_rings import *
@@ -60,7 +60,6 @@ class SeptoriaDU(DispersalUnit):
             senescence = leaf.position_senescence
         except:
             senescence = None
-        
         if healthy_surface > 0. :
             # TODO : Right way to do this ?
             if self.nb_spores == 0.:
@@ -84,7 +83,6 @@ class SeptoriaDU(DispersalUnit):
                     else:
                         assert not leaf_wet
                         assert self.cumul_wetness == 0.
-                    
                     if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :
                         # TODO : create a function of the number of spores            
                         spores_factor = self.nb_spores / self.nb_spores # always equals 1 for now

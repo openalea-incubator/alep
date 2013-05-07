@@ -7,16 +7,15 @@ import numpy as np
 import pandas
 from pylab import *
 import matplotlib.pyplot as plt
+import string
 
 from alinea.alep.wheat_examples import adel_mtg, adel_mtg2, adel_mtg3, adel_one_leaf
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 
-from alinea.caribu.CaribuScene import CaribuScene
-import alinea.caribu.sky_tools.turtle as turtle
-
 from alinea.alep.protocol import *
 from alinea.alep.septoria import *
+from alinea.alep.microclimate_leaf import *
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.du_position_checker import BiotrophDUProbaModel
 from alinea.alep.growth_control import NoPriorityGrowthControl
@@ -174,19 +173,33 @@ def update_on_leaves(data, date, g, label = 'LeafElement'):
     """ Read weather data for a step of simulation and apply it to each leaf.
     
     """
-    # Use CaribuMicroclimModel for rain
-    # scene = plot3d(g)
-    # rain = data.Pluie[date]
-    # microclim_model = CaribuMicroclimModel(energy=data.PAR[date])
-    # microclimate = {}
-    # microclim = microclim_model.microclim(microclimate, rain, scene)
+    # # # Use CaribuMicroclimModel
+    # # mean_globalclimate = {'PAR':data.PAR[date],
+                          # # 'Pluie':data.Pluie[date],
+                          # # 'Tair':data.Tair[date],
+                          # # 'HR':data.HR[date],
+                          # # 'Vent':data.Vent[date]}
+                          
+    # # microclim_model = CaribuMicroclimModel()
+    # # microclimate = microclim_model.microclim(mean_globalclimate, scene=plot3d(g))
     
+    # # # Distribution on leaf elements
+    # # for vid, variables in microclimate.iteritems():
+        # # leaf = g.node(vid)
+        # # leaf.PAR = variables['PAR']
+        # # leaf.rain_intensity = variables['rain']
+        # # leaf.rain_duration = data.rain_duration[date]
+        # # leaf.temp = variables['Tleaf']
+        # # leaf.relative_humidity = variables['humidity']
+        # # leaf.wetness = compute_wetness(relative_humidity=variables['humidity'],
+                                       # # PAR=variables['PAR'])
+        
     # Equals weather data on the entire plant for the rest
     vids = [n for n in g if g.label(n).startswith(label)]
     for v in vids : 
         n = g.node(v)
         n.temp = data.Tair[date]
-        # n.rain_intensity = microclim[v]['rain'] * rain
+        n.PAR = data.PAR[date]
         n.rain_intensity = data.Pluie[date]
         n.rain_duration = data.rain_duration[date]
         n.relative_humidity = data.HR[date]
@@ -271,37 +284,22 @@ def update_climate_all(g, wetness=True,
         n.relative_humidity = relative_humidity
     
     return g
-    
-class CaribuMicroclimModel(object):
-    """ Adaptor for Caribu model compliying echap microclimate_model protocol 
-    """
-    def __init__(self, sectors='46', energy=1):
-        self.sectors = sectors
-        self.energy = energy
-    def microclim(self, microclimate, rain, scene):
-        local_meteo = microclimate_leaf(self.sectors, self.energy, microclimate, rain, scene)
-        return local_meteo
 
-def microclimate_leaf(sectors, energy, microclimate, rain, scene):
-    energy, emission, direction, elevation, azimuth = turtle.turtle(sectors, energy) 
-    sources = zip(energy, direction)
-    c_scene = CaribuScene()    
-    idmap = c_scene.add_Shapes(scene)    
-    c_scene.addSources(sources)
-    output = c_scene.runCaribu(infinity=False)
-    if rain >0:
-        rain_leaf = c_scene.output_by_id(output, idmap)['Einc']
-    EiInf = c_scene.output_by_id(output, idmap)['EiInf']
-    EiSup = c_scene.output_by_id(output, idmap)['EiSup']
-    for Infid, e in EiInf.iteritems():
-        for Supid, a in EiSup.iteritems():
-            if Infid == Supid:
-                if rain == 0:
-                    microclimate[Infid] = {'radiation': e + a, 'rain': 0} 
-                else:
-                    microclimate[Infid] = {'radiation': e + a, 'rain': rain_leaf[Infid]} 
-    return microclimate
-        
+def compute_hourly_delta_ddays(temp=0., basis_for_dday=-2):
+    """ Compute delta degree days in the hour.
+    
+    Parameters
+    ----------
+    dt: int
+        Time step of the simulation (in hours)
+    temp: float
+        Temperature from weather data
+    basis_for_dday: float
+        Basis temperature for degree days calculation
+    """
+   
+    return max(0,(temp - basis_for_dday)/24.)
+    
 # Fungus ##########################################################################
 def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaExchangingRings"):
     """ Distribute new dispersal units on g. 
@@ -320,7 +318,6 @@ def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaExchangingRings"):
     g: MTG
         Updated MTG representing the canopy
     """
-    fungus = septoria(model=model)
     fungus = septoria(model=model)
     SeptoriaDU.fungus = fungus
     dispersal_units = ([SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted')
@@ -362,8 +359,66 @@ def distribute_lesions(g, nb_lesions=1, model="SeptoriaExchangingRings"):
     initiate(g, lesions, inoculator)
     
     return g
+
+def execute_one_step(g, weather_data, start_date, date, dt,
+                    position_checker=BiotrophDUProbaModel(),
+                    controler=NoPriorityGrowthControl(),
+                    dispersor=RandomDispersal(), 
+                    washor=RapillyWashing()):
+    """ Execute one time step of complete simulation for septoria.
     
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    weather_data: pandas DataFrame
+        Data frame of meteorological data (see 'read weather')
+    start_date: format datetime
+        Start date of the simulation
+    date: format datetime
+        Date of the simulation
+    dt: int
+        Time step of the simulation (in hours)
+    position_checker: model
+        Model that disable the DU if it falls on an existing lesion or senescent tissue
+        Requires a method 'check position' (see doc)
+    controler: model
+        Model with rules of competition between the lesions
+    dispersor: model
+        Model used to position each DU in stock on g
+    washor: model
+        Model used to wash the DUs out of the leaf
+       
+    Returns
+    -------
+        Number of dus on the MTG
+    """
+    # Update climate on leaf elements : 
+    update_on_leaves(weather_data, date, g)     
+    
+    # Run a disease cycle
+    # grow(g)
+    infect(g, dt, position_checker)
+    if weather_data.update_events[date]:
+        update_temp_list_on_g(g, weather_data, start_date, date)
+        update(g, dt, growth_control_model=controler)
+           
+    global_rain_intensity = weather_data.Pluie[date]
+    if global_rain_intensity != 0. :
+        scene = plot3d(g)
+        seed(1)
+        disperse(g, scene, dispersor, "Septoria")
+        seed(1)
+        wash(g, washor, global_rain_intensity)
+    
+    return g
+
 # Measure variables ###############################################################
+def int2str(integer):
+    """ Convert an integer to a string.
+    """
+    return "%d" % integer
+
 def compute_total_severity(g):
     """ Compute disease severity on the whole plant.
     
@@ -423,42 +478,6 @@ def compute_total_necrosis(g):
     
     return necrosis_percentage
 
-def compute_states_one_leaf(g, blade_id=None):
-    """ Compute surface of lesions in chosen state on a blade of the MTG.
-    
-    """
-    # Find leaf elements on the blade
-    surfaces = g.property('surface')
-    labels = g.property('label')
-    leaf_elements = [id for id in g.components(blade_id) if labels[id].startswith('LeafElement')]
-    
-    # Compute green surface on the blade
-    green_surface = sum(surfaces[id] for id in leaf_elements)
-    
-    # Compute disease surface
-    lesions = g.property('lesions')
-    lesions = [l for l in lesions[id] for id in leaf_elements]
-    if lesions:
-        for l in lesions:
-            l.compute_all_surfaces()
-        
-        surface_inc = sum(l.surface_inc for l in lesions)
-        surface_chlo = sum(l.surface_chlo for l in lesions)
-        surface_nec = sum(l.surface_inc for l in lesions)
-        surface_spo = sum(l.surface_inc for l in lesions)
-    else:
-        surface_inc = 0.
-        surface_chlo = 0.
-        surface_nec = 0.
-        surface_spo = 0.
-
-    ratio_inc = surface_inc / green_surface if green_surface>0. else 0.
-    ratio_chlo = surface_chlo / green_surface if green_surface>0. else 0.
-    ratio_nec = surface_nec / green_surface if green_surface>0. else 0.
-    ratio_spo = surface_spo / green_surface if green_surface>0. else 0.
-    
-    return ratio_inc, ratio_chlo, ratio_nec, ratio_spo
-
 class LeafInspector:
     def __init__(self, g, leaf_number=1):
         """ Find the ids of the leaf elements on the chosen blade of the main stem.
@@ -485,6 +504,10 @@ class LeafInspector:
         self.ratio_chlo = []
         self.ratio_nec = []
         self.ratio_spo = []
+        # Initialize total severity
+        self.severity = []
+        # Initialize necrosis percentage
+        self.necrosis_percentage = []
     
     def compute_states(self, g):
         """ Compute surface of lesions in chosen state on a blade of the MTG.
@@ -497,8 +520,8 @@ class LeafInspector:
         surfaces = g.property('surface')
         leaf_elements = self.leaf_elements
         
-        # Compute green surface on the blade
-        green_surface = sum(surfaces[id] for id in leaf_elements)
+        # Compute total surface on the blade
+        total_surface = sum(surfaces[id] for id in leaf_elements)
         
         # Compute disease surface
         lesions = g.property('lesions')
@@ -521,32 +544,101 @@ class LeafInspector:
             surface_nec = 0.
             surface_spo = 0.
 
-        self.ratio_inc.append(surface_inc / green_surface if green_surface>0. else 0.)
-        self.ratio_chlo.append(surface_chlo / green_surface if green_surface>0. else 0.)
-        self.ratio_nec.append(surface_nec / green_surface if green_surface>0. else 0.)
-        self.ratio_spo.append(surface_spo / green_surface if green_surface>0. else 0.)
+        self.ratio_inc.append(100 * surface_inc / total_surface if total_surface>0. else 0.)
+        self.ratio_chlo.append(100 * surface_chlo / total_surface if total_surface>0. else 0.)
+        self.ratio_nec.append(100 * surface_nec / total_surface if total_surface>0. else 0.)
+        self.ratio_spo.append(100 * surface_spo / total_surface if total_surface>0. else 0.)
     
-def count_DU(g, status='deposited'):
+    def compute_severity(self, g):
+        """ Compute severity on a blade of the MTG.
+        
+        Parameters
+        ----------
+        g: MTG
+            MTG representing the canopy    
+        """
+        surfaces = g.property('surface')
+        leaf_elements = self.leaf_elements
+        
+        # Compute green surface on the blade
+        total_surface = sum(surfaces[id] for id in leaf_elements)
+        # Compute disease surface
+        lesions = g.property('lesions')
+        disease_surface = sum([l.surface for id in leaf_elements for l in lesions[id]])
+
+        self.severity.append(100 * disease_surface / total_surface if total_surface>0. else 0.)
+    
+    def count_DU(self, g):
+        """ count DU of the leaf.
+   
+        Parameters
+        ----------
+        g: MTG
+            MTG representing the canopy
+           
+        Returns
+        -------
+            Number of dus on the leaf
+        """
+        dispersal_units = g.property('dispersal_units')
+        leaf_elements = self.leaf_elements
+        return sum(1 for id in leaf_elements for d in dispersal_units[id] if d.is_active)
+        
+    def count_DU_on_green(self, g, nb_unwashed):
+        """ Count DU of the leaf that are on green tissue.
+        
+        Same calculation as in BiotrophProbaModel. 
+        Might not be the actual number of DUs on green tissue.
+        
+        Parameters
+        ----------
+        g: MTG
+            MTG representing the canopy
+        nb_unwashed: int
+            Number of DUs staying after washing
+           
+        Returns
+        -------
+            Number of dus on green tissue on the leaf
+        """
+        leaf_elements = self.leaf_elements
+        healthy = self.compute_healthy_surface(g)
+        surface = sum(g.node(vid).surface for vid in leaf_elements)
+        ratio = healthy / surface if (surface>0. and healthy>0.) else 0.
+        
+        return round(ratio * nb_unwashed)
+    
+    def compute_healthy_surface(self, g):
+        """ Compute healthy surface on the leaf.
+        
+        Parameters
+        ----------
+        g: MTG
+            MTG representing the canopy
+           
+        Returns
+        -------
+            Leaf healthy surface
+        """
+        leaf_elements = self.leaf_elements
+        return sum(g.node(vid).healthy_surface for vid in leaf_elements)
+    
+def count_DU(g):
     """ count DU of the mtg.
     
     Parameters
     ----------
     g: MTG
         MTG representing the canopy
-    status: str
-        Status of the dus to count ('deposited', 'emitted' or 'all')
-        
+       
     Returns
     -------
         Number of dus on the MTG
     
     """
     dispersal_units = g.property('dispersal_units')
-    if status=='all':
-        return sum(len(du) for du in dispersal_units.itervalues())
-    else:
-        return len([d for du_list in dispersal_units.itervalues() for d in du_list if d.status==status])
-        
+    return sum(len(du) for du in dispersal_units.itervalues())
+  
 def count_lesions(g):
     """ count lesions of the mtg.
     
@@ -617,7 +709,7 @@ def test_all(model="SeptoriaExchangingRings"):
         # Measure severity
         severity[i]=compute_total_severity(g)
         
-        nb_DUs[i] = count_DU(g, 'deposited')
+        nb_DUs[i] = count_DU(g)
         nb_lesions[i] = count_lesions(g)
     
     # Display results
@@ -692,7 +784,8 @@ def compare_time_steps(model="ContinuousSeptoria"):
     """
     """
     start_date = datetime(2000, 10, 1)
-    end_date=datetime(2000, 11, 30)
+    # end_date=datetime(2000, 11, 30)
+    end_date=datetime(2001, 07, 31)
     nb_lesions = 1
     # Run the simulation with each model
     severity1, nb_DUs1, nb_lesions1 = simulate_severity(start_date, end_date, nb_lesions,
@@ -707,19 +800,22 @@ def compare_time_steps(model="ContinuousSeptoria"):
     
     fig = plt.figure()
     
-    ax1 = fig.add_subplot(3,1,1)
+    ax1 = fig.add_subplot(4,1,1)
     plot(pandas.date_range(start_date, end_date, freq='H'), severity1, color='b')
     plot(pandas.date_range(start_date, end_date, freq='H'), severity2, color='r')
     ylim([0, 105])
     ylabel('Total disease severity')
     
-    ax2 = fig.add_subplot(3,1,2)
+    ax2 = fig.add_subplot(4,1,2)
     plt.bar(range(nb_steps), nb_DUs1, color='b')
+    ylabel('Number of DUs')
+    xlim([0, nb_steps])
+    ax3 = fig.add_subplot(4,1,3)
     plt.bar(range(nb_steps), nb_DUs2, color='r')
     ylabel('Number of DUs')
     xlim([0, nb_steps])
 
-    ax3 = fig.add_subplot(3,1,3)
+    ax4 = fig.add_subplot(4,1,4)
     plot(range(nb_steps), nb_lesions1, color='b')
     plot(range(nb_steps), nb_lesions2, color='r')
     ylabel('Number of lesions')
@@ -753,51 +849,27 @@ def simulate_severity(start_date=datetime(2000, 10, 1),
     # g = adel_mtg2()
     set_initial_properties_g(g)
     
-    # Generate a stock of septoria dispersal units and distribute it on g
+    # Generate a stock of septoria lesions and distribute them on g
     nb_lesions_in_stock = nb_lesions
-    # distribute_dispersal_units(g, nb_dus=nb_dus_in_stock, model=model)
+    # distribute_dispersal_units(g, nb_dus=nb_lesions_in_stock, model=model)
     distribute_lesions(g, nb_lesions=nb_lesions_in_stock, model=model)
-    
-    # Call the models that will be used during the simulation :
-    controler = NoPriorityGrowthControl()
-    washor = RapillyWashing()
-    dispersor = RandomDispersal()
 
     # Prepare the simulation loop
     dt = 1
-    # start_date = datetime(2000, 10, 1)
-    # end_date = datetime(2001, 7, 31)
-    # end_date = datetime(2000, 11, 30)
     severity = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     nb_DUs = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     nb_lesions = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     for date in pandas.date_range(start_date, end_date, freq='H'):
-        # print(date)
-        try:
-            ind+=1.
-        except:
-            ind = 0.
-        # Update climate on leaf elements : 
-        update_on_leaves(weather_data, date, g)     
+        print(date)
+        try: ind+=1.
+        except: ind = 0.
+
+        g = execute_one_step(g, weather_data, start_date, date, dt)
         
-        # Run a disease cycle
-        #grow(g)
-        infect(g, dt)
-        if weather_data.update_events[date]:
-            update_temp_list_on_g(g, weather_data, start_date, date)
-            update(g, dt, growth_control_model=controler)
-        # control_growth(g, controler)
-               
-        global_rain_intensity = weather_data.Pluie[date]
-        if global_rain_intensity != 0. :
-            scene = plot3d(g)
-            disperse(g, scene, dispersor, "Septoria") 
-            wash(g, washor, global_rain_intensity)
-    
         # Measure severity
         severity[ind]=compute_total_severity(g)
         
-        nb_DUs[ind] = count_DU(g, 'deposited')
+        nb_DUs[ind] = count_DU(g)
         nb_lesions[ind] = count_lesions(g)
     
     # Display results:
@@ -826,7 +898,196 @@ def simulate_severity(start_date=datetime(2000, 10, 1),
     # plt.show()
     
     return severity, nb_DUs, nb_lesions
- 
+
+def imitate_septo3D(start_date=datetime(2000, 10, 1),
+                      end_date=datetime(2000, 11, 30),
+                      nb_lesions = 100,
+                      model="SeptoriaExchangingRings",
+                      update_events = "step_by_step"):
+    """ Run a simulation with the model of continuous lesions of septoria.
+    
+    Lesions are updated only on dispersal events. Weather data is managed
+    by an adapter that pass it to the fungal model in the good format.
+
+    Parameters
+    ----------
+        None
+    """
+    # Read weather data : 
+    filename = 'meteo01.txt'
+    weather_data = read_weather(filename, update_events)
+    
+    # Generate a MTG with required properties :
+    g = adel_one_leaf()
+    # g = adel_mtg2()
+    set_initial_properties_g(g, surface_leaf_element=10.)
+    
+    # Generate a stock of septoria lesions and distribute them on g
+    nb_lesions_in_stock = nb_lesions
+    distribute_lesions(g, nb_lesions=nb_lesions_in_stock, model=model)
+    
+    # Call the models that will be used during the simulation :
+    position_checker=BiotrophDUProbaModel()
+    controler = NoPriorityGrowthControl()
+    washor = RapillyWashing()
+    dispersor = RandomDispersal()
+    leaf_inspector1 = LeafInspector(g, leaf_number=1)
+    # leaf_inspector2 = LeafInspector(g, leaf_number=2)
+    # leaf_inspector3 = LeafInspector(g, leaf_number=3)
+    # leaf_inspector4 = LeafInspector(g, leaf_number=4)
+
+    # Prepare the simulation loop
+    dt = 1
+    degree_days = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    healthy_surface = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    total_DUs = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    unwashed_DUs = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    on_green_DUs = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+    incubating_DUs = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
+       
+    for date in pandas.date_range(start_date, end_date, freq='H'):
+        print(date)
+        try: 
+            ind+=1.
+            # Estimate delta degree days
+            degree_days[ind] = degree_days[ind-1] + compute_hourly_delta_ddays(temp=weather_data.Tair[date])
+        except: 
+            ind = 0.
+            # Estimate delta degree days
+            degree_days[ind] = compute_hourly_delta_ddays(temp=weather_data.Tair[date])
+        
+        # Update climate on leaf elements
+        update_on_leaves(weather_data, date, g)     
+        
+        # Run a disease cycle
+        infect(g, dt, position_checker)
+        if weather_data.update_events[date]:
+            update_temp_list_on_g(g, weather_data, start_date, date)
+            update(g, dt, growth_control_model=controler)
+
+        # Healthy surface
+        healthy_surface[ind] = leaf_inspector1.compute_healthy_surface(g)
+        
+        # Surfaces in state
+        leaf_inspector1.compute_states(g)
+        # leaf_inspector2.compute_states(g)
+        # leaf_inspector3.compute_states(g)
+        # leaf_inspector4.compute_states(g)
+
+        global_rain_intensity = weather_data.Pluie[date]
+        if global_rain_intensity != 0. :
+            initial_DUs = leaf_inspector1.count_DU(g)
+            scene = plot3d(g)
+            seed(1)
+            disperse(g, scene, dispersor, "Septoria")
+            seed(1)
+            total_DUs[ind] = leaf_inspector1.count_DU(g) - initial_DUs
+            wash(g, washor, global_rain_intensity)
+            unwashed_DUs[ind] = leaf_inspector1.count_DU(g) - initial_DUs
+            on_green_DUs[ind] = leaf_inspector1.count_DU_on_green(g, unwashed_DUs[ind])
+            # print('pluie')
+
+    # raise Exception('')
+    
+    # Draw the outputs:
+    # 1. Build the frame
+    fig = plt.figure()
+    nb_graphs = 10
+    length = 5
+    width = nb_graphs/length
+    all_letters = string.ascii_uppercase
+    for i in range(nb_graphs):
+        graph_handle = 'ax'+int2str(i+1)
+        # if i < 4:
+            # globals()[graph_handle] = fig.add_subplot(length,width,i+1,
+                                                      # xticklabels=[], yscale='log')
+        # elif i < 8:
+        if i < 8:
+            globals()[graph_handle] = fig.add_subplot(length,width,i+1, xticklabels=[])
+        else:
+            globals()[graph_handle] = fig.add_subplot(length,width,i+1)
+        graph_letter = all_letters[i]
+        globals()[graph_letter] = plt.text(0.05, 0.9, graph_letter, 
+                                        fontsize=18, ha='center',
+                                        va='center', transform=globals()[graph_handle].transAxes)
+
+    # Titles
+    droplets = plt.text(-0.275, 2.1, 'Number of Infectious Droplets', 
+                        fontsize=18, rotation='vertical', transform=ax3.transAxes)
+    leaf_area = plt.text(-0.275, 1.4, 'Leaf Area', 
+                        fontsize=18, rotation='vertical', transform=ax7.transAxes)
+    coverage = plt.text(-0.275, 0.75, '% Recovered', 
+                        fontsize=18, rotation='vertical', transform=ax9.transAxes)
+        
+    # Display results:
+    nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
+    
+    # ax1.bar(pandas.date_range(start_date, end_date, freq='H'), total_DUs,  color='b')
+    # ax1.set_yscale('log')
+    ax1.bar(degree_days, total_DUs,  color='b')
+    # ax1.plot(pandas.date_range(start_date, end_date, freq='H'), washing_rate)   
+    # ax1.plot(degree_days, washing_rate)   
+    ax1.set_ylabel('Total intercepted')
+    ax1.set_xlim([0, max(degree_days)])
+    ax1.set_ylim([0, max(total_DUs)+20])
+    
+    ax2.bar(degree_days, unwashed_DUs,  color='b')
+    ax2.set_xlim([0, max(degree_days)])
+    ax2.set_ylim([0, max(total_DUs)+20])
+    ax2.set_ylabel('Total unwashed')
+    
+    ax3.bar(degree_days, on_green_DUs,  color='b')
+    ax3.set_xlim([0, max(degree_days)])
+    ax3.set_ylim([0, max(total_DUs)+20])
+    ax3.set_ylabel('Total on Green')
+    
+    ax33 = ax3.twinx()
+    ax33.plot(degree_days, healthy_surface,  color='b', linestyle='--')
+    ax33.set_xticklabels([])
+    ax33.set_xlim([0, max(degree_days)])
+    
+    ax5.plot(degree_days, leaf_inspector1.ratio_inc, color='b')
+    ax5.set_ylim([0, 105])
+    ax5.set_xlim([0, max(degree_days)])
+    
+    ax6.plot(degree_days, leaf_inspector1.ratio_chlo, color='b')
+    ax6.set_ylim([0, 105])
+    ax6.set_xlim([0, max(degree_days)])
+    
+    ax7.plot(degree_days, leaf_inspector1.ratio_nec, color='b')
+    ax7.set_ylim([0, 105])
+    ax7.set_xlim([0, max(degree_days)])
+    
+    ax8.plot(degree_days, leaf_inspector1.ratio_spo, color='b')
+    ax8.set_ylim([0, 105])
+    ax8.set_xlim([0, max(degree_days)])
+    
+    # raise Exception('')
+    
+    # ax2 = fig.add_subplot(3,1,2)
+    # plot(pandas.date_range(start_date, end_date, freq='H'), weather_data.Pluie[start_date:end_date])
+    # ylabel('Rain intensity')
+    
+    # ax3 = fig.add_subplot(3,1,3)
+    # plot(pandas.date_range(start_date, end_date, freq='H'), weather_data.rain_duration[start_date:end_date])
+    # ylabel('Rain duration')
+    
+    # ax2 = fig.add_subplot(1,2,2)
+    # plt.bar(pandas.date_range(start_date, end_date, freq='H'), unwashed_DUs, color='b')
+    # ylabel('Total unwashed')
+    # ax2.set_yscale('log')
+    # xlim([0, nb_steps])
+
+    # ax3 = fig.add_subplot(3,1,3)
+    # plot(range(nb_steps), nb_lesions, color='r')
+    # ylabel('Number of lesions')
+    # xlim([0, nb_steps])
+    # xlabel('Simulation time step')
+    
+    # fig.subplots_adjust(hspace=1)
+    
+    plt.show(False)
+
 def simulate_necrosis():
     """ Run a simulation with the model of continuous lesions of septoria.
     
@@ -846,9 +1107,9 @@ def simulate_necrosis():
     g = adel_mtg2()
     set_initial_properties_g(g)
     
-    # Generate a stock of septoria dispersal units and distribute it on g
-    nb_dus_in_stock = 100
-    distribute_dispersal_units(g, nb_dus=nb_dus_in_stock)
+    # Generate a stock of septoria lesions and distribute them on g
+    nb_lesions_in_stock = 100
+    distribute_lesions(g, nb_lesions=nb_lesions_in_stock, model=model)
     
     # Call the models that will be used during the simulation :
     controler = NoPriorityGrowthControl()
@@ -933,9 +1194,9 @@ def simulate_states_one_leaf(model="SeptoriaExchangingRings"):
     g = adel_one_leaf()
     set_initial_properties_g(g)
     
-    # Generate a stock of septoria dispersal units and distribute it on g
-    nb_dus_in_stock = 10
-    distribute_dispersal_units(g, nb_dus=nb_dus_in_stock, model=model)
+    # Generate a stock of septoria lesions and distribute them on g
+    nb_lesions_in_stock = 10
+    distribute_lesions(g, nb_lesions=nb_lesions_in_stock, model=model)
     
     # Call the models that will be used during the simulation :
     position_checker = BiotrophDUProbaModel()
@@ -961,12 +1222,12 @@ def simulate_states_one_leaf(model="SeptoriaExchangingRings"):
         
         # Run a disease cycle
         #grow(g)
-        infect(g, dt, position_checker)
+        infect(g, dt) # , position_checker)
         if weather_data.update_events[date]:
             # print(date)
             update_temp_list_on_g(g, weather_data, start_date, date)
             update(g, dt, growth_control_model=controler)
-               
+                
         global_rain_intensity = weather_data.Pluie[date]
         if global_rain_intensity != 0. :
             scene = plot3d(g)
@@ -974,7 +1235,8 @@ def simulate_states_one_leaf(model="SeptoriaExchangingRings"):
             wash(g, washor, global_rain_intensity)
     
         # Save variables
-        outputs.compute_states(g)
+        outputs.compute_severity(g)
+        # outputs.compute_states(g)
 
     # Display results:
     nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
@@ -984,24 +1246,25 @@ def simulate_states_one_leaf(model="SeptoriaExchangingRings"):
     # fig = plt.figure()
     
     # ax1 = fig.add_subplot(4,1,1)
-    plot(pandas.date_range(start_date, end_date, freq='H'), outputs.ratio_inc)
+    plot(pandas.date_range(start_date, end_date, freq='H'), outputs.severity)
+    # plot(pandas.date_range(start_date, end_date, freq='H'), outputs.ratio_inc)
     # ylim([0, y_max])
     # ylabel('Incubating surface')
     
     # ax2 = fig.add_subplot(4,1,2)
-    plot(pandas.date_range(start_date, end_date, freq='H'), outputs.ratio_chlo, color='g')
+    # plot(pandas.date_range(start_date, end_date, freq='H'), outputs.ratio_chlo, color='g')
     # ylabel('Chlorotic surface')
     # ylim([0, y_max])
     # xlim([0, nb_steps])
 
     # ax3 = fig.add_subplot(4,1,3)
-    plot(pandas.date_range(start_date, end_date, freq='H'), outputs.ratio_nec, color='r')
+    # plot(pandas.date_range(start_date, end_date, freq='H'), outputs.ratio_nec, color='r')
     # ylabel('Necrotic surface')
     # ylim([0, y_max])
     # xlim([0, nb_steps])
 
     # ax4 = fig.add_subplot(4,1,4)
-    plot(pandas.date_range(start_date, end_date, freq='H'), outputs.ratio_spo, color='k')
+    # plot(pandas.date_range(start_date, end_date, freq='H'), outputs.ratio_spo, color='k')
     # plot(pandas.date_range(start_date, end_date, freq='H'), created_surface, color='b', linestyle='--')
     # plot(pandas.date_range(start_date, end_date, freq='H'), sum_surface, color='k', linestyle='--')
     # ylabel('Sporulating surface')
@@ -1010,73 +1273,6 @@ def simulate_states_one_leaf(model="SeptoriaExchangingRings"):
     # xlabel('Simulation time step')
     
     # fig.subplots_adjust(hspace=1)
-    
-    plt.show()
-    
-    return g
-    
-def fake_simulate_states_one_leaf(model="SeptoriaExchangingRings"):
-    """ Run a simulation with the model of continuous lesions of septoria.
-    
-    Lesions are updated only on dispersal events. Weather data is managed
-    by an adapter that pass it to the fungal model in the good format.
-
-    Parameters
-    ----------
-        None
-    """
-    # Read weather data : 
-    filename = 'meteo01.txt'
-    weather_data = read_weather(filename, "step_by_step")
-    
-    # Generate a MTG with required properties :
-    g = adel_one_leaf()
-    set_initial_properties_g(g)
-    
-    # Generate a stock of septoria dispersal units and distribute it on g
-    nb_dus_in_stock = 1
-    distribute_dispersal_units(g, nb_dus=nb_dus_in_stock, model=model)
-    
-    # Call the models that will be used during the simulation :
-    controler = NoPriorityGrowthControl()
-    washor = RapillyWashing()
-    dispersor = RandomDispersal()
-
-    # Prepare the simulation loop
-    dt = 1
-    start_date = datetime(2000, 10, 1)
-    end_date = datetime(2000, 11, 30)
-    incubating = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
-    chlorotic = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
-    necrotic = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
-    sporulating = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
-    for date in pandas.date_range(start_date, end_date, freq='H'):
-        print(date)
-        try:
-            ind+=1.
-        except:
-            ind = 0.
-        # Update climate on leaf elements : 
-        update_climate_all(g, wetness=True, temp=22.)  
-        
-        # Run a disease cycle
-        infect(g, dt)
-        update(g, dt, growth_control_model=controler)
-                   
-        # Measure severity
-        incubating[ind] = compute_state_one_leaf(g, status="INCUBATING")
-        chlorotic[ind] = compute_state_one_leaf(g, status="CHLOROTIC")
-        necrotic[ind] = compute_state_one_leaf(g, status="NECROTIC")
-        sporulating[ind]= compute_state_one_leaf(g, status="SPORULATING")
-    
-    # Display results:
-    nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
-    
-    plot(range(nb_steps), incubating)
-    plot(range(nb_steps), chlorotic, color='g')
-    plot(range(nb_steps), necrotic, color='r')
-    plot(range(nb_steps), sporulating, color='k')
-    # xlim([0, nb_steps])
     
     plt.show()
     

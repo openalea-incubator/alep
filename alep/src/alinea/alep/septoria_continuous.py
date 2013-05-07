@@ -3,7 +3,9 @@
 """
 # Imports #########################################################################
 from alinea.alep.fungal_objects import *
-from alinea.alep.septoria import *
+# The following import would provoke a circular reference
+# "from alinea.alep.septoria import SeptoriaDU"
+# --> Moved in the method 'ContinuousSeptoria.emission()'
 from random import randint, seed
 import numpy as np
 seed(1)
@@ -82,7 +84,7 @@ class ContinuousSeptoria(Lesion):
         # Compute delta degree days in dt
         # TODO : modify if list of temp coming from weather data
         # self.compute_delta_ddays(dt, leaf)
-        self.compute_delta_ddays_from_weather(leaf)
+        self.compute_delta_ddays_from_weather(leaf)        
         ddday = self.ddday
 
         # If senescence, compute length of growth period before senescence during time step
@@ -483,8 +485,12 @@ class ContinuousSeptoria(Lesion):
         
         .. Todo:: Implement a real formalism.
         """
+        # Import to break circular reference
+        from alinea.alep.septoria import SeptoriaDU
+        # TODO : Improve ?
+        
+        f = self.fungus        
         if self.is_stock_available(leaf):
-            f = self.fungus
             emissions = []
             stock_available = int(self.stock_spores*2/3.)
             
@@ -507,6 +513,7 @@ class ContinuousSeptoria(Lesion):
                 self.stock_spores = 0.
 
             # Return emissions
+            SeptoriaDU.fungus = f
             emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU[i], status='emitted')
                                     for i in range(nb_DU_emitted)]                       
             return emissions

@@ -4,7 +4,9 @@
 """
 # Imports #########################################################################
 from alinea.alep.fungal_objects import *
-from alinea.alep.septoria import *
+# The following import would provoke a circular reference
+# "from alinea.alep.septoria import SeptoriaDU"
+# --> Moved in the method 'SeptoriaWithRings.emission()'
 from random import randint, seed
 import numpy as np
 seed(1)
@@ -59,7 +61,6 @@ class SeptoriaWithRings(Lesion):
         leaf: Leaf sector node of an MTG 
             A leaf sector with properties (e.g. healthy surface,
             senescence, rain intensity, wetness, temperature, lesions)
-
         """
         assert self.is_active
         f = self.fungus
@@ -137,7 +138,7 @@ class SeptoriaWithRings(Lesion):
         dt = len(temp_list)
         # Calculation
         if dt != 0.:
-            ddday = max(0, sum((temp_list - f.basis_for_dday))/(24./dt))
+            ddday = max(0, sum((temp_list - f.basis_for_dday))/24.)
         else:
             ddday = 0.
         # Save variable
@@ -767,6 +768,10 @@ class SeptoriaRing(Ring):
         
         .. Todo:: Implement a real formalism.
         """
+        # Import to break circular reference
+        from alinea.alep.septoria import SeptoriaDU
+        # TODO : Improve ?
+        
         f = lesion.fungus
         emissions = []
         stock_available = int(self.stock_spores*2/3.)
@@ -790,6 +795,7 @@ class SeptoriaRing(Ring):
             self.empty(lesion)
 
         # Return emissions
+        SeptoriaDU.fungus = f
         emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU[i], status='emitted')
                                 for i in range(nb_DU_emitted)]
         

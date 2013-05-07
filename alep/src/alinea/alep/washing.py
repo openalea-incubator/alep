@@ -44,27 +44,9 @@ class RapillyWashing:
                 rain_int = leaf.rain_intensity
                 rain_dur = leaf.rain_duration
                 healthy_surf = leaf.healthy_surface
-                leaf.washing_rate = max(0, min(1, rain_int/(healthy_surf+rain_int)*rain_dur))
+                # leaf.washing_rate = max(0, min(1, rain_int/(healthy_surf+rain_int)*rain_dur))
             
-            # self.rain_duration += 1
+                leaf.washing_rate = 0.2
             
-            # vids = [n for n in g if g.label(n).startswith(label)]
-            # for v in vids : 
-                # leaf = g.node(v)
-                # if not v in self.rain_intensity:
-                    # self.rain_intensity[v] = []
-                # self.rain_intensity[v].append(leaf.rain_intensity)
-                # leaf.washing_rate = 0.
-        # else:
-            # vids = [n for n in g if g.label(n).startswith(label)]
-            # for v in vids : 
-                # leaf = g.node(v)
-                # if v in self.rain_intensity.keys():
-                    # mean_rain_intensity = numpy.mean(self.rain_intensity[v])
-                    # leaf.washing_rate = max(0,min(1, mean_rain_intensity / (leaf.healthy_surface + mean_rain_intensity)*self.rain_duration))
-                    # self.rain_intensity.pop(v)
-                # else:
-                    # leaf.washing_rate = 0.
-            # self.rain_duration = 0.
             
     # TODO : Check if the model of Rapilly is properly implemented above.

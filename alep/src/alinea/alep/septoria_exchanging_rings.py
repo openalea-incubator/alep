@@ -3,8 +3,10 @@
 """
 # Imports #########################################################################
 from alinea.alep.fungal_objects import *
-from alinea.alep.septoria import *
-from random import random, randint, seed
+# The following import would provoke a circular reference
+# "from alinea.alep.septoria import SeptoriaDU"
+# --> Moved in the method 'SeptoriaExchangingRings.emission()'
+from random import randint, seed
 from math import floor, ceil
 import numpy as np
 seed(1)
@@ -59,12 +61,20 @@ class SeptoriaExchangingRings(Lesion):
         self.stock_spores = None
 
     def update(self, dt, leaf=None):
-        """
+        """ Update the status of the lesion and create a new growth ring if needed.
+                
+        Parameters
+        ----------
+        dt: int
+            Time step of the simulation (in hours)
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
         """
         f = self.fungus
         # Compute delta degree days in dt
-        self.compute_delta_ddays(dt, leaf)
-        # self.compute_delta_ddays_from_weather(leaf)
+        # self.compute_delta_ddays(dt, leaf)
+        self.compute_delta_ddays_from_weather(leaf)
         ddday = self.ddday
         
         # If senescence, compute length of growth period before senescence during time step
@@ -211,6 +221,13 @@ class SeptoriaExchangingRings(Lesion):
         
     def exchange_surfaces(self):
         """ Compute the exchanges of surfaces between rings.
+        
+        At each time step a fraction of surface pass from each age class 
+        (i.e. ring) to the following.
+        
+        Parameters
+        ----------
+            None
         """
         f = self.fungus
         ddday = self.ddday
@@ -225,7 +242,12 @@ class SeptoriaExchangingRings(Lesion):
         s[1:] += ds[:-1]
     
     def control_growth(self, growth_offer=0.):
-        """
+        """ Reduce surface of the rings up to available surface on leaf.
+        
+        Parameters
+        ----------
+        growth_offer: float
+            Surface available on the leaf for the ring to grow (cm2)
         """
         if self.growth_is_active:
             f = self.fungus
@@ -252,7 +274,13 @@ class SeptoriaExchangingRings(Lesion):
                 self.disable_growth()
     
     def update_stock(self):
-        """
+        """ Update the stock of spores on the lesion.
+        
+        Fill the stock of spores according to production rate and surface of the rings.
+        
+        Parameters
+        ----------
+            None
         """
         f = self.fungus
         surface_spo_before = self.surface_spo
@@ -274,7 +302,11 @@ class SeptoriaExchangingRings(Lesion):
             self.stock_spores = delta_surface_spo * f.production_rate
 
     def compute_sporulating_surface(self):
-        """
+        """ Compute only the sporulating surface.
+        
+        Parameters
+        ----------
+            None
         """
         f = self.fungus
         dring = f.delta_age_ring
@@ -292,7 +324,16 @@ class SeptoriaExchangingRings(Lesion):
         self.surface_spo = surface_spo + self.first_ring.surface    
         
     def compute_all_surfaces(self):
-        """
+        """ Compute all the surfaces in different states of the lesion.
+        
+        This method sums the surfaces in age classes (i.e. rings or part
+        of rings) corresponding to the organization in states of the lesion.
+        Example: Sum the rings surfaces between 'time_to_spo' and 'time_to_nec'
+        in order to find the necrotic surface of the lesion.
+        
+        Parameters
+        ----------
+            None
         """
         f = self.fungus
         status = self.status
@@ -315,8 +356,6 @@ class SeptoriaExchangingRings(Lesion):
             surface_chlo = self.surface_alive
         
         elif status == f.NECROTIC:
-            # if self.age_dday >= 345:
-                # raise Exception('')
             # Compute necrotic surface
             diff = self_dring - time_to_nec
             nb_full_rings = floor(diff/dring)
@@ -378,6 +417,10 @@ class SeptoriaExchangingRings(Lesion):
         
         .. Todo:: Implement a real formalism.
         """
+        # Import to break circular reference
+        from alinea.alep.septoria import SeptoriaDU
+        # TODO : Improve ?
+        
         if self.is_stock_available(leaf):
             f = self.fungus
             emissions = []
@@ -402,10 +445,10 @@ class SeptoriaExchangingRings(Lesion):
                 self.stock_spores = 0.
 
             # Return emissions
+            SeptoriaDU.fungus = f
             emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU[i], status='emitted')
                                     for i in range(nb_DU_emitted)]
                                     
-            print(len(emissions))
             return emissions
         else:
             return []
