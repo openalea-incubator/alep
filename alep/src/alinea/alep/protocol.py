@@ -34,8 +34,10 @@ def initiate(g,
       >>> initiate(g, stock, inoculator)
       >>> return g
     """
-    # Allocation of stock of inoculum
-    initiation_model.allocate(g, fungal_objects_stock, label)
+    vids = [n for n in g if g.label(n).startswith(label)]
+    if vids:
+        # Allocation of stock of inoculum
+        initiation_model.allocate(g, fungal_objects_stock, label)
 
     return g
 
