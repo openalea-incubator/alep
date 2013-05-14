@@ -348,12 +348,7 @@ def distribute_lesions(g, nb_lesions=1, model="SeptoriaExchangingRings"):
         Updated MTG representing the canopy
     """
     fungus = septoria(model=model)
-    models = ({"SeptoriaExchangingRings":SeptoriaExchangingRings,
-                    "SeptoriaWithRings":SeptoriaWithRings, 
-                    "ContinuousSeptoria":ContinuousSeptoria})
-    if model in models:
-        models[model].fungus = fungus
-        lesions = [models[model](nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+    lesions = [fungus(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
 
     inoculator = RandomInoculation()
     initiate(g, lesions, inoculator)

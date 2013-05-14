@@ -4,9 +4,9 @@
 # Imports #########################################################################
 from alinea.alep.fungal_objects import *
 # from alinea.alep import septoria_continuous, septoria_with_rings, septoria_exchanging_rings
-from alinea.alep.septoria_continuous import *
-from alinea.alep.septoria_with_rings import *
-from alinea.alep.septoria_exchanging_rings import *
+#from alinea.alep.septoria_continuous import *
+#from alinea.alep.septoria_with_rings import *
+#from alinea.alep.septoria_exchanging_rings import *
 
 from random import random, randint, seed
 from math import floor, ceil
@@ -163,7 +163,7 @@ class SeptoriaParameters(Parameters):
             Number of rain events to empty a sporulating ring
         """
         self.name = "Septoria"
-        self.model = model
+        self.model = None
         self.INCUBATING = INCUBATING
         self.CHLOROTIC = CHLOROTIC
         self.NECROTIC = NECROTIC
@@ -190,21 +190,34 @@ class SeptoriaParameters(Parameters):
         # TODO : Improve this parameter. 
         
     def __call__(self, nb_spores=None, position=None):
-        models = ({"SeptoriaExchangingRings":SeptoriaExchangingRings,
-                    "SeptoriaWithRings":SeptoriaWithRings, 
-                    "ContinuousSeptoria":ContinuousSeptoria})
         model = self.model
         
-        if model in models:
-            if models[model].fungus is None:
-                models[model].fungus = self
-            if SeptoriaDU.fungus is None:
-                SeptoriaDU.fungus = self
-        return models[model](nb_spores=nb_spores, position=position)
+        if model.fungus is None:
+            model.fungus = self
+        if SeptoriaDU.fungus is None:
+            SeptoriaDU.fungus = self
+        return model(nb_spores=nb_spores, position=position)
 
 def septoria(model="SeptoriaExchangingRings", **kwds):
     return SeptoriaParameters(model=model, **kwds)
 
+class Disease(object):
+    name = 'septoria'
+
+    @classmethod
+    def parameters(cls, **kwds):
+        return septoria(**kwds)
+    
+    @classmethod
+    def dispersal_unit(cls):
+        return SeptoriaDU
+
+    @classmethod
+    def lesion(cls):
+        return SeptoriaExchangingRings
+    
+        
+        
 # Useful functions ################################################################
 def proba(p):
     """ Compute the occurence of an event according to p.

@@ -6,9 +6,11 @@ from alinea.alep.fungal_objects import *
 # The following import would provoke a circular reference
 # "from alinea.alep.septoria import SeptoriaDU"
 # --> Moved in the method 'SeptoriaExchangingRings.emission()'
+from alinea.alep.septoria import Disease as _Disease, SeptoriaParameters as _SeptoriaParameters
 from random import randint, seed
 from math import floor, ceil
 import numpy as np
+
 seed(1)
             
 # Lesion ##########################################################################
@@ -723,3 +725,17 @@ class FirstRing(Ring):
         """
         self.is_active = False
         self.growth_demand = 0.
+
+class Parameters(_SeptoriaParameters):
+    def __init__(self,**kwds):
+        _SeptoriaParameters.__init__(self,SeptoriaExchangingRings,**kwds)
+
+class Disease(_Disease):
+    @classmethod
+    def parameters(cls, **kwds):
+        return Parameters(**kwds)
+    
+    @classmethod
+    def lesion(cls):
+        return SeptoriaExchangingRings
+ 
