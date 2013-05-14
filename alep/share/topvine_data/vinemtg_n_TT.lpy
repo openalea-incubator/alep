@@ -3,6 +3,7 @@ import random
 import cPickle as pickle
 from scipy import array, cos, sin, exp
 import IOtable
+from openalea.lpy.parameterset import *
 
 def open_meteo_file(meteo_file_path):
     '''    open meteo file
@@ -106,7 +107,7 @@ for i in range(DOY_ini, DOY_fin+1, 1):
 
 timestep = 5
 DOY = DOY_ini
-TT = 0#-timestep#0.
+TT = 0
 phyllochrone = 22.
 len_ = 1.
 #TTfin = 800.
@@ -145,10 +146,12 @@ print dict_Temp[DOY]
 module canopy(nb_plantes) : scale = 0
 module tronc(x, y, z) : scale = 1
 module plante(x, y, z, azim, nb_tiges, idp) : scale = 2
-module lf(l, larg, age, ordre, posax, azi, incli, idp) : scale = 3
+#module lf(l, larg, age, ordre, posax, azi, incli, idp) : scale = 3
+module lf(p) : scale = 3
 module pet(l, age, ordre, posax, azi, incli, idp): scale = 3
 module en(l, age, ordre, posax, azi, incli, idp) : scale = 3
 module A(ordre, param, age,n, idp) : scale = 3
+
 
 Axiom: canopy(nb_pl)
 
@@ -232,7 +235,10 @@ A(ordre, param, age, n,idp):
             
             #print ordre, newordre, n, TT, TT+deldeb
             
-            produce en(0,newage,ordre, n,azi_en, incli_en, idp)[A(newordre,{'proba':p, 'delai':deldeb, 'V':Phyl2 , 'D':Dur}, 0, 0, idp)][pet(0,newage,ordre, n, azi_pet, incli_pet, idp)lf(lmax_f*long_f(newage), largmax_f, newage, ordre, n, azi_f, incli_f-90, idp)]A(ordre, param,newage, n+1, idp)
+            lp = ParameterSet(l = lmax_f*long_f(newage), larg = largmax_f, age = newage, ordre = ordre, posax = n, azi = azi_f,  incli = incli_f-90, idp = idp)
+            
+            
+            produce en(0,newage,ordre, n,azi_en, incli_en, idp)[A(newordre,{'proba':p, 'delai':deldeb, 'V':Phyl2 , 'D':Dur}, 0, 0, idp)][pet(0,newage,ordre, n, azi_pet, incli_pet, idp)lf(lp)]A(ordre, param,newage, n+1, idp)
 
 
 
@@ -240,7 +246,11 @@ A(ordre, param, age, n,idp):
 
 pet(l, age, ordre, posax, azi, incli,idp) --> pet(long_en(read_ord(ordre, posax, topo[idp])[3], age+timestep),age+timestep, ordre, posax, azi, incli,idp)
 en(l, age, ordre, posax, azi, incli,idp) --> en(long_en(read_ord(ordre, posax, topo[idp])[0], age+timestep),age+timestep, ordre, posax, azi, incli, idp)
-lf(l, larg, age, ordre, posax, azi, incli,idp) --> lf(read_ord(ordre, posax, topo[idp])[6]*long_f(age+timestep), larg,  age+timestep, ordre, posax, azi, incli,idp)
+#lf(l, larg, age, ordre, posax, azi, incli,idp) --> lf(read_ord(ordre, posax, topo[idp])[6]*long_f(age+timestep), larg,  age+timestep, ordre, posax, azi, incli,idp)
+lf(p) :
+    p.l = read_ord(ordre, posax, topo[idp])[6]*long_f(age+timestep)
+    p.age = age+timestep
+    produce lf(p)
 #lf(l, larg, age, ordre, posax, azi, incli) --> lf(read_ord(ordre, posax, topo)[6]*long_f(age+timestep), larg,  age+timestep, ordre, posax, azi, angle(age+timestep))
 
 
@@ -275,13 +285,13 @@ pet(l, age, ordre, posax, azi, incli,idp) :
     else:
          produce *
 
-lf(l, larg, age, ordre, posax, azi, incli,idp) :
-    if l>0:
-        produce ;(2)@R(0,0,1, 1,0,0)/(azi)@g(transformation(leaf0(),l*10,l*10,1, 0 ,0, incli*3.14/180, 0, 0, 0))
+lf(p) :
+    if p.l>0:
+        produce ;(2)@R(0,0,1, 1,0,0)/(p.azi)@g(transformation(leaf0(),p.l*10,p.l*10,1, 0 ,0, p.incli*3.14/180, 0, 0, 0))
     else:
         produce *
 
-A(ordre, param, age, n,idp) --> *#@O(0.1)#
+A(ordre, param, age, n,idp) --> *#@O(0.1)
 
 endlsystem
 
@@ -290,7 +300,7 @@ endlsystem
 __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
-	import openalea.plantgl.all as pgl
-	Color_2 = pgl.Material("Color_2" , ambient = (33,66,11) , diffuse = 3.25758 , )
-	Color_2.name = "Color_2"
-	context.turtle.setMaterial(2,Color_2)
+    import openalea.plantgl.all as pgl
+    Color_2 = pgl.Material("Color_2" , ambient = (33,66,11) , diffuse = 3.25758 , )
+    Color_2.name = "Color_2"
+    context.turtle.setMaterial(2,Color_2)
