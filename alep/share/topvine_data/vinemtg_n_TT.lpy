@@ -1,21 +1,9 @@
 from openalea.plantgl.all import * 
 import random
-import cPickle as pickle
 from scipy import array, cos, sin, exp
-import IOtable
+import alinea.topvine.data_samples as data_samples
+import numpy as np
 from openalea.lpy.parameterset import *
-
-def open_meteo_file(meteo_file_path):
-    '''    open meteo file
-    '''
-    f = file(meteo_file_path, 'r')
-    table = IOtable.table_csv_str(f)
-    f.close()
-    for i in range (1,len(table)):
-        table[i] = map(float, table[i])
-
-    meteo_dict = IOtable.conv_dataframe(IOtable.t_list(table))
-    return meteo_dict
 
 
 def leaf0(l=1.):
@@ -91,43 +79,33 @@ def apex_proba(ordre, idp):
 
 ## donnees meteo
 
-meteo_file_path_j = r'D:\openaleapkg\topvine\topvine\data\meteo_j_2007_californieROY.csv'
-dj = open_meteo_file(meteo_file_path_j)
-dj['DOY'] = map(int, dj['DOY'])
+dj = data_samples.meteo_j()
+numJ = np.array(dj['DOY'])
 
+def doy_index(doy):
+	index = np.where(numJ == doy)[0]
+	if len(index) ==0:
+		index=None
+	else:
+		index=index[0]
+	return index
 
 DOY_ini = 91
 DOY_fin = 181
-dict_Temp = {}
-for i in range(DOY_ini, DOY_fin+1, 1):
-    for j in range(len(dj['DOY'])):
-        if dj['DOY'][j] == i:
-            dict_Temp[i]=dj['Tmoy'][j]
+TTini = 0
 
-
-timestep = 5
 DOY = DOY_ini
-TT = 0
+TT = TTini
+timestep = dj['Tmoy'][doy_index(DOY)]-10
+
 phyllochrone = 22.
-len_ = 1.
-#TTfin = 800.
-
-#devrait lire en plus un fichier de carto pour positionnement des troncs
-#distance a phytomere pas pris en compte dans apparition des phytomere des ramifs
-#carto_file = r'/home/pradal/devlp/aleapkg/topvine/topvine/data/test_geom_n.dat'
-#picle_file = r'/home/pradal/devlp/aleapkg/topvine/topvine/data/test_vine_n.dat'
-#carto_file = r'H:\devel\topvine\topvine\data\test_geom_n.dat'
-#picle_file = r'H:\devel\topvine\topvine\data\test_vine_n.dat'
-carto_file = r'D:\openaleapkg\topvine\topvine\data\test_geom_n.dat'
-picle_file = r'D:\openaleapkg\topvine\topvine\data\test_vine_n.dat'
-f = file(carto_file, 'r')
-table = pickle.load(f)
-f.close()
 
 
-f = file(picle_file, 'r')
-topo = pickle.load(f)
-f.close()
+# use sample data from topvine
+table = data_samples.geom_file()
+topo = data_samples.vine()
+
+# count plants and number of tige per plant
 
 nb_pl = len(topo)
 
@@ -140,8 +118,7 @@ for i in range (nb_pl):
     n0.append(v)
 
 
-STEPS = DOY_fin - DOY_ini#TTfin/timestep
-print dict_Temp[DOY]
+STEPS = DOY_fin - DOY_ini
 
 module canopy(nb_plantes) : scale = 0
 module tronc(x, y, z) : scale = 1
@@ -167,16 +144,15 @@ def EndEach():
 def StartEach():
     global TT
     global DOY
-    global dict_Temp
     global timestep
     if getGroup()==3:
-        timestep = dict_Temp[DOY]-10
-        TT=TT+timestep
-        DOY=DOY+1
+        timestep = dj['Tmoy'][doy_index(DOY)]-10
+        TT = TT + timestep
+        DOY = DOY + 1
 
 
 
-derivation length: int(STEPS)+2
+derivation length: int(STEPS) + 2
 production:
 
 group 1:
