@@ -97,8 +97,9 @@ class SeptoriaDU(DispersalUnit):
 
 # Fungus parameters (e.g. .ini): config of the fungus #############################
 class SeptoriaParameters(Parameters):
+    model = None
     def __init__(self,
-                 model,
+                 model=None,
                  INCUBATING = 0,
                  CHLOROTIC = 1,
                  NECROTIC = 2,
@@ -163,7 +164,7 @@ class SeptoriaParameters(Parameters):
             Number of rain events to empty a sporulating ring
         """
         self.name = "Septoria"
-        self.model = None
+        self.__class__.model = model
         self.INCUBATING = INCUBATING
         self.CHLOROTIC = CHLOROTIC
         self.NECROTIC = NECROTIC
@@ -198,8 +199,8 @@ class SeptoriaParameters(Parameters):
             SeptoriaDU.fungus = self
         return model(nb_spores=nb_spores, position=position)
 
-def septoria(model="SeptoriaExchangingRings", **kwds):
-    return SeptoriaParameters(model=model, **kwds)
+def septoria(**kwds):
+    return SeptoriaParameters(**kwds)
 
 class Disease(object):
     name = 'septoria'
@@ -209,15 +210,10 @@ class Disease(object):
         return septoria(**kwds)
     
     @classmethod
-    def dispersal_unit(cls):
+    def dispersal_unit(cls, **kwds):
+        SeptoriaDU.fungus=cls.parameters(**kwds)
         return SeptoriaDU
-
-    @classmethod
-    def lesion(cls):
-        return SeptoriaExchangingRings
-    
-        
-        
+           
 # Useful functions ################################################################
 def proba(p):
     """ Compute the occurence of an event according to p.

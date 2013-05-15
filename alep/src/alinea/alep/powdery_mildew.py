@@ -100,6 +100,7 @@ class PowderyMildewDU(DispersalUnit):
             # Infection rate 
             infection_rate = temp_factor * RH_factor * wetness_factor * spores_factor
             if proba(infection_rate):
+                print('coucou')
                 self.create_lesion(leaf)
             else:
                 self.disable()
@@ -760,6 +761,18 @@ class PowderyMildewParameters(Parameters):
 def powdery_mildew(**kwds):
     return PowderyMildewParameters(**kwds)
 
+class Disease(object):
+    name = 'powdery_mildew'
+
+    @classmethod
+    def parameters(cls, **kwds):
+        return powdery_mildew(**kwds)
+    
+    @classmethod
+    def dispersal_unit(cls, **kwds):
+        PowderyMildewDU.fungus=cls.parameters(**kwds)
+        return PowderyMildewDU
+    
 # Useful functions ################################################################
 def proba(p):
     """ Compute the occurence of an event according to p.

@@ -3,6 +3,8 @@
 # Imports #########################################################################
 import random as rd
 
+from openalea.vpltk import plugin
+
 from alinea.alep.wheat_examples import adel_mtg, adel_mtg2, adel_one_leaf
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
@@ -116,7 +118,7 @@ def update_climate_all(g, wetness=True,
     return g
     
 # Fungus ##########################################################################
-def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaWithRings"):
+def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaExchangingRings"):
     """ Distribute new dispersal units on g. 
     
     Call the method 'initiate' from the protocol with dispersal units.
@@ -133,10 +135,15 @@ def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaWithRings"):
     g: MTG
         Updated MTG representing the canopy
     """
-    fungus = septoria(model=model)
-    fungus = septoria(model=model)
-    SeptoriaDU.fungus = fungus
-    dispersal_units = ([SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted')
+    # fungus = septoria(model=model)
+    # SeptoriaDU.fungus = fungus
+    models = {"SeptoriaWithRings":"septoria_with_rings",
+              "SeptoriaExchangingRings":"septoria_exchanging_rings",
+              "ContinuousSeptoria":"septoria_continuous"}
+    
+    septo = plugin.discover('alep.disease')[models[model]].load()
+    DU = septo.dispersal_unit()
+    dispersal_units = ([DU(nb_spores=rd.randint(1,100), status='emitted')
                         for i in range(nb_dus)])
 
     inoculator = RandomInoculation()
@@ -144,7 +151,7 @@ def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaWithRings"):
     
     return g
     
-def distribute_lesions(g, nb_lesions=1, model="SeptoriaWithRings"):
+def distribute_lesions(g, nb_lesions=1, model="SeptoriaExchangingRings"):
     """ Distribute new lesions on g. 
     
     Call the method 'initiate' from the protocol with lesions.
@@ -164,12 +171,7 @@ def distribute_lesions(g, nb_lesions=1, model="SeptoriaWithRings"):
         Updated MTG representing the canopy
     """
     fungus = septoria(model=model)
-    models = ({"SeptoriaExchangingRings":SeptoriaExchangingRings,
-                    "SeptoriaWithRings":SeptoriaWithRings, 
-                    "ContinuousSeptoria":ContinuousSeptoria})
-    if model in models:
-        models[model].fungus = fungus
-        lesions = [models[model](nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+    lesions = [fungus(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
 
     inoculator = RandomInoculation()
     initiate(g, lesions, inoculator)

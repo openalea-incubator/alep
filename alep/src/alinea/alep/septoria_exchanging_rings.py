@@ -736,6 +736,7 @@ class Disease(_Disease):
         return Parameters(**kwds)
     
     @classmethod
-    def lesion(cls):
+    def lesion(cls, **kwds):
+        SeptoriaExchangingRings.fungus=cls.parameters(**kwds)
         return SeptoriaExchangingRings
  

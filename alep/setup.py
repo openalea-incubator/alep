@@ -108,8 +108,10 @@ setup(
     # Declare scripts and wralea as entry_points (extensions) of your package 
     entry_points = { 
         'wralea' : ['alep = alinea.alep_wralea'],
-        'alep.disease' :  ['septoria = alinea.alep.septoria_exchanging_rings:Disease',
-                           'powdery_mildew = alinea.alep.powdery_mildew:powdery_mildew',],
+        'alep.disease' :  ['septoria_exchanging_rings = alinea.alep.septoria_exchanging_rings:Disease',
+                           'septoria_continuous = alinea.alep.septoria_continuous:Disease',
+                           'septoria_with_rings = alinea.alep.septoria_with_rings:Disease',
+                           'powdery_mildew = alinea.alep.powdery_mildew:Disease',],
         #'console_scripts': [
         #       'fake_script = openalea.fakepackage.amodule:console_script', ],
         # 'gui_scripts': [

@@ -10,7 +10,6 @@ from alinea.alep.wheat_examples import adel_mtg, adel_mtg2, adel_one_leaf
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 
-from alinea.alep import powdery_mildew
 from alinea.alep.powdery_mildew import *
 
 from alinea.alep.dispersal import RandomDispersal
@@ -50,7 +49,6 @@ def set_initial_properties_g(g,
         n.surface = surface_leaf_element
         n.healthy_surface = surface_leaf_element # TODO : Manage properly
         n.position_senescence = position_senescence
-        n.surface_senescence
     return g
 
 def update_leaf_age(g, dt=1., label='LeafElement'):

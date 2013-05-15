@@ -7,6 +7,7 @@ from alinea.alep.fungal_objects import *
 # The following import would provoke a circular reference
 # "from alinea.alep.septoria import SeptoriaDU"
 # --> Moved in the method 'SeptoriaWithRings.emission()'
+from alinea.alep.septoria import Disease as _Disease, SeptoriaParameters as _SeptoriaParameters
 from random import randint, seed
 import numpy as np
 seed(1)
@@ -919,3 +920,17 @@ class SeptoriaRing(Ring):
             self.empty(lesion=lesion)
         elif self.is_dead(fungus=f):
             self.dead(lesion=lesion)
+              
+class Parameters(_SeptoriaParameters):
+    def __init__(self,**kwds):
+        _SeptoriaParameters.__init__(self,SeptoriaWithRings,**kwds)
+
+class Disease(_Disease):
+    @classmethod
+    def parameters(cls, **kwds):
+        return Parameters(**kwds)
+    
+    @classmethod
+    def lesion(cls):
+        SeptoriaWithRings.fungus=cls.parameters(**kwds)
+        return SeptoriaWithRings
