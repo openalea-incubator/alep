@@ -50,7 +50,7 @@ def set_initial_properties_g(g,
         n.surface = surface_leaf_element
         n.healthy_surface = surface_leaf_element # TODO : Manage properly
         n.position_senescence = position_senescence
-        
+        n.surface_senescence
     return g
 
 def update_leaf_age(g, dt=1., label='LeafElement'):
