@@ -29,6 +29,41 @@ set_properties(g,label = 'LeafElement',
 diseases=plugin.discover('alep.disease')
 powdery_mildew = diseases['powdery_mildew'].load()
 
+# Modify a part of the lesion
+LesionKlass = powdery_mildew.lesion()
+
+############################################
+
+def update_diameter_max_2(lesion, leaf=None):
+    """ Compute maximum diameter of the lesion according to its age.
+
+    Parameters
+    ----------
+        leaf: Leaf sector node of an MTG 
+            A leaf sector with properties (e.g. healthy surface,
+            senescence, rain intensity, wetness, temperature, lesions)
+    """
+    self = lesion
+    # Parameters for the calculation
+    f = self.fungus
+    diameter_max = f.diameter_max
+    diameter_min = f.diameter_min
+    leaf_age_effect = f.leaf_age_effect
+        
+    # Maximum diameter of the lesion according to leaf age
+    kmax = diameter_min + (diameter_max - diameter_min) * exp(-leaf_age_effect * leaf.age)+2
+    self.diameter_max = kmax
+
+LesionKlass.update_diameter_max = update_diameter_max_2
+
+############################################
+a = b = c = update_diameter_max_2
+
+def f(LesionKlass, method=None):
+    if method:
+        LesionKlass.method = method
+
+
 # Create a pool of dispersal units (DU)
 nb_du = 2
 dispersal_units = generate_stock_du(nb_du, disease=powdery_mildew)
