@@ -224,8 +224,8 @@ pet(l, age, ordre, posax, azi, incli,idp) --> pet(long_en(read_ord(ordre, posax,
 en(l, age, ordre, posax, azi, incli,idp) --> en(long_en(read_ord(ordre, posax, topo[idp])[0], age+timestep),age+timestep, ordre, posax, azi, incli, idp)
 #lf(l, larg, age, ordre, posax, azi, incli,idp) --> lf(read_ord(ordre, posax, topo[idp])[6]*long_f(age+timestep), larg,  age+timestep, ordre, posax, azi, incli,idp)
 lf(p) :
-    p.l = read_ord(ordre, posax, topo[idp])[6]*long_f(age+timestep)
-    p.age = age+timestep
+    p.l = read_ord(p.ordre, p.posax, topo[p.idp])[6] * long_f(p.age + timestep)
+    p.age = p.age + timestep
     produce lf(p)
 #lf(l, larg, age, ordre, posax, azi, incli) --> lf(read_ord(ordre, posax, topo)[6]*long_f(age+timestep), larg,  age+timestep, ordre, posax, azi, angle(age+timestep))
 
