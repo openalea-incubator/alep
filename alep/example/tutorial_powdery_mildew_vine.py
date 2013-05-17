@@ -51,5 +51,5 @@ for i in range(nsteps):
     infect(g,dt)
     update(g,dt,controler)
     
-    scene = plot3d(g)
+    scene = vine.generate_scene(g)
     disperse(g, scene, dispersor, "PowderyMildew")

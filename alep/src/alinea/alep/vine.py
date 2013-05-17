@@ -2,7 +2,7 @@
 implements a vine plant model based on topvine lsystem
 """
 
-from openalea.lpy import Lsystem,AxialTree
+from openalea.lpy import Lsystem,AxialTree, generateScene
 from openalea.mtg.io import lpy2mtg, mtg2lpy
 
 import os
@@ -54,4 +54,8 @@ class Vine(object):
         self.lsys.plot(tree)
         return g
         
+    def generate_scene(self,g):
+        tree = mtg2lpy(g,self.lsys)
+        self.lsys.sceneInterpretation(tree)
+        return generateScene(tree)
     
