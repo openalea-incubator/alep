@@ -20,7 +20,7 @@ vine.plot(g0)
 # The simulation requires the following properties on leaf elements:
 #   - 'surface': total surface of the leaf element (in cm2)
 #   - 'healthy_surface': surface of the leaf element without lesion or senescence (in cm2)
-#   - 'age': age of the leaf (in hours)
+#   - 'age': age of the leaf (in decimal_days)
 #   - 'position_senescence': position of the senescence on blade axis
 set_properties(g0,label = 'lf',
                surface=5, healthy_surface=5, position_senescence=None)
