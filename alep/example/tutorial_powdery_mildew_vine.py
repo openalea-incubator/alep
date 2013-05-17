@@ -10,6 +10,7 @@ from alinea.alep.dispersal import RandomDispersal
 from alinea.alep.architecture import *
 from alinea.alep.powdery_mildew import *
 from alinea.alep.protocol import *
+from alinea.adel.mtg_interpreter import plot3d
 
 vine = Vine()
 g0 = vine.setup_canopy(age=6)
@@ -40,7 +41,7 @@ g=g0
 
 for i in range(nsteps):
     g = vine.grow(g,dt)
-    set_properties(g,label = 'LeafElement',
+    set_properties(g,label = 'lf',
                     wetness=True,
                     temp=22.,
                     rain_intensity=0.,
