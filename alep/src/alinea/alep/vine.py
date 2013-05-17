@@ -29,7 +29,7 @@ class Vine(object):
     def __init__(self, lpy_filename = vinedir + '/topvine.lpy'):
         self.lpy_filename = lpy_filename
         
-    def setup_canopy(self, age):
+    def setup_canopy(self, age=0):
         self.start = age
         self.lsys = Lsystem(self.lpy_filename)
         tree = run(self.lsys, nbstep = int(2 + age))
