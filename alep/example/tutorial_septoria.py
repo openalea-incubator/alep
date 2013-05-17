@@ -6,11 +6,12 @@ from alinea.alep.architecture import *
 from alinea.alep.disease_operation import *
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.protocol import *
+from openalea.mtg import color
 
 from openalea.vpltk import plugin
 
 # Define a plant or canopy
-g = adel_one_leaf()
+g = adel_mtg2()
 
 # Add missing properties needed for the simulation
 # The simulation requires the following properties on leaf elements:
@@ -33,6 +34,8 @@ dispersal_units = generate_stock_du(nb_du, disease=septoria)
 # Distribute the DU 
 inoculator = RandomInoculation()
 initiate(g, dispersal_units, inoculator)
-
+g = color.colormap(g,'length',lognorm=False)
+scene = plot3d(g)
+Viewer.display(scene)
 
 
