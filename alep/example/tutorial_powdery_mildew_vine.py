@@ -21,9 +21,8 @@ vine.plot(g0)
 #   - 'healthy_surface': surface of the leaf element without lesion or senescence (in cm2)
 #   - 'age': age of the leaf (in hours)
 #   - 'position_senescence': position of the senescence on blade axis
-set_properties(g,label = 'lf',
-               surface=5, healthy_surface=5, 
-               age = 0., position_senescence=None)
+set_properties(g0,label = 'lf',
+               surface=5, healthy_surface=5, position_senescence=None)
 
 fungus = powdery_mildew()
 PowderyMildewDU.fungus=fungus
@@ -47,8 +46,7 @@ for i in range(nsteps):
                     rain_intensity=0.,
                     rain_duration=0.,
                     relative_humidity=85.,
-                    wind_speed=0.2,
-                    age=i+dt)
+                    wind_speed=0.2)
     infect(g,dt)
     update(g,dt,controler)
     
