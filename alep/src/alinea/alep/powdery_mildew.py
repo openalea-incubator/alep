@@ -100,7 +100,6 @@ class PowderyMildewDU(DispersalUnit):
             # Infection rate 
             infection_rate = temp_factor * RH_factor * wetness_factor * spores_factor
             if proba(infection_rate):
-                print('coucou')
                 self.create_lesion(leaf)
             else:
                 self.disable()
@@ -700,7 +699,7 @@ class PowderyMildewParameters(Parameters):
         treshold_nb_du_to_empty: int
             Treshold of dispersal unit on a surface to consider it empty
         """
-        self.name = "PowderyMildew"
+        self.name = "powdery_mildew"
         self.LATENT = LATENT
         self.SPORULATING = SPORULATING
         self.EMPTY = EMPTY

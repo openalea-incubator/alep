@@ -20,39 +20,33 @@ __icon__ = ''
 __all__ = []
         
 protocol_nodes_initiate = Factory(name='initiate',
-                nodemodule='protocol_nodes',
+                nodemodule='alinea.alep.protocol',
                 nodeclass='initiate',
                )
 __all__.append('protocol_nodes_initiate')
 
 protocol_nodes_infect = Factory(name='infect',
-                nodemodule='protocol_nodes',
+                nodemodule='alinea.alep.protocol',
                 nodeclass='infect',
                )
 __all__.append('protocol_nodes_infect')
 
 protocol_nodes_update = Factory(name='update',
-                nodemodule='protocol_nodes',
+                nodemodule='alinea.alep.protocol',
                 nodeclass='update',
                )
 __all__.append('protocol_nodes_update')
 
 protocol_nodes_disperse = Factory(name='disperse',
-                nodemodule='protocol_nodes',
+                nodemodule='alinea.alep.protocol',
                 nodeclass='disperse',
                )
 __all__.append('protocol_nodes_disperse')
 
 protocol_nodes_wash = Factory(name='wash',
-                nodemodule='protocol_nodes',
+                nodemodule='alinea.alep.protocol',
                 nodeclass='wash',
                )
 __all__.append('protocol_nodes_wash')
-
-protocol_nodes_growth_control = Factory(name='growth_control',
-                nodemodule='protocol_nodes',
-                nodeclass='growth_control',
-               )
-__all__.append('protocol_nodes_growth_control')
 
 
