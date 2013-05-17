@@ -32,15 +32,16 @@ dispersal_units = ([PowderyMildewDU(nb_spores=1, status="emitted") for i in rang
 inoculator=RandomInoculation()
 initiate(g0,dispersal_units,inoculator, label='lf')
 
-dt=1
+t = 0
+dt=1#one hour
 controler = NoPriorityGrowthControl()
 dispersor = RandomDispersal()
-nsteps = 2
+nsteps = 49
 
 g=g0
+scene = vine.generate_scene(g)
 
 for i in range(nsteps):
-    g = vine.grow(g,dt)
     set_properties(g,label = 'lf',
                     wetness=True,
                     temp=22.,
@@ -50,6 +51,10 @@ for i in range(nsteps):
                     wind_speed=0.2)
     infect(g,dt)
     update(g,dt,controler)
-    
-    scene = vine.generate_scene(g)
     disperse(g, scene, dispersor, "PowderyMildew")
+    
+    if t % 24 == 0:#update plant and scene every 24 h
+        g = vine.grow(g,24)
+        scene = vine.generate_scene(g)
+
+    t += dt

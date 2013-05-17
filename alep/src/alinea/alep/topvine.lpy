@@ -35,19 +35,19 @@ def transformation( obj, sx, sy, sz, rx, ry, rz, tx, ty, tz ):
 
 
 
-def long_f(age):
-    return 1#1/(1+exp(-0.03*(age-100)))
+def long_f(age_dd):
+    return 1#1/(1+exp(-0.03*(age_dd-100)))
 
-def long_en(lenmax, age):
+def long_en(lenmax, age_dd):
     duree_exp = 1#100.
-    if age<duree_exp:
-        return age/duree_exp*lenmax
+    if age_dd<duree_exp:
+        return age_dd/duree_exp*lenmax
     else:
         return lenmax
 
-def angle(age):
+def angle(age_dd):
     """ ouverture des folioles en fonction de TT """
-    a = 1/(1+exp(-0.03*(age-50)))
+    a = 1/(1+exp(-0.03*(age_dd-50)))
     return 90-90*a
     
 
@@ -82,13 +82,14 @@ def apex_proba(ordre, idp):
 dj = data_samples.meteo_j()
 numJ = np.array(dj['DOY'])
 
+
 def doy_index(doy):
-	index = np.where(numJ == doy)[0]
-	if len(index) ==0:
-		index=None
-	else:
-		index=index[0]
-	return index
+    index = np.where(numJ == doy)[0]
+    if len(index) ==0:
+        index=None
+    else:
+        index=index[0]
+    return index
 
 DOY_ini = 91
 DOY_fin = 181
@@ -123,11 +124,11 @@ STEPS = DOY_fin - DOY_ini
 module canopy(nb_plantes) : scale = 0
 module tronc(x, y, z) : scale = 1
 module plante(x, y, z, azim, nb_tiges, idp) : scale = 2
-#module lf(l, larg, age, ordre, posax, azi, incli, idp) : scale = 3
+#module lf(l, larg, age_dd, ordre, posax, azi, incli, idp) : scale = 3
 module lf(parameter_set) : scale = 3
-module pet(l, age, ordre, posax, azi, incli, idp): scale = 3
-module en(l, age, ordre, posax, azi, incli, idp) : scale = 3
-module A(ordre, param, age,n, idp) : scale = 3
+module pet(l, age_dd, ordre, posax, azi, incli, idp): scale = 3
+module en(l, age_dd, ordre, posax, azi, incli, idp) : scale = 3
+module A(ordre, param, age_dd,n, idp) : scale = 3
 
 
 Axiom: canopy(nb_pl)
@@ -178,16 +179,17 @@ endgroup
 
 group 3:
 
-A(ordre, param, age, n,idp):
+A(ordre, param, age_dd, n,idp):
     if param['proba'] ==1 :
-      if age<(param['V'] + param['delai'] - timestep) :#phyllochrone + delai
-          produce A(ordre, param, age+timestep, n,idp)
+      if age_dd<(param['V'] + param['delai'] - timestep) :#phyllochrone + delai
+          produce A(ordre, param, age_dd+timestep, n,idp)
       else:
           if TT >= param['D']:#arret apex 
-            produce A(ordre, param, age+timestep, n,idp)
+            produce A(ordre, param, age_dd+timestep, n,idp)
           else:
-            #remet a zero age apex
-            newage = age - param['V'] + timestep #revient a delai; mettre zero si remet aussi param['delai'] = 0.
+            #remet a zero age_dd apex
+            newage = age_dd - param['V'] + timestep #revient a delai; mettre zero si remet aussi param['delai'] = 0.
+            newage_d = float(newage) / timestep
             #recupere geometrie
             par_phyto = read_ord(ordre, n, topo[idp])
             azi_en, incli_en, azi_pet, incli_pet  = par_phyto[1],par_phyto[2], par_phyto[4],par_phyto[5]
@@ -211,7 +213,7 @@ A(ordre, param, age, n,idp):
             
             #print ordre, newordre, n, TT, TT+deldeb
             
-            lp = ParameterSet(l = lmax_f*long_f(newage), larg = largmax_f, age = newage, ordre = ordre, posax = n, azi = azi_f,  incli = incli_f-90, idp = idp)
+            lp = ParameterSet(l = lmax_f*long_f(newage), larg = largmax_f, age = newage_d, age_dd = newage, ordre = ordre, posax = n, azi = azi_f,  incli = incli_f-90, idp = idp)
             
             
             produce en(0,newage,ordre, n,azi_en, incli_en, idp)[A(newordre,{'proba':p, 'delai':deldeb, 'V':Phyl2 , 'D':Dur}, 0, 0, idp)][pet(0,newage,ordre, n, azi_pet, incli_pet, idp)lf(lp)]A(ordre, param,newage, n+1, idp)
@@ -220,14 +222,15 @@ A(ordre, param, age, n,idp):
 
 
 
-pet(l, age, ordre, posax, azi, incli,idp) --> pet(long_en(read_ord(ordre, posax, topo[idp])[3], age+timestep),age+timestep, ordre, posax, azi, incli,idp)
-en(l, age, ordre, posax, azi, incli,idp) --> en(long_en(read_ord(ordre, posax, topo[idp])[0], age+timestep),age+timestep, ordre, posax, azi, incli, idp)
-#lf(l, larg, age, ordre, posax, azi, incli,idp) --> lf(read_ord(ordre, posax, topo[idp])[6]*long_f(age+timestep), larg,  age+timestep, ordre, posax, azi, incli,idp)
+pet(l, age_dd, ordre, posax, azi, incli,idp) --> pet(long_en(read_ord(ordre, posax, topo[idp])[3], age_dd+timestep),age_dd+timestep, ordre, posax, azi, incli,idp)
+en(l, age_dd, ordre, posax, azi, incli,idp) --> en(long_en(read_ord(ordre, posax, topo[idp])[0], age_dd+timestep),age_dd+timestep, ordre, posax, azi, incli, idp)
+#lf(l, larg, age_dd, ordre, posax, azi, incli,idp) --> lf(read_ord(ordre, posax, topo[idp])[6]*long_f(age_dd+timestep), larg,  age_dd+timestep, ordre, posax, azi, incli,idp)
 lf(p) :
-    p.l = read_ord(p.ordre, p.posax, topo[p.idp])[6] * long_f(p.age + timestep)
-    p.age = p.age + timestep
+    p.l = read_ord(p.ordre, p.posax, topo[p.idp])[6] * long_f(p.age_dd + timestep)
+    p.age_dd = p.age_dd + timestep
+    p.age = p.age + 1
     produce lf(p)
-#lf(l, larg, age, ordre, posax, azi, incli) --> lf(read_ord(ordre, posax, topo)[6]*long_f(age+timestep), larg,  age+timestep, ordre, posax, azi, angle(age+timestep))
+#lf(l, larg, age_dd, ordre, posax, azi, incli) --> lf(read_ord(ordre, posax, topo)[6]*long_f(age_dd+timestep), larg,  age_dd+timestep, ordre, posax, azi, angle(age_dd+timestep))
 
 
 endgroup
@@ -236,7 +239,7 @@ homomorphism:
 tronc(x,y,z) --> @R(0,0,1, 1,0,0)@M(x,y,z)_(0.03)F(0.6)&(90)F(0.53)&(180)F(1.06)
 plante(x,y,z,azim,nb_tiges,idp) --> @M(x,y,z)/(azim)
 
-en(l, age, ordre, posax, azi, incli,idp) :
+en(l, age_dd, ordre, posax, azi, incli,idp) :
     a1, a2 = azi, incli
     if a1>0. and a2>0:
         produce _(0.002)@R(0,0,1, 1,0,0)/(a1)^(a2)F(l)
@@ -247,7 +250,7 @@ en(l, age, ordre, posax, azi, incli,idp) :
     elif a1<0. and a2<0:
         produce _(0.002)@R(0,0,1, 1,0,0)\(-a1)&(-a2)F(l)
 
-pet(l, age, ordre, posax, azi, incli,idp) :
+pet(l, age_dd, ordre, posax, azi, incli,idp) :
     a1, a2 = azi, incli
     if l>0:
       if a1>0. and a2>0:
@@ -267,7 +270,7 @@ lf(p) :
     else:
         produce *
 
-A(ordre, param, age, n,idp) --> *#@O(0.1)
+A(ordre, param, age_dd, n,idp) --> *#@O(0.1)
 
 endlsystem
 
