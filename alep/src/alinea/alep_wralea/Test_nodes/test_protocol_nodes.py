@@ -59,35 +59,7 @@ def set_properties_node(g, label='LeafElement', dict=None):
     """
     return set_properties(g, label=label, **dict)
     
-# Distribute dispersal units on g #####################################
-from alinea.alep.disease_operation import *
-from alinea.alep.protocol import *
-from alinea.alep.inoculation import RandomInoculation
-from openalea.vpltk import plugin
-
-def distribute_dispersal_units(g, nb_du=1, disease_model='powdery_mildew'):
-    """ Distribute dispersal units on the MTG.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    nb_du: int
-        Number of dispersal units to distribute on the mtg
-    disease_model: model
-        Type of model to compute disease lesion development
-        
-    Returns
-    -------
-    g: MTG
-        Updated MTG with dispersal units
-    """
-    # Create a pool of dispersal units (DU)
-    diseases=plugin.discover('alep.disease')
-    disease = diseases[disease_model].load()
-    dispersal_units = generate_stock_du(nb_du=nb_du, disease=disease)
-    # Distribute the DU 
-    inoculator = RandomInoculation()
-    initiate(g, dispersal_units, inoculator)
-    return g
+# Operations on fungal objects #######################################
+from alinea.alep.disease_operation import (distribute_dispersal_units,
+                                           distribute_lesions)
     

@@ -772,6 +772,11 @@ class Disease(object):
         PowderyMildewDU.fungus=cls.parameters(**kwds)
         return PowderyMildewDU
     
+    @classmethod
+    def lesion(cls, **kwds):
+        PowderyMildew.fungus=cls.parameters(**kwds)
+        return PowderyMildew
+    
 # Useful functions ################################################################
 def proba(p):
     """ Compute the occurence of an event according to p.

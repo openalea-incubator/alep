@@ -4,10 +4,12 @@
 # Imports #########################################################################
 from alinea.alep.wheat_examples import adel_mtg2
 from alinea.adel.mtg_interpreter import *
+from alinea.alep.alep_color import alep_colormap, green_yellow_red
 from openalea.plantgl.all import *
-from openalea.mtg import color
+# from openalea.mtg import color
 
 from alinea.alep.disease_operation import *
+from alinea.alep.architecture import *
 from alinea.alep.inoculation import RandomInoculation
 
 # MTG generation ##################################################################
@@ -15,9 +17,16 @@ g = adel_mtg2()
 
 # Lesions random distribution #####################################################
 distribute_disease(g, fungal_object='lesion', 
-                   nb_objects=100, disease_model='powdery_mildew', 
+                   nb_objects=500, disease_model='septoria_exchanging_rings', 
                    initiation_model=RandomInoculation())
+
+# Count lesions by id & add it as MTG property ####################################
+nb_lesions_by_leaf = count_lesions_by_leaf(g, label = 'LeafElement')
+set_property_on_each_id(g, 'nb_lesions', nb_lesions_by_leaf, label = 'LeafElement')
                    
 # Visualization ###################################################################
-cmap = 'YlOrRd'
-g = color.colormap(g, 'lesions', cmap=cmap, lognorm=False)
+cmap = 'jet'
+g = alep_colormap(g, 'nb_lesions', cmap=green_yellow_red(levels=10), lognorm=False)
+scene = plot3d(g)
+Viewer.display(scene)
+    

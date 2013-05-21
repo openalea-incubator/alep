@@ -25,10 +25,6 @@ def set_properties(g,
     ----------
     g: MTG
         MTG representing the canopy
-    surface: float
-        Initial surface of each leaf element
-    position_senescence: float
-        Position of senescence on blade axis
     label: str
         Label of the part of the MTG concerned by the calculation
         
@@ -41,3 +37,27 @@ def set_properties(g,
     default_properties(g,vids,kwds)
         
     return g
+
+def set_property_on_leaves(g,
+                            property_name,
+                            property_dict,
+                            label = 'LeafElement'):
+    """
+    """ 
+    vids = [n for n in g if g.label(n).startswith(label)]
+    property_dict = dict({(k,property_dict.get(k, 0)) for k in vids})
+    g.add_property(property_name)
+    prop = g.property(property_name)
+    prop.update(property_dict)
+    
+def set_property_on_each_id(g,
+                            property_name,
+                            property_dict,
+                            label = 'LeafElement'):
+    """
+    """ 
+    vids = [n for n in g]
+    property_dict = dict({(k,property_dict.get(k, 0)) for k in vids})
+    g.add_property(property_name)
+    prop = g.property(property_name)
+    prop.update(property_dict)
