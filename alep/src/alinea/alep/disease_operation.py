@@ -62,7 +62,7 @@ def distribute_disease(g,
     g: MTG
         MTG representing the canopy
     fungal_object: str
-        Type of fungal object. Choose between : 'du' or 'lesion'
+        Type of fungal object. Choose between : 'dispersal_unit' or 'lesion'
     nb_objects: int
         Number of dispersal units or lesions to distribute on the MTG
     disease_model: model
@@ -74,12 +74,12 @@ def distribute_disease(g,
     Returns
     -------
     g: MTG
-        Updated MTG with dispersal units
+        Updated MTG with dispersal units or lesions
     """
     # Create a pool of dispersal units (DU)
     diseases=plugin.discover('alep.disease')
     disease = diseases[disease_model].load()
-    if fungal_object=='du':
+    if fungal_object=='dispersal_unit':
         objects = generate_stock_du(nb_du=nb_objects, disease=disease)
     elif fungal_object=='lesion':
         objects = generate_stock_lesion(nb_lesions=nb_objects, disease=disease)
