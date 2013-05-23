@@ -25,6 +25,18 @@ test_protocol_nodes_wheat = Factory(name='wheat',
                                     )
 __all__.append('test_protocol_nodes_wheat')
 
+test_protocol_nodes_microclimate = Factory(name='microclimate',
+                                    nodemodule='test_protocol_nodes',
+                                    nodeclass='microclimate',
+                                    )
+__all__.append('test_protocol_nodes_microclimate')
+
+test_protocol_nodes_weather_reader = Factory(name='weather_reader',
+                                    nodemodule='test_protocol_nodes',
+                                    nodeclass='weather_reader',
+                                    )
+__all__.append('test_protocol_nodes_weather_reader')
+
 test_protocol_nodes_scene_from_g = Factory(name='scene_from_g',
                                            nodemodule='test_protocol_nodes',
                                            nodeclass='scene_from_g',
@@ -43,6 +55,11 @@ test_protocol_nodes_distribute_dispersal_units = Factory(name='distribute_disper
                                                          )
 __all__.append('test_protocol_nodes_distribute_dispersal_units')
 
+test_protocol_nodes_distribute_lesions = Factory(name='distribute_lesions',
+                                                 nodemodule='test_protocol_nodes',
+                                                 nodeclass='distribute_lesions',
+                                                 )
+__all__.append('test_protocol_nodes_distribute_lesions')
 
 
 
