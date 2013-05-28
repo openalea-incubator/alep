@@ -38,6 +38,18 @@ def set_properties(g,
         
     return g
 
+def set_properties_on_new_leaves(g,
+                                 label = 'LeafElement',
+                                 **kwds):
+    """ Give initial properties to newly emerged leaves.
+    """
+    vids = leaves(g,leaf_name=label)
+    for name, default in kwds.iteritems():
+        prop = g.property(name)
+        new_vids = [n for n in g if g.label(n).startswith(label) if n not in prop]
+        if default is not None:
+            prop.update({vid:default for vid in new_vids})
+    
 def set_property_on_leaves(g,
                             property_name,
                             property_dict,

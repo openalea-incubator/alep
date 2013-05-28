@@ -9,11 +9,21 @@ def green_yellow_red(levels=10):
     
     """
     return LinearSegmentedColormap.from_list(name='green_yellow_red', 
-                                             colors =[(0., 1., 0.), 
+                                             colors =[(0., 0.5, 0.), 
                                                       (1., 1., 0.), 
+                                                      (1, 0., 0.),
                                                       (1, 0., 0.)],
                                              N=levels)
 
+def green_white(levels=10):
+    """ Generate a colormap from green to white.
+    
+    """
+    return LinearSegmentedColormap.from_list(name='green_yellow_red', 
+                                             colors =[(0., 0.5, 0.),
+                                                      (1., 1., 1.)],
+                                             N=levels)
+                                             
 def alep_colormap(g, property_name, cmap='jet',lognorm=True):
     """ Apply a colormap on a given MTG property to compute the 'color' property
 

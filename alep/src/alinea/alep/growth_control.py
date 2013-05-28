@@ -6,7 +6,6 @@
 # Imports #########################################################################
 
 # With no priority between lesions ################################################
-
 class NoPriorityGrowthControl:
     """ Template class for a model of competition between lesions for leaf surface.
     
@@ -62,3 +61,49 @@ class NoPriorityGrowthControl:
                     # /!\ WARNING /!\
                     # This method leads to local healthy surfaces < 0 for leaf elements.
                     # But the global healthy surface on the entire leaf stays >= 0.
+                    
+class GrowthControlVineLeaf:
+    """ Class for growth control used when the phyto-element is a vine leaf.
+    
+    """   
+    def control(self, g, label='lf'):
+        """ ELimit lesion growth to the healthy surface on vine leaves.
+        
+        Parameters
+        ----------
+        g: MTG
+            MTG representing the canopy (and the soil)
+        label: str
+            Label of the part of the MTG concerned by the calculation
+        
+        Returns
+        -------
+        None
+            Update directly the MTG
+        """
+        lesions = g.property('lesions')
+        surfaces = g.property('surface')
+        healthy_surfaces = g.property('healthy_surface')
+        labels = g.property('label')
+
+        # Select all the leaves
+        vids = (v for v,l in labels.iteritems() if l.startswith(label))
+        for leaf in vids:
+            leaf_surface = surfaces[leaf]
+            leaf_healthy_surface = healthy_surfaces[leaf]
+            
+            leaf_lesions = [l for l in lesions.get(leaf,[])]
+            total_demand = sum(l.growth_demand for l in leaf_lesions)
+            
+            if total_demand > leaf_healthy_surface:
+                for l in leaf_lesions:
+                    growth_offer = leaf_healthy_surface * l.growth_demand / total_demand
+                    l.control_growth(growth_offer=growth_offer)
+                healthy_surfaces[leaf] = 0.
+            else:
+                for l in leaf_lesions:
+                    growth_offer = l.growth_demand
+                    l.control_growth(growth_offer=growth_offer)
+
+                gd = sum(l.growth_demand for l in lesions.get(leaf,[]) if l.growth_is_active)
+                healthy_surfaces[leaf] -= gd

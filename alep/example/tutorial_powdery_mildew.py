@@ -91,6 +91,6 @@ for i in range(0,nb_steps,dt):
     update(g, dt, controler)
     
     scene = plot3d(g)
-    disperse(g, scene, dispersor, "PowderyMildew")
+    disperse(g, scene, dispersor, "powdery_mildew")
     
 plot_lesions(g)

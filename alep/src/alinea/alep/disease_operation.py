@@ -122,6 +122,40 @@ def count_lesions_by_leaf(g, label='LeafElement'):
     """
     lesions = g.property('lesions')
     return {k:len(v) for k,v in lesions.iteritems()}
+
+def count_dispersal_units(g):
+    """ Count dispersal units of the mtg.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+        
+    Returns
+    -------
+    nb_dispersal_units: int
+        Number of dispersal units on the MTG
+    """
+    dispersal_units = g.property('dispersal_units')
+    return sum(len(l) for l in dispersal_units.itervalues())
+    
+def count_dispersal_units_by_leaf(g, label='LeafElement'):
+    """ Count dispersal units on each part of the MTG given by the label.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    nb_dispersal_units_by_leaf: dict([id:nb_dispersal_units])
+        Number of dispersal units on each part of the MTG given by the label
+    """
+    dispersal_units = g.property('dispersal_units')
+    return {k:len(v) for k,v in dispersal_units.iteritems()}
     
 def plot_lesions(g):
     """ plot the plant with infected elements in red """

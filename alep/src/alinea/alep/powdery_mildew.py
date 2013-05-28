@@ -412,7 +412,7 @@ class PowderyMildew(Lesion):
             if growth_offer < self.growth_demand: # or round(self.diameter,3) >= round(kmax,3):
                 # /!\ TODO : Check condition above
                 self.disable_growth()
-         
+
         # 2. Update stock of spores
         if self.production_is_active:
             self.update_stock()
@@ -510,7 +510,7 @@ class PowderyMildew(Lesion):
             not self.production_is_active and
             self.stock_spores==0.):
             self.disable()
-        
+
         return emissions
         
     def senescence_response(self):
@@ -611,7 +611,7 @@ class PowderyMildewParameters(Parameters):
                  treshold_nb_du_to_empty = 1,
                  
                  *args, **kwds):
-        """ Parameters for septoria.
+        """ Parameters for powdery mildew.
         
         Parameters
         ----------

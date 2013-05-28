@@ -15,7 +15,9 @@ from openalea.plantgl.all import *
 
 from alinea.alep.protocol import *
 from alinea.alep.septoria import *
-from alinea.alep.microclimate_leaf import *
+from alinea.echap.microclimate_leaf import *
+from alinea.alep.architecture import *
+from alinea.alep.disease_operation import *
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.du_position_checker import BiotrophDUProbaModel
 from alinea.alep.growth_control import NoPriorityGrowthControl
@@ -318,14 +320,18 @@ def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaExchangingRings"):
     g: MTG
         Updated MTG representing the canopy
     """
-    fungus = septoria(model=model)
-    SeptoriaDU.fungus = fungus
-    dispersal_units = ([SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted')
-                        for i in range(nb_dus)])
+    # fungus = septoria(model=model)
+    # SeptoriaDU.fungus = fungus
+    # dispersal_units = ([SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted')
+                        # for i in range(nb_dus)])
 
-    inoculator = RandomInoculation()
-    initiate(g, dispersal_units, inoculator)
-    
+    # inoculator = RandomInoculation()
+    # initiate(g, dispersal_units, inoculator)
+    distribute_disease(g,
+                       fungal_object='dispersal_unit', 
+                       nb_objects=nb_dus, 
+                       disease_model=model,
+                       initiation_model=RandomInoculation())
     return g
     
 def distribute_lesions(g, nb_lesions=1, model="SeptoriaExchangingRings"):
@@ -347,12 +353,16 @@ def distribute_lesions(g, nb_lesions=1, model="SeptoriaExchangingRings"):
     g: MTG
         Updated MTG representing the canopy
     """
-    fungus = septoria(model=model)
-    lesions = [fungus(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+    # fungus = septoria(model=model)
+    # lesions = [SeptoriaDU(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
 
-    inoculator = RandomInoculation()
-    initiate(g, lesions, inoculator)
-    
+    # inoculator = RandomInoculation()
+    # initiate(g, lesions, inoculator)
+    distribute_disease(g,
+                       fungal_object='lesion', 
+                       nb_objects=nb_lesions, 
+                       disease_model=model,
+                       initiation_model=RandomInoculation())
     return g
 
 def execute_one_step(g, weather_data, start_date, date, dt,
@@ -824,7 +834,7 @@ def compare_time_steps(model="ContinuousSeptoria"):
 def simulate_severity(start_date=datetime(2000, 10, 1),
                       end_date=datetime(2000, 11, 30),
                       nb_lesions = 100,
-                      model="SeptoriaExchangingRings",
+                      model="septoria_exchanging_rings",
                       update_events = "step_by_step"):
     """ Run a simulation with the model of continuous lesions of septoria.
     
@@ -1095,7 +1105,7 @@ def simulate_necrosis():
     """
     # Read weather data : 
     filename = 'meteo01.txt'
-    weather_data = read_weather(filename, "dispersal")
+    weather_data = read_weather(filename, "step_by_step")
     
     # Generate a MTG with required properties :
     # g = adel_one_leaf()
@@ -1104,7 +1114,7 @@ def simulate_necrosis():
     
     # Generate a stock of septoria lesions and distribute them on g
     nb_lesions_in_stock = 100
-    distribute_lesions(g, nb_lesions=nb_lesions_in_stock, model=model)
+    distribute_lesions(g, nb_lesions=nb_lesions_in_stock, model='septoria_exchanging_rings')
     
     # Call the models that will be used during the simulation :
     controler = NoPriorityGrowthControl()

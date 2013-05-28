@@ -5,16 +5,19 @@ Demonstrate a simulation of vine/oidium epidemics
 from alinea.alep.vine import Vine
 
 from alinea.alep.inoculation import RandomInoculation
-from alinea.alep.growth_control import NoPriorityGrowthControl
+from alinea.alep.growth_control import GrowthControlVineLeaf
 from alinea.alep.dispersal import RandomDispersal
-from alinea.alep.architecture import *
 from alinea.alep.powdery_mildew import *
 from alinea.alep.protocol import *
 from alinea.adel.mtg_interpreter import plot3d
 
+from alinea.alep.disease_operation import *
+from alinea.alep.architecture import *
+from alinea.alep.alep_color import alep_colormap, green_white
+
 vine = Vine()
 g0 = vine.setup_canopy(age=6)
-vine.plot(g0)
+# vine.plot(g0)
 
 # Add missing properties needed for the simulation
 # The simulation requires the following properties on leaf elements:
@@ -23,7 +26,7 @@ vine.plot(g0)
 #   - 'age': age of the leaf (in decimal_days)
 #   - 'position_senescence': position of the senescence on blade axis
 set_properties(g0,label = 'lf',
-               surface=5, healthy_surface=5, position_senescence=None)
+               surface=5., healthy_surface=5., position_senescence=None)
 
 fungus = powdery_mildew()
 PowderyMildewDU.fungus=fungus
@@ -34,27 +37,55 @@ initiate(g0,dispersal_units,inoculator, label='lf')
 
 t = 0
 dt=1#one hour
-controler = NoPriorityGrowthControl()
+controler = GrowthControlVineLeaf()
 dispersor = RandomDispersal()
-nsteps = 49
+# nsteps = 49
+nsteps = 1000
 
 g=g0
 scene = vine.generate_scene(g)
 
 for i in range(nsteps):
+    print(i)
+    set_properties_on_new_leaves(g,label = 'lf',
+                             surface=5., healthy_surface=5.,
+                             position_senescence=None)
     set_properties(g,label = 'lf',
                     wetness=True,
                     temp=22.,
                     rain_intensity=0.,
                     rain_duration=0.,
                     relative_humidity=85.,
-                    wind_speed=0.2)
-    infect(g,dt)
-    update(g,dt,controler)
-    disperse(g, scene, dispersor, "PowderyMildew")
+                    wind_speed=0.5)
+                        
+    infect(g, dt, label='lf')
+    update(g, dt, controler, label='lf')
+    disperse(g, scene, dispersor, "powdery_mildew", label='lf')  
     
     if t % 24 == 0:#update plant and scene every 24 h
         g = vine.grow(g,24)
         scene = vine.generate_scene(g)
 
+        # vine.plot(g)
+        
+        # Count lesions by id & add it as MTG property ####################################
+        g = vine.grow(g,0)
+        nb_lesions_by_leaf = count_lesions_by_leaf(g, label = 'lf')
+        set_property_on_each_id(g, 'nb_lesions', nb_lesions_by_leaf, label = 'lf')
+                           
+        # Visualization ###################################################################
+        g = alep_colormap(g, 'nb_lesions', cmap=green_white(levels=10), lognorm=False)
+        scene = plot3d(g)
+        Viewer.display(scene)
+
     t += dt
+    
+# # Count lesions by id & add it as MTG property ####################################
+# g = vine.grow(g,0)
+# nb_lesions_by_leaf = count_lesions_by_leaf(g, label = 'lf')
+# set_property_on_each_id(g, 'nb_lesions', nb_lesions_by_leaf, label = 'lf')
+                   
+# # Visualization ###################################################################
+# g = alep_colormap(g, 'nb_lesions', cmap=green_white(levels=10), lognorm=False)
+# scene = plot3d(g)
+# Viewer.display(scene)
