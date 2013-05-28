@@ -22,8 +22,8 @@ def run(lsystem, axiom = '', nbstep = -1, parameters = {}):
     if len(parameters) > 0:
         lsystem.context().updateNamespace(parameters)
     return lsystem.iterate(axiom,c_iter,nbstep)
-
-
+            
+    
 class Vine(object):
     
     def __init__(self, lpy_filename = vinedir + '/topvine.lpy'):
@@ -38,11 +38,10 @@ class Vine(object):
         
     def grow(self,g,time_control):
         axiom = mtg2lpy(g,self.lsys)
-        #time_control.check('dt',1)
-        #dt = time_control.dt
-        dt = 1
-        tree = run(self.lsys,axiom = axiom, nbstep = dt)
+        time_control.check('dt',1)
+        tree = run(self.lsys,axiom = axiom, nbstep = time_control.dt)
         return lpy2mtg(tree,self.lsys)
+        
         
     def reset(self):
         if self.start is None:
