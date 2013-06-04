@@ -105,7 +105,6 @@ def infect(g, dt,
             # Update the list of dispersal unit by leaf element
             dispersal_units[vid] = [d for d in du if d.is_active]
 
-    print 'RUN : ', activate
     return g
     
 def update(g, dt,

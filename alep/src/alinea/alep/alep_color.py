@@ -23,6 +23,15 @@ def green_white(levels=10):
                                              colors =[(0., 0.5, 0.),
                                                       (1., 1., 1.)],
                                              N=levels)
+
+def green_lightblue_blue(levels=10):
+    """ Generate a colormap from green to light blue then dark blue.
+    """
+    return LinearSegmentedColormap.from_list(name='green_lightblue_blue', 
+                                             colors =[(0., 1., 0.), 
+                                                      (0., 1., 1.), 
+                                                      (0., 0., 1.)],
+                                             N=levels)
                                              
 def alep_colormap(g, property_name, cmap='jet',lognorm=True):
     """ Apply a colormap on a given MTG property to compute the 'color' property

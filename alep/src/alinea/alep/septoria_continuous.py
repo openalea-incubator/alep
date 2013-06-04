@@ -84,8 +84,8 @@ class ContinuousSeptoria(Lesion):
         
         # Compute delta degree days in dt
         # TODO : modify if list of temp coming from weather data
-        # self.compute_delta_ddays(dt, leaf)
-        self.compute_delta_ddays_from_weather(leaf)        
+        self.compute_delta_ddays(dt, leaf)
+        # self.compute_delta_ddays_from_weather(leaf)        
         ddday = self.ddday
 
         # If senescence, compute length of growth period before senescence during time step

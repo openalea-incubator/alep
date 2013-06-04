@@ -123,6 +123,24 @@ def count_lesions_by_leaf(g, label='LeafElement'):
     lesions = g.property('lesions')
     return {k:len(v) for k,v in lesions.iteritems()}
 
+def count_lesion_surfaces_by_leaf(g, label='LeafElement'):
+    """ Count the surface of lesions on each part of the MTG given by the label.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    surface_lesions_by_leaf: dict([id:nb_lesions])
+        Number of lesions on each part of the MTG given by the label
+    """
+    lesions = g.property('lesions')
+    return {k:sum(l.surface for l in v) for k,v in lesions.iteritems()}
+    
 def count_dispersal_units(g):
     """ Count dispersal units of the mtg.
     

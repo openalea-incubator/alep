@@ -39,7 +39,14 @@ class Vine(object):
     def grow(self,g,time_control):
         axiom = mtg2lpy(g,self.lsys)
         time_control.check('dt',1)
-        tree = run(self.lsys,axiom = axiom, nbstep = time_control.dt)
+        # /!\ TEMP /!\ ######################################
+        if time_control.dt > 0:
+            dt = 1
+        else:
+            dt = 0
+        tree = run(self.lsys,axiom = axiom, nbstep = dt)
+        # /!\ TEMP /!\ ######################################
+        # tree = run(self.lsys,axiom = axiom, nbstep = time_control.dt)
         return lpy2mtg(tree,self.lsys)
         
         
