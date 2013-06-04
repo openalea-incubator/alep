@@ -6,10 +6,22 @@ from alinea.alep.architecture import *
 from alinea.alep.disease_operation import *
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.protocol import *
-from openalea.mtg import color
+from alinea.alep.alep_color import alep_colormap, green_white
 
 from openalea.vpltk import plugin
 
+def update_plot(g):
+    # Count lesion surfaces by id & add it as MTG property 
+    surface_lesions_by_leaf = count_lesion_surfaces_by_leaf(g, label = 'lf')
+    set_property_on_each_id(g, 'surface_lesions', surface_lesions_by_leaf, label = 'lf')
+                       
+    # Visualization
+    g = alep_colormap(g, 'surface_lesions', cmap=green_yellow_red(levels=10), lognorm=False)
+    scene = plot3d(g)
+    Viewer.display(scene)
+    return scene
+
+#######################################################################################
 # Define a plant or canopy
 g = adel_mtg2()
 
@@ -38,4 +50,31 @@ g = color.colormap(g,'length',lognorm=False)
 scene = plot3d(g)
 Viewer.display(scene)
 
+# Preparation of the simulation loop
+nsteps = 1000
+wheat_timing = TimeControl(delay=1, steps = nsteps)
+septo_timing = TimeControl(delay=1, steps = nsteps)
 
+for t in timer:
+    print(timer.numiter)
+    set_properties_on_new_leaves(g,label = 'lf',
+                             surface=5., healthy_surface=5.,
+                             position_senescence=None)
+    set_properties(g,label = 'lf',
+                    wetness=True,
+                    temp=22.,
+                    rain_intensity=0.,
+                    rain_duration=0.,
+                    relative_humidity=85.,
+                    wind_speed=0.5)
+                        
+    infect(g, t['disease'].dt, label='lf')
+    update(g, t['disease'].dt, controler, label='lf')
+
+    if timer.numiter>=400 and timer.numiter%100==0:
+        set_properties(g,label = 'lf', rain_intensity=1., rain_duration=2.)
+        disperse(g, scene, dispersor, "septoria", label='lf')  
+
+    if t['ploting'].dt > 0:
+        print('ploting...')
+        scene = update_plot(g)
