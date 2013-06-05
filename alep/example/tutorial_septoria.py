@@ -90,8 +90,6 @@ for t in timer:
                         
     infect(g, t['disease'].dt, label='LeafElement')
     update(g, t['disease'].dt, controler, label='LeafElement')
-    print('nb_dus %d' % count_dispersal_units(g))
-    print('nb_lesions %d' % count_lesions(g))
 
     if rain_intensity>0:
         disperse(g, scene, dispersor, "septoria", label='LeafElement')  
