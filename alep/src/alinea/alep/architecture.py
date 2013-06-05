@@ -35,7 +35,6 @@ def set_properties(g,
     """
     vids = leaves(g,leaf_name=label)
     default_properties(g,vids,kwds)
-        
     return g
 
 def set_properties_on_new_leaves(g,

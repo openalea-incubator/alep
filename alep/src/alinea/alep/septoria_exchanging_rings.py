@@ -75,8 +75,8 @@ class SeptoriaExchangingRings(Lesion):
         """
         f = self.fungus
         # Compute delta degree days in dt
-        # self.compute_delta_ddays(dt, leaf)
-        self.compute_delta_ddays_from_weather(leaf)
+        self.compute_delta_ddays(dt, leaf)
+        # self.compute_delta_ddays_from_weather(leaf)
         ddday = self.ddday
         
         # If senescence, compute length of growth period before senescence during time step
@@ -450,7 +450,7 @@ class SeptoriaExchangingRings(Lesion):
             SeptoriaDU.fungus = f
             emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU[i], status='emitted')
                                     for i in range(nb_DU_emitted)]
-                                    
+
             return emissions
         else:
             return []

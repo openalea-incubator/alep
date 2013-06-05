@@ -163,7 +163,7 @@ class SeptoriaParameters(Parameters):
         rain_events_to_empty: int
             Number of rain events to empty a sporulating ring
         """
-        self.name = "Septoria"
+        self.name = "septoria"
         self.__class__.model = model
         self.INCUBATING = INCUBATING
         self.CHLOROTIC = CHLOROTIC
