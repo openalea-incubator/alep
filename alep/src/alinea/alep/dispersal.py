@@ -29,7 +29,7 @@ class RandomDispersal:
         deposits : dict
             Dispersal units deposited on new position on leaves
         """
-        vids = [geom.id for geom in scene]
+        vids = scene.todict().keys()
         n = len(vids)
         deposits = {}
 

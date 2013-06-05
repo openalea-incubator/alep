@@ -160,7 +160,7 @@ group 1:
 
 canopy(nb_plantes):
     for i in range(nb_plantes):
-        nproduce [tronc(i*1.1,0,0)plante(0., 0., 0., 0. , len(n0[i]), i)]
+        nproduce [tronc(-0.5+i*1.1,0,0)plante(0., 0., 0., 0. , len(n0[i]), i)]
 
 
 endgroup
@@ -236,7 +236,7 @@ lf(p) :
 endgroup
 
 homomorphism:
-tronc(x,y,z) --> @R(0,0,1, 1,0,0)@M(x,y,z)_(0.03)F(0.6)&(90)F(0.53)&(180)F(1.06)
+tronc(x,y,z) --> @R(0,0,1, 1,0,0)@M(x,y,z)_(0.03)F(0.6)&(90)F(0.55)&(180)F(1.1)
 plante(x,y,z,azim,nb_tiges,idp) --> @M(x,y,z)/(azim)
 
 en(l, age_dd, ordre, posax, azi, incli,idp) :
@@ -280,6 +280,7 @@ __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
     import openalea.plantgl.all as pgl
-    Color_2 = pgl.Material("Color_2" , ambient = (33,66,11) , diffuse = 3.25758 , )
+    Color_2 = pgl.Material("Color_2" , ambient = (33,66,11)  , )
     Color_2.name = "Color_2"
     context.turtle.setMaterial(2,Color_2)
+

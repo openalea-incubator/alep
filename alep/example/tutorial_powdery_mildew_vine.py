@@ -52,18 +52,20 @@ initiate(g0,dispersal_units,inoculator, label='lf')
 controler = GrowthControlVineLeaf()
 dispersor = RandomDispersal()
 # nsteps = 49
-nsteps = 100
+nsteps = 1000
 
 vine_timing = TimeControl(delay=24, steps = nsteps)
 mildew_timing = TimeControl(delay =1, steps = nsteps)
-plot_timing = TimeControl(delay=10, steps = nsteps)
+plot_timing = TimeControl(delay=24, steps = nsteps)
 timer = TimeControler(vine = vine_timing, disease = mildew_timing, ploting = plot_timing)
 
 
 g=g0
 scene = vine.generate_scene(g)
 
-for t in timer:
+def step(t):
+    global g
+    global scene
     print(timer.numiter)
     set_properties_on_new_leaves(g,label = 'lf',
                              surface=5., healthy_surface=5.,
@@ -81,7 +83,12 @@ for t in timer:
     disperse(g, scene, dispersor, "powdery_mildew", label='lf')  
     
     g = vine.grow(g,t['vine'])
-    scene = vine.generate_scene(g)
+    scene = plot3d(g)
     if t['ploting'].dt > 0:
         print('ploting...')
         update_plot(g)
+
+
+for i in range(nsteps-100):
+    t = timer.next()
+    step(t)
