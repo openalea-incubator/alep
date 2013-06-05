@@ -18,7 +18,8 @@ from alinea.astk.TimeControl import *
 
 def update_plot(g):
     # Count lesion surfaces by id & add it as MTG property 
-    surface_lesions_by_leaf = count_lesion_surfaces_by_leaf(g, label = 'LeafElement')
+    # surface_lesions_by_leaf = count_lesion_surfaces_by_leaf(g, label = 'LeafElement')
+    surface_lesions_by_leaf = count_lesions_by_leaf(g, label = 'LeafElement')
     set_property_on_each_id(g, 'surface_lesions', surface_lesions_by_leaf, label = 'LeafElement')
                        
     # Visualization
