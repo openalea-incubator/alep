@@ -23,6 +23,11 @@ def update_plot(g):
                        
     # Visualization ###################################################################
     g = alep_colormap(g, 'nb_lesions', cmap=green_white(levels=10), lognorm=False)
+    trunk_ids = [n for n in g if g.label(n).startswith('tronc')]
+    brown = (100,70,30)
+    for id in trunk_ids:
+        trunk = g.node(id)
+        trunk.color = brown
     scene = plot3d(g)
     Viewer.display(scene)
 
@@ -80,7 +85,7 @@ def step(t):
                         
     infect(g, t['disease'].dt, label='lf')
     update(g, t['disease'].dt, controler, label='lf')
-    disperse(g, scene, dispersor, "powdery_mildew", label='lf')  
+    disperse(g, dispersor, "powdery_mildew", label='lf')  
     
     g = vine.grow(g,t['vine'])
     scene = plot3d(g)

@@ -57,12 +57,17 @@ def update_plot(g):
     # Count lesions by id & add it as MTG property ####################################
     # nb_lesions_by_leaf = count_lesions_by_leaf(g, label = 'lf')
     surface_lesions_by_leaf = count_lesion_surfaces_by_leaf(g, label = 'lf')
-    print(surface_lesions_by_leaf)
-    print(g.property('surface'))
+    # print(surface_lesions_by_leaf)
+    # print(g.property('surface'))
     set_property_on_each_id(g, 'surface_lesions', surface_lesions_by_leaf, label = 'lf')
                        
     # Visualization ###################################################################
     g = alep_colormap(g, 'surface_lesions', cmap=green_white(levels=10), lognorm=False)
+    brown = (100,70,30)
+    trunk_ids = [n for n in g if g.label(n).startswith('tronc')]
+    for id in trunk_ids:
+        trunk = g.node(id)
+        trunk.color = brown
     scene = plot3d(g)
     Viewer.display(scene)
     return scene
@@ -126,4 +131,4 @@ for t in timer:
         print('ploting...')
         scene = update_plot(g)
         index = timer.numiter/24
-        save_image(scene, image_name='image %d .png' % index)
+        save_image(scene, image_name='image%d.png' % index)

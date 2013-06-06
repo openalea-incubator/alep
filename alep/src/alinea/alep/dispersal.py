@@ -32,7 +32,6 @@ class RandomDispersal:
         # vids = scene.todict().keys()
         vids = [id for id,v in g.property('geometry').iteritems()]
         n = len(vids)
-        print('nb vids %d' % n)
         deposits = {}
 
         for vid, dlist in dispersal_units.iteritems():
