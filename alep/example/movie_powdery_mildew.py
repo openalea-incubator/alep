@@ -118,7 +118,7 @@ for t in timer:
                         
     infect(g, t['disease'].dt, label='lf')
     update(g, t['disease'].dt, controler, label='lf')
-    disperse(g, scene, dispersor, "powdery_mildew", label='lf')  
+    disperse(g, dispersor, "powdery_mildew", label='lf')  
     
     g = vine.grow(g,t['vine'])
     # scene = vine.generate_scene(g)

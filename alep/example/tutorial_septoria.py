@@ -24,10 +24,13 @@ from alinea.astk.TimeControl import *
 # Useful functions ########################################################################
 def update_plot(g):
     # Count lesion surfaces by id & add it as MTG property 
-    # surface_lesions_by_leaf = count_lesion_surfaces_by_leaf(g, label = 'LeafElement')
-    surface_lesions_by_leaf = count_lesions_by_leaf(g, label = 'LeafElement')
+    surface_lesions_by_leaf = count_lesion_surfaces_by_leaf(g, label = 'LeafElement')
     set_property_on_each_id(g, 'surface_lesions', surface_lesions_by_leaf, label = 'LeafElement')
-                       
+
+    # Compute severity by leaf
+    # severity_by_leaf = compute_severity_by_leaf(g, label = 'LeafElement')
+    # set_property_on_each_id(g, 'severity', severity_by_leaf, label = 'LeafElement')
+
     # Visualization
     g = alep_colormap(g, 'surface_lesions', cmap=green_yellow_red(levels=10), lognorm=False)
     scene = plot3d(g)
@@ -66,7 +69,7 @@ diseases=plugin.discover('alep.disease')
 septoria = diseases['septoria_exchanging_rings'].load()
 
 # Create a pool of dispersal units (DU)
-nb_du = 10
+nb_du = 100
 dispersal_units = generate_stock_du(nb_du, disease=septoria)
 
 # Distribute the DU 
@@ -79,12 +82,12 @@ Viewer.display(scene)
 # Preparation of the simulation loop #####################################################
 # Call models that will be used in disease interface
 controler = NoPriorityGrowthControl()
-# dispersor = Septo3DSplash(reference_surface=1./200)
-dispersor = RandomDispersal()
+dispersor = Septo3DSplash(reference_surface=1./200)
+# dispersor = RandomDispersal()
 
 # Choose dates of simulation
 start_date = datetime(2000, 10, 1, 1, 00, 00)
-end_date = datetime(2000, 10, 1, 10, 00)
+end_date = datetime(2000, 11, 30, 00, 00)
 date = start_date
 
 # Read weather between date and add wetness
@@ -111,20 +114,20 @@ for t in timer:
     date = weather.next_date(t['weather'].dt, date)
     
     set_properties(g,label = 'LeafElement',
-                    wetness=globalclimate.wetness,
-                    temp=globalclimate.temperature_air,
-                    rain_intensity=globalclimate.rain,
+                    wetness=globalclimate.wetness.values[0],
+                    temp=globalclimate.temperature_air.values[0],
+                    rain_intensity=globalclimate.rain.values[0],
                     rain_duration=1.,
-                    relative_humidity=globalclimate.relative_humidity,
-                    wind_speed=globalclimate.wind_speed)
+                    relative_humidity=globalclimate.relative_humidity.values[0],
+                    wind_speed=globalclimate.wind_speed.values[0])
 
     # Disease
     infect(g, t['disease'].dt, label='LeafElement')
     update(g, t['disease'].dt, controler, label='LeafElement')
 
     if globalclimate.rain>0:
-        disperse(g, scene, dispersor, "septoria", label='LeafElement')  
+        disperse(g, dispersor, "septoria", label='LeafElement')  
 
     if t['ploting'].dt > 0:
-        print('ploting...')
+        print('ploting...')           
         scene = update_plot(g)

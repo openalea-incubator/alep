@@ -182,7 +182,6 @@ def update(g, dt,
     return g
     
 def disperse(g, 
-             scene,
              dispersal_model,
              fungus_name, 
              label="LeafElement",
@@ -193,8 +192,6 @@ def disperse(g,
     ----------
     g: MTG
         MTG representing the canopy (and the soil)
-    scene : 
-        Scene containing the simulated system
     dispersal_model: model
         Model that is used to position each DU in stock on g
     fungus_name: str
@@ -225,7 +222,7 @@ def disperse(g,
       >>>     update(g,dt, controler)
       >>>     if dispersal_event():
       >>>       scene = plot3d(g)
-      >>>       disperse(g, scene, dispersor, "septoria")
+      >>>       disperse(g, dispersor, "septoria")
       >>> return g
     
     """
@@ -241,16 +238,17 @@ def disperse(g,
                         DU[vid] = []
                     DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
         # Transport of dispersal units
-        deposits = dispersal_model.disperse(scene, DU) # update DU in g , change position, status
-        # Allocation of new dispersal units
-        for vid,dlist in deposits.iteritems():
-            if g.label(vid).startswith(label):
-                leaf = g.node(vid)
-                for d in dlist:
-                    d.deposited()
-                    if not 'dispersal_units' in leaf.properties():
-                        leaf.dispersal_units=[]
-                    leaf.dispersal_units.append(d)
+        if DU:
+            deposits = dispersal_model.disperse(g, DU) # update DU in g , change position, status
+            # Allocation of new dispersal units
+            for vid,dlist in deposits.iteritems():
+                if g.label(vid).startswith(label):
+                    leaf = g.node(vid)
+                    for d in dlist:
+                        d.deposited()
+                        if not 'dispersal_units' in leaf.properties():
+                            leaf.dispersal_units=[]
+                        leaf.dispersal_units.append(d)
 
     return g
 

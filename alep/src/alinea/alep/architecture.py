@@ -56,7 +56,7 @@ def set_property_on_leaves(g,
     """
     """ 
     vids = [n for n in g if g.label(n).startswith(label)]
-    property_dict = dict({(k,property_dict.get(k, 0)) for k in vids})
+    property_dict = dict({(k,property_dict.get(k, 0.)) for k in vids})
     g.add_property(property_name)
     prop = g.property(property_name)
     prop.update(property_dict)
@@ -68,7 +68,7 @@ def set_property_on_each_id(g,
     """
     """ 
     vids = [n for n in g]
-    property_dict = dict({(k,property_dict.get(k, 0)) for k in vids})
+    property_dict = dict({(k,property_dict.get(k, 0.)) for k in vids})
     g.add_property(property_name)
     prop = g.property(property_name)
     prop.update(property_dict)

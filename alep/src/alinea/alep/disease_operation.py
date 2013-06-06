@@ -136,10 +136,31 @@ def count_lesion_surfaces_by_leaf(g, label='LeafElement'):
     Returns
     -------
     surface_lesions_by_leaf: dict([id:nb_lesions])
-        Number of lesions on each part of the MTG given by the label
+        Surface of lesions on each part of the MTG given by the label
     """
     lesions = g.property('lesions')
     return {k:sum(l.surface for l in v) for k,v in lesions.iteritems()}
+    
+def compute_severity_by_leaf(g, label='LeafElement'):
+    """ Compute severity of the disease on each part of the MTG given by the label.
+    
+    Severity is the ratio between disease surface and total leaf surface.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    severity_by_leaf: dict([id:nb_lesions])
+        Severity on each part of the MTG given by the label
+    """
+    lesions = g.property('lesions')
+    surfaces = g.property('surface')
+    return {k:(sum(l.surface for l in v)/float(surfaces[k]) if surfaces[k]>0 else 0.) for k,v in lesions.iteritems()}
     
 def count_dispersal_units(g):
     """ Count dispersal units of the mtg.
