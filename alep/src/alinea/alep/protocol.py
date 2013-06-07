@@ -247,7 +247,11 @@ def disperse(g,
                     for d in dlist:
                         d.deposited()
                         if not 'dispersal_units' in leaf.properties():
-                            leaf.dispersal_units=[]
+                            leaf.dispersal_units=[]  
+                        # /!\ Temp /!\ G.Garin 07/06/2013:
+                        # Limit propagation
+                        # if random.random()<0.05:                        
+                            # leaf.dispersal_units.append(d)
                         leaf.dispersal_units.append(d)
 
     return g

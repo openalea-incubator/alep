@@ -32,7 +32,7 @@ def generate_stock_du(nb_du, disease):
     return [DU(nb_spores=rd.randint(1,100), status='emitted')
                         for i in range(nb_du)]
                         
-def generate_stock_lesion(nb_lesions, disease):
+def generate_stock_lesions(nb_lesions, disease):
     """ Generate a stock of lesions.
     
     Parameters
@@ -82,7 +82,7 @@ def distribute_disease(g,
     if fungal_object=='dispersal_unit':
         objects = generate_stock_du(nb_du=nb_objects, disease=disease)
     elif fungal_object=='lesion':
-        objects = generate_stock_lesion(nb_lesions=nb_objects, disease=disease)
+        objects = generate_stock_lesions(nb_lesions=nb_objects, disease=disease)
     else:
         raise Exception('fungal object is not valid: choose between ''du'' or ''lesion')
     # Distribute the DU 

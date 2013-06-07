@@ -113,6 +113,9 @@ def count_dispersal_units_by_leaf(g, label='LeafElement'):
     
 def plot_lesions(g):
     """ plot the plant with infected elements in red """
+    from alinea.adel.mtg_interpreter import plot3d
+    from openalea.plantgl.all import Viewer
+    
     green = (0,180,0)
     red = (180, 0, 0)
     for v in g.vertices(scale=g.max_scale()) : 
@@ -214,7 +217,7 @@ class LeafInspector:
         # Initialize total severity
         self.severity = []
         # Initialize necrosis percentage
-        self.necrosis_percentage = []
+        self.necrosis = []
     
     def compute_states(self, g):
         """ Compute surface of lesions in chosen state on a blade of the MTG.
@@ -255,6 +258,8 @@ class LeafInspector:
         self.ratio_chlo.append(100 * surface_chlo / total_surface if total_surface>0. else 0.)
         self.ratio_nec.append(100 * surface_nec / total_surface if total_surface>0. else 0.)
         self.ratio_spo.append(100 * surface_spo / total_surface if total_surface>0. else 0.)
+        assert (round((surface_inc + surface_chlo + surface_nec + surface_spo),4) == 
+                round(sum(l.surface for l in les), 4))
     
     def compute_severity(self, g):
         """ Compute severity on a blade of the MTG.
@@ -273,7 +278,7 @@ class LeafInspector:
         lesions = g.property('lesions')
         disease_surface = sum([l.surface for id in leaf_elements for l in lesions[id]])
 
-        self.severity.append(100 * disease_surface / total_surface if total_surface>0. else 0.)
+        self.severity.append(100 * disease_surface / total_surface if total_surface>0. else 0.)       
     
     def count_dispersal_units(self, g):
         """ count DU of the leaf.

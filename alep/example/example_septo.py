@@ -600,7 +600,7 @@ def imitate_septo3D(start_date=datetime(2000, 10, 1, 01, 00),
     
     plt.show(False)
 
-def simulate_necrosis():
+def simulate_necrosis_upper_leaves():
     """ Run a simulation with the model of continuous lesions of septoria.
     
     Lesions are updated only on dispersal events. Weather data is managed
@@ -626,47 +626,36 @@ def simulate_necrosis():
     # Call the models that will be used during the simulation :
     controler = NoPriorityGrowthControl()
     washor = RapillyWashing()
-    dispersor = RandomDispersal()
+    dispersor = Septo3DSplash(reference_surface=1./200)
+    leaf1 = LeafInspector(g, leaf_number=1)
+    leaf2 = LeafInspector(g, leaf_number=2)
+    leaf3 = LeafInspector(g, leaf_number=3)
+    leaf4 = LeafInspector(g, leaf_number=4)
 
     # Prepare the simulation loop
     dt = 1
     start_date = datetime(2000, 10, 1, 01, 00)
-    end_date = datetime(2001, 7, 31)
-    # end_date = datetime(2000, 11, 30)
+    # end_date = datetime(2001, 7, 31)
+    end_date = datetime(2001, 02, 1)
     necrosis = np.zeros(len(pandas.date_range(start_date, end_date, freq='H')))
     for date in pandas.date_range(start_date, end_date, freq='H'):
         print(date)
         try:
-            ind+=1.
+            ind+=1
         except:
-            ind = 0.
+            ind =0
 
-        # Get weather for date advance date for next simulation step
-        mgc, globalclimate = weather.get_weather(dt, date)
-        date = weather.next_date(dt, date)
-        
-        set_properties(g,label = 'LeafElement',
-                        wetness=globalclimate.wetness.values[0],
-                        temp=globalclimate.temperature_air.values[0],
-                        rain_intensity=globalclimate.rain.values[0],
-                        rain_duration=globalclimate.rain_duration.values[0],
-                        relative_humidity=globalclimate.relative_humidity.values[0],
-                        wind_speed=globalclimate.wind_speed.values[0])
-        
-        # Run a disease cycle
-        #grow(g)
-        infect(g, dt)
-        if globalclimate.update_events.values[0]:
-            update(g, dt, growth_control_model=controler)
-               
-        global_rain_intensity = globalclimate.rain.values[0]
-        if global_rain_intensity != 0. :
-            scene = plot3d(g)
-            disperse(g, scene, dispersor, "septoria") 
-            wash(g, washor, global_rain_intensity)
+        g = execute_one_step(g, weather, date, dt)
     
         # Measure severity
-        necrosis[ind]=compute_total_necrosis(g)
+        leaf1.compute_states(g)
+        leaf2.compute_states(g)
+        leaf3.compute_states(g)
+        leaf4.compute_states(g)
+        necrosis[ind]=(leaf1.ratio_nec[ind]+leaf1.ratio_spo[ind]+
+                        leaf2.ratio_nec[ind]+leaf2.ratio_spo[ind]+
+                        leaf3.ratio_nec[ind]+leaf3.ratio_spo[ind]+
+                        leaf4.ratio_nec[ind]+leaf4.ratio_spo[ind])
     
     # Display results:
     nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
@@ -676,7 +665,7 @@ def simulate_necrosis():
     # ax1 = fig.add_subplot(3,1,1)
     plot(pandas.date_range(start_date, end_date, freq='H'), necrosis)
     ylim([0, 105])
-    ylabel('Total necrosis percentage')
+    ylabel('Necrosis percentage on upper leaves')
     
     # ax2 = fig.add_subplot(3,1,2)
     # plt.bar(range(nb_steps), nb_DUs, color='r')
