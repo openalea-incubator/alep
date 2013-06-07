@@ -1,5 +1,5 @@
 """
-Demonstrate a simulation of vine/oidium epidemics
+Make images of a simulation of vine/oidium epidemics for a movie.
 """
 
 from alinea.alep.vine import Vine
@@ -13,6 +13,7 @@ from alinea.alep.protocol import *
 from alinea.adel.mtg_interpreter import plot3d
 
 from alinea.alep.disease_operation import *
+from alinea.alep.disease_outputs import *
 from alinea.alep.architecture import *
 from alinea.alep.alep_color import alep_colormap, green_white
 
