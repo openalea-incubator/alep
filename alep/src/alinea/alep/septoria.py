@@ -228,3 +228,27 @@ def proba(p):
     True or False
     """
     return random() < p
+
+# Weather functions ################################################################
+# /!\ TODO G. Garin 07/06/13:
+# Improve management of weather data in time control #
+def compute_dispersal_event(rain=0., relative_humidity=0.):
+    """ Compute a dispersal event as a function of rain or relative humidity.
+    
+    Parameters
+    ----------
+    rain: float
+        Rain (in mm)
+    relative_humidity: float
+        Relative humidity of the air around the leaf (in %)
+    
+    Returns
+    -------
+    dispersal_event: True or False
+        True if dispersal event is occuring 
+    """
+    if rain>0.5 and relative_humidity >= 85.:
+        return True
+    else:
+        return False
+        

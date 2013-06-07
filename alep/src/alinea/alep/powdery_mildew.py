@@ -119,7 +119,6 @@ class PowderyMildewDU(DispersalUnit):
             senescence, rain intensity, wetness, temperature, lesions)
         """
         self.age_dday += self.compute_delta_ddays(dt, leaf)
-        # self.age_dday += self.compute_delta_ddays_from_weather(leaf)
         
     def compute_delta_ddays(self, dt=1., leaf=None):
         """ Compute delta degree days in dt.
@@ -140,35 +139,11 @@ class PowderyMildewDU(DispersalUnit):
         f = self.fungus
         # Calculation
         if dt != 0.:
-            ddday = max(0,(leaf.temp - f.basis_for_dday)/(24./dt))
+            ddday = max(0,(leaf.temp - f.basis_for_dday*dt)/(24./dt))
         else:
             ddday = 0.
         return ddday 
-    
-    def compute_delta_ddays_from_weather(self, leaf=None):
-        """ Compute delta degree days from weather data since last call.
         
-        Parameters
-        ----------
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
-            senescence, rain intensity, wetness, temperature, lesions)
-            
-        Returns
-        -------
-        ddday: float
-            Delta degree days in time step
-        """
-        f = self.fungus
-        temp_list = np.array(leaf.temp_list)
-        dt = len(temp_list)
-        # Calculation
-        if dt != 0.:
-            ddday = max(0, sum((temp_list - f.basis_for_dday))/24.)
-        else:
-            ddday = 0.
-        return ddday
-    
     def update_viability(self, dt=1., leaf=None):
         """ Update the viability of the dispersal unit.
         

@@ -13,8 +13,8 @@ from alinea.alep.dispersal import RandomDispersal
 from alinea.alep.protocol import *
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
 
+from alinea.alep.alep_weather import add_wetness
 from alinea.weather.global_weather import *
-from alinea.weather.mini_models import leaf_wetness_rapilly
 from datetime import datetime
 
 from openalea.vpltk import plugin
@@ -36,19 +36,6 @@ def update_plot(g):
     scene = plot3d(g)
     Viewer.display(scene)
     return scene
-
-def add_wetness(weather):
-    """ Complete weather data with wetness
-    """
-    wet = dict(wetness=[])
-    for i_line in range(len(weather.data)):
-        wet['wetness'].append(leaf_wetness_rapilly(weather.data.rain[i_line], 
-                              weather.data.relative_humidity[i_line],
-                              weather.data.PPFD[i_line]))
-    wetness = pandas.DataFrame(wet)
-    wetness.index = weather.data.rain.index
-    weather.data = weather.data.join(wetness)
-    return weather
     
 # Initiation ##############################################################################
 # Define a plant or canopy

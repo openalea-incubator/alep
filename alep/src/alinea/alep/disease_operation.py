@@ -55,7 +55,7 @@ def distribute_disease(g,
                        nb_objects=1, 
                        disease_model='powdery_mildew',
                        initiation_model=RandomInoculation()):
-    """ Distribute dispersal units on the MTG.
+    """ Distribute fungal objects on the MTG.
     
     Parameters
     ----------
@@ -88,124 +88,59 @@ def distribute_disease(g,
     # Distribute the DU 
     initiate(g, objects, initiation_model)
     return g
-
-def count_lesions(g):
-    """ Count lesions of the mtg.
+    
+def distribute_dispersal_units(g, nb_dus=1, 
+                               disease_model='powdery_mildew',
+                               initiation_model=RandomInoculation()):
+    """ Distribute dispersal units on the MTG.
     
     Parameters
     ----------
     g: MTG
         MTG representing the canopy
+    nb_dus: int
+        Number of dispersal units to distribute on the MTG
+    disease_model: model
+        Type of model to compute disease lesion development
+    initiation_model: model
+        Model that sets the position of each DU/lesion in stock on g
+        Requires a method named 'allocate' (see doc)
         
     Returns
     -------
+    g: MTG
+        Updated MTG with dispersal units or lesions
+    """
+    distribute_disease(g,
+                       fungal_object='dispersal_unit', 
+                       nb_objects=nb_dus, 
+                       disease_model=disease_model,
+                       initiation_model=initiation_model)
+                       
+def distribute_lesions(g, nb_lesions=1, 
+                           disease_model='powdery_mildew',
+                           initiation_model=RandomInoculation()):
+    """ Distribute lesions on the MTG.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
     nb_lesions: int
-        Number of lesions on the MTG
-    """
-    lesions = g.property('lesions')
-    return sum(len(l) for l in lesions.itervalues())
-    
-def count_lesions_by_leaf(g, label='LeafElement'):
-    """ Count lesions on each part of the MTG given by the label.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    label: str
-        Label of the part of the MTG concerned by the calculation
+        Number of lesions to distribute on the MTG
+    disease_model: model
+        Type of model to compute disease lesion development
+    initiation_model: model
+        Model that sets the position of each DU/lesion in stock on g
+        Requires a method named 'allocate' (see doc)
         
     Returns
     -------
-    nb_lesions_by_leaf: dict([id:nb_lesions])
-        Number of lesions on each part of the MTG given by the label
-    """
-    lesions = g.property('lesions')
-    return {k:len(v) for k,v in lesions.iteritems()}
-
-def count_lesion_surfaces_by_leaf(g, label='LeafElement'):
-    """ Count the surface of lesions on each part of the MTG given by the label.
-    
-    Parameters
-    ----------
     g: MTG
-        MTG representing the canopy
-    label: str
-        Label of the part of the MTG concerned by the calculation
-        
-    Returns
-    -------
-    surface_lesions_by_leaf: dict([id:nb_lesions])
-        Surface of lesions on each part of the MTG given by the label
+        Updated MTG with dispersal units or lesions
     """
-    lesions = g.property('lesions')
-    return {k:sum(l.surface for l in v) for k,v in lesions.iteritems()}
-    
-def compute_severity_by_leaf(g, label='LeafElement'):
-    """ Compute severity of the disease on each part of the MTG given by the label.
-    
-    Severity is the ratio between disease surface and total leaf surface.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    label: str
-        Label of the part of the MTG concerned by the calculation
-        
-    Returns
-    -------
-    severity_by_leaf: dict([id:nb_lesions])
-        Severity on each part of the MTG given by the label
-    """
-    lesions = g.property('lesions')
-    surfaces = g.property('surface')
-    return {k:(sum(l.surface for l in v)/float(surfaces[k]) if surfaces[k]>0 else 0.) for k,v in lesions.iteritems()}
-    
-def count_dispersal_units(g):
-    """ Count dispersal units of the mtg.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-        
-    Returns
-    -------
-    nb_dispersal_units: int
-        Number of dispersal units on the MTG
-    """
-    dispersal_units = g.property('dispersal_units')
-    return sum(len(l) for l in dispersal_units.itervalues())
-    
-def count_dispersal_units_by_leaf(g, label='LeafElement'):
-    """ Count dispersal units on each part of the MTG given by the label.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    label: str
-        Label of the part of the MTG concerned by the calculation
-        
-    Returns
-    -------
-    nb_dispersal_units_by_leaf: dict([id:nb_dispersal_units])
-        Number of dispersal units on each part of the MTG given by the label
-    """
-    dispersal_units = g.property('dispersal_units')
-    return {k:len(v) for k,v in dispersal_units.iteritems()}
-    
-def plot_lesions(g):
-    """ plot the plant with infected elements in red """
-    green = (0,180,0)
-    red = (180, 0, 0)
-    for v in g.vertices(scale=g.max_scale()) : 
-        n = g.node(v)
-        if 'lesions' in n.properties():
-            n.color = red
-        else : 
-            n.color = green
-    
-    scene = plot3d(g)
-    Viewer.display(scene)
+    distribute_disease(g,
+                       fungal_object='lesion', 
+                       nb_objects=nb_lesions, 
+                       disease_model=disease_model,
+                       initiation_model=initiation_model)

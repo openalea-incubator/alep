@@ -76,7 +76,6 @@ class SeptoriaExchangingRings(Lesion):
         f = self.fungus
         # Compute delta degree days in dt
         self.compute_delta_ddays(dt, leaf)
-        # self.compute_delta_ddays_from_weather(leaf)
         ddday = self.ddday
         
         # If senescence, compute length of growth period before senescence during time step
@@ -128,31 +127,11 @@ class SeptoriaExchangingRings(Lesion):
         f = self.fungus
         # Calculation
         if dt != 0.:
-            ddday = max(0,(leaf.temp - f.basis_for_dday)/(24./dt))
+            ddday = max(0,(leaf.temp - f.basis_for_dday*dt)/(24./dt))
         else:
             ddday = 0.
         # Save variable
         self.ddday = ddday 
-    
-    def compute_delta_ddays_from_weather(self, leaf=None):
-        """ Compute delta degree days from weather data since last call.
-        
-        Parameters
-        ----------
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
-            senescence, rain intensity, wetness, temperature, lesions) 
-        """
-        f = self.fungus
-        temp_list = np.array(leaf.temp_list)
-        dt = len(temp_list)
-        # Calculation
-        if dt != 0.:
-            ddday = max(0, sum((temp_list - f.basis_for_dday))/24.)
-        else:
-            ddday = 0.
-        # Save variable
-        self.ddday = ddday
 
     def compute_time_before_senescence(self, ddday=0., leaf=None):
         """ Compute length of growth period before senescence during time step.
