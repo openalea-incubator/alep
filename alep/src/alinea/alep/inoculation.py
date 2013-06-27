@@ -34,6 +34,7 @@ class RandomInoculation:
             Update directly the MTG
         """        
         vids = [n for n in g if g.label(n).startswith(label)]
+        vids = [vid for vid in vids if vid in g.property('geometry')]
         n = len(vids)
         for vid in vids:
             g.node(vid).dispersal_units = []
