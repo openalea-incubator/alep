@@ -14,7 +14,7 @@ class RandomDispersal:
     dispersal units are randomly distributed.
     
     """
-    def disperse(self, g, dispersal_units):
+    def disperse(self, g, dispersal_units, time_control = None):
         """ Example method for dispersal with random distribution.
         
         Parameters
@@ -30,17 +30,22 @@ class RandomDispersal:
             Dispersal units deposited on new position on leaves
         """
         # vids = scene.todict().keys()
+        try:
+            dt = time_control.dt
+        except:
+            dt = 1
+        
         vids = [id for id,v in g.property('geometry').iteritems()]
         n = len(vids)
         deposits = {}
-
-        for vid, dlist in dispersal_units.iteritems():
-            for d in dlist:
-                if random.random() < 0.1:
-                    if n>=1:
-                        idx = random.randint(0,n-1)
-                        v = vids[idx]
-                        d.position = [0, 0]
-                        deposits.setdefault(v,[]).append(d)
+        if dt > 0:
+            for vid, dlist in dispersal_units.iteritems():
+                for d in dlist:
+                    if random.random() < 0.1:
+                        if n>=1:
+                            idx = random.randint(0,n-1)
+                            v = vids[idx]
+                            d.position = [0, 0]
+                            deposits.setdefault(v,[]).append(d)
         
         return deposits
