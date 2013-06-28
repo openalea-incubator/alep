@@ -42,7 +42,7 @@ def initiate(g,
         if vids:
             # Allocation of stock of inoculum
             initiation_model.allocate(g, fungal_objects_stock, label)
-
+        fungal_objects_stock = [] # stock has been used (avoid uncontrolled future re-use)
     return g
 
 def infect(g, dt, 
