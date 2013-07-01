@@ -30,3 +30,9 @@ models_random_dispersal = Factory(name='RandomDispersal',
                                                nodeclass='RandomDispersal',
                                                )
 __all__.append('models_random_dispersal')
+
+models_random_inoculation = Factory(name='RandomInoculation',
+                                               nodemodule='models',
+                                               nodeclass='RandomInoculation',
+                                               )
+__all__.append('models_random_inoculation')
