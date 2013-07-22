@@ -390,11 +390,11 @@ class ContinuousSeptoria(Lesion):
             self.compute_all_surfaces()
             surface_dead = self.surface_chlo
             # temp
-            assert self.surface_alive - surface_dead == self.surface_nec + self.surface_spo # temp
+            # assert self.surface_alive - surface_dead == self.surface_nec + self.surface_spo # temp
         
         # Update 'surface_alive' and 'surface_dead'
         self.surface_alive -= surface_dead if self.surface_alive > 0. else 0.
-        self.surface_dead = surface_dead
+        self.surface_dead += surface_dead
         
         # Complete the age of the lesion up to the end of time step
         self.age_dday += ddday - ddday_sen
