@@ -2,13 +2,14 @@
 
 """
 # Imports #########################################################################
-from alinea.alep.wheat_examples import adel_mtg2
+from alinea.alep.wheat import adel_mtg2
 from alinea.adel.mtg_interpreter import *
 from alinea.alep.alep_color import alep_colormap, green_yellow_red, green_white
 from openalea.plantgl.all import *
 # from openalea.mtg import color
 
 from alinea.alep.disease_operation import *
+from alinea.alep.disease_outputs import *
 from alinea.alep.architecture import *
 from alinea.alep.inoculation import RandomInoculation
 

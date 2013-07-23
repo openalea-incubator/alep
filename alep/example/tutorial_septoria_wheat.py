@@ -3,14 +3,13 @@ import random as rd
 import numpy as np
 import pandas
 
-from alinea.alep.wheat_examples import adel_mtg, adel_mtg2, adel_one_leaf
+from alinea.alep.wheat import adel_mtg2
 from alinea.alep.architecture import *
 from alinea.alep.disease_operation import *
 from alinea.alep.disease_outputs import *
-from alinea.alep.inoculation import RandomInoculation, InoculationFirstLeaves
+from alinea.alep.inoculation import InoculationFirstLeaves, RandomInoculation
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.septo3d.alep_interfaces import Septo3DSplash
-from alinea.alep.dispersal import RandomDispersal
 from alinea.alep.protocol import *
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
 
@@ -29,11 +28,12 @@ def update_plot(g):
     set_property_on_each_id(g, 'surface_lesions', surface_lesions_by_leaf, label = 'LeafElement')
 
     # Compute severity by leaf
-    # severity_by_leaf = compute_severity_by_leaf(g, label = 'LeafElement')
-    # set_property_on_each_id(g, 'severity', severity_by_leaf, label = 'LeafElement')
+    severity_by_leaf = compute_severity_by_leaf(g, label = 'LeafElement')
+    set_property_on_each_id(g, 'severity', severity_by_leaf, label = 'LeafElement')
 
     # Visualization
     g = alep_colormap(g, 'surface_lesions', cmap=green_yellow_red(levels=10), lognorm=False)
+    # TODO : Normalize the colormap between 0 and 1 /!\
     scene = plot3d(g)
     Viewer.display(scene)
     return scene
@@ -61,8 +61,8 @@ nb_du = 5
 dispersal_units = generate_stock_du(nb_du, disease=septoria)
 
 # Distribute the DU 
-# inoculator = RandomInoculation()
 inoculator = InoculationFirstLeaves()
+# inoculator = RandomInoculation()
 initiate(g, dispersal_units, inoculator)
 # g = color.colormap(g,'length',lognorm=False)
 # scene = plot3d(g)
@@ -72,10 +72,10 @@ initiate(g, dispersal_units, inoculator)
 # Call models that will be used in disease interface
 controler = NoPriorityGrowthControl()
 dispersor = Septo3DSplash(reference_surface=1./200)
-# dispersor = RandomDispersal()
 
 # Choose dates of simulation
 start_date = datetime(2000, 10, 1, 1, 00, 00)
+# end_date = datetime(2000, 10, 10, 00, 00)
 end_date = datetime(2000, 12, 31, 00, 00)
 date = start_date
 
@@ -83,6 +83,7 @@ date = start_date
 weather = Weather(data_file = 'meteo01.csv')
 weather = add_wetness(weather)
 
+# Set schedule of calls for each model
 nsteps = len(pandas.date_range(start_date, end_date, freq='H'))
 
 wheat_timing = TimeControl(delay=1, steps = nsteps)
@@ -90,10 +91,12 @@ septo_timing = TimeControl(delay=1, steps = nsteps)
 weather_timing = TimeControl(delay=1, steps = nsteps)
 plot_timing = TimeControl(delay=24, steps = nsteps)
 timer = TimeControler(wheat = wheat_timing, disease = septo_timing,
-                      weather = weather_timing, ploting = plot_timing)
+                      weather = weather_timing, plotting = plot_timing)
 
 for t in timer:
     print(timer.numiter)
+    
+    # Not needed if wheat model is complete
     set_properties_on_new_leaves(g,label = 'LeafElement',
                              surface=5., healthy_surface=5.,
                              position_senescence=None)
@@ -102,35 +105,25 @@ for t in timer:
     mgc, globalclimate = weather.get_weather(t['weather'].dt, date)
     date = weather.next_date(t['weather'].dt, date)
     
-    # set_properties(g,label = 'LeafElement',
-                    # wetness=globalclimate.wetness.values[0],
-                    # temp=globalclimate.temperature_air.values[0],
-                    # rain_intensity=globalclimate.rain.values[0],
-                    # rain_duration=1.,
-                    # relative_humidity=globalclimate.relative_humidity.values[0],
-                    # wind_speed=globalclimate.wind_speed.values[0])
-
-    if timer.numiter>400 and timer.numiter%100==0:
-        rain_intensity = 2.
-    else:
-        rain_intensity = 0.
-     
     set_properties(g,label = 'LeafElement',
-                    wetness=True,
-                    temp=22.,
-                    rain_intensity=rain_intensity,
+                    wetness=globalclimate.wetness.values[0],
+                    temp=globalclimate.temperature_air.values[0],
+                    rain_intensity=globalclimate.rain.values[0],
                     rain_duration=1.,
-                    relative_humidity=85.,
-                    wind_speed=0.)
+                    relative_humidity=globalclimate.relative_humidity.values[0],
+                    wind_speed=globalclimate.wind_speed.values[0])
+
     # Disease
     infect(g, t['disease'].dt, label='LeafElement')
     update(g, t['disease'].dt, controler, label='LeafElement')
 
-    # if globalclimate.rain.values[0]>0:
-    if rain_intensity>0:
+    if globalclimate.rain.values[0]>0:
         disperse(g, dispersor, "septoria", label='LeafElement')  
 
-    if t['ploting'].dt > 0:
-        print('ploting...')           
-        # scene = update_plot(g)
-        plot_lesions(g)
+    if t['plotting'].dt > 0:
+        print('plotting...')           
+        update_plot(g)
+
+    # Refill pool of initial inoculum to simulate differed availability of inoculum
+    if timer.numiter%10 == 0 and timer.numiter < 100:
+        initiate(g, dispersal_units, inoculator)

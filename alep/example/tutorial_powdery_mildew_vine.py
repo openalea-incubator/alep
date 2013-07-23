@@ -32,8 +32,6 @@ def update_plot(g):
     scene = plot3d(g)
     Viewer.display(scene)
 
-
-
 vine = Vine()
 g0 = vine.setup_canopy(age=6)
 # vine.plot(g0)
@@ -63,7 +61,7 @@ nsteps = 1000
 vine_timing = TimeControl(delay=24, steps = nsteps)
 mildew_timing = TimeControl(delay =1, steps = nsteps)
 plot_timing = TimeControl(delay=24, steps = nsteps)
-timer = TimeControler(vine = vine_timing, disease = mildew_timing, ploting = plot_timing)
+timer = TimeControler(vine = vine_timing, disease = mildew_timing, plotting = plot_timing)
 
 
 g=g0
@@ -90,8 +88,8 @@ def step(t):
     
     g = vine.grow(g,t['vine'])
     scene = plot3d(g)
-    if t['ploting'].dt > 0:
-        print('ploting...')
+    if t['plotting'].dt > 0:
+        print('plotting...')
         update_plot(g)
 
 

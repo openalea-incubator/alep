@@ -301,11 +301,11 @@ def wash(g,
         washing_model.compute_washing_rate(g, global_rain_intensity)
         
         dispersal_units = g.property('dispersal_units')
-        # TODO : sort DU with chosen status before the loop.
         for vid, du in dispersal_units.iteritems():
             if g.label(vid).startswith(label):
                 leaf = g.node(vid)
-                if du: # Sometimes, the list is created but is empty
+                # Sometimes, the list is created but is empty
+                if du: 
                     nb_dus = len(du)
                     nb_washed = int(round(leaf.washing_rate*nb_dus))
                     for dispersal_unit in random.sample(du, nb_washed):
@@ -335,6 +335,7 @@ def control_growth(g, control_model, label="LeafElement"):
     
     """
     control_model.control(g, label)
+    # Note : method is not useful anymore... Integrated into update
     return g,
 
 def nutrients_uptake(g):

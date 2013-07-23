@@ -188,7 +188,7 @@ class SeptoriaParameters(Parameters):
         self.rh_min = rh_min
         self.rain_events_to_empty = rain_events_to_empty
         self.production_rate = production_rate
-        # TODO : Improve this parameter. 
+        # TODO : Improve this parameter. Very Sensitive.
         
     def __call__(self, nb_spores=None, position=None):
         model = self.model

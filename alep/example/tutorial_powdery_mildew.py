@@ -25,7 +25,7 @@ set_properties(g,label = 'LeafElement',
                surface=5, healthy_surface=5, 
                age = 0., position_senescence=None)
                
-# discover the disease implementation for septoriose
+# discover the disease implementation for powdery mildew
 diseases=plugin.discover('alep.disease')
 powdery_mildew = diseases['powdery_mildew'].load()
 
