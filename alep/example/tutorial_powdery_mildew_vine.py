@@ -24,7 +24,8 @@ def update_plot(g):
                        
     # Visualization ###################################################################
     g = alep_colormap(g, 'nb_lesions', cmap=green_white(levels=10), lognorm=False)
-    trunk_ids = [n for n in g if g.label(n).startswith('tronc')]
+    trunk_ids = [k for k,l in labels.iteritems() 
+                if l.startswith('tronc') or l.startswith('en')]
     brown = (100,70,30)
     for id in trunk_ids:
         trunk = g.node(id)

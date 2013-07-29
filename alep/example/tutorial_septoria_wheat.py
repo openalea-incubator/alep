@@ -101,9 +101,8 @@ for t in timer:
                              surface=5., healthy_surface=5.,
                              position_senescence=None)
     
-    # Get weather for date advance date for next simulation step
+    # Get weather for date
     mgc, globalclimate = weather.get_weather(t['weather'].dt, date)
-    date = weather.next_date(t['weather'].dt, date)
     
     set_properties(g,label = 'LeafElement',
                     wetness=globalclimate.wetness.values[0],
@@ -127,3 +126,6 @@ for t in timer:
     # Refill pool of initial inoculum to simulate differed availability of inoculum
     if timer.numiter%10 == 0 and timer.numiter < 100:
         initiate(g, dispersal_units, inoculator)
+
+    # Advance date for next simulation step
+        date = weather.next_date(t['weather'].dt, date)
