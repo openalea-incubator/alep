@@ -5,9 +5,40 @@ into one that provides all the good parameters and organ name definition.
 
 """
 
-def leaves(g, leaf_name='LeafElement'):
-    return [n for n in g if g.label(n).startswith(leaf_name)]
+def get_leaves(g, leaf_name='LeafElement'):
+    labels = g.property('label')
+    return [k for k,l in labels.iteritems() if l.startswith(leaf_name)]
 
+def add_surface_topvine(g, conversion_factor=1000., label='lf'):
+    """ Compute the surface of the leaves in topvine in cm2
+    and add it as a MTG property.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    conversion_factor: float
+        Conversion factor to pass from the default size unit of the MTG to cm2
+    label: str
+        Label of the part of the MTG concerned by the calculation
+    """
+    from openalea.plantgl import all as pgl
+    
+    geometries = g.property('geometry')
+    surf = g.property('surface')
+    h_surf = g.property('healthy_surface')
+    if len(surf)==0:
+        g.add_property('surface')
+        surf = g.property('surface')
+    if len(h_surf)==0:
+        g.add_property('healthy_surface')
+        h_surf = g.property('healthy_surface')
+    new_vids = [n for n in g if g.label(n).startswith(label) if n not in surf]
+    # Add surface information to each leaf
+    surf.update({vid:pgl.surface(geometries[vid][0])*conversion_factor for vid in new_vids})
+    # At start healthy surface equals total surface
+    h_surf.update({vid:surf[vid] for vid in new_vids})
+    
 def default_properties(g,vids,props):
     for name, default in props.iteritems():
         g.add_property(name)
@@ -33,7 +64,7 @@ def set_properties(g,
     g: MTG
         Updated MTG representing the canopy
     """
-    vids = leaves(g,leaf_name=label)
+    vids = get_leaves(g,leaf_name=label)
     default_properties(g,vids,kwds)
     return g
 
@@ -42,7 +73,7 @@ def set_properties_on_new_leaves(g,
                                  **kwds):
     """ Give initial properties to newly emerged leaves.
     """
-    vids = leaves(g,leaf_name=label)
+    vids = get_leaves(g,leaf_name=label)
     for name, default in kwds.iteritems():
         prop = g.property(name)
         new_vids = [n for n in g if g.label(n).startswith(label) if n not in prop]

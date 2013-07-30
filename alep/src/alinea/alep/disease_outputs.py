@@ -110,7 +110,33 @@ def count_dispersal_units_by_leaf(g, label='LeafElement'):
     """
     dispersal_units = g.property('dispersal_units')
     return {k:len(v) for k,v in dispersal_units.iteritems()}
+ 
+def count_dispersal_units_on_lesions(g, label='LeafElement'):
+    """ Count dispersal units on each lesion on the MTG.
     
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    nb_dispersal_units_on_lesions: dict([id:nb_dispersal_units_on_lesions])
+        Number of dispersal units on the lesions on each element of the MTG
+    """
+    lesions = g.property('lesions')
+    nb_dispersal_units_on_lesions = {}
+    for id, lesion_list in lesions.iteritems():
+        nb_dus = 0
+        for l in lesion_list:
+            nb_dus += len(l.dispersal_units)
+        
+        nb_dispersal_units_on_lesions[id] = nb_dus
+    
+    return nb_dispersal_units_on_lesions
+ 
 def plot_lesions(g):
     """ plot the plant with infected elements in red """
     from alinea.adel.mtg_interpreter import plot3d
@@ -128,6 +154,23 @@ def plot_lesions(g):
     scene = plot3d(g)
     Viewer.display(scene)
 
+def plot_dispersal_units(g):
+    """ plot the plant with infected elements in red """
+    from alinea.adel.mtg_interpreter import plot3d
+    from openalea.plantgl.all import Viewer
+    
+    green = (0,180,0)
+    red = (180, 0, 0)
+    for v in g.vertices(scale=g.max_scale()) : 
+        n = g.node(v)
+        if 'dispersal_units' in n.properties():
+            n.color = red
+        else : 
+            n.color = green
+    
+    scene = plot3d(g)
+    Viewer.display(scene)
+    
 def compute_total_severity(g):
     """ Compute disease severity on the whole plant.
     

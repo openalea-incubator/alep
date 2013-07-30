@@ -253,7 +253,6 @@ def disperse(g,
                         # if random.random()<0.05:                        
                             # leaf.dispersal_units.append(d)
                         leaf.dispersal_units.append(d)
-
     return g
 
 def wash(g, 
