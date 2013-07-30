@@ -3,7 +3,9 @@ import random as rd
 import numpy as np
 import pandas
 
-from alinea.alep.wheat import adel_mtg2
+from alinea.adel.astk_interface import AdelWheat
+from alinea.astk.plant_interface import *
+#from alinea.alep.wheat import adel_mtg2
 from alinea.alep.architecture import *
 from alinea.alep.disease_operation import *
 from alinea.alep.disease_outputs import *
@@ -40,29 +42,33 @@ def update_plot(g):
     
 # Initiation ##############################################################################
 # Define a plant or canopy
-g = adel_mtg2()
+wheat = AdelWheat()
+g,_ = new_canopy(wheat,age=100)
 
 # Add missing properties needed for the simulation
 # The simulation requires the following properties on leaf elements:
 #   - 'surface': total surface of the leaf element
 #   - 'healthy_surface': surface of the leaf element without lesion or senescence
 #   - 'position_senescence': position of the senescence on blade axis
-set_properties(g,label = 'LeafElement',
-               surface=5., healthy_surface=5., position_senescence=None)
+#set_properties(g,label = 'LeafElement',
+#               surface=5., healthy_surface=5., position_senescence=None)
                
 # discover the disease implementation for septoriose
 diseases=plugin.discover('alep.disease')
 #septoria_classes = [kls for kls in diseases if kls.load().name == 'septoria']
 # or 
-septoria = diseases['septoria_exchanging_rings'].load()
-
+try:
+    septoria = diseases['septoria_exchanging_rings'].load()
+except KeyError:
+    from alinea.alep.septoria_exchanging_rings import Disease
+    septoria=Disease()
 # Create a pool of dispersal units (DU)
 nb_du = 5
 dispersal_units = generate_stock_du(nb_du, disease=septoria)
 
 # Distribute the DU 
-inoculator = InoculationFirstLeaves()
-# inoculator = RandomInoculation()
+#inoculator = InoculationFirstLeaves()
+inoculator = RandomInoculation()
 initiate(g, dispersal_units, inoculator)
 # g = color.colormap(g,'length',lognorm=False)
 # scene = plot3d(g)
@@ -97,9 +103,9 @@ for t in timer:
     print(timer.numiter)
     
     # Not needed if wheat model is complete
-    set_properties_on_new_leaves(g,label = 'LeafElement',
-                             surface=5., healthy_surface=5.,
-                             position_senescence=None)
+    #set_properties_on_new_leaves(g,label = 'LeafElement',
+    #                         surface=5., healthy_surface=5.,
+    #                         position_senescence=None)
     
     # Get weather for date
     mgc, globalclimate = weather.get_weather(t['weather'].dt, date)
