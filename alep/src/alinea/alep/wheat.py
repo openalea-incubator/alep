@@ -22,7 +22,7 @@ def adelR(nplants,dd):
 def adel_mtg():
     """ create a very simple adel mtg """
     d = {'plant':[1,1],'axe_id':['MS','T1'],'ms_insertion':[0,1],'numphy':[1,1], 
-         'Laz': [0,90], 'Ll' :[3,3], 'Lv' :[3,3] , 'Lsen':[0,0], 'L_shape':[3,3], 'Lw_shape':[.3,.3], 'Linc':[0,0],
+         'Laz': [0,90], 'Ll' :[3,3], 'Lv' :[3,3] ,'Lr':[0,0], 'Lsen':[0,0], 'L_shape':[3,3], 'Lw_shape':[.3,.3], 'Linc':[0,0],
          'Einc':[0,45],'El':[1,1],'Ev':[1,1],'Esen':[0,0],'Ed': [0.1,0.1]}
     g=mtg_factory(d,adel_metamer,leaf_db=adel_data.leaves_db(), leaf_sectors=1)
     g=mtg_interpreter(g)
@@ -31,7 +31,7 @@ def adel_mtg():
 def adel_one_leaf():
     """ create a very simple adel mtg """
     d = {'plant':[1],'axe_id':['MS'],'ms_insertion':[0],'numphy':[1], 
-         'Laz': [0], 'Ll' :[3], 'Lv' :[3] , 'Lsen':[0], 'L_shape':[3], 'Lw_shape':[.3], 'Linc':[0],
+         'Laz': [0], 'Ll' :[3], 'Lv' :[3] , 'Lr': [0], 'Lsen':[0], 'L_shape':[3], 'Lw_shape':[.3], 'Linc':[0],
          'Einc':[0],'El':[0],'Ev':[0],'Esen':[0],'Ed': [0.1]}
     g=mtg_factory(d,adel_metamer,leaf_db=adel_data.leaves_db(), leaf_sectors=1)
     g=mtg_interpreter(g)
@@ -40,7 +40,7 @@ def adel_one_leaf():
 def adel_one_leaf_element():
     """ create a very simple adel mtg """
     d = {'plant':[1],'axe_id':['MS'],'ms_insertion':[0],'numphy':[1], 
-         'Laz': [0], 'Ll' :[3], 'Lv' :[3] , 'Lsen':[0], 'L_shape':[3], 'Lw_shape':[.3], 'Linc':[0],
+         'Laz': [0], 'Ll' :[3], 'Lv' :[3] , 'Lr': [0], 'Lsen':[0], 'L_shape':[3], 'Lw_shape':[.3], 'Linc':[0],
          'Einc':[0],'El':[0],'Ev':[0],'Esen':[0],'Ed': [0.1]}
     g=mtg_factory(d,adel_metamer,leaf_db=adel_data.leaves_db(), leaf_sectors=1)
     g=mtg_interpreter(g)
@@ -102,7 +102,7 @@ def test_adel_mtg3():
     
     """
     p, d = adelR(3,1000)
-    g = adel_mtg3(leaf_db=adel_data.leaves_db(fn = r'../../adel/adel/data/leaves_simple.db'), d=d, p=p)
+    g = adel_mtg3(d=d, p=p)
     scene = plot3d(g)
     Viewer.display(scene)
     return g
