@@ -92,7 +92,7 @@ weather = add_wetness(weather)
 # Set schedule of calls for each model
 nsteps = len(pandas.date_range(start_date, end_date, freq='H'))
 
-wheat_timing = TimeControl(delay=1, steps = nsteps)
+wheat_timing = TimeControl(delay=24, steps = nsteps, model = wheat, weather = weather, start_date = start_date)
 septo_timing = TimeControl(delay=1, steps = nsteps)
 weather_timing = TimeControl(delay=1, steps = nsteps)
 plot_timing = TimeControl(delay=24, steps = nsteps)
@@ -117,7 +117,9 @@ for t in timer:
                     rain_duration=1.,
                     relative_humidity=globalclimate.relative_humidity.values[0],
                     wind_speed=globalclimate.wind_speed.values[0])
-
+    
+    #wheat
+    grow_canopy(g,wheat,t['wheat'])
     # Disease
     infect(g, t['disease'].dt, label='LeafElement')
     update(g, t['disease'].dt, controler, label='LeafElement')
