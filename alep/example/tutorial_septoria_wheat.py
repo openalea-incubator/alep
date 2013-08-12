@@ -207,7 +207,6 @@ for t in timer:
         print('')
         print('Lesions', {k:len(v) for k,v in g.property('lesions').iteritems()})
         
-
 # Display results
 from pylab import *
 for k in green_leaves.iterkeys():
