@@ -36,15 +36,13 @@ class RandomInoculation:
         vids = [n for n in g if g.label(n).startswith(label)]
         vids = [vid for vid in vids if vid in g.property('geometry')]
         n = len(vids)
-        for vid in vids:
-            g.node(vid).dispersal_units = []
             
         for i in inoculum:
             idx = random.randint(0,n-1)
             v = vids[idx]
             leaf = g.node(v)
             # Set a position for i :
-            i.position = [0, 0] # TODO : improve
+            i.position = [random.random(), 0] # TODO : improve
             
             #  Attach it to the leaf
             if isinstance(i, Lesion):
@@ -86,8 +84,6 @@ class InoculationFirstLeaves:
         """        
         vids = [12, 13, 23, 24, 34, 35, 178, 179, 311, 312, 444, 445]
         n = len(vids)
-        for vid in vids:
-            g.node(vid).dispersal_units = []
             
         for i in inoculum:
             idx = random.randint(0,n-1)

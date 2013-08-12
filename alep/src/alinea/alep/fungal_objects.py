@@ -67,7 +67,7 @@ class DispersalUnit(object):
         Parameters
         ----------
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         
         Returns
@@ -165,6 +165,7 @@ class Lesion(object):
             None
         """
         self.growth_is_active = False
+        self.growth_demand = 0.
     
     def disable(self):
         """ Disable all activities of the lesion.
@@ -177,6 +178,7 @@ class Lesion(object):
         """
         self.is_active = False
         self.growth_demand = 0.
+                
     
 # Rings ##################################################################################
 class Ring(object):

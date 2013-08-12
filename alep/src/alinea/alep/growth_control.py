@@ -1,5 +1,5 @@
 """ Gather different strategies for models that coordinate growth of lesion on 
-    leaves according to surface available (i.e. competition).
+    leaves according to area available (i.e. competition).
 
 """
 
@@ -7,7 +7,7 @@
 
 # With no priority between lesions ################################################
 class NoPriorityGrowthControl:
-    """ Template class for a model of competition between lesions for leaf surface.
+    """ Template class for a model of competition between lesions for leaf area.
     
     A class for a model of growth control must include a method 'control'. In this
     example, no priority is defined between lesions in different states. On the 
@@ -16,7 +16,7 @@ class NoPriorityGrowthControl:
     
     """   
     def control(self, g, label='LeafElement'):
-        """ Example to limit lesion growth to the healthy surface on leaves.
+        """ Example to limit lesion growth to the healthy area on leaves.
         
         Parameters
         ----------
@@ -29,45 +29,61 @@ class NoPriorityGrowthControl:
         -------
         None
             Update directly the MTG
+            
+        ..todo:: 
+        - Check for modularity
+        - Assert that leaf surface is not negative
+        
         """
+        from alinea.alep.architecture import set_healthy_area 
+        
         lesions = g.property('lesions')
-        surfaces = g.property('surface')
-        healthy_surfaces = g.property('healthy_surface')
         labels = g.property('label')
-
+        healthy_areas = g.property('healthy_area')           
+        
         # Select all the leaves
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
-            leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
-            leaf_surface = sum(surfaces[lf] for lf in leaf)
-            leaf_healthy_surface = sum(healthy_surfaces[lf] for lf in leaf)
-            
-            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[])]# if l.growth_is_active]
+            try:
+                leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
+                leaf_healthy_area = sum(healthy_areas[lf] for lf in leaf)
+            except:
+                raise NameError('Set healthy area on the MTG before simulation' '\n' 
+                                'See alinea.alep.architecture > set_healthy_area')
+                
+            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.is_active]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
             
-            if total_demand > leaf_healthy_surface:
+            if total_demand > leaf_healthy_area:
                 for l in leaf_lesions:
-                    growth_offer = leaf_healthy_surface * l.growth_demand / total_demand
+                    growth_offer = leaf_healthy_area * l.growth_demand / total_demand
                     l.control_growth(growth_offer=growth_offer)
-                for lf in leaf:
-                    healthy_surfaces[lf] = 0.
+                # for lf in leaf:
+                    # # Update healthy area
+                    # healthy_areas[lf] = 0.
             else:
                 for l in leaf_lesions:
                     growth_offer = l.growth_demand
                     l.control_growth(growth_offer=growth_offer)
-                for lf in leaf:
-                    gd = sum(l.growth_demand for l in lesions.get(lf,[]) if l.growth_is_active)
-                    healthy_surfaces[lf] -= gd
+                # for lf in leaf:
+                    # gd = sum(l.growth_demand for l in lesions.get(lf,[]) if l.is_active)
+                    # # Update healthy area
+                    # healthy_areas[lf] -= gd
                     # /!\ WARNING /!\
                     # This method leads to local healthy surfaces < 0 for leaf elements.
-                    # But the global healthy surface on the entire leaf stays >= 0.
-                    
+                    # But the global healthy area on the entire leaf stays >= 0.
+                    # TODO : if the surface of a phyto-element is < 0, report the loss
+                    # to its neighbour ?
+
+        # Update healthy area after
+        set_healthy_area(g, label = 'LeafElement')
+        
 class GrowthControlVineLeaf:
     """ Class for growth control used when the phyto-element is a vine leaf.
     
     """   
     def control(self, g, label='lf'):
-        """ ELimit lesion growth to the healthy surface on vine leaves.
+        """ ELimit lesion growth to the healthy area on vine leaves.
         
         Parameters
         ----------
@@ -81,29 +97,36 @@ class GrowthControlVineLeaf:
         None
             Update directly the MTG
         """
+        from alinea.alep.architecture import set_healthy_area 
+        
         lesions = g.property('lesions')
-        surfaces = g.property('surface')
-        healthy_surfaces = g.property('healthy_surface')
+        healthy_areas = g.property('healthy_area')
         labels = g.property('label')
-
+        
         # Select all the leaves
         vids = (v for v,l in labels.iteritems() if l.startswith(label))
         for leaf in vids:
-            leaf_surface = surfaces[leaf]
-            leaf_healthy_surface = healthy_surfaces[leaf]
+            try:
+                leaf_healthy_area = healthy_areas[leaf]
+            except:
+                raise NameError('Set healthy area on the MTG before simulation' '\n' 
+                                'See alinea.alep.architecture > set_healthy_area')
             
-            leaf_lesions = [l for l in lesions.get(leaf,[])]
+            leaf_lesions = [l for l in lesions.get(leaf,[]) if l.is_active]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
             
-            if total_demand > leaf_healthy_surface:
+            if total_demand > leaf_healthy_area:
                 for l in leaf_lesions:
-                    growth_offer = leaf_healthy_surface * l.growth_demand / total_demand
+                    growth_offer = leaf_healthy_area * l.growth_demand / total_demand
                     l.control_growth(growth_offer=growth_offer)
-                healthy_surfaces[leaf] = 0.
+                # healthy_areas[leaf] = 0.
             else:
                 for l in leaf_lesions:
                     growth_offer = l.growth_demand
                     l.control_growth(growth_offer=growth_offer)
 
                 gd = sum(l.growth_demand for l in lesions.get(leaf,[]) if l.growth_is_active)
-                healthy_surfaces[leaf] -= gd
+                # healthy_areas[leaf] -= gd
+        
+        # Update healthy area after
+        set_healthy_area(g, label = 'LeafElement')

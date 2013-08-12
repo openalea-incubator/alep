@@ -46,7 +46,7 @@ class SeptoriaDU(DispersalUnit):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
 
         Returns
@@ -55,12 +55,12 @@ class SeptoriaDU(DispersalUnit):
         """
         leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
         temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).
-        healthy_surface = leaf.healthy_surface # (float) : healthy surface (=with no lesion) on the leaf sector during the time step (in cm^2).
+        healthy_area = leaf.healthy_area # (float) : healthy area (=with no lesion) on the leaf sector during the time step (in cm^2).
         try:
             senescence = leaf.position_senescence
         except:
             senescence = None
-        if healthy_surface > 0. :
+        if healthy_area > 0. :
             # TODO : Right way to do this ?
             if self.nb_spores == 0.:
                 self.disable()
@@ -88,6 +88,8 @@ class SeptoriaDU(DispersalUnit):
                         spores_factor = self.nb_spores / self.nb_spores # always equals 1 for now
                         if proba(spores_factor):
                             self.create_lesion(leaf)
+                            # print('l.91 infection septo')
+                            # raise Exception('')
                     elif self.cumul_wetness == 0 :
                         # TODO : Proba conditionnelle doit se cumuler.
                         if proba(self.fungus.loss_rate): 

@@ -70,7 +70,7 @@ class SeptoriaExchangingRings(Lesion):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         """
         f = self.fungus
@@ -83,6 +83,10 @@ class SeptoriaExchangingRings(Lesion):
             self.compute_time_before_senescence(ddday=ddday, leaf=leaf)
             ddday = self.ddday_before_senescence
 
+        if self.surface<0:
+            import pdb
+            pdb.set_trace()
+            
         # Update the age of the lesion
         self.age_dday += ddday
         
@@ -96,11 +100,17 @@ class SeptoriaExchangingRings(Lesion):
             if not self.growth_is_active:
                 # If growth is over, suppress empty surfaces corresponding to young rings
                 self.surface_rings = self.surface_rings[self.surface_rings.nonzero()]
-            if self.age_dday-f.degree_days_to_chlorosis > self.delta_age_ring:
-                # diff = self.delta_age_ring - (self.age_dday - f.degree_days_to_chlorosis)
-                # nb_rings = ceil(float(diff)/f.delta_age_ring)
+            elif self.age_dday-f.degree_days_to_chlorosis > self.delta_age_ring:
+                # Create a new ring when needed
                 self.surface_rings = np.append(self.surface_rings, 0.)
                 self.delta_age_ring += f.delta_age_ring
+                
+                # Attempt to create several rings in one big time step
+                # Note : Failed so far...
+                # diff = self.delta_age_ring - (self.age_dday - f.degree_days_to_chlorosis)
+                # nb_rings = ceil(float(diff)/f.delta_age_ring)
+            
+            # Exchange the surfaces between the rings
             self.exchange_surfaces()
 
         # Update stock of spores
@@ -243,6 +253,7 @@ class SeptoriaExchangingRings(Lesion):
                     if self.first_ring.surface + growth_offer < f.Smin:
                         self.first_ring.grow(growth_offer)
                     else:
+                        # Compute sharing between first ring and following rings
                         go_first_ring = f.Smin - self.first_ring.surface
                         self.first_ring.grow(go_first_ring)
                         go_other_ring = growth_offer - go_first_ring
@@ -393,7 +404,7 @@ class SeptoriaExchangingRings(Lesion):
         Parameters
         ----------
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         
         .. Todo:: Implement a real formalism.
@@ -446,7 +457,7 @@ class SeptoriaExchangingRings(Lesion):
         Parameters
         ----------
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
        
         Returns
@@ -511,7 +522,7 @@ class SeptoriaExchangingRings(Lesion):
             s = s[-(nb_full_rings+1):]
         
         # Update 'surface_alive' and 'surface_dead'
-        self.surface_alive -= surface_dead if self.surface_alive > 0. else 0.
+        self.surface_alive = max(0, self.surface_alive - surface_dead)
         self.surface_dead = surface_dead
         
         # Complete the age of the lesion up to the end of time step
@@ -545,7 +556,7 @@ class SeptoriaExchangingRings(Lesion):
             Surface of the whole lesion (cm2)
         """
         return self.surface_dead + self.surface_alive
-            
+       
     @property
     def status(self):
         """ Compute the status of the lesion.
@@ -577,7 +588,7 @@ class SeptoriaExchangingRings(Lesion):
         """
         if self.first_ring:
             self.first_ring.status = value
-        
+            
 # Rings ###########################################################################
 class FirstRing(Ring):
     """ First ring of a lesion of septoria.
@@ -692,6 +703,7 @@ class FirstRing(Ring):
             None
         """
         self.growth_is_active = False
+        self.growth_demand = 0.
     
     def disable(self):
         """ Disable all activities of the ring.

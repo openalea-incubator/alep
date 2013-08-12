@@ -43,8 +43,8 @@ class RapillyWashing:
                 leaf = g.node(v)
                 rain_int = leaf.rain_intensity
                 rain_dur = leaf.rain_duration
-                healthy_surf = leaf.healthy_surface
-                # leaf.washing_rate = max(0, min(1, rain_int/(healthy_surf+rain_int)*rain_dur))
+                healthy_area = leaf.healthy_area
+                # leaf.washing_rate = max(0, min(1, rain_int/(healthy_area+rain_int)*rain_dur))
             
                 leaf.washing_rate = 0.2
             

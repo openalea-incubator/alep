@@ -5,12 +5,12 @@ into one that provides all the good parameters and organ name definition.
 
 """
 
-def get_leaves(g, leaf_name='LeafElement'):
+def get_leaves(g, label='LeafElement'):
     labels = g.property('label')
-    return [k for k,l in labels.iteritems() if l.startswith(leaf_name)]
+    return [k for k,l in labels.iteritems() if l.startswith(label)]
 
-def add_surface_topvine(g, conversion_factor=1000., label='lf'):
-    """ Compute the surface of the leaves in topvine in cm2
+def add_area_topvine(g, conversion_factor=1000., label='lf'):
+    """ Compute the area of the leaves in topvine in cm2
     and add it as a MTG property.
     
     Parameters
@@ -25,19 +25,19 @@ def add_surface_topvine(g, conversion_factor=1000., label='lf'):
     from openalea.plantgl import all as pgl
     
     geometries = g.property('geometry')
-    surf = g.property('surface')
-    h_surf = g.property('healthy_surface')
-    if len(surf)==0:
-        g.add_property('surface')
-        surf = g.property('surface')
+    area = g.property('area')
+    h_area = g.property('healthy_area')
+    if len(area)==0:
+        g.add_property('area')
+        area = g.property('area')
     if len(h_surf)==0:
-        g.add_property('healthy_surface')
-        h_surf = g.property('healthy_surface')
-    new_vids = [n for n in g if g.label(n).startswith(label) if n not in surf]
-    # Add surface information to each leaf
-    surf.update({vid:pgl.surface(geometries[vid][0])*conversion_factor for vid in new_vids})
-    # At start healthy surface equals total surface
-    h_surf.update({vid:surf[vid] for vid in new_vids})
+        g.add_property('healthy_area')
+        h_area = g.property('healthy_area')
+    new_vids = [n for n in g if g.label(n).startswith(label) if n not in area]
+    # Add area information to each leaf
+    area.update({vid:pgl.surface(geometries[vid][0])*conversion_factor for vid in new_vids})
+    # At start healthy area equals total area
+    h_area.update({vid:area[vid] for vid in new_vids})
     
 def default_properties(g,vids,props):
     for name, default in props.iteritems():
@@ -50,7 +50,7 @@ def default_properties(g,vids,props):
 def set_properties(g,
                    label = 'LeafElement',
                    **kwds):
-    """ Give initial values for plant properties of each LeafElement. 
+    """ Give values for plant properties of each LeafElement. 
     
     Parameters
     ----------
@@ -64,16 +64,42 @@ def set_properties(g,
     g: MTG
         Updated MTG representing the canopy
     """
-    vids = get_leaves(g,leaf_name=label)
+    vids = get_leaves(g, label=label)
     default_properties(g,vids,kwds)
     return g
 
+def set_healthy_area(g, label = 'LeafElement'):
+    """ Set values for healthy area to each LeafElement. 
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy
+    healthy_areas: dict([vid:healthy_area])
+        Dictionary of healthy area (in cm2) of each vid
+    """
+    from alinea.alep.disease_outputs import compute_healthy_area_by_leaf
+    from alinea.alep.architecture import set_properties
+    healthy_areas = g.property('healthy_area')
+    if len(healthy_areas)==0:
+        g.add_property('healthy_area')
+        healthy_areas = g.property('healthy_area')
+    healthy_areas.update(compute_healthy_area_by_leaf(g, label))
+    return g
+    
 def set_properties_on_new_leaves(g,
                                  label = 'LeafElement',
                                  **kwds):
     """ Give initial properties to newly emerged leaves.
     """
-    vids = get_leaves(g,leaf_name=label)
+    vids = get_leaves(g, label=label)
     for name, default in kwds.iteritems():
         prop = g.property(name)
         new_vids = [n for n in g if g.label(n).startswith(label) if n not in prop]

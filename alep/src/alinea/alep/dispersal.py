@@ -82,6 +82,16 @@ class PowderyMildewWindDispersal:
     def disperse(self, g, dispersal_units, time_control = None):
         """ Compute dispersal of spores of powdery mildew by wind in a cone.
         
+        For each source of dispersal units, create a cone of dispersal 
+        in which target leaves are sorted:
+        1. according to the wind direction
+        2. according to the angle a0
+        3. according to the distance from the source
+        
+        Then distribute dispersal units from the closer target to the more far.
+        The number of dispersal units by target leaf is computed as in
+        Calonnec et al. 2008.
+        
         Parameters
         ----------
         g: MTG
@@ -108,7 +118,7 @@ class PowderyMildewWindDispersal:
             from collections import OrderedDict
             geometries = g.property('geometry')
             centroids = g.property('centroid')
-            surfaces = g.property('surface')
+            areas = g.property('area')
             wind_directions = g.property('wind_direction')
             tesselator = pgl.Tesselator()
             bbc = pgl.BBoxComputer(tesselator)
@@ -120,8 +130,8 @@ class PowderyMildewWindDispersal:
                 center = bbc.result.getCenter()
                 centroids[vid] = center
             
-            def surface(vid):
-                surfaces[vid] = pgl.surface(geometries[vid][0])*1000
+            def area(vid):
+                areas[vid] = pgl.surface(geometries[vid][0])*1000
             
             for source, dus in dispersal_units.iteritems():
                 # TODO: Special computation for interception by source leaf
@@ -154,7 +164,7 @@ class PowderyMildewWindDispersal:
                 shuffle(dus)
                 n = len(dus)
                 for leafid in distances:
-                    qc = min(n, (n * (surfaces[leafid]/self.reduction) * 
+                    qc = min(n, (n * (areas[leafid]/self.reduction) * 
                          exp(-self.cid * distances[leafid]) * 
                          (self.a0 - angles[leafid])/self.a0))
                     if qc < 1:

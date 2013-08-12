@@ -66,10 +66,10 @@ class WheatSeptoriaPositionedSenescence:
         lesions = g.property('lesions')
         for v in vids:
             leaf = g.node(v)
-            leaf_lesions = [l for l in lesions.get(v,[])]
+            leaf_lesions = [l for l in lesions.get(v,[]) if l.is_active and not l.is_senescent]
             if leaf_lesions:
                 for l in leaf_lesions:
-                    if leaf.position_senescence and l.position[0] >= leaf.position_senescence:
+                    if leaf.position_senescence!=None and l.position[0] >= leaf.position_senescence:
                         l.become_senescent(old_position_senescence = self.position_senescence[v])
             
             # Save senescence position for next time step

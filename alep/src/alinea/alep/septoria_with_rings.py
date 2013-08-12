@@ -82,10 +82,12 @@ class SeptoriaWithRings(Lesion):
         nb_rings_initial = len(self.rings)
         # Note that new rings can be added in this time step, 
         # their update is managed by another module
+        # The 'nb_rings_initial' is used to avoid increasing the loop 
+        # inside the loop
         for i in range(nb_rings_initial):
-        # for ring in self.rings:
-            self.rings[i].update(ddday=ddday, lesion=self)
-        
+            if self.rings[i].is_active:
+                self.rings[i].update(ddday=ddday, lesion=self)
+
         # Update the perception of rain by the lesion
         if self.status == f.SPORULATING:
             if leaf.rain_intensity > 0. and leaf.relative_humidity >= f.rh_min:
@@ -111,8 +113,8 @@ class SeptoriaWithRings(Lesion):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
-            senescence, rain intensity, wetness, temperature, lesions) 
+            A leaf sector with properties (e.g. area, green area, healthy area,
+            senescence, rain intensity, wetness, temperature, lesions)
         """
         f = self.fungus
         # Calculation
@@ -143,9 +145,9 @@ class SeptoriaWithRings(Lesion):
                 ring.control_growth(ring_growth_offer, lesion=self)
         
         # Update stock_spores
+        # Note : calculation can only be done at this point, 
+        # when surface is increased with growth offer.
         new_rings_sporulating = [r for r in self.rings if (r.is_sporulating(fungus=f) and r.stock_spores==None)]
-        # Note: at initiation, stock_spores=-1. It is only filled once.
-        # The aim is to avoid refilling it when it falls back to 0.
         if new_rings_sporulating:
             for ring in new_rings_sporulating:
                 ring.update_stock(lesion=self)
@@ -155,9 +157,6 @@ class SeptoriaWithRings(Lesion):
             self.disable_growth()
             for r in self.rings:
                 r.disable_growth()
-
-        # Update surface dead
-        self.update_surface_dead()
                 
     def update_surface_dead(self):
         """ Update surface dead of the lesion and disable it if no ring active.
@@ -172,7 +171,7 @@ class SeptoriaWithRings(Lesion):
         self.rings = [ring for ring in self.rings if ring.is_active]
 
         # Disable lesion when no ring left
-        if not self.rings:
+        if len(self.rings)==0:
             self.disable()
         
     def compute_time_before_senescence(self, ddday=0., leaf=None):
@@ -204,7 +203,7 @@ class SeptoriaWithRings(Lesion):
         # Turn on 'is_senescent'
         self.is_senescent = True
         # Save position of senescence the time step before.
-        self.old_position_senescence = old_position_senescence
+        self.old_position_senescence = old_position_senescence       
         
     def senescence_response(self, time_since_sen=0.):
         """ Kill rings affected by senescence and achieve ageing of the other rings
@@ -222,6 +221,8 @@ class SeptoriaWithRings(Lesion):
         """
         f = self.fungus
         
+        # Completion of the age of the lesion up to the end of time step
+        # Note : Age was stopped for update at the time of senescence occurence 
         dday_since_senescence = self.ddday - self.ddday_before_senescence 
         self.age_dday += dday_since_senescence
         
@@ -247,7 +248,7 @@ class SeptoriaWithRings(Lesion):
         Parameters
         ----------
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         
         Returns
@@ -260,6 +261,10 @@ class SeptoriaWithRings(Lesion):
                 ring_emissions = ring.emission(leaf, lesion=self)
                 if ring_emissions:
                     emissions += ring_emissions
+        
+        # Sort the rings that are empty
+        self.update_surface_dead()
+        
         return emissions    
         
     def is_dead(self):
@@ -371,22 +376,6 @@ class SeptoriaWithRings(Lesion):
         """
         if self.rings:
             return self.rings[0].status
-            
-    # @property
-    # def age_dday(self):
-        # """ Compute the thermal age of the lesion.
-        
-        # Parameters
-        # ----------
-            # None
-            
-        # Returns
-        # -------
-        # age_dday: float
-            # Age of the lesion in degree days
-        # """
-        # if self.rings:
-            # return self.rings[0].age_dday
 
     @status.setter
     def status(self, value):
@@ -451,15 +440,14 @@ class SeptoriaRing(Ring):
         self.delta_growth = 0.
         # Delta age to complete the ring
         if len(lesion.rings)==0.:
-            self.delta_age_ring = f.degree_days_to_chlorosis + f.delta_age_ring
+            self.delta_age_ring = f.degree_days_to_chlorosis #+ f.delta_age_ring
         else:
             self.delta_age_ring = f.delta_age_ring
         # Activity of the ring
         self.is_active = True
         # Growth activity of the ring
         self.growth_is_active = True
-        
-        # See later for dispersion
+        # Dispersion
         self.cumul_rain_event = 0.
         self.rain_before = False
         self.stock_spores = None
@@ -502,28 +490,23 @@ class SeptoriaRing(Ring):
             The lesion carrying the ring, with properties 
             (e.g. fungus parameters, surface, status, age, rings, etc.)            
         """
+        assert self.is_active
+        
         f = lesion.fungus
         # Ageing of the ring
         self.age_dday += ddday
-        if not self.is_in_formation(fungus=f):
-            # Compute status of the ring
-            self.stage(lesion=lesion)
-        else:
+        if self.is_in_formation(fungus=f):
             # Create new rings if needed
-            if ddday > self.delta_age_ring:
-                self.create_new_rings(ddday=(ddday - self.delta_age_ring), lesion=lesion)
+            if self.age_dday > self.delta_age_ring:
+                self.create_new_rings(ddday=(self.age_dday - self.delta_age_ring), lesion=lesion)
                 # Update delta age of growth
-                self.delta_growth = self.delta_age_ring
-                # Reset delta_age_ring
-                self.delta_age_ring = None
+                self.delta_growth = self.delta_age_ring - (self.age_dday - ddday)
             else:
                 # Update delta age of growth
                 self.delta_growth = ddday
-                # Update delta age left until growth completion
-                self.delta_age_ring -= ddday
-            
-            # Compute status of the ring
-            self.stage(lesion=lesion)
+
+        # Compute status of the ring
+        self.stage(lesion=lesion)
                 
     def create_new_rings(self, ddday=0., lesion=None):
         """ Add rings to lesion list of rings if needed.
@@ -548,13 +531,13 @@ class SeptoriaRing(Ring):
         # Creation of the following rings with properties ('age_dday', 'delta_growth', 'delta_age_ring')
         while list_of_rings[-1].age_dday > list_of_rings[-1].delta_age_ring:
             ddday -= list_of_rings[-1].delta_age_ring
-            list_of_rings[-1].delta_age_ring = None
+            # list_of_rings[-1].delta_age_ring = None
             new_ring = SeptoriaRing(lesion=lesion, status=f.CHLOROTIC)
             list_of_rings.append(new_ring)
             list_of_rings[-1].age_dday = ddday
             list_of_rings[-1].delta_growth = min(ddday, list_of_rings[-1].delta_age_ring)
             
-        list_of_rings[-1].delta_age_ring -= list_of_rings[-1].age_dday
+        # list_of_rings[-1].delta_age_ring -= list_of_rings[-1].age_dday
                 
         # Status of new rings
         for ring in list_of_rings:
@@ -598,14 +581,14 @@ class SeptoriaRing(Ring):
         """
         f = lesion.fungus
 
-        # Add surface
+        # Increase surface with growth offer
         self.surface += growth_offer
-
+        
         if self.surface==0. and growth_offer == 0.:
             # Turn off the ring
             self.disable()
-        elif self.delta_age_ring == None:
-            # Turn off growth activity if no delta age left before growth completion
+        elif growth_offer < self.growth_demand or self!=lesion.rings[-1]:
+            # Disable growth
             self.disable_growth()
         
     def incubating(self, lesion=None, **kwds):
@@ -679,35 +662,19 @@ class SeptoriaRing(Ring):
             self.status = f.SPORULATING
 
     def sporulating(self, lesion=None, **kwds):
-        """ Compute the number of rain events on the ring, 
-        and update the status of the ring when needed.
+        """ Just for debugging - Assert the ring is in sporulation.
         
-        A sporulating ring bears fructifications containing dispersal units.
-        These dispersal units are spread by the rain if the relative humidity
-        is greater than or equal to 85%. It is assumed that the ring is EMPTY
-        after 3 separate rain events.
+        A sporulating ring bears fructifications containing spores.
         
         Parameters
         ----------
         lesion : Lesion instantiation
             The lesion carrying the ring, with properties 
-            (e.g. fungus parameters, surface, status, age, rings, etc.)
-
-        .. Todo:: Enhance the code to parametrize the code with a function.
+            (e.g. fungus parameters, surface, status, age, rings, etc.
         """
         f = lesion.fungus
         assert self.is_sporulating(fungus=f)
-        
-        # Count dispersal events
-        # if lesion.first_rain_hour:
-            # self.cumul_rain_event += 1
-        
-        # Empty the ring after 3 rain events
-        # if self.cumul_rain_event >= f.rain_events_to_empty:
-            # self.empty(lesion)
-            
-        # self.update_stock(lesion=lesion)
-        
+                
     def update_stock(self, lesion=None):
         """ Update the stock of spores on the ring.
         
@@ -724,9 +691,6 @@ class SeptoriaRing(Ring):
         production = self.surface * f.production_rate           
         nb_spores_produced = int(round(production))
         self.stock_spores = nb_spores_produced
-        # Note: explains the +1 above :
-        # At initiation stock_spores=-1. It is only filled once.
-        # The aim is to avoid refilling it when it falls back to 0.
 
     def emission(self, leaf=None, lesion=None, **kwds):
         """ Create a list of dispersal units emitted by the ring.
@@ -849,7 +813,8 @@ class SeptoriaRing(Ring):
             None
         """
         self.is_active = False
-        
+        self.growth_demand = 0.
+                
     def disable_growth(self):
         """ Shut down lesion growth activity (turn it to False).
         

@@ -44,7 +44,7 @@ class PowderyMildewDU(DispersalUnit):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
 
         Returns
@@ -115,7 +115,7 @@ class PowderyMildewDU(DispersalUnit):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         """
         self.age_dday += self.compute_delta_ddays(dt, leaf)
@@ -128,7 +128,7 @@ class PowderyMildewDU(DispersalUnit):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         
         Returns
@@ -155,7 +155,7 @@ class PowderyMildewDU(DispersalUnit):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         """
         f = self.fungus
@@ -244,7 +244,7 @@ class PowderyMildew(Lesion):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         """       
         # Update lesion age
@@ -271,7 +271,7 @@ class PowderyMildew(Lesion):
         Parameters
         ----------
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         """
         # Parameters for the calculation
@@ -437,7 +437,7 @@ class PowderyMildew(Lesion):
         n = f.n_for_sporulation
                 
         # Production of spores during dt
-        max_rate = beta*exp(gamma*surface)*dt
+        max_rate = beta*exp(gamma*surface)*dt/24
         t_norm_function = temp_norm_function(temp, t_min, t_max, m, n)
         production = max_rate * t_norm_function
         
@@ -451,7 +451,7 @@ class PowderyMildew(Lesion):
         Parameters
         ----------
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         """
         # Parameters for the calculation

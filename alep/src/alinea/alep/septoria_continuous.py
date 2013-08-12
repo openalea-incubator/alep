@@ -69,7 +69,7 @@ class ContinuousSeptoria(Lesion):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         """
         f = self.fungus
@@ -121,8 +121,8 @@ class ContinuousSeptoria(Lesion):
         dt: int
             Time step of the simulation (in hours)
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
-            senescence, rain intensity, wetness, temperature, lesions) 
+            A leaf sector with properties (e.g. area, green area, healthy area,
+            senescence, rain intensity, wetness, temperature, lesions)
         """
         f = self.fungus
         # Calculation
@@ -141,7 +141,7 @@ class ContinuousSeptoria(Lesion):
         ddday: float
             Delta degree days during 'dt'
         leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. healthy surface,
+            A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions)
         """
         old_pos = self.old_position_senescence
@@ -379,6 +379,10 @@ class ContinuousSeptoria(Lesion):
         ddday = self.ddday
         ddday_sen = self.ddday_before_senescence
         
+        # Complete the age of the lesion up to the end of time step
+        # Note : Age was stopped for update at the time of senescence occurence
+        self.age_dday += ddday - ddday_sen
+        
         # Stop growth
         self.disable_growth()
         
@@ -396,9 +400,6 @@ class ContinuousSeptoria(Lesion):
         self.surface_alive -= surface_dead if self.surface_alive > 0. else 0.
         self.surface_dead += surface_dead
         
-        # Complete the age of the lesion up to the end of time step
-        self.age_dday += ddday - ddday_sen
-
     def update_stock(self):
         """ Update the stock of spores produced by the lesion.
         

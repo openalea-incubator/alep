@@ -46,7 +46,7 @@ def initiate(g,
     return g
 
 def infect(g, dt, 
-          position_checker_model=None, 
+          infection_control_model=None, 
           label="LeafElement",
           activate=True):
     """ Compute infection success by dispersal units.
@@ -56,8 +56,8 @@ def infect(g, dt,
     g: MTG
         MTG representing the canopy (and the soil)
         'dispersal_units' are stored in the MTG as a property
-    position_checker_model: model
-        Model that disable the DU if it falls on an existing lesion or senescent tissue
+    infection_control_model: model
+        Model that checks if the dispersal unit can infect at its position
         Requires methods: 'check position' and 'disable' (see doc)
     dt: int
         Time step of the simulation
@@ -85,10 +85,10 @@ def infect(g, dt,
       >>> return g
       
     """
-    if activate:
+    if activate:      
         # Check if its position prevent it from infecting (optional)
-        if position_checker_model:
-            position_checker_model.check_position(g)
+        if infection_control_model:
+            infection_control_model.check_position(g)
         
         # Find dispersal units on MTG
         dispersal_units = g.property('dispersal_units')
@@ -154,31 +154,31 @@ def update(g, dt,
     
     """
     if activate:
-        # 1. Determine which lesions will be affected by senescence (optional)
-        if senescence_model:
-            senescence_model.find_senescent_lesions(g, dt)
-        
-        # 2. Compute growth demand
-        lesions = g.property('lesions')
-        for vid, l in lesions.iteritems():
-            # Remove inactive lesions
-            l = [les for les in l if les.is_active]
-            # lesions[vid] = l
-            # Update active lesions
-            for lesion in l:
-                leaf=g.node(vid)
-                lesion.update(dt, leaf)
-        
-        # 3. Allocate or not growth demand, and compute corresponding production of spores 
-        growth_control_model.control(g, label=label)
-        
-        if senescence_model:
-            # 4. Call a specific response if lesions are on senescent tissue
-            lesions = g.property('lesions')
-            l = [l for les in lesions.values() for l in les if l.is_senescent]
-            for lesion in l:             
-                lesion.senescence_response()
-    
+        # Get lesions with inactive lesions removed
+        lesions = {k:[l for l in les if l.is_active] 
+                    for k, les in g.property('lesions').iteritems()}
+                    
+        if len(lesions)>0:
+            # 1. Determine which lesions will be affected by senescence (optional)
+            if senescence_model:
+                senescence_model.find_senescent_lesions(g, dt)
+            
+            # 2. Compute growth demand
+            for vid, l in lesions.iteritems():
+                # Update active lesions
+                for lesion in l:
+                    leaf=g.node(vid)
+                    lesion.update(dt, leaf)
+            
+            # 3. Allocate or not growth demand, and compute corresponding production of spores 
+            growth_control_model.control(g, label=label)
+            
+            if senescence_model:
+                # 4. Call a specific response if lesions are on senescent tissue
+                # lesions = g.property('lesions')
+                l = [l for les in lesions.values() for l in les if l.is_senescent]
+                for lesion in l:             
+                    lesion.senescence_response()     
     return g
     
 def disperse(g, 
@@ -227,8 +227,9 @@ def disperse(g,
     
     """
     if activate:
-        # Release of dispersal units 
-        lesions = g.property('lesions')   
+        # Get lesions with inactive lesions removed
+        lesions = {k:[l for l in les if l.is_active] 
+                    for k, les in g.property('lesions').iteritems()}  
         DU = {}
         for vid, l in lesions.iteritems():
             for lesion in l:
@@ -236,7 +237,7 @@ def disperse(g,
                     leaf = g.node(vid)
                     if vid not in DU:
                         DU[vid] = []
-                    DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
+                    DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf        
         # Transport of dispersal units
         if DU:
             deposits = dispersal_model.disperse(g, DU) # update DU in g , change position, status
@@ -245,6 +246,8 @@ def disperse(g,
                 if g.label(vid).startswith(label):
                     leaf = g.node(vid)
                     for d in dlist:
+                        print("l.249 protocol : DISPERSAL EVENT")
+                        # raise Exception('dispersal')
                         d.deposited()
                         if not 'dispersal_units' in leaf.properties():
                             leaf.dispersal_units=[]  

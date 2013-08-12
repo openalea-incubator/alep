@@ -51,6 +51,7 @@ def alep_colormap(g, property_name, cmap='jet',lognorm=True):
             
     norm = Normalize() if not lognorm else LogNorm() 
     values = norm(v)
+    # values = v
 
     colors = (_cmap(values)[:,0:3])*255
     colors = np.array(colors,dtype=np.int).tolist()
