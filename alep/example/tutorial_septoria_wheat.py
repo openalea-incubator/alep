@@ -2,6 +2,7 @@
 import random as rd
 import numpy as np
 import pandas
+from datetime import datetime
 
 from alinea.adel.astk_interface import AdelWheat
 from alinea.astk.plant_interface import *
@@ -21,7 +22,6 @@ from alinea.alep.alep_color import alep_colormap, green_yellow_red
 
 from alinea.alep.alep_weather import add_wetness
 from alinea.weather.global_weather import *
-from datetime import datetime
 
 from openalea.vpltk import plugin
 
@@ -50,6 +50,20 @@ def update_plot(g):
     Viewer.display(scene)
     return scene
     
+
+def plugin_septoria():
+    diseases=plugin.discover('alep.disease')
+    #septoria_classes = [kls for kls in diseases if kls.load().name == 'septoria']
+
+    try:
+        septoria = diseases['septoria_exchanging_rings'].load()
+        # septoria = diseases['septoria_continuous'].load()
+        # septoria = diseases['septoria_with_rings'].load()
+    except KeyError:
+        from alinea.alep.septoria_exchanging_rings import Disease
+        septoria=Disease()
+    return septoria
+
 # Initiation ##############################################################################
 # Define a plant or canopy
 wheat = AdelWheat()
@@ -70,16 +84,8 @@ set_healthy_area(g, label = 'LeafElement')
               # surface=5., healthy_surface=5., position_senescence=None)
                
 # discover the disease implementation for septoriose
-diseases=plugin.discover('alep.disease')
-#septoria_classes = [kls for kls in diseases if kls.load().name == 'septoria']
-# or 
-try:
-    septoria = diseases['septoria_exchanging_rings'].load()
-    # septoria = diseases['septoria_continuous'].load()
-    # septoria = diseases['septoria_with_rings'].load()
-except KeyError:
-    from alinea.alep.septoria_exchanging_rings import Disease
-    septoria=Disease()
+septoria = plugin_septoria()
+
 # Create a pool of dispersal units (DU)
 nb_dus = 10
 # nb_dus = 100
@@ -98,7 +104,7 @@ dispersor = Septo3DSplash(reference_surface=1./200)
 # Choose dates of simulation
 start_date = datetime(2000, 10, 1, 1, 00, 00)
 end_date = datetime(2001, 04, 01, 00, 00)
-# end_date = datetime(2000, 12, 31, 00, 00)
+#end_date = datetime(2000, 12, 31, 00, 00)
 date = start_date
 
 # Read weather between date and add wetness

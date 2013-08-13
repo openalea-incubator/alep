@@ -49,7 +49,7 @@ def alep_colormap(g, property_name, cmap='jet',lognorm=True):
     else:
         _cmap = cmap
             
-    norm = Normalize() if not lognorm else LogNorm() 
+    norm = Normalize(vmin=0, vmax=1.) if not lognorm else LogNorm(vmin=0, vmax=1.) 
     values = norm(v)
     # values = v
 
