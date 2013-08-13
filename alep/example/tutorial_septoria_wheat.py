@@ -27,6 +27,9 @@ from openalea.vpltk import plugin
 
 from alinea.astk.TimeControl import *
 
+rd.seed(0)
+np.random.seed(0)
+
 # Useful functions ########################################################################
 def update_plot(g):       
     # Count lesion surfaces by id & add it as MTG property 
@@ -131,7 +134,7 @@ healthy_leaves = {leaf:[] for leaf in leaves}
 sen_leaves = {leaf:[] for leaf in leaves}
 
 for t in timer:
-    print(timer.numiter)
+    #print(timer.numiter)
     
     # Not needed if wheat model is complete
     #set_properties_on_new_leaves(g,label = 'LeafElement',
@@ -200,7 +203,7 @@ for t in timer:
         green_leaves[leaf].append(g.node(leaf).green_area)
         healthy_leaves[leaf].append(g.node(leaf).healthy_area)
         
-    if t['plotting'].dt > 0:
+    if False and t['plotting'].dt > 0:
         print('area', g.property('area'))
         print('')
         print('green area', g.property('green_area'))
