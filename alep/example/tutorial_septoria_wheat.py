@@ -47,7 +47,7 @@ def update_plot(g):
     set_property_on_each_id(g, 'severity', severity_by_leaf, label = 'LeafElement')
 
     # Visualization
-    g = alep_colormap(g, 'surface_lesions', cmap=green_yellow_red(levels=10), lognorm=False)
+    g = alep_colormap(g, 'surface_lesions', cmap=green_yellow_red(levels=100), lognorm=False)
     # TODO : Normalize the colormap between 0 and 1 /!\
     scene = plot3d(g)
     Viewer.display(scene)

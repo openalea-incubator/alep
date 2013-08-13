@@ -105,7 +105,8 @@ class SeptoriaExchangingRings(Lesion):
                 # If growth is over, suppress empty surfaces corresponding to young rings
                 #self.surface_rings = self.surface_rings[self.surface_rings.nonzero()]
                 pass
-            elif self.age_dday-f.degree_days_to_chlorosis > self.delta_age_ring:
+            # elif self.age_dday-f.degree_days_to_chlorosis > self.delta_age_ring:
+            if self.age_dday-f.degree_days_to_chlorosis > self.delta_age_ring:
                 # Create a new ring when needed
                 self.surface_rings = np.append(self.surface_rings, 0.)
                 self.delta_age_ring += f.delta_age_ring
