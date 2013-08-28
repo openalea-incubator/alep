@@ -29,7 +29,7 @@ def green_lightblue_blue(levels=10):
              (0., 0., 1.)]
     return LinearSegmentedColormap.from_list(colors=colors, name='green_lightblue_blue', N=levels)
                                              
-def alep_colormap(g, property_name, cmap='jet',lognorm=True):
+def alep_colormap(g, property_name, cmap='jet', lognorm=True, zero_to_one=True, vmax=None):
     """ Apply a colormap on a given MTG property to compute the 'color' property
 
     The colormap are thus defined in matplotlib.
@@ -47,8 +47,14 @@ def alep_colormap(g, property_name, cmap='jet',lognorm=True):
             raise Exception('This colormap does not exist')
     else:
         _cmap = cmap
-            
-    norm = Normalize(vmin=0, vmax=1.) if not lognorm else LogNorm(vmin=0, vmax=1.) 
+    
+    if zero_to_one == True:
+        norm = Normalize(vmin=0, vmax=1.) if not lognorm else LogNorm(vmin=0, vmax=1.)
+    else:
+        if vmax!=None:
+            norm = Normalize(vmin=0, vmax=vmax) if not lognorm else LogNorm(vmin=0, vmax=vmax)
+        else:
+            norm = Normalize(vmin=0, vmax=max(v)) if not lognorm else LogNorm(vmin=0, vmax=max(v))
     values = norm(v)
     # values = v
 
@@ -57,8 +63,7 @@ def alep_colormap(g, property_name, cmap='jet',lognorm=True):
 
     g.properties()['color'] = dict(zip(keys,colors))
     return g
-
-    
+   
 def plot_pesticide(g, property_name='surfacic_doses', compound_name='Epoxiconazole', cmap=green_lightblue_blue, lognorm=False):
     """ plot the plant with pesticide doses """
     prop = g.property(property_name)

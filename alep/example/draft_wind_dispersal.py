@@ -31,7 +31,7 @@ def update_plot(g):
     set_property_on_each_id(g, 'nb_dus', nb_dus_by_leaf, label = 'lf')
     
     # Visualization
-    g = alep_colormap(g, 'nb_dus', cmap=green_yellow_red(levels=10), lognorm=False)
+    g = alep_colormap(g, 'nb_dus', cmap=green_yellow_red(levels=10), lognorm=False, zero_to_one=False)
     labels = g.property('label')
     trunk_ids = [k for k,l in labels.iteritems() 
                 if l.startswith('tronc') or l.startswith('en')]

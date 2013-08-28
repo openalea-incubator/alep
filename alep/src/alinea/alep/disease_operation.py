@@ -49,46 +49,55 @@ def generate_stock_lesions(nb_lesions, disease):
     """
     lesion = disease.lesion()
     return [lesion(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
-    
+
 def generate_lesions_with_emission(nb_lesions, nb_dus, disease):
-    """ Generate a stock of lesions.
+    """ Generate a stock of lesions that are emitting dispersal units.
+    
+    Extend the class 'emission' of the lesion in order to force the emission
+    of a list of dispersal units, independently from its surface, age, status,
+    stock, etc.
     
     Parameters
     ----------
     nb_lesions: int
-        Number of lesions to create in the stock
+        Number of lesion to create in the stock
     nb_dus: int
         Number of dispersal units emitted by each lesion
     disease: model
         Implementation for a model of fungal disease
-        
+    
     Returns
     -------
     lesions: list of objects
-        List of lesions of the given disease
+        List of lesions of the given disease that are emitting dispersal units    
     """
-    lesions = generate_stock_lesions(nb_lesions, disease)
-    for l in lesions:
-        l.stock_spores = nb_dus
+    # Override the method emission of the disease
     LesionKlass = disease.lesion()
-    # Overwrite the function of emission of the chosen lesion model
-    def simple_emission(lesion, leaf=None):
-        """ Set the emission of a lesion to a given number of dispersal units
-        independently from its surface, age, status, stock, etc.
+    def emission_forced(lesion, leaf=None):
+        """ Create a list of dispersal units emitted by the lesion.
+        
+        Force the emission of a given number of dispersal unit by the lesion
+        independently from its surface, age, status, stock, etc.        
         """
-        return generate_stock_du(nb_dus, disease)
-    LesionKlass.emission = simple_emission
+        return generate_stock_du(nb_dus=nb_dus, disease=disease)
+    LesionKlass.emission = emission_forced
+    
+    lesions = [LesionKlass(nb_spores=1) for i in range(nb_lesions)]
+    # For dispersal, lesions need some properties to be True
+    for les in lesions:
+        les.is_active = True
+        les.stock_spores = 1
     return lesions
-
-def overwrite_method(LesionKlass, method=None):
-    """ Overwrite a specific method in a lesion class.
+    
+def override_method(LesionKlass, method=None):
+    """ Override a specific method in a lesion class.
     
     Parameters
     ----------
     LesionKlass: model
         Class for the model of lesion of a given disease
     method: 
-        Method to be overwited
+        Method to be overridden
     """
     if method:
         LesionKlass.method = method

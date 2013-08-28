@@ -30,7 +30,7 @@ def add_area_topvine(g, conversion_factor=1000., label='lf'):
     if len(area)==0:
         g.add_property('area')
         area = g.property('area')
-    if len(h_surf)==0:
+    if len(h_area)==0:
         g.add_property('healthy_area')
         h_area = g.property('healthy_area')
     new_vids = [n for n in g if g.label(n).startswith(label) if n not in area]

@@ -246,8 +246,6 @@ def disperse(g,
                 if g.label(vid).startswith(label):
                     leaf = g.node(vid)
                     for d in dlist:
-                        print("l.249 protocol : DISPERSAL EVENT")
-                        # raise Exception('dispersal')
                         d.deposited()
                         if not 'dispersal_units' in leaf.properties():
                             leaf.dispersal_units=[]  

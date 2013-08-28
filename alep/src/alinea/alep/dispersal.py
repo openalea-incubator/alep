@@ -123,7 +123,7 @@ class PowderyMildewWindDispersal:
             tesselator = pgl.Tesselator()
             bbc = pgl.BBoxComputer(tesselator)
         
-            leaves = get_leaves(g, leaf_name=self.label)
+            leaves = get_leaves(g, label=self.label)
 
             def centroid(vid):
                 bbc.process(pgl.Scene(geometries[vid]))
