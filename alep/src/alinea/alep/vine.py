@@ -28,6 +28,9 @@ class Vine(object):
     
     def __init__(self, lpy_filename = vinedir + '/topvine.lpy'):
         self.lpy_filename = lpy_filename
+        inter_row = 2.2# m
+        inter_plant = 1.1
+        self.domain_area = 3 * inter_plant * inter_row
         
     def setup_canopy(self, age=0):
         self.start = age
@@ -64,4 +67,6 @@ class Vine(object):
         tree = mtg2lpy(g,self.lsys)
         self.lsys.sceneInterpretation(tree)
         return generateScene(tree)
+        
+
     

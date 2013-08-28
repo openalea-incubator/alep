@@ -38,6 +38,7 @@ leaves = get_leaves(g, label='lf')
 # geometries = {k:geom for k, geom_list in g.property('geometry').iteritems() for 
                 # geom in geom_list if k in leaves}
 geometries = {k:geom for k, geom in g.property('geometry').iteritems() if k in leaves}
+lai = get_lai(geometries, vine.domain_area)
 h = get_height(geometries)
 surf,_=get_area_and_normal(geometries)
 heights = dict([(k,np.average(h[k],weights= surf[k])) for k in h])
