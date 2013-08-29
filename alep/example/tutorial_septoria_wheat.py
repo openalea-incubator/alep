@@ -4,6 +4,9 @@ import numpy as np
 import pandas
 from datetime import datetime
 
+from alinea.astk.plantgl_utils import *
+
+from alinea.adel.stand.stand import agronomicplot
 from alinea.adel.astk_interface import AdelWheat
 from alinea.astk.plant_interface import *
 #from alinea.alep.wheat import adel_mtg2
@@ -69,9 +72,13 @@ def plugin_septoria():
 
 # Initiation ##############################################################################
 # Define a plant or canopy
-wheat = AdelWheat()
+nplants, positions, domain, domain_area = agronomicplot(0.1, 0.2, 150, 150, 0.12) 
+#hack (to be changed in adel)
+domain_area_cm2 = domain_area * 10000
+wheat = AdelWheat(nplants=nplants, positions = positions)
 g,_ = new_canopy(wheat,age=100)
-
+geometries = g.property('geometry')
+lai = get_lai(geometries, domain_area_cm2)
 # Add the property 'healthy_area' on the leaves
 set_healthy_area(g, label = 'LeafElement')
 
@@ -102,7 +109,7 @@ inoculator = RandomInoculation()
 # Call models that will be used in disease interface
 controler = NoPriorityGrowthControl()
 sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-dispersor = Septo3DSplash(reference_surface=1./200)
+dispersor = Septo3DSplash(reference_surface=domain_area)
 
 # Choose dates of simulation
 start_date = datetime(2000, 10, 1, 1, 00, 00)
