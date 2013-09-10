@@ -124,6 +124,27 @@ def compute_lesion_areas_by_leaf(g, label='LeafElement'):
     lesions = g.property('lesions')
     return {vid:(sum(l.surface for l in lesions[vid])
             if vid in lesions.keys() else 0.) for vid in vids} 
+
+def compute_green_lesion_area_by_leaf(g, label='LeafElement'):
+    """ Compute lesion area on each green part of the MTG given by the label.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    green_lesion_area_by_leaf: dict([id:lesion_area])
+        Surface of the lesions on each green part of the MTG given by the label
+    """
+    from alinea.alep.architecture import get_leaves
+    vids = get_leaves(g, label=label)
+    lesions = g.property('lesions')
+    return {vid:(sum(l.surface for l in lesions[vid] if not l.is_senescent)
+            if vid in lesions.keys() else 0.) for vid in vids}
             
 def compute_healthy_area_by_leaf(g, label='LeafElement'):
     """ Compute healthy area on each part of the MTG given by the label.
@@ -145,7 +166,7 @@ def compute_healthy_area_by_leaf(g, label='LeafElement'):
     from alinea.alep.architecture import get_leaves
     vids = get_leaves(g, label=label)
     green_areas = g.property('green_area')
-    lesion_areas = compute_lesion_areas_by_leaf(g, label)
+    lesion_areas = compute_green_lesion_area_by_leaf(g, label)
     return {vid:(green_areas[vid] - lesion_areas[vid] 
             if round(green_areas[vid], 10)>round(lesion_areas[vid], 10) else 0.)
             for vid in vids}
@@ -170,8 +191,8 @@ def compute_severity_by_leaf(g, label='LeafElement'):
     from alinea.alep.architecture import get_leaves
     vids = get_leaves(g, label=label)
     total_areas = g.property('area')
-    healthy_areas = compute_healthy_area_by_leaf(g, label=label)
-    return {vid:(100*(1-(healthy_areas[vid]/float(total_areas[vid]))) if total_areas[vid]>0. else 0.) for vid in vids}
+    lesion_areas = compute_lesion_areas_by_leaf(g, label)
+    return {vid:(100*lesion_areas[vid]/float(total_areas[vid]) if total_areas[vid]>0. else 0.) for vid in vids}
 
 def compute_necrosis_by_leaf(g, label='LeafElement'):
     """ Compute necrosis percentage on each part of the MTG given by the label.
@@ -279,6 +300,11 @@ class LeafInspector:
         self.label = label
         # Find leaf elements on the blade
         self.ids = [id for id in g.components(blade_id) if labels[id].startswith(label)]
+        # Initialize leaf properties to save
+        self.leaf_area = []
+        self.leaf_green_area = []  
+        self.leaf_healthy_area = []
+        self.leaf_disease_area = []
         # Initialize surfaces in state
         self.surface_inc = []
         self.surface_chlo = []
@@ -295,13 +321,40 @@ class LeafInspector:
         self.necrosis = []
     
     def update_variables(self, g):
-        """ Update the computation of severity, necrosis percentage and ratios.
+        """ Save leaf properties and disease properties.
+        
+        Save leaf properties and update the computation of severity, 
+        necrosis percentage and ratios.
         
         Parameters
         ----------
         g: MTG
             MTG representing the canopy   
         """
+        area = 0.
+        green_area = 0.
+        disease_area = 0.
+        lesion_list = []
+        for id in self.ids:
+            leaf = g.node(id)
+            area += leaf.area
+            green_area += leaf.green_area
+            try:
+                lesion_list += leaf.lesions
+            except:
+                pass
+        
+        if len(lesion_list)>0:
+            green_lesion_area = sum(l.surface for l in lesion_list if not l.is_senescent)
+            disease_area = sum(l.surface for l in lesion_list)
+        else:
+            green_lesion_area = 0.
+            disease_area = 0.
+            
+        self.leaf_area.append(area)
+        self.leaf_green_area.append(green_area)
+        self.leaf_healthy_area.append(green_area - green_lesion_area)
+        self.leaf_disease_area.append(disease_area)
         self.compute_ratios(g)
         self.compute_severity(g)
         self.compute_necrosis(g)
@@ -336,13 +389,14 @@ class LeafInspector:
         g: MTG
             MTG representing the canopy    
         """
-        total_area = 0.
+        total_area = self.leaf_area[-1]
         lesion_list = []
         for id in self.ids:
             leaf = g.node(id)
-            total_area += leaf.area
-            if leaf.lesions!=None:
-                lesion_list += g.node(id).lesions
+            try:
+                lesion_list += leaf.lesions
+            except:
+                pass
         
         surface_inc = 0.
         surface_chlo = 0.

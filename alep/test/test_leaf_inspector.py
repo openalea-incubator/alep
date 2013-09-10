@@ -4,16 +4,12 @@
 from random import sample, randint, seed
 
 # Imports for wheat
-from alinea.alep.wheat import initialize_stand
+from alinea.alep.wheat import initialize_stand, find_blade_id, find_leaf_ids
 
 # Imports for lesions of septoria
 from openalea.vpltk import plugin
 from alinea.alep.disease_operation import generate_stock_lesions
 from alinea.alep.disease_outputs import LeafInspector
-
-# Temp:
-from alinea.adel.mtg_interpreter import plot3d
-from openalea.plantgl.all import Viewer
 
 # Useful functions ###################################################
 def generate_lesions_with_surfaces(nb_lesions = 100, surface_inc = 0.1, surface_chlo = 0.2, 
@@ -35,19 +31,6 @@ def generate_lesions_with_surfaces(nb_lesions = 100, surface_inc = 0.1, surface_
         lesion.surface_spo = surface_spo
     return lesion_stock 
     
-def find_blade_id(leaf_rank = 1):
-    labels = g.property('label')
-    mets = [n for n in g if g.label(n).startswith('metamer') and g.order(n)==0
-            and sum(component.visible_length for component in g.node(n).components())>0]
-    bids = [co.index() for n in mets for co in g.node(n).components() if co.label.startswith('blade')]
-    blade_id = bids[len(mets)-leaf_rank]
-    return blade_id
-
-def find_leaf_ids(blade_id):
-    labels = g.property('label')
-    leaf_elements = [id for id in g.components(blade_id) if labels[id].startswith('LeafElement')]
-    return leaf_elements
-
 def distribute_lesions(g, leaf_ids, lesions):
     seed(7)   
     for le in leaf_ids:
@@ -101,12 +84,12 @@ nb_lesions = 50; surface_inc = 0.1; surface_chlo = 0.2; surface_nec = 0.3; surfa
 lesions = generate_lesions_with_surfaces(nb_lesions, surface_inc, surface_chlo, surface_nec, surface_spo)
 
 # Select target blades (top 3)
-blade_1 = find_blade_id(leaf_rank = 1)
-blade_2 = find_blade_id(leaf_rank = 2)
-blade_3 = find_blade_id(leaf_rank = 3)
+blade_1 = find_blade_id(g, leaf_rank = 1)
+blade_2 = find_blade_id(g, leaf_rank = 2)
+blade_3 = find_blade_id(g, leaf_rank = 3)
 
 # Distribute the lesions
-target_leaves = find_leaf_ids(blade_1) + find_leaf_ids(blade_2) + find_leaf_ids(blade_3)
+target_leaves = find_leaf_ids(g, blade_1) + find_leaf_ids(g, blade_2) + find_leaf_ids(g, blade_3)
 distribute_lesions(g, target_leaves, lesions)
 
 # Call leaf inspectors

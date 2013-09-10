@@ -114,7 +114,24 @@ def adel_mtg3(nb_sect=1, d=None, p=None):
     g=mtg_factory(d,adel_metamer, leaf_sectors=nb_sect,leaf_db=adel_data.leaves_db(),stand=stand)
     g=mtg_interpreter(g)
     return g
+    
+# Index finders ####################################################################
+def find_blade_id(g, leaf_rank = 1, only_visible=True):
+    labels = g.property('label')
+    if only_visible==True:
+        mets = [n for n in g if g.label(n).startswith('metamer') and g.order(n)==0
+                and sum(component.visible_length for component in g.node(n).components())>0]
+    else:
+        mets = [n for n in g if g.label(n).startswith('metamer') and g.order(n)==0]
+    bids = [co.index() for n in mets for co in g.node(n).components() if co.label.startswith('blade')]
+    blade_id = bids[len(mets)-leaf_rank]
+    return blade_id
 
+def find_leaf_ids(g, blade_id):
+    labels = g.property('label')
+    leaf_elements = [id for id in g.components(blade_id) if labels[id].startswith('LeafElement')]
+    return leaf_elements
+    
 # Tests ###########################################################################
 def test_adel_mtg():
     """ Check the proper functioning of 'adel_mtg'.

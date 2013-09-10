@@ -338,11 +338,12 @@ class SeptoriaExchangingRings(Lesion):
         """
         f = self.fungus
         status = self.status
-        dring = f.delta_age_ring
-        self_dring = self.delta_age_ring
+        width_ring = f.delta_age_ring
+        delta_ring = self.delta_age_ring
         s = np.copy(self.surface_rings)
         time_to_nec = f.degree_days_to_necrosis
         time_to_spo = f.degree_days_to_necrosis + f.degree_days_to_sporulation
+        age_dday = self.age_dday
         
         # Initiation
         surface_inc = 0.
@@ -358,48 +359,51 @@ class SeptoriaExchangingRings(Lesion):
         
         elif status == f.NECROTIC:
             # Compute necrotic surface
-            diff = self_dring - time_to_nec
-            nb_full_rings = floor(diff/dring)
-            portion_last_ring = (diff%dring)/dring
+            diff = delta_ring - time_to_nec
+            nb_full_rings = floor(diff/width_ring)
             if len(s)>0:
                 if nb_full_rings>0:
-                    surface_nec = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
+                    portion_necrotic = (diff%width_ring)/width_ring
+                    surface_nec = sum(s[-nb_full_rings:]) + portion_necrotic*s[-(nb_full_rings+1)]
                     s[-nb_full_rings:] = 0.
-                    s[-(nb_full_rings+1)] *= (1-portion_last_ring)
+                    s[-(nb_full_rings+1)] *= (1-portion_necrotic)
                 else:
-                    surface_nec = portion_last_ring*s[-1]
-                    s[-1] *= (1-portion_last_ring)
+                    portion_necrotic = (age_dday-time_to_nec)/(age_dday+width_ring-delta_ring)
+                    surface_nec = portion_necrotic*s[-1]
+                    s[-1] *= (1-portion_necrotic)
             surface_nec += self.first_ring.surface
             # Compute chlorotic surface
             surface_chlo = sum(s)
         
         elif status == f.SPORULATING:
             # Compute sporulating surface
-            diff = self_dring - time_to_spo
-            nb_full_rings = floor(diff/dring)
-            portion_last_ring = (diff%dring)/dring
+            diff = delta_ring - time_to_spo
+            nb_full_rings = floor(diff/width_ring)
             if len(s)>0:
                 if nb_full_rings>0:
-                    surface_spo = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
+                    portion_sporulating = (diff%width_ring)/width_ring
+                    surface_spo = sum(s[-nb_full_rings:]) + portion_sporulating*s[-(nb_full_rings+1)]
                     s[-nb_full_rings:] = 0.
-                    s[-(nb_full_rings+1)] *= (1-portion_last_ring)
-                    self_dring -= dring * nb_full_rings
+                    s[-(nb_full_rings+1)] *= (1-portion_sporulating)
+                    delta_ring -= width_ring * nb_full_rings
                     s = s[s.nonzero()]
                 else:
-                    surface_spo = portion_last_ring*s[-(nb_full_rings+1)]
+                    portion_sporulating = (age_dday-time_to_spo)/(age_dday+width_ring-delta_ring)
+                    surface_spo = portion_sporulating*s[-(nb_full_rings+1)]
                     s[-1] *= (1-portion_last_ring)
             surface_spo += self.first_ring.surface
             # Compute necrotic surface
-            diff = self_dring - time_to_nec
-            nb_full_rings = floor(diff/dring)
-            portion_last_ring = (diff%dring)/dring
+            diff = delta_ring - time_to_nec
+            nb_full_rings = floor(diff/width_ring)
             if len(s)>0:
                 if nb_full_rings>0:
-                    surface_nec = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
+                    portion_necrotic = (diff%width_ring)/width_ring
+                    surface_nec = sum(s[-nb_full_rings:]) + portion_necrotic*s[-(nb_full_rings+1)]
                     s[-nb_full_rings:] = 0.
-                    s[-(nb_full_rings+1)] *= (1-portion_last_ring)
+                    s[-(nb_full_rings+1)] *= (1-portion_necrotic)
                 else:
-                    surface_nec = portion_last_ring*s[-(nb_full_rings+1)]
+                    portion_necrotic = (age_dday-time_to_nec)/(age_dday+width_ring-delta_ring)
+                    surface_nec = portion_necrotic*s[-(nb_full_rings+1)]
                     s[-1] *= (1-portion_last_ring)
             # Compute chlorotic surface
             surface_chlo = sum(s)

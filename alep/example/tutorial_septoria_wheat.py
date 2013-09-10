@@ -28,6 +28,9 @@ from alinea.weather.global_weather import *
 
 from alinea.astk.TimeControl import *
 
+from alinea.adel.mtg_interpreter import plot3d
+from openalea.plantgl.all import Viewer
+
 # Useful functions ########################################################################
 def update_plot(g):       
     # Count lesion surfaces by id & add it as MTG property 
