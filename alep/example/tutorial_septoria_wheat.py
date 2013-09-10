@@ -6,13 +6,13 @@ from datetime import datetime
 
 from alinea.astk.plantgl_utils import *
 
-from alinea.adel.stand.stand import agronomicplot
-from alinea.adel.astk_interface import AdelWheat
-from alinea.astk.plant_interface import *
-#from alinea.alep.wheat import adel_mtg2
-from alinea.alep.architecture import (set_properties, set_healthy_area,
+from alinea.astk.plant_interface import grow_canopy
+from alinea.alep.wheat import initialize_stand
+
+from alinea.alep.architecture import (set_properties, update_healthy_area,
                                       set_property_on_each_id, get_leaves, 
                                       get_leaves)
+from alinea.alep.septoria import plugin_septoria
 from alinea.alep.disease_operation import *
 from alinea.alep.disease_outputs import (compute_lesion_areas_by_leaf,
                                         compute_severity_by_leaf)
@@ -26,12 +26,7 @@ from alinea.alep.alep_color import alep_colormap, green_yellow_red
 from alinea.alep.alep_weather import add_wetness
 from alinea.weather.global_weather import *
 
-from openalea.vpltk import plugin
-
 from alinea.astk.TimeControl import *
-
-rd.seed(0)
-np.random.seed(0)
 
 # Useful functions ########################################################################
 def update_plot(g):       
@@ -46,113 +41,77 @@ def update_plot(g):
     set_property_on_each_id(g, 'surface_lesions', surface_lesions_by_leaf, label = 'LeafElement')
 
     # Compute severity by leaf
-    severity_by_leaf = compute_severity_by_leaf(g, label = 'LeafElement')
+    severity_by_leaf = compute_severity_by_leaf(g, label = 'LeafElement')  
     set_property_on_each_id(g, 'severity', severity_by_leaf, label = 'LeafElement')
 
     # Visualization
-    g = alep_colormap(g, 'surface_lesions', cmap=green_yellow_red(levels=100), lognorm=False)
-    # TODO : Normalize the colormap between 0 and 1 /!\
+    g = alep_colormap(g, 'severity', cmap=green_yellow_red(levels=100), 
+                      lognorm=False, zero_to_one=False, vmax=100)
+    
+    leaves = get_leaves(g, label='LeafElement')
+    pos_sen = g.property('position_senescence')
+    for leaf in leaves:
+        if pos_sen[leaf]==0.:
+            g.node(leaf).color = (157, 72, 7)
+    
     scene = plot3d(g)
     Viewer.display(scene)
     return scene
     
+# Initialization #####################################################
+# Set the seed of the simulation
+rd.seed(0)
+np.random.seed(0)
 
-def plugin_septoria():
-    diseases=plugin.discover('alep.disease')
-    #septoria_classes = [kls for kls in diseases if kls.load().name == 'septoria']
+# Choose dates of simulation and initialize the value of date
+start_date = datetime(2000, 10, 1, 1, 00, 00)
+# end_date = datetime(2001, 03, 01, 00, 00)
+end_date = datetime(2000, 12, 31, 00, 00)
+date = start_date
 
-    try:
-        septoria = diseases['septoria_exchanging_rings'].load()
-        # septoria = diseases['septoria_continuous'].load()
-        # septoria = diseases['septoria_with_rings'].load()
-    except KeyError:
-        from alinea.alep.septoria_exchanging_rings import Disease
-        septoria=Disease()
-    return septoria
+# Read weather and adapt it to septoria (add wetness)
+weather = get_septoria_weather(data_file='meteo01.csv')
 
-# Initiation ##############################################################################
-# Define a plant or canopy
-nplants, positions, domain, domain_area = agronomicplot(0.1, 0.2, 150, 150, 0.12) 
-#hack (to be changed in adel)
-domain_area_cm2 = domain_area * 10000
-wheat = AdelWheat(nplants=nplants, positions = positions)
-g,_ = new_canopy(wheat,age=100)
+# Initialize a wheat canopy
+g, wheat, domain_area = initialize_stand(age=0., length=0.1, 
+                                        width=0.2, sowing_density=150,
+                                        plant_density=150, inter_row=0.12)
+
+# Note G. GARIN: 04/09/2013 : To move
+domain_area_cm2 = domain_area * 10000 # hack (to be changed in adel)
 geometries = g.property('geometry')
 lai = get_lai(geometries, domain_area_cm2)
-# Add the property 'healthy_area' on the leaves
-set_healthy_area(g, label = 'LeafElement')
 
-# from alinea.alep.wheat import adel_mtg2
-# g = adel_mtg2()
-
-# Add missing properties needed for the simulation
-# The simulation requires the following properties on leaf elements:
-#   - 'surface': total surface of the leaf element
-#   - 'healthy_surface': surface of the leaf element without lesion or senescence
-#   - 'position_senescence': position of the senescence on blade axis
-# set_properties(g,label = 'LeafElement',
-              # surface=5., healthy_surface=5., position_senescence=None)
-               
-# discover the disease implementation for septoriose
+# Initialize the models for septoria
 septoria = plugin_septoria()
-
-# Create a pool of dispersal units (DU)
-nb_dus = 10
-# nb_dus = 100
-dispersal_units = generate_stock_du(nb_dus, disease=septoria)
-
-# Distribute the DU 
 inoculator = RandomInoculation()
-# initiate(g, dispersal_units, inoculator)
-
-# Preparation of the simulation loop #####################################################
-# Call models that will be used in disease interface
 controler = NoPriorityGrowthControl()
 sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
 dispersor = Septo3DSplash(reference_surface=domain_area)
 
-# Choose dates of simulation
-start_date = datetime(2000, 10, 1, 1, 00, 00)
-end_date = datetime(2001, 04, 01, 00, 00)
-#end_date = datetime(2000, 12, 31, 00, 00)
-date = start_date
+# Define the schedule of calls for each model
+nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
+weather_timing = TimeControl(delay=1, steps=nb_steps)
+wheat_timing = TimeControl(delay=24, steps=nb_steps, model=wheat, weather=weather, start_date=start_date)
+septo_timing = TimeControl(delay=1, steps=nb_steps)
+timer = TimeControler(weather=weather_timing, wheat=wheat_timing, disease = septo_timing)
 
-# Read weather between date and add wetness
-weather = Weather(data_file = 'meteo01.csv')
-weather = add_wetness(weather)
-
-# Set schedule of calls for each model
-nsteps = len(pandas.date_range(start_date, end_date, freq='H'))
-
-wheat_timing = TimeControl(delay=24, steps = nsteps, model = wheat, weather = weather, start_date = start_date)
-septo_timing = TimeControl(delay=1, steps = nsteps)
-weather_timing = TimeControl(delay=1, steps = nsteps)
-plot_timing = TimeControl(delay=24, steps = nsteps)
-timer = TimeControler(wheat = wheat_timing, disease = septo_timing,
-                      weather = weather_timing, plotting = plot_timing)
+# Simulation #########################################################
 
 AA = []
 GA = []
 HA = []
-LA = []                      
+LA = []
+                 
 leaves = get_leaves(g, label = 'LeafElement')
 green_leaves = {leaf:[] for leaf in leaves}
 healthy_leaves = {leaf:[] for leaf in leaves}
 sen_leaves = {leaf:[] for leaf in leaves}
+len_leaves = {leaf:[] for leaf in leaves}
 
 for t in timer:
-    #print(timer.numiter)
-    
-    # Not needed if wheat model is complete
-    #set_properties_on_new_leaves(g,label = 'LeafElement',
-    #                         surface=5., healthy_surface=5.,
-    #                         position_senescence=None)
-    
-    # position_senescence = g.property('position_senescence')
-    # if len(position_senescence)==0:
-        # g.remove_property('position_senescence')
-    # set_properties(g,label = 'LeafElement', position_senescence=1., green_area=5.)
-    
+    print(timer.numiter)
+   
     # Get weather for date
     mgc, globalclimate = weather.get_weather(t['weather'].dt, date)
     
@@ -166,6 +125,7 @@ for t in timer:
         
     #wheat
     grow_canopy(g,wheat,t['wheat'])
+    update_healthy_area(g, label = 'LeafElement')
     
     # Note : The position of senescence goes back to its initial value after
     # a while for undetermined reason
@@ -188,7 +148,7 @@ for t in timer:
         update_plot(g)
 
     # Refill pool of initial inoculum to simulate differed availability of inoculum
-    if timer.numiter%10 == 0 and timer.numiter >= 500 and timer.numiter <= 1000:
+    if timer.numiter%10 == 0 and timer.numiter <= 500:
         dus = generate_stock_du(nb_dus, disease=septoria)
         initiate(g, dus, inoculator)
 
@@ -209,23 +169,25 @@ for t in timer:
         sen_leaves[leaf].append(g.node(leaf).position_senescence)
         green_leaves[leaf].append(g.node(leaf).green_area)
         healthy_leaves[leaf].append(g.node(leaf).healthy_area)
+        len_leaves[leaf].append(g.node(leaf).length)
         
-    if False and t['plotting'].dt > 0:
-        print('area', g.property('area'))
-        print('')
-        print('green area', g.property('green_area'))
-        print('')
-        print('healthy area', g.property('healthy_area'))
-        print('')
-        print('Lesion area', les_area)
-        print('')
-        print('DUs', {k:len(v) for k,v in g.property('dispersal_units').iteritems()})
-        print('')
-        print('Lesions', {k:len(v) for k,v in g.property('lesions').iteritems()})
-        
+    # if False and t['plotting'].dt > 0:
+        # print('area', g.property('area'))
+        # print('')
+        # print('green area', g.property('green_area'))
+        # print('')
+        # print('healthy area', g.property('healthy_area'))
+        # print('')
+        # print('Lesion area', les_area)
+        # print('')
+        # print('DUs', {k:len(v) for k,v in g.property('dispersal_units').iteritems()})
+        # print('')
+        # print('Lesions', {k:len(v) for k,v in g.property('lesions').iteritems()})
+
 # Display results
 from pylab import *
 for k in green_leaves.iterkeys():
     plot(green_leaves[k])
     plot(healthy_leaves[k], '--')
+    # plot(len_leaves[k])
 show(False)

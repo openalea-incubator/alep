@@ -77,8 +77,7 @@ class SeptoriaExchangingRings(Lesion):
         # Compute delta degree days in dt
         self.compute_delta_ddays(dt, leaf)
         ddday = self.ddday
-
-        
+ 
         # If senescence, compute length of growth period before senescence during time step
         if self.is_senescent:
             self.compute_time_before_senescence(ddday=ddday, leaf=leaf)
@@ -92,10 +91,12 @@ class SeptoriaExchangingRings(Lesion):
         # Update the age of the lesion
         self.age_dday += ddday
         
-        assert self.age_dday - 220 - self.delta_age_ring <= 20.
+        if self.growth_is_active:
+            assert self.age_dday - 220 - self.delta_age_ring <= 20.
 
         # Compute growth demand
-        self.update_growth_demand()
+        if self.growth_is_active:
+            self.update_growth_demand()
         
         # Manage first ring
         self.first_ring.update(lesion=self)
@@ -360,13 +361,14 @@ class SeptoriaExchangingRings(Lesion):
             diff = self_dring - time_to_nec
             nb_full_rings = floor(diff/dring)
             portion_last_ring = (diff%dring)/dring
-            if nb_full_rings>0:
-                surface_nec = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
-                s[-nb_full_rings:] = 0.
-                s[-(nb_full_rings+1)] *= (1-portion_last_ring)
-            else:
-                surface_nec = portion_last_ring*s[-1]
-                s[-1] *= (1-portion_last_ring)
+            if len(s)>0:
+                if nb_full_rings>0:
+                    surface_nec = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
+                    s[-nb_full_rings:] = 0.
+                    s[-(nb_full_rings+1)] *= (1-portion_last_ring)
+                else:
+                    surface_nec = portion_last_ring*s[-1]
+                    s[-1] *= (1-portion_last_ring)
             surface_nec += self.first_ring.surface
             # Compute chlorotic surface
             surface_chlo = sum(s)
@@ -376,27 +378,29 @@ class SeptoriaExchangingRings(Lesion):
             diff = self_dring - time_to_spo
             nb_full_rings = floor(diff/dring)
             portion_last_ring = (diff%dring)/dring
-            if nb_full_rings>0:
-                surface_spo = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
-                s[-nb_full_rings:] = 0.
-                s[-(nb_full_rings+1)] *= (1-portion_last_ring)
-                self_dring -= dring * nb_full_rings
-                s = s[s.nonzero()]
-            else:
-                surface_spo = portion_last_ring*s[-(nb_full_rings+1)]
-                s[-1] *= (1-portion_last_ring)
+            if len(s)>0:
+                if nb_full_rings>0:
+                    surface_spo = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
+                    s[-nb_full_rings:] = 0.
+                    s[-(nb_full_rings+1)] *= (1-portion_last_ring)
+                    self_dring -= dring * nb_full_rings
+                    s = s[s.nonzero()]
+                else:
+                    surface_spo = portion_last_ring*s[-(nb_full_rings+1)]
+                    s[-1] *= (1-portion_last_ring)
             surface_spo += self.first_ring.surface
             # Compute necrotic surface
             diff = self_dring - time_to_nec
             nb_full_rings = floor(diff/dring)
             portion_last_ring = (diff%dring)/dring
-            if nb_full_rings>0:
-                surface_nec = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
-                s[-nb_full_rings:] = 0.
-                s[-(nb_full_rings+1)] *= (1-portion_last_ring)
-            else:
-                surface_nec = portion_last_ring*s[-(nb_full_rings+1)]
-                s[-1] *= (1-portion_last_ring)
+            if len(s)>0:
+                if nb_full_rings>0:
+                    surface_nec = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
+                    s[-nb_full_rings:] = 0.
+                    s[-(nb_full_rings+1)] *= (1-portion_last_ring)
+                else:
+                    surface_nec = portion_last_ring*s[-(nb_full_rings+1)]
+                    s[-1] *= (1-portion_last_ring)
             # Compute chlorotic surface
             surface_chlo = sum(s)
 
@@ -523,11 +527,12 @@ class SeptoriaExchangingRings(Lesion):
             self.compute_all_surfaces()
             surface_dead = self.surface_chlo
             # Update the list of rings
-            diff = self.delta_age_ring - time_to_nec
-            nb_full_rings = floor(diff/dring)
-            portion_last_ring = (diff%dring)/dring
-            s[-(nb_full_rings+1)] *= portion_last_ring
-            s = s[-(nb_full_rings+1):]
+            if len(s)>0:
+                diff = self.delta_age_ring - time_to_nec
+                nb_full_rings = floor(diff/dring)
+                portion_last_ring = (diff%dring)/dring
+                s[-(nb_full_rings+1)] *= portion_last_ring
+                s = s[-(nb_full_rings+1):]
         
         # Update 'surface_alive' and 'surface_dead'
         self.surface_alive = max(0, self.surface_alive - surface_dead)
@@ -580,7 +585,27 @@ class SeptoriaExchangingRings(Lesion):
         """
         if self.first_ring:
             return self.first_ring.status
+    
+    @property
+    def necrotic_area(self):
+        """ Compute the necrotic area of the lesion.
+        
+        Necrotic area is composed by surfaces in state:
+            - NECROTIC
+            - SPORULATING
+        
+        Parameters
+        ----------
+            None
             
+        Returns
+        -------
+        status: int
+            Status of the lesion
+        """
+        self.compute_all_surfaces()
+        return self.surface_nec + self.surface_spo
+    
     @status.setter
     def status(self, value):
         """ Set the status of the lesion to the chosen value.

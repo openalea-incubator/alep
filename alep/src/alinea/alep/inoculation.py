@@ -34,28 +34,30 @@ class RandomInoculation:
             Update directly the MTG
         """        
         vids = [n for n in g if g.label(n).startswith(label)]
-        vids = [vid for vid in vids if vid in g.property('geometry')]
+        areas = g.property('area')
+        vids = [vid for vid in vids if vid in g.property('geometry') if areas[vid]>0.]
         n = len(vids)
-            
-        for i in inoculum:
-            idx = random.randint(0,n-1)
-            v = vids[idx]
-            leaf = g.node(v)
-            # Set a position for i :
-            i.position = [random.random(), 0] # TODO : improve
-            
-            #  Attach it to the leaf
-            if isinstance(i, Lesion):
-                try:
-                    leaf.lesions.append(i)
-                except:
-                    leaf.lesions = [i]            
-            elif isinstance(i, DispersalUnit):
-                i.deposited()
-                try:
-                    leaf.dispersal_units.append(i)
-                except:
-                    leaf.dispersal_units = [i]
+        
+        if n>0:
+            for i in inoculum:
+                idx = random.randint(0,n-1)
+                v = vids[idx]
+                leaf = g.node(v)
+                # Set a position for i :
+                i.position = [random.random(), 0] # TODO : improve
+                
+                #  Attach it to the leaf
+                if isinstance(i, Lesion):
+                    try:
+                        leaf.lesions.append(i)
+                    except:
+                        leaf.lesions = [i]            
+                elif isinstance(i, DispersalUnit):
+                    i.deposited()
+                    try:
+                        leaf.dispersal_units.append(i)
+                    except:
+                        leaf.dispersal_units = [i]
 
 class InoculationFirstLeaves:
     """ Template class for inoculum allocation that complies with the guidelines of Alep.

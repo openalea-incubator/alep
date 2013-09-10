@@ -239,7 +239,7 @@ def disperse(g,
                         DU[vid] = []
                     DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf        
         # Transport of dispersal units
-        if DU:
+        if sum([len(v) for v in DU.itervalues()])>0:
             deposits = dispersal_model.disperse(g, DU) # update DU in g , change position, status
             # Allocation of new dispersal units
             for vid,dlist in deposits.iteritems():

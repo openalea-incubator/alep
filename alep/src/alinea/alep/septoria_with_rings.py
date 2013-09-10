@@ -119,12 +119,12 @@ class SeptoriaWithRings(Lesion):
         f = self.fungus
         # Calculation
         if dt != 0.:
-            ddday = max(0,(leaf.temp - f.basis_for_dday*dt)/(24./dt))
+            ddday = max(0,(leaf.temp - f.basis_for_dday))*(dt/24.)
         else:
             ddday = 0.
         # Save variable
-        self.ddday = ddday 
-     
+        self.ddday = ddday
+             
     def control_growth(self, growth_offer = 0.):
         """ Reduce surface of the last ring up to available surface on leaf.
         
@@ -166,7 +166,7 @@ class SeptoriaWithRings(Lesion):
             None
         """
         # Remove non active rings
-        self.surface_dead += sum(ring.surface for ring in self.rings if not ring.is_active)
+        self.surface_dead += sum(ring.surface for ring in self.rings if not ring.is_active and not ring.is_empty(self.fungus))
         self.surface_empty += sum(ring.surface for ring in self.rings if ring.is_empty(self.fungus))
         self.rings = [ring for ring in self.rings if ring.is_active]
 
@@ -286,11 +286,12 @@ class SeptoriaWithRings(Lesion):
         ..NOTE:: Temporary just for tests
         """
         f = self.fungus
+        self.update_surface_dead()
         self.surface_inc = sum(r.surface for r in self.rings if r.is_incubating(f))
         self.surface_chlo = sum(r.surface for r in self.rings if r.is_chlorotic(f))
         self.surface_nec = sum(r.surface for r in self.rings if r.is_necrotic(f))
-        self.surface_spo = sum(r.surface for r in self.rings if r.is_sporulating(f))+self.surface_empty
-      
+        self.surface_spo = sum(r.surface for r in self.rings if r.is_sporulating(f))
+             
     @property
     def surface_alive(self):
         """ Compute the surface alive on the lesion.
@@ -316,7 +317,7 @@ class SeptoriaWithRings(Lesion):
         surface: float
             Surface of the whole lesion (cm2)
         """
-        surf = self.surface_dead + sum(ring.surface for ring in self.rings)
+        surf = self.surface_dead + self.surface_empty + self.surface_alive
         return surf
     
     @property
@@ -377,6 +378,27 @@ class SeptoriaWithRings(Lesion):
         if self.rings:
             return self.rings[0].status
 
+    @property
+    def necrotic_area(self):
+        """ Compute the necrotic area of the lesion.
+        
+        Necrotic area is composed by surfaces in state:
+            - NECROTIC
+            - SPORULATING
+            - EMPTY
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        status: int
+            Status of the lesion
+        """
+        self.compute_all_surfaces()
+        return self.surface_nec + self.surface_spo + self.surface_empty
+        
     @status.setter
     def status(self, value):
         """ Set the status of the lesion to the chosen value.

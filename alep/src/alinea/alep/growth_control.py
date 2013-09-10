@@ -34,9 +34,7 @@ class NoPriorityGrowthControl:
         - Check for modularity
         - Assert that leaf surface is not negative
         
-        """
-        from alinea.alep.architecture import set_healthy_area 
-        
+        """       
         lesions = g.property('lesions')
         labels = g.property('label')
         healthy_areas = g.property('healthy_area')           
@@ -74,9 +72,6 @@ class NoPriorityGrowthControl:
                     # But the global healthy area on the entire leaf stays >= 0.
                     # TODO : if the surface of a phyto-element is < 0, report the loss
                     # to its neighbour ?
-
-        # Update healthy area after
-        set_healthy_area(g, label = 'LeafElement')
         
 class GrowthControlVineLeaf:
     """ Class for growth control used when the phyto-element is a vine leaf.
@@ -96,9 +91,7 @@ class GrowthControlVineLeaf:
         -------
         None
             Update directly the MTG
-        """
-        from alinea.alep.architecture import set_healthy_area 
-        
+        """       
         lesions = g.property('lesions')
         healthy_areas = g.property('healthy_area')
         labels = g.property('label')
@@ -127,6 +120,3 @@ class GrowthControlVineLeaf:
 
                 gd = sum(l.growth_demand for l in lesions.get(leaf,[]) if l.growth_is_active)
                 # healthy_areas[leaf] -= gd
-        
-        # Update healthy area after
-        set_healthy_area(g, label = 'LeafElement')

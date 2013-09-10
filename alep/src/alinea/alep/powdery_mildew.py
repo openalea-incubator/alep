@@ -139,7 +139,7 @@ class PowderyMildewDU(DispersalUnit):
         f = self.fungus
         # Calculation
         if dt != 0.:
-            ddday = max(0,(leaf.temp - f.basis_for_dday*dt)/(24./dt))
+            ddday = max(0,(leaf.temp - f.basis_for_dday))*(dt/24.)
         else:
             ddday = 0.
         return ddday 

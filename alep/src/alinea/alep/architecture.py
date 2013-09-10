@@ -68,8 +68,8 @@ def set_properties(g,
     default_properties(g,vids,kwds)
     return g
 
-def set_healthy_area(g, label = 'LeafElement'):
-    """ Set values for healthy area to each LeafElement. 
+def update_healthy_area(g, label = 'LeafElement'):
+    """ Update values for healthy area to each LeafElement. 
     
     Parameters
     ----------

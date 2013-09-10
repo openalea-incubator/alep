@@ -127,7 +127,7 @@ class ContinuousSeptoria(Lesion):
         f = self.fungus
         # Calculation
         if dt != 0.:
-            ddday = max(0,(leaf.temp - f.basis_for_dday*dt)/(24./dt))
+            ddday = max(0,(leaf.temp - f.basis_for_dday))*(dt/24.)
         else:
             ddday = 0.
         # Save variable
@@ -515,7 +515,27 @@ class ContinuousSeptoria(Lesion):
             Surface of the lesion
         """
         return self.surface_alive + self.surface_dead
+    
+    @property
+    def necrotic_area(self):
+        """ Compute the necrotic area of the lesion.
         
+        Necrotic area is composed by surfaces in state:
+            - NECROTIC
+            - SPORULATING
+        
+        Parameters
+        ----------
+            None
+            
+        Returns
+        -------
+        status: int
+            Status of the lesion
+        """
+        self.compute_all_surfaces()
+        return self.surface_nec + self.surface_spo
+    
 class Parameters(_SeptoriaParameters):
     def __init__(self,**kwds):
         _SeptoriaParameters.__init__(self,ContinuousSeptoria,**kwds)

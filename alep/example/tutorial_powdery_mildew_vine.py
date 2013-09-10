@@ -15,16 +15,17 @@ from alinea.adel.mtg_interpreter import plot3d
 from alinea.alep.disease_operation import *
 from alinea.alep.disease_outputs import *
 from alinea.alep.architecture import (get_leaves, set_properties, set_property_on_each_id, 
-                                      set_properties_on_new_leaves, add_surface_topvine)
+                                      set_properties_on_new_leaves, add_area_topvine)
 from alinea.alep.alep_color import alep_colormap, green_white
 
 def update_plot(g):
     # Count lesions by id & add it as MTG property ####################################
-    nb_lesions_by_leaf = count_lesions_by_leaf(g, label = 'lf')
+    nb_lesions_by_leaf = count_lesions_by_leaf(g)
     set_property_on_each_id(g, 'nb_lesions', nb_lesions_by_leaf, label = 'lf')
                        
     # Visualization ###################################################################
-    g = alep_colormap(g, 'nb_lesions', cmap=green_white(levels=10), lognorm=False)
+    g = alep_colormap(g, 'nb_lesions', cmap=green_white(levels=10), lognorm=False, 
+                        zero_to_one=False, vmax=100)
     labels = g.property('label')
     trunk_ids = [k for k,l in labels.iteritems() 
                 if l.startswith('tronc') or l.startswith('en')]
@@ -45,7 +46,7 @@ g0 = vine.setup_canopy(age=6)
 #   - 'healthy_surface': surface of the leaf element without lesion or senescence (in cm2)
 #   - 'age': age of the leaf (in decimal_days)
 #   - 'position_senescence': position of the senescence on blade axis
-add_surface_topvine(g0, conversion_factor=1000., label = 'lf')
+add_area_topvine(g0, conversion_factor=1000., label = 'lf')
 set_properties(g0, label = 'lf', position_senescence=None)
 # set_properties(g0, label = 'lf', surface=5., healthy_surface=5., position_senescence=None)
 
@@ -93,7 +94,7 @@ def step(t):
     
     g = vine.grow(g,t['vine'])
     set_properties_on_new_leaves(g,label = 'lf', position_senescence=None)
-    add_surface_topvine(g, conversion_factor=1000., label = 'lf')
+    add_area_topvine(g, conversion_factor=1000., label = 'lf')
     # TEMP
     # new_vids = get_leaves(g, leaf_name='lf')
     # if len(new_vids)>len(initial_vids):
