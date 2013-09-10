@@ -15,7 +15,7 @@ from alinea.alep.septoria import *
 from alinea.alep.disease_operation import (distribute_dispersal_units,
                                            distribute_lesions)
 from alinea.alep.disease_outputs import count_dispersal_units
-from alinea.alep.architecture import set_properties, set_healthy_area
+from alinea.alep.architecture import set_properties, update_healthy_area
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.du_position_checker import BiotrophDUProbaModel
 from alinea.alep.growth_control import NoPriorityGrowthControl
@@ -205,6 +205,7 @@ def test_growth_control(model="septoria_exchanging_rings"):
         
         # Update
         update(g, t['disease'].dt, controler, senescence_model=None, label='LeafElement')
+        update_healthy_area(g, label = 'LeafElement')
                 
         # Find the value of interest on the MTG (total healthy area of the leaf)
         lesions = g.property('lesions')
@@ -253,7 +254,8 @@ def test_disperse(model="septoria_exchanging_rings"):
     # Generate a wheat MTG
     g = adel_one_leaf()
     set_properties(g, label = 'LeafElement', 
-                   area=5., green_area=5., position_senescence=None)
+                   area=5., green_area=5., healthy_area=5.,
+                   position_senescence=None)
     
     # Generate a stock of septoria dispersal units and distribute it on g
     distribute_lesions(g, nb_lesions=1, disease_model=model,
@@ -324,7 +326,7 @@ def test_senescence(status='CHLOROTIC', model="septoria_exchanging_rings"):
     # Generate a wheat MTG
     g = adel_one_leaf_element()
     set_properties(g, label = 'LeafElement', 
-                   area=5., green_area=5., position_senescence=None)
+                   area=5., green_area=5., healthy_area=5., position_senescence=None)
     
     # Generate a stock of septoria dispersal units and distribute it on g
     distribute_lesions(g, nb_lesions=2, disease_model=model,
