@@ -18,6 +18,6 @@ timer = TimeControler(vine=vine_timing, plotting=plot_timing)
 for t in timer:
     grow_canopy(g, vine, t['vine'])
     if t['plotting'].dt > 0:
-        g.node(188).color = (0,0,180)
+        # g.node(188).color = (0,0,180)
         scene = plot3d(g)
         Viewer.display(scene)

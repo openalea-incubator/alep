@@ -139,8 +139,6 @@ for t in timer:
     grow_canopy(g, vine, t['vine'])
     add_area_topvine(g)
     update_healthy_area(g, label = 'lf')
-    import pdb
-    pdb.set_trace()
     
     # Develop disease
     if data.dispersal_event.values[0]==True and timer.numiter <= 1500:
