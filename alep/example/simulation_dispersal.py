@@ -6,7 +6,7 @@ from openalea.plantgl.all import Viewer
 
 # Imports for wheat
 from alinea.alep.wheat import initialize_stand
-from alinea.alep.architecture import set_property_on_each_id, get_leaves
+from alinea.alep.architecture import set_properties,set_property_on_each_id, get_leaves
 
 # Imports for disease
 from alinea.alep.fungal_objects import DispersalUnit, Lesion
@@ -40,8 +40,11 @@ def update_plot(g):
 
 # Dispersal ################################################################### 
 # Initialize a wheat canopy
-g, wheat, domain_area = initialize_stand(age=700., length=1.5,
-                                        width=1.5, sowing_density=150,
+g, wheat, domain_area = initialize_stand(age=700., length=1,
+                                        width=1, sowing_density=150,
+                                        plant_density=150, inter_row=0.12)
+g2, wheat2, domain_area2 = initialize_stand(age=700., length=1,
+                                        width=1, sowing_density=150,
                                         plant_density=150, inter_row=0.12)
                                        
 # Create a undetermined lesion emmitting a stock of dispersal units
@@ -64,12 +67,23 @@ class DummyLesion(Lesion):
 # leaf_id = 66798
 leaf_id = 74
 leaf = g.node(leaf_id)
-leaf.color = (0,0,180)
+leaf2 = g2.node(leaf_id)
+# leaf.color = (0,0,180)
+# leaf2.color = (0,0,180)
 leaf.lesions = [DummyLesion()]
 
 dispersor = Septo3DSplash(reference_surface=domain_area)
+
+# Define the wind direction
+wind_direction = (1,0,0)
+set_properties(g,label = 'LeafElement', wind_direction=wind_direction)
+dispersor2 = PowderyMildewWindDispersal()
 disperse(g, dispersor, "dummy", label='LeafElement')
+disperse(g2, dispersor2, "dummy", label='LeafElement')
 
 scene = plot3d(g)
 Viewer.display(scene)
+
+plot_dispersal_units(g)
+plot_dispersal_units(g2)
 

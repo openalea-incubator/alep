@@ -128,12 +128,13 @@ for t in timer:
     
     # Get weather for date and add it as properties on leaves
     _, data = weather.get_weather(t['weather'].dt, date)
-    set_properties(g,label = 'LeafElement',
+    set_properties(g,label = 'lf',
                     wetness = data.wetness.values[0],
                     temp = data.temperature_air.values[0],
                     rain_intensity = data.rain.values[0],
                     relative_humidity = data.relative_humidity.values[0],
-                    wind_speed = data.wind_speed.values[0])
+                    wind_speed = data.wind_speed.values[0],
+                    wind_direction = (1,0,0))
 
     # Grow vine canopy
     grow_canopy(g, vine, t['vine'])
