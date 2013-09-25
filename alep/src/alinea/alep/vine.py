@@ -22,7 +22,6 @@ def run(lsystem, axiom = '', nbstep = -1, parameters = {}):
     if len(parameters) > 0:
         lsystem.context().updateNamespace(parameters)
     return lsystem.iterate(axiom,c_iter,nbstep)
-            
     
 class Vine(object):
     

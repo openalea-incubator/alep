@@ -21,9 +21,9 @@ def get_septoria_weather(data_file='meteo01.csv'):
         Dataframe of weather indexed by date and with explicitely named columns
         See `alinea.weather.global_weather`
     """
-    weather = Weather(data_file='meteo01.csv')
+    weather = Weather(data_file=data_file)
     weather = add_wetness(weather)
-    weather = add_dispersal_events(weather)
+    weather = add_rain_dispersal_events(weather)
     return weather
 
 def add_wetness(weather):
@@ -39,7 +39,7 @@ def add_wetness(weather):
     weather.data = weather.data.join(wetness)
     return weather
     
-def add_dispersal_events(weather):
+def add_rain_dispersal_events(weather):
     """ Add a column to indicate the dispersal events at hours with max rain for each dispersal event,
         Add a column to indicate the value of average rain during dispersal event,
         Add a column to indicate the duration of each dispersal event.

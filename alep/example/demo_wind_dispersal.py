@@ -108,4 +108,4 @@ for t in range(11):
     # Display vine with affected leaves
     update_plot(g)
     scene = plot3d(g)
-    save_image(scene, image_name='image%d.png' % t)
+    # save_image(scene, image_name='image%d.png' % t)

@@ -55,19 +55,9 @@ class SeptoriaDU(DispersalUnit):
         """
         leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
         temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).
-        healthy_area = leaf.healthy_area # (float) : healthy area (=with no lesion) on the leaf sector during the time step (in cm^2).
-        try:
-            senescence = leaf.position_senescence
-        except:
-            senescence = None
-        if healthy_area > 0. :
-            # TODO : Right way to do this ?
+        if self.can_infect_at_position:
             if self.nb_spores == 0.:
                 self.disable()
-                
-            elif senescence and self.position[0] >= senescence:
-                self.disable()
-           
             else:
                 if self.status == 'deposited':
                     # TODO: design a new equation : see Magarey (2005)
@@ -124,7 +114,6 @@ class SeptoriaParameters(Parameters):
                  rh_min = 85.,
                  rain_events_to_empty = 3,
                  production_rate = 100000,
-                 senescence_treshold = 220.,
                  *args, **kwds):
         """ Parameters for septoria.
         
@@ -163,8 +152,6 @@ class SeptoriaParameters(Parameters):
             Lesion growth rate (cm2.dday-1)
         rh_min: float
             Minimal relative humidity for sporulation
-        senescence_treshold: float
-            Age at which the lesion is affected by senescence
         """
         self.name = "septoria"
         self.__class__.model = model
@@ -192,7 +179,6 @@ class SeptoriaParameters(Parameters):
         self.rain_events_to_empty = rain_events_to_empty
         self.production_rate = production_rate
         # TODO : Improve this parameter. Very Sensitive.
-        self.senescence_treshold = senescence_treshold
         
     def __call__(self, nb_spores=None, position=None):
         model = self.model

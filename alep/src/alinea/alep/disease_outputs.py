@@ -125,8 +125,8 @@ def compute_lesion_areas_by_leaf(g, label='LeafElement'):
     return {vid:(sum(l.surface for l in lesions[vid])
             if vid in lesions.keys() else 0.) for vid in vids} 
 
-def compute_green_lesion_area_by_leaf(g, label='LeafElement'):
-    """ Compute lesion area on each green part of the MTG given by the label.
+def compute_green_lesion_areas_by_leaf(g, label='LeafElement'):
+    """ Compute lesion areas on each green part of the MTG given by the label.
     
     Parameters
     ----------
@@ -166,9 +166,13 @@ def compute_healthy_area_by_leaf(g, label='LeafElement'):
     from alinea.alep.architecture import get_leaves
     vids = get_leaves(g, label=label)
     green_areas = g.property('green_area')
-    lesion_areas = compute_green_lesion_area_by_leaf(g, label)
-    return {vid:(green_areas[vid] - lesion_areas[vid] 
-            if round(green_areas[vid], 10)>round(lesion_areas[vid], 10) else 0.)
+    areas = g.property('area')
+    lesion_areas = compute_lesion_areas_by_leaf(g, label)
+    green_lesion_areas = compute_green_lesion_areas_by_leaf(g, label)
+    senescent_lesions = {vid:(lesion_areas[vid]-green_lesion_areas[vid]) for vid in vids}
+    green_areas = {vid:min(green_areas[vid], areas[vid]-senescent_lesions[vid]) for vid in vids}
+    return {vid:(green_areas[vid] - green_lesion_areas[vid] 
+            if round(green_areas[vid], 10)>round(green_lesion_areas[vid], 10) else 0.)
             for vid in vids}
     
 def compute_severity_by_leaf(g, label='LeafElement'):
@@ -194,7 +198,7 @@ def compute_severity_by_leaf(g, label='LeafElement'):
     lesion_areas = compute_lesion_areas_by_leaf(g, label)
     return {vid:(100*lesion_areas[vid]/float(total_areas[vid]) if total_areas[vid]>0. else 0.) for vid in vids}
 
-def compute_necrosis_by_leaf(g, label='LeafElement'):
+def compute_necrosis_percentage_by_leaf(g, label='LeafElement'):
     """ Compute necrosis percentage on each part of the MTG given by the label.
     
     Necrosis percentage is the ratio between necrotic area and total leaf area.
@@ -221,11 +225,44 @@ def compute_necrosis_by_leaf(g, label='LeafElement'):
     lesions = g.property('lesions')
     necrotic_areas = {}
     for vid in total_areas.iterkeys():
-        try:
-            necrotic_areas[vid] = sum(lesion.necrotic_area() for lesion in lesions[vid])
-        except:
+        if vid in lesions.keys():
+            necrotic_areas[vid] = sum(lesion.necrotic_area for lesion in lesions[vid])
+        else:
             necrotic_areas[vid] = 0.
     return {vid:(100*necrotic_areas[vid]/float(total_areas[vid]) if total_areas[vid]>0. else 0.) for vid in vids}
+
+def compute_necrotic_area_by_leaf(g, label='LeafElement'):
+    """ Compute necrosis percentage on each part of the MTG given by the label.
+    
+    Necrosis percentage is the ratio between necrotic area and total leaf area.
+    A tissue is necrotic if it is covered by a lesion in one of these states:
+        - NECROTIC
+        - SPORULATING
+        - EMPTY
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    necrotic_area_by_leaf: dict([id:necrosis_percentage])
+        Necrotic area on each part of the MTG given by the label
+    """
+    from alinea.alep.architecture import get_leaves
+    vids = get_leaves(g, label=label)
+    total_areas = g.property('area')
+    lesions = g.property('lesions')
+    necrotic_areas = {}
+    for vid in total_areas.iterkeys():
+        if vid in lesions.keys():
+            necrotic_areas[vid] = sum(lesion.necrotic_area for lesion in lesions[vid])
+        else:
+            necrotic_areas[vid] = 0.
+    return necrotic_areas
     
 def compute_total_severity(g, label='LeafElement'):
     """ Compute disease severity on the whole plant.
@@ -248,7 +285,7 @@ def compute_total_severity(g, label='LeafElement'):
     severities = compute_severity_by_leaf(g, label=label)
     return mean(severities.values())
     
-def compute_total_necrosis(g):
+def compute_total_necrosis_percentage(g, label='LeafElement'):
     """ Compute necrosis percentage on the whole plant.
     
     Necrosis percentage ratio between necrotic (and sporulating) disease surface and total area of leaves.
@@ -257,6 +294,8 @@ def compute_total_necrosis(g):
     ----------
     g: MTG
         MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
         
     Returns
     -------
@@ -264,21 +303,46 @@ def compute_total_necrosis(g):
         Ratio between necrotic (and sporulating) disease area and total area of leaves (in %)
     """
     # Leaf
-    green_areas = g.property('green_area')
-    total_green_area = sum(green_areas.values())
+    # green_areas = g.property('green_area')
+    # total_green_area = sum(green_areas.values())
     
     # Disease
-    lesions = g.property('lesions')
-    if lesions:
-        lesions = [l for les in lesions.values() for l in les 
-                    if (l.status>=l.fungus.NECROTIC and not l.is_senescent)]
-        total_necrotic_area = sum(l.surface for l in lesions)
-    else:
-        total_necrotic_area = 0.
+    # lesions = g.property('lesions')
+    # if lesions:
+        # lesions = [l for les in lesions.values() for l in les 
+                    # if (l.status>=l.fungus.NECROTIC and not l.is_senescent)]
+        # total_necrotic_area = sum(l.surface for l in lesions)
+    # else:
+        # total_necrotic_area = 0.
 
     # Compute ratio, i.e. necrosis percentage
-    return 100 * total_necrotic_area / total_green_area if total_green_area > 0. else 0.
+    # return 100 * total_necrotic_area / total_green_area if total_green_area > 0. else 0.
+    
+    from numpy import mean
+    nec = compute_necrosis_percentage_by_leaf(g, label=label)
+    return mean(nec.values())
 
+def compute_total_necrotic_area(g, label='LeafElement'):
+    """ Compute necrosis percentage on the whole plant.
+    
+    Necrosis percentage ratio between necrotic (and sporulating) disease surface and total area of leaves.
+    
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    necrotic_area: float
+        Total area of leaves covered by necrotic surfaces of lesions (in cm2)
+    """
+    from numpy import mean
+    nec = compute_necrotic_area_by_leaf(g, label=label)
+    return sum(nec.values())
+    
 ######################################################################
 from numpy import mean
 
@@ -305,21 +369,53 @@ class LeafInspector:
         self.leaf_green_area = []  
         self.leaf_healthy_area = []
         self.leaf_disease_area = []
+        # Initialize variables relative to DUs
+        self.nb_dus = []
+        self.nb_dus_on_green = []
+        self.nb_dus_on_healthy = []
+        # Initialize variables relative to number of infections
+        self.previous_nb_lesions = 0.
+        self.nb_infections = []
         # Initialize surfaces in state
         self.surface_inc = []
         self.surface_chlo = []
         self.surface_nec = []
         self.surface_spo = []
+        self.surface_total_nec = []
         # Initialize ratios (surfaces in state compared to leaf area)
         self.ratio_inc = []
         self.ratio_chlo = []
         self.ratio_nec = []
         self.ratio_spo = []
+        self.ratio_total_nec = []
         # Initialize total severity
         self.severity = []
         # Initialize necrosis percentage
         self.necrosis = []
     
+    def update_du_variables(self, g):
+        """ Save counts of dispersal units.
+        
+        Parameters
+        ----------
+        g: MTG
+            MTG representing the canopy 
+        """
+        dus = 0.
+        dus_on_green = 0.
+        dus_on_healthy = 0.
+        for id in self.ids:
+            leaf = g.node(id)
+            try:
+                dus += len(leaf.dispersal_units)
+                dus_on_green = len([du for du in leaf.dispersal_units if du.position[0] < leaf.position_senescence])
+                dus_on_healthy = len([du for du in leaf.dispersal_units if du.can_infect_at_position])
+            except:
+                pass
+        self.nb_dus.append(dus)
+        self.nb_dus_on_green.append(dus_on_green)
+        self.nb_dus_on_healthy.append(dus_on_healthy)
+        
     def update_variables(self, g):
         """ Save leaf properties and disease properties.
         
@@ -358,6 +454,30 @@ class LeafInspector:
         self.compute_ratios(g)
         self.compute_severity(g)
         self.compute_necrosis(g)
+    
+    def update_green_area(self, g):
+        green_areas = g.property('green_area')
+        self.leaf_green_area.append(sum([green_areas[id] for id in self.ids]))
+        
+    def update_healthy_area(self, g):
+        healthy_areas = g.property('healthy_area')
+        self.leaf_healthy_area.append(sum([healthy_areas[id] for id in self.ids]))
+    
+    def compute_nb_infections(self, g):
+        """ Compute the number of infections during time step.
+        
+        Number of infections corresponds to number of new lesions created.        
+        """
+        lesions = g.property('lesions')
+        nb_infections = 0.
+        if len(lesions)>0:
+            lesions = sum([lesions[id] for id in self.ids if id in lesions.keys()], [])
+            if lesions!=0:
+                nb_lesions = len(lesions)
+                nb_infections = max(0., nb_lesions - self.previous_nb_lesions)
+                self.previous_nb_lesions = nb_lesions
+
+        self.nb_infections.append(nb_infections)
             
     def compute_severity(self, g):
         """ Compute severity on a blade of the MTG.
@@ -371,14 +491,14 @@ class LeafInspector:
         self.severity.append(mean([severities[id] for id in self.ids]))
     
     def compute_necrosis(self, g):
-        """ Compute necrosis on a blade of the MTG.
+        """ Compute necrosis percentage on a blade of the MTG.
         
         Parameters
         ----------
         g: MTG
             MTG representing the canopy    
         """
-        nec = compute_necrosis_by_leaf(g, label=self.label)
+        nec = compute_necrosis_percentage_by_leaf(g, label=self.label)
         self.necrosis.append(mean([nec[id] for id in self.ids]))
     
     def compute_ratios(self, g):
@@ -389,7 +509,7 @@ class LeafInspector:
         g: MTG
             MTG representing the canopy    
         """
-        total_area = self.leaf_area[-1]
+        total_area = sum([g.node(id).area for id in self.ids])
         lesion_list = []
         for id in self.ids:
             leaf = g.node(id)
@@ -414,10 +534,12 @@ class LeafInspector:
         self.surface_chlo.append(surface_chlo)
         self.surface_nec.append(surface_nec)
         self.surface_spo.append(surface_spo)
+        self.surface_total_nec.append(surface_nec+surface_spo)
         self.ratio_inc.append(100. * surface_inc / total_area if total_area>0. else 0.)
         self.ratio_chlo.append(100. * surface_chlo / total_area if total_area>0. else 0.)
         self.ratio_nec.append(100. * surface_nec / total_area if total_area>0. else 0.)
         self.ratio_spo.append(100. * surface_spo / total_area if total_area>0. else 0.)
+        self.ratio_total_nec.append(100. * (surface_nec+surface_spo) / total_area if total_area>0. else 0.)
     
     def count_dispersal_units(self, g):
         """ count DU of the leaf.

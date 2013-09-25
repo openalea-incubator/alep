@@ -26,18 +26,18 @@ def add_area_topvine(g, conversion_factor=1000., label='lf'):
     
     geometries = g.property('geometry')
     area = g.property('area')
-    h_area = g.property('healthy_area')
+    g_area = g.property('green_area')
     if len(area)==0:
         g.add_property('area')
         area = g.property('area')
-    if len(h_area)==0:
-        g.add_property('healthy_area')
-        h_area = g.property('healthy_area')
+    if len(g_area)==0:
+        g.add_property('green_area')
+        g_area = g.property('green_area')
     new_vids = [n for n in g if g.label(n).startswith(label) if n not in area]
     # Add area information to each leaf
     area.update({vid:pgl.surface(geometries[vid][0])*conversion_factor for vid in new_vids})
-    # At start healthy area equals total area
-    h_area.update({vid:area[vid] for vid in new_vids})
+    # At start green area equals total area
+    g_area.update({vid:area[vid] for vid in new_vids})
     
 def default_properties(g,vids,props):
     for name, default in props.iteritems():

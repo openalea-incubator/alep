@@ -88,7 +88,7 @@ def infect(g, dt,
     if activate:      
         # Check if its position prevent it from infecting (optional)
         if infection_control_model:
-            infection_control_model.check_position(g)
+            infection_control_model.control_position(g, label)
         
         # Find dispersal units on MTG
         dispersal_units = g.property('dispersal_units')
@@ -98,7 +98,7 @@ def infect(g, dt,
             leaf = g.node(vid)       
             for d in du:
                 if not d.can_infect_at_position:
-                    d.disable()     
+                    d.disable()
                 # If not compute infection success
                 if d.is_active:
                     d.infect(dt, leaf)
@@ -240,7 +240,7 @@ def disperse(g,
                     DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf        
         # Transport of dispersal units
         if sum([len(v) for v in DU.itervalues()])>0:
-            deposits = dispersal_model.disperse(g, DU) # update DU in g , change position, status
+            deposits = dispersal_model.disperse(g, DU) # update DU in g , change position, status       
             # Allocation of new dispersal units
             for vid,dlist in deposits.iteritems():
                 if g.label(vid).startswith(label):

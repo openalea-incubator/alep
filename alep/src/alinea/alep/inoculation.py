@@ -44,7 +44,8 @@ class RandomInoculation:
                 v = vids[idx]
                 leaf = g.node(v)
                 # Set a position for i :
-                i.position = [random.random(), 0] # TODO : improve
+                if i.position==None:
+                    i.position = [random.random(), 0] # TODO : improve
                 
                 #  Attach it to the leaf
                 if isinstance(i, Lesion):

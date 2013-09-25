@@ -1,23 +1,39 @@
+""" Make images of a simulation of vine/oidium epidemics for a movie.
 """
-Make images of a simulation of vine/oidium epidemics for a movie.
-"""
-
-from alinea.alep.vine import Vine
+# Useful imports
+import random as rd
+import numpy as np
+import pandas
 from alinea.astk.TimeControl import *
 
-from alinea.alep.inoculation import RandomInoculation
-from alinea.alep.growth_control import GrowthControlVineLeaf
-from alinea.alep.dispersal import RandomDispersal
-from alinea.alep.powdery_mildew import *
+# Imports for weather
+from datetime import datetime
+from alinea.weather.global_weather import *
+from alinea.alep.alep_weather import add_wetness
+
+# Imports for grapevine
+from alinea.alep.vine import Vine
+from alinea.astk.plant_interface import new_canopy, grow_canopy
+from alinea.alep.architecture import (update_healthy_area, add_area_topvine,
+                                      set_properties, set_property_on_each_id)
+
+# Imports for powdery mildew
+from openalea.vpltk import plugin
 from alinea.alep.protocol import *
-from alinea.adel.mtg_interpreter import plot3d
+from alinea.alep.powdery_mildew import *
+from alinea.alep.disease_operation import generate_stock_du
+from alinea.alep.inoculation import RandomInoculation
+from alinea.alep.dispersal import PowderyMildewWindDispersal
+from alinea.alep.growth_control import NoPriorityGrowthControl
+from alinea.alep.infection_control import BiotrophDUPositionModel
 
-from alinea.alep.disease_operation import *
-from alinea.alep.disease_outputs import *
-from alinea.alep.architecture import *
+# Imports for movie
+from alinea.alep.disease_outputs import compute_severity_by_leaf
 from alinea.alep.alep_color import alep_colormap, green_white
+from alinea.adel.mtg_interpreter import plot3d
+from openalea.plantgl.all import Viewer
 
-# /!\ TEMP /!\ #################################################################
+# /!\ TEMP /!\ ################################################################
 from openalea.plantgl.all import Viewer
 import os.path
 
@@ -51,19 +67,16 @@ def save_image(scene, image_name='%s/img%04d.%s', directory='.', index=0, ext='p
     filename = image_name.format(directory=directory, index=index, ext=ext)
     Viewer.frameGL.saveImage(filename)
     return scene,
-###################################################################################
 
-
+# Useful functions ############################################################
 def update_plot(g):
-    # Count lesions by id & add it as MTG property ####################################
-    # nb_lesions_by_leaf = count_lesions_by_leaf(g, label = 'lf')
-    surface_lesions_by_leaf = count_lesion_surfaces_by_leaf(g, label = 'lf')
-    # print(surface_lesions_by_leaf)
-    # print(g.property('surface'))
-    set_property_on_each_id(g, 'surface_lesions', surface_lesions_by_leaf, label = 'lf')
+    # Compute severity by leaf
+    severity_by_leaf = compute_severity_by_leaf(g, label = 'LeafElement')
+    set_property_on_each_id(g, 'severity', severity_by_leaf, label = 'LeafElement')
                        
-    # Visualization ###################################################################
-    g = alep_colormap(g, 'surface_lesions', cmap=green_white(levels=10), lognorm=False)
+    # Visualization
+    g = alep_colormap(g, 'surface_lesions', cmap=green_white(levels=100),
+                      lognorm=False, zero_to_one=False, vmax=100)
     brown = (100,70,30)
     trunk_ids = [n for n in g if g.label(n).startswith('tronc')]
     for id in trunk_ids:
@@ -73,63 +86,80 @@ def update_plot(g):
     Viewer.display(scene)
     return scene
 
+# Initialization ##############################################################
+# Set the seed of the simulation
+rd.seed(0)
+np.random.seed(0)
+
+# Choose dates of simulation and initialize the value of date
+start_date = datetime(2001, 03, 1, 1, 00, 00)
+end_date = datetime(2001, 03, 31, 00, 00)
+# end_date = datetime(2001, 07, 01, 00, 00)
+date = start_date
+
+# Read weather and adapt it to septoria (add wetness)
+weather = Weather(data_file='meteo01.csv')
+weather = add_wetness(weather)
+
+# Initialize a vine canopy
 vine = Vine()
-g0 = vine.setup_canopy(age=6)
-# vine.plot(g0)
+g,_ = new_canopy(vine, age = 6)
 
-# Add missing properties needed for the simulation
-# The simulation requires the following properties on leaf elements:
-#   - 'surface': total surface of the leaf element (in cm2)
-#   - 'healthy_surface': surface of the leaf element without lesion or senescence (in cm2)
-#   - 'age': age of the leaf (in decimal_days)
-#   - 'position_senescence': position of the senescence on blade axis
-set_properties(g0,label = 'lf',
-               surface=5., healthy_surface=5., position_senescence=None)
+# Initialize the models for powdery mildew
+diseases=plugin.discover('alep.disease')
+powdery_mildew = diseases['powdery_mildew'].load()
+inoculator = RandomInoculation()
+growth_controler = NoPriorityGrowthControl()
+infection_controler = BiotrophDUPositionModel()
+dispersor = PowderyMildewWindDispersal()
 
-fungus = powdery_mildew()
-PowderyMildewDU.fungus=fungus
-nb_dus = 100
-dispersal_units = ([PowderyMildewDU(nb_spores=1, status="emitted") for i in range(nb_dus)])
-inoculator=RandomInoculation()
-initiate(g0,dispersal_units,inoculator, label='lf')
+# Define the schedule of calls for each model
+nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
+weather_timing = TimeControl(delay=1, steps=nb_steps)
+vine_timing = TimeControl(delay=24, steps=nb_steps)
+mildew_timing = TimeControl(delay=1, steps=nb_steps)
+plot_timing = TimeControl(delay=24, steps=nb_steps)
+timer = TimeControler(weather=weather_timing, vine=vine_timing, disease = mildew_timing, plotting=plot_timing)
 
-
-controler = GrowthControlVineLeaf()
-dispersor = RandomDispersal()
-# nsteps = 49
-nsteps = 1000
-
-vine_timing = TimeControl(delay=24, steps = nsteps)
-mildew_timing = TimeControl(delay =1, steps = nsteps)
-plot_timing = TimeControl(delay=24, steps = nsteps)
-timer = TimeControler(vine = vine_timing, disease = mildew_timing, ploting = plot_timing)
-
-
-g=g0
-# scene = vine.generate_scene(g)
-scene = plot3d(g)
-
+# Simulation #########################################################
 for t in timer:
-    print(timer.numiter)
-    set_properties_on_new_leaves(g,label = 'lf',
-                             surface=5., healthy_surface=5.,
-                             position_senescence=None)
-    set_properties(g,label = 'lf',
-                    wetness=True,
-                    temp=22.,
-                    rain_intensity=0.,
-                    rain_duration=0.,
-                    relative_humidity=85.,
-                    wind_speed=0.5)
-                        
-    infect(g, t['disease'].dt, label='lf')
-    update(g, t['disease'].dt, controler, label='lf')
-    disperse(g, dispersor, "powdery_mildew", label='lf')  
+    # Update date
+    date = (weather.next_date(t['weather'].dt, date) if date!=None else start_date)
     
-    g = vine.grow(g,t['vine'])
-    # scene = vine.generate_scene(g)
-    if t['ploting'].dt > 0:
-        print('ploting...')
-        scene = update_plot(g)
+    # Get weather for date and add it as properties on leaves
+    _, data = weather.get_weather(t['weather'].dt, date)
+    set_properties(g,label = 'LeafElement',
+                    wetness = data.wetness.values[0],
+                    temp = data.temperature_air.values[0],
+                    rain_intensity = data.rain.values[0],
+                    relative_humidity = data.relative_humidity.values[0],
+                    wind_speed = data.wind_speed.values[0])
+
+    # Grow vine canopy
+    grow_canopy(g, vine, t['vine'])
+    add_area_topvine(g)
+    update_healthy_area(g, label = 'lf')
+    import pdb
+    pdb.set_trace()
+    
+    # Develop disease
+    if data.dispersal_event.values[0]==True and timer.numiter <= 1500:
+        # Refill pool of initial inoculum to simulate differed availability
+        dispersal_units = generate_stock_du(nb_dus=10, disease=septoria)
+        initiate(g, dispersal_units, inoculator)
+      
+    infect(g, t['disease'].dt, infection_controler, label='lf')
+    update(g, t['disease'].dt, growth_controler, sen_model, label='lf')
+    disperse(g, dispersor, "powdery_mildew", label='lf')
+
+    if t['plotting'].dt > 0:
+        update_plot(g)
+        scene = plot3d(g)
         index = timer.numiter/24
-        save_image(scene, image_name='image%d.png' % index)
+        if index < 10 :
+            image_name='./images_septo/image00%d.png' % index
+        elif index < 100 :
+            image_name='./images_septo/image0%d.png' % index
+        else :
+            image_name='./images_septo/image%d.png' % index
+        save_image(scene, image_name=image_name)
