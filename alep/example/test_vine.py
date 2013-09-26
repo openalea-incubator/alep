@@ -16,7 +16,7 @@ vine_timing = TimeControl(delay=24, steps=nb_steps)
 plot_timing = TimeControl(delay=24, steps=nb_steps)
 timer = TimeControler(vine=vine_timing, plotting=plot_timing)
 for t in timer:
-    grow_canopy(g, vine, t['vine'])
+    g,_ = grow_canopy(g, vine, t['vine'])
     if t['plotting'].dt > 0:
         # g.node(188).color = (0,0,180)
         scene = plot3d(g)

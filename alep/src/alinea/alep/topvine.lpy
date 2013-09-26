@@ -241,15 +241,17 @@ plante(x,y,z,azim,nb_tiges,idp) --> @M(x,y,z)/(azim)
 
 en(l, age_dd, ordre, posax, azi, incli,idp) :
     a1, a2 = azi, incli
-    if a1>0. and a2>0:
-        produce _(0.002)@R(0,0,1, 1,0,0)/(a1)^(a2)F(l)
-    elif a1>0. and a2<0:
-        produce _(0.002)@R(0,0,1, 1,0,0)/(a1)&(-a2)F(l)
-    elif a1<0. and a2>0:
-        produce _(0.002)@R(0,0,1, 1,0,0)\(-a1)^(a2)F(l)
-    elif a1<0. and a2<0:
-        produce _(0.002)@R(0,0,1, 1,0,0)\(-a1)&(-a2)F(l)
-
+    if l > 0:
+        if a1>0. and a2>0:
+            produce _(0.002)@R(0,0,1, 1,0,0)/(a1)^(a2)F(l)
+        elif a1>0. and a2<0:
+            produce _(0.002)@R(0,0,1, 1,0,0)/(a1)&(-a2)F(l)
+        elif a1<0. and a2>0:
+            produce _(0.002)@R(0,0,1, 1,0,0)\(-a1)^(a2)F(l)
+        elif a1<0. and a2<0:
+            produce _(0.002)@R(0,0,1, 1,0,0)\(-a1)&(-a2)F(l)
+    else:
+        produce *
 pet(l, age_dd, ordre, posax, azi, incli,idp) :
     a1, a2 = azi, incli
     if l>0:
