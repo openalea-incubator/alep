@@ -70,14 +70,14 @@ class PowderyMildewDU(DispersalUnit):
         c_wetness_effect = f.c_wetness_effect
         d_wetness_effect = f.d_wetness_effect
         nb_spores = self.nb_spores
-       
+        
         if nb_spores == 0.:
             self.disable()
             return
         
         # Compute dispersal unit age (and viability?)
         self.update_age_dday(dt, leaf)
-        
+
         if self.is_ready_to_infect():
             # Temperature factor
             t_norm_function = temp_norm_function(temp, t_min, t_max, m, n)
@@ -235,6 +235,11 @@ class PowderyMildew(Lesion):
         self.production_is_active = False
         # Stock of spores
         self.stock_spores = 0.
+        
+        # Temporary variables for model inspection
+        self.age_leaf_at_infection = None
+        self.surface_evolution = []        
+        self.temperatures = []        
     
     def update(self, dt=1., leaf=None):
         """ Update the status of the lesion and create a new growth ring if needed.
@@ -264,6 +269,11 @@ class PowderyMildew(Lesion):
             self.progress_in_latency()
         elif self.is_sporulating():
             self.progress_in_sporulation()
+    
+        # Temporary:
+        if self.age_leaf_at_infection == None:
+            self.age_leaf_at_infection = leaf.age
+        self.temperatures.append(leaf.temp)
     
     def update_diameter_max(self, leaf=None):
         """ Compute maximum diameter of the lesion according to its age.
@@ -312,6 +322,7 @@ class PowderyMildew(Lesion):
        
         # Growth demand in surface
         gd = (pi * diameter_demand**2 /4) - self.surface
+
         self.growth_demand = gd
     
     def progress_in_latency(self):
@@ -381,6 +392,10 @@ class PowderyMildew(Lesion):
             # Growth offer is added to surface alive
             self.surface += growth_offer
             self.diameter = sqrt(self.surface*4/pi)
+            
+            # Temporary
+            self.surface_evolution.append(self.surface)
+            
             # Maximum diameter according to lesion age and leaf age
             kmax = self.diameter_max
             # Check if any interruption of growth:
@@ -487,7 +502,12 @@ class PowderyMildew(Lesion):
             self.disable()
 
         return emissions
-        
+    
+    def become_senescent(self, **kwds):
+        """ Set is_senescent to true.
+        """
+        self.is_senescent = True
+    
     def senescence_response(self):
         """ Disable the lesion if it is on senescent tissue.
         

@@ -38,7 +38,7 @@ class NoPriorityGrowthControl:
         lesions = g.property('lesions')
         labels = g.property('label')
         healthy_areas = g.property('healthy_area')           
-        
+
         # Select all the leaves
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
@@ -112,11 +112,7 @@ class GrowthControlVineLeaf:
                 for l in leaf_lesions:
                     growth_offer = leaf_healthy_area * l.growth_demand / total_demand
                     l.control_growth(growth_offer=growth_offer)
-                # healthy_areas[leaf] = 0.
             else:
                 for l in leaf_lesions:
                     growth_offer = l.growth_demand
                     l.control_growth(growth_offer=growth_offer)
-
-                gd = sum(l.growth_demand for l in lesions.get(leaf,[]) if l.growth_is_active)
-                # healthy_areas[leaf] -= gd

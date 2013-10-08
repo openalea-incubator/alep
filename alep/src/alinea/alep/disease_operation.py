@@ -130,7 +130,7 @@ def distribute_disease(g,
         Updated MTG with dispersal units or lesions
     """
     # Create a pool of dispersal units (DU)
-    diseases=plugin.discover('alep.disease')
+    diseases = plugin.discover('alep.disease')
     disease = diseases[disease_model].load()
     if fungal_object=='dispersal_unit':
         objects = generate_stock_du(nb_dus=nb_objects, disease=disease)
@@ -138,7 +138,7 @@ def distribute_disease(g,
         objects = generate_stock_lesions(nb_lesions=nb_objects, disease=disease)
     else:
         raise Exception('fungal object is not valid: choose between ''dispersal_unit'' or ''lesion')
-    # Distribute the DU 
+    # Distribute the DU
     initiate(g, objects, initiation_model, label=label)
     return g
     

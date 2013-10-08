@@ -59,6 +59,10 @@ class SeptoriaExchangingRings(Lesion):
         self.first_rain_hour = False
         # Stock of spores
         self.stock_spores = None
+        
+        # Temporary
+        self.surface_previous = 0.
+        self.dja_passe = None
 
     def update(self, dt, leaf=None):
         """ Update the status of the lesion and create a new growth ring if needed.
@@ -270,6 +274,11 @@ class SeptoriaExchangingRings(Lesion):
             if growth_offer < self.growth_demand:
                 self.disable_growth()
     
+        if round(self.surface,4) < round(self.surface_previous,4):
+            import pdb
+            pdb.set_trace()
+        self.surface_previous = self.surface
+        
     def update_stock(self):
         """ Update the stock of spores on the lesion.
         
@@ -355,7 +364,7 @@ class SeptoriaExchangingRings(Lesion):
         elif status == f.CHLOROTIC:
             surface_chlo = self.surface_alive
         
-        elif status == f.NECROTIC:
+        elif status == f.NECROTIC: 
             # Compute necrotic surface
             diff = delta_ring - time_to_nec
             nb_full_rings = floor(diff/width_ring)
@@ -534,20 +543,30 @@ class SeptoriaExchangingRings(Lesion):
             self.disable()
             self.first_ring.disable()
             surface_dead = self.surface_alive
+            self.surface_alive = 0.
+            self.surface_rings = np.array([])
         else:
-            self.compute_all_surfaces()
-            surface_dead = self.surface_chlo
             # Update the list of rings
-            if len(s)>0:
+            if len(s)>0 and self.surface_dead==0.:
                 diff = self.delta_age_ring - time_to_nec
                 nb_full_rings = floor(diff/dring)
                 portion_last_ring = (diff%dring)/dring
+                surface_dead = sum(s[:-(nb_full_rings+1)])+(1-portion_last_ring)*s[-(nb_full_rings+1)]
+                s[:-(nb_full_rings+1)] = 0.
                 s[-(nb_full_rings+1)] *= portion_last_ring
-                s = s[-(nb_full_rings+1):]
-        
+                self.surface_rings = s
+                self.surface_alive = sum(self.surface_rings) + self.first_ring.surface
+                self.surface_dead = surface_dead
+
+            # import pdb
+            # print('1 : l.558')
+            # pdb.set_trace()                
+            # if self.dja_passe == None :
+                # self.dja_passe = True
+            
         # Update 'surface_alive' and 'surface_dead'
-        self.surface_alive = max(0., self.surface_alive - surface_dead)
-        self.surface_dead = surface_dead
+        # self.surface_alive = max(0., self.surface_alive - surface_dead)
+        # self.surface_dead = surface_dead
         
         # Complete the age of the lesion up to the end of time step
         self.ddday = ddday - ddday_sen
@@ -562,6 +581,10 @@ class SeptoriaExchangingRings(Lesion):
                 self.delta_age_ring += f.delta_age_ring
             self.exchange_surfaces()
 
+        # if self.status > f.CHLOROTIC:
+            # print('2 : l.581')
+            # pdb.set_trace()
+            
         # Update stock of spores
         if self.status==f.SPORULATING:
             self.update_stock()

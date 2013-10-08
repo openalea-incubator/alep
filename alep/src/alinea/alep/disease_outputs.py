@@ -393,6 +393,9 @@ class LeafInspector:
         # Initialize necrosis percentage
         self.necrosis = []
     
+        # Temporary
+        self.previous_nb_lesions = 0.
+    
     def update_du_variables(self, g):
         """ Save counts of dispersal units.
         
@@ -455,6 +458,10 @@ class LeafInspector:
         self.compute_severity(g)
         self.compute_necrosis(g)
     
+    def update_area(self,g):
+        areas = g.property('area')
+        self.leaf_area.append(sum([areas[id] for id in self.ids]))
+    
     def update_green_area(self, g):
         green_areas = g.property('green_area')
         self.leaf_green_area.append(sum([green_areas[id] for id in self.ids]))
@@ -462,6 +469,20 @@ class LeafInspector:
     def update_healthy_area(self, g):
         healthy_areas = g.property('healthy_area')
         self.leaf_healthy_area.append(sum([healthy_areas[id] for id in self.ids]))
+    
+    def update_disease_area(self, g):
+        disease_area = compute_lesion_areas_by_leaf(g, label=self.label)
+        self.leaf_disease_area.append(sum([disease_area[id] for id in self.ids]))
+        
+        lesions = g.property('lesions')
+        nb_lesions = 0.
+        for id in self.ids:
+            if id in lesions:
+                nb_lesions += len(lesions[id])
+        if nb_lesions < self.previous_nb_lesions:
+            import pdb
+            pdb.set_trace()
+        self.previous_nb_lesions = nb_lesions
     
     def compute_nb_infections(self, g):
         """ Compute the number of infections during time step.

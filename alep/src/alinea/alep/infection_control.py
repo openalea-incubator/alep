@@ -43,17 +43,17 @@ class BiotrophDUProbaModel:
         """
         from alinea.alep.disease_outputs import compute_severity_by_leaf
         dispersal_units = g.property('dispersal_units')
-        severities = compute_severity_by_leaf(g)
+        severities = compute_severity_by_leaf(g, label=label)
         for vid, du in dispersal_units.iteritems():
             # By leaf element, keep only those which are deposited and active
-            du = [d for d in du if d.is_active and d.status=="deposited"]
+            du = [d for d in du if d.is_active]
             ratio = severities[vid]/100
             if du:
                 nb_not_on_green = int(round(ratio)*len(du))
                 for dispersal_unit in random.sample(du, nb_not_on_green):
                     # Is not on green tissue
                     dispersal_unit.can_not_infect_at_position()
-            
+
 class BiotrophDUPositionModel:
     """ Template class for checking position of dispersal units on a MTG that 
         complies with the guidelines of Alep.

@@ -44,7 +44,7 @@ def initialize_stand(age=0., length=0.1, width=0.2, sowing_density=150,
     g,_ = new_canopy(wheat,age=age)
     # Add the property 'healthy_area' on the leaves
     update_healthy_area(g, label = 'LeafElement')
-    return g, wheat, domain_area
+    return g, wheat, domain_area, domain
 
 # Mock-ups #########################################################################
 from alinea.adel.newmtg import *
