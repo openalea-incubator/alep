@@ -11,7 +11,7 @@ from alinea.alep.architecture import set_properties,set_property_on_each_id, get
 # Imports for disease
 from alinea.alep.fungal_objects import DispersalUnit, Lesion
 from alinea.septo3d.alep_interfaces import Septo3DSplash
-from alinea.alep.dispersal import PowderyMildewWindDispersal
+from alinea.alep.dispersal import PowderyMildewWindDispersal, SeptoriaRainDispersal
 from alinea.alep.disease_outputs import count_dispersal_units_by_leaf
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
 from alinea.alep.protocol import disperse
@@ -19,34 +19,36 @@ from alinea.alep.protocol import disperse
 from alinea.alep.disease_outputs import plot_dispersal_units
 
 # Useful functions ############################################################
-def update_plot(g):
+def update_plot(g, leaf_source):
     # Compute severity by leaf
     nb_dus_by_leaf = count_dispersal_units_by_leaf(g, label = 'LeafElement')
     set_property_on_each_id(g, 'nb_dus', nb_dus_by_leaf, label = 'LeafElement')
-
+    
     # Visualization
-    g = alep_colormap(g, 'nb_dus', cmap=green_yellow_red(levels=100),
-                      lognorm=False, zero_to_one=False, vmax=100)
+    g = alep_colormap(g, 'nb_dus', cmap=green_yellow_red(levels=1000),
+                      lognorm=False, zero_to_one=False, vmax=10)
 
     leaves = get_leaves(g, label='LeafElement')
-    pos_sen = g.property('position_senescence')
-    for leaf in leaves:
-        if pos_sen[leaf]==0.:
-            g.node(leaf).color = (157, 72, 7)
+    # pos_sen = g.property('position_senescence')
+    for id in g:
+        if not id in nb_dus_by_leaf:
+            g.node(id).color = (0,0,0)
 
+    g.node(leaf_source).color = (230, 62, 218)
     scene = plot3d(g)
     Viewer.display(scene)
     return scene
 
 # Dispersal ################################################################### 
 # Initialize a wheat canopy
-g, wheat, domain_area = initialize_stand(age=700., length=1,
-                                        width=1, sowing_density=150,
-                                        plant_density=150, inter_row=0.12)
-g2, wheat2, domain_area2 = initialize_stand(age=700., length=1,
-                                        width=1, sowing_density=150,
-                                        plant_density=150, inter_row=0.12)
+# g, wheat, domain_area = initialize_stand(age=500., length=1,
+                                        # width=1, sowing_density=150,
+                                        # plant_density=150, inter_row=0.12)
                                        
+g, wheat, domain_area = initialize_stand(age=1500., length=1,
+                                        width=1, sowing_density=250,
+                                        plant_density=250, inter_row=0.12)
+                                        
 # Create a undetermined lesion emmitting a stock of dispersal units
 class DummyLesion(Lesion):
     """ Undetermined lesion with only a method emission."""
@@ -61,29 +63,32 @@ class DummyLesion(Lesion):
         self.stock_spores = 1
         
     def emission(self, leaf=None):
-        return [DispersalUnit(nb_spores=self.nb_spores, status='emitted') for i in range(10000)]
+        return [DispersalUnit(nb_spores=self.nb_spores, status='emitted') for i in range(int(1e4))]
 
-        
-# leaf_id = 66798
-leaf_id = 74
+
+# leaf_id = 17749 # for age 200
+# leaf_id = 29368 # for age 500
+# leaf_id = 49497 # for density 250
+# leaf_id = 38128 # for age 700
+leaf_id = 38257 # for age 1500
+# leaf_id = 74 # for single plant
 leaf = g.node(leaf_id)
-leaf2 = g2.node(leaf_id)
-# leaf.color = (0,0,180)
-# leaf2.color = (0,0,180)
+leaf.color = (0,0,180)
 leaf.lesions = [DummyLesion()]
 
 dispersor = Septo3DSplash(reference_surface=domain_area)
+dispersor2 = PowderyMildewWindDispersal(cid=0.04, k_beer=0.65, label='LeafElement')
+dispersor3 = SeptoriaRainDispersal()
 
 # Define the wind direction
-wind_direction = (1,0,0)
+wind_direction = (1, 0.5, 0)
 set_properties(g,label = 'LeafElement', wind_direction=wind_direction)
-dispersor2 = PowderyMildewWindDispersal()
-disperse(g, dispersor, "dummy", label='LeafElement')
-disperse(g2, dispersor2, "dummy", label='LeafElement')
 
-scene = plot3d(g)
-Viewer.display(scene)
+disperse(g, dispersor3, "dummy", label='LeafElement')
 
-plot_dispersal_units(g)
-plot_dispersal_units(g2)
+# scene = plot3d(g)
+# Viewer.display(scene)
+
+# plot_dispersal_units(g)
+update_plot(g, leaf_source=leaf_id)
 

@@ -191,7 +191,7 @@ for t in timer:
     # Develop disease
     if data.dispersal_event.values[0]==True and timer.numiter <= 1500:
         # Refill pool of initial inoculum to simulate differed availability
-        dispersal_units = generate_stock_du(nb_dus=10, disease=septoria)
+        dispersal_units = generate_stock_du(nb_dus=20, disease=septoria)
         initiate(g, dispersal_units, inoculator)
       
     infect(g, t['disease'].dt, infection_controler, label='LeafElement')

@@ -62,6 +62,8 @@ def generate_lesions_with_senescence_treshold(nb_lesions=1, senescence_treshold=
         time_to_chlo = f.degree_days_to_chlorosis
         if treshold < time_to_chlo:
             raise Exception('Do not use a treshold below time to chlorosis')
+            
+        # todo : modify condition
         ddday = self.ddday
         ddday_sen = self.ddday_before_senescence
         age_dday = self.age_dday
