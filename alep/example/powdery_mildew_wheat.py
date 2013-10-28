@@ -14,7 +14,8 @@ from alinea.alep.powdery_mildew import *
 from alinea.alep.architecture import *
 from alinea.alep.disease_operation import *
 from alinea.alep.du_position_checker import BiotrophDUProbaModel
-from alinea.alep.dispersal import RandomDispersal
+from alinea.alep.dispersal_emission import PowderyMildewWindEmission
+from alinea.alep.dispersal_transport import RandomDispersal
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.inoculation import RandomInoculation
@@ -261,7 +262,8 @@ def test_disperse():
     position_checker = BiotrophDUProbaModel()
     # Call a model of growth control and a model of dispersal
     controler = NoPriorityGrowthControl()
-    dispersor = RandomDispersal()
+    emitter = PowderyMildewWindEmission()
+    transporter = RandomDispersal()
     # Loop of simulation
     dt = 1
     nb_steps = 1000
@@ -290,7 +292,7 @@ def test_disperse():
         
         # Dispersal event
         scene = plot3d(g)
-        disperse(g, scene, dispersor, "powdery_mildew")
+        disperse(g, emitter, transporter, "powdery_mildew")
         
         # Count objects on the MTG after dispersal event
         lesions = g.property('lesions')

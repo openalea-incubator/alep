@@ -79,14 +79,15 @@ def generate_lesions_with_emission(nb_lesions, nb_dus, disease):
         Force the emission of a given number of dispersal unit by the lesion
         independently from its surface, age, status, stock, etc.        
         """
-        return generate_stock_du(nb_dus=nb_dus, disease=disease)
-    LesionKlass.emission = emission_forced
-    
+        # For dispersal, stock of spores needs to be positive
+        # TODO : change this condition to a method 'can_emit'
+        lesion.is_active = True
+        lesion.stock_spores = 1
+        DU = disease.dispersal_unit()
+        return [DU(nb_spores=rd.randint(1,100), status='emitted',
+                    position=lesion.position) for i in range(nb_dus)]
+    LesionKlass.emission = emission_forced   
     lesions = [LesionKlass(nb_spores=1) for i in range(nb_lesions)]
-    # For dispersal, lesions need some properties to be True
-    for les in lesions:
-        les.is_active = True
-        les.stock_spores = 1
     return lesions
     
 def override_method(LesionKlass, method=None):

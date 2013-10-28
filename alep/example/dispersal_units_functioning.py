@@ -26,6 +26,7 @@ from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.disease_outputs import LeafInspector
 from alinea.alep.inoculation import RandomInoculation
 from alinea.septo3d.alep_interfaces import Septo3DSplash
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
@@ -82,7 +83,8 @@ def run_simulation():
     growth_controler = NoPriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-    dispersor = Septo3DSplash(reference_surface=domain_area)
+    emitter = SeptoriaRainEmission()
+    transporter = Septo3DSplash(reference_surface=domain_area)
     washor = RapillyWashing()
 
     # Define the schedule of calls for each model
@@ -141,7 +143,7 @@ def run_simulation():
         infect(g, t['disease'].dt, infection_controler, label='LeafElement')
         update(g, t['disease'].dt, growth_controler, sen_model, label='LeafElement')
         if data.dispersal_event.values[0]==True:
-            disperse(g, dispersor, "septoria", label='LeafElement')
+            disperse(g, emitter, transporter, "septoria", label='LeafElement')
             # Save outputs before washing
             for inspector in inspectors.itervalues():
                 inspector.update_du_variables(g)

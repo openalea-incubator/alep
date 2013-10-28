@@ -23,7 +23,8 @@ from alinea.alep.disease_outputs import *
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.du_position_checker import BiotrophDUProbaModel
 from alinea.alep.growth_control import NoPriorityGrowthControl
-from alinea.alep.dispersal import RandomDispersal
+from alinea.alep.dispersal_transport import RandomDispersal
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.washing import RapillyWashing
 
@@ -116,7 +117,8 @@ def compute_hourly_delta_ddays(temp=0., basis_for_dday=-2):
 def execute_one_step(g, weather, date, dt,
                     position_checker=BiotrophDUProbaModel(),
                     controler=NoPriorityGrowthControl(),
-                    dispersor=RandomDispersal(), 
+                    emitter=SeptoriaRainEmission(),
+                    transporter=RandomDispersal(), 
                     washor=RapillyWashing()):
     """ Execute one time step of complete simulation for septoria.
     
@@ -135,7 +137,9 @@ def execute_one_step(g, weather, date, dt,
         Requires a method 'check position' (see doc)
     controler: model
         Model with rules of competition between the lesions
-    dispersor: model
+    emitter: model
+        Model used to calculate the number of dispersal units (DU) emitted
+    transporter: model
         Model used to position each DU in stock on g
     washor: model
         Model used to wash the DUs out of the leaf
@@ -165,7 +169,7 @@ def execute_one_step(g, weather, date, dt,
     global_rain_intensity = globalclimate.rain.values[0]
     if global_rain_intensity != 0. :
         seed(1)
-        disperse(g, dispersor, "septoria")
+        disperse(g, emitter, transporter, "septoria")
         seed(1)
         wash(g, washor, global_rain_intensity)
     
@@ -208,7 +212,8 @@ def test_all(model="septoria_exchanging_rings"):
     # Call the models that will be used during the simulation :
     controler = NoPriorityGrowthControl()
     washor = RapillyWashing()
-    dispersor = RandomDispersal()
+    emitter = SeptoriaRainEmission()
+    transporter = RandomDispersal()
 
     # Prepare the simulation loop
     dt = 1
@@ -234,7 +239,7 @@ def test_all(model="septoria_exchanging_rings"):
         update(g, dt_pluie, growth_control_model=controler)
 
         if global_rain_intensity != 0.:
-            disperse(g, dispersor, "septoria")
+            disperse(g, emitter, transporter, "septoria")
             wash(g, washor, global_rain_intensity)
         
         # Measure severity
@@ -436,7 +441,8 @@ def imitate_septo3D(start_date=datetime(2000, 10, 1, 01, 00),
     position_checker=BiotrophDUProbaModel()
     controler = NoPriorityGrowthControl()
     washor = RapillyWashing()
-    dispersor = RandomDispersal()
+    emitter = SeptoriaRainEmission()
+    transporter = RandomDispersal()
     leaf_inspector1 = LeafInspector(g, leaf_number=1)
     # leaf_inspector2 = LeafInspector(g, leaf_number=2)
     # leaf_inspector3 = LeafInspector(g, leaf_number=3)
@@ -493,7 +499,7 @@ def imitate_septo3D(start_date=datetime(2000, 10, 1, 01, 00),
             initial_DUs = leaf_inspector1.count_dispersal_units(g)
             scene = plot3d(g)
             seed(1)
-            disperse(g, dispersor, "septoria")
+            disperse(g, emitter, transporter, "septoria")
             seed(1)
             total_DUs[ind] = leaf_inspector1.count_dispersal_units(g) - initial_DUs
             wash(g, washor, global_rain_intensity)
@@ -626,7 +632,8 @@ def simulate_necrosis_upper_leaves():
     # Call the models that will be used during the simulation :
     controler = NoPriorityGrowthControl()
     washor = RapillyWashing()
-    dispersor = Septo3DSplash(reference_surface=1./200)
+    emitter = SeptoriaRainEmission()
+    transporter = Septo3DSplash(reference_surface=1./200)
     leaf1 = LeafInspector(g, leaf_number=1)
     leaf2 = LeafInspector(g, leaf_number=2)
     leaf3 = LeafInspector(g, leaf_number=3)
@@ -710,8 +717,9 @@ def simulate_states_one_leaf(model="septoria_exchanging_rings"):
     position_checker = BiotrophDUProbaModel()
     controler = NoPriorityGrowthControl()
     washor = RapillyWashing()
-    dispersor = Septo3DSplash()
-    
+    emitter = SeptoriaRainEmission()    
+    transporter = Septo3DSplash()
+        
     # Call the variable saver
     outputs = LeafInspector(g, leaf_number=1)
     
@@ -746,7 +754,7 @@ def simulate_states_one_leaf(model="septoria_exchanging_rings"):
         global_rain_intensity = globalclimate.rain.values[0]
         if global_rain_intensity != 0. :
             scene = plot3d(g)
-            disperse(g, scene, dispersor, "septoria") 
+            disperse(g, emitter, transporter, "septoria")
             wash(g, washor, global_rain_intensity)
     
         # Save variables

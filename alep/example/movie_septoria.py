@@ -7,7 +7,8 @@ from alinea.astk.TimeControl import *
 from alinea.alep.wheat_examples import adel_mtg, adel_mtg2, adel_one_leaf
 from alinea.alep.inoculation import InoculationFirstLeaves
 from alinea.alep.growth_control import NoPriorityGrowthControl
-from alinea.alep.dispersal import RandomDispersal
+from alinea.alep.dispersal_transport import RandomDispersal
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.septoria import *
 from alinea.alep.protocol import *
@@ -78,8 +79,9 @@ initiate(g, dispersal_units, inoculator)
 
 # Simulation
 controler = NoPriorityGrowthControl()
-dispersor = Septo3DSplash(reference_surface=1./200)
-# dispersor = RandomDispersal()
+emitter = SeptoriaRainEmission()
+transporter = Septo3DSplash(reference_surface=1./200)
+# transporter = RandomDispersal()
 
 nsteps = 2000
 
@@ -108,7 +110,7 @@ for t in timer:
     update(g, t['disease'].dt, controler, label='LeafElement')
 
     if rain_intensity>0.:
-        disperse(g, dispersor, "septoria", label='LeafElement')  
+        disperse(g, emitter, transporter, "septoria", label='LeafElement')  
     
     if t['ploting'].dt > 0:
         print('ploting...')

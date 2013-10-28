@@ -342,6 +342,37 @@ def compute_total_necrotic_area(g, label='LeafElement'):
     from numpy import mean
     nec = compute_necrotic_area_by_leaf(g, label=label)
     return sum(nec.values())
+
+def compute_normalised_audpc(necrosis, total_area):
+    """ Compute the normalised AUDPC as in Robert et al. 2008
+    
+    "AUDPC is calculated as the area below the curve of pycnidia bearing
+    necrotic leaf area. The latter is the leaf area that is or has been
+    covered by sporulating lesions and thus represents the sporulation 
+    potential of the leaf. The normalised AUDPC is obtained by dividing
+    the AUDPC by a theoretical maximum value corresponding to the situation
+    where the leaf is infected fully just after its emergence."
+    
+    Parameters
+    ----------
+    necrosis: list or array
+        Historical values of necrosis percentage
+    total_area: list or array
+        Historical values of leaf area (same length than necrosis)
+        
+    Returns
+    -------
+    normalised_audpc: float
+       AUDPC divided by a theoretical maximum value
+    """
+    import numpy as np
+    from scipy.integrate import simps, trapz
+    full_necrosis = np.array([100. if total_area[k]>0. else 0. 
+                              for k in range(len(total_area))])
+    
+    audpc = trapz(necrosis, dx=1)
+    theo_audpc = trapz(full_necrosis, dx=1)
+    return 100*audpc/theo_audpc if theo_audpc>0. else 0.
     
 ######################################################################
 from numpy import mean
@@ -395,6 +426,8 @@ class LeafInspector:
     
         # Temporary
         self.previous_nb_lesions = 0.
+        self.surface_empty = []
+        self.ratio_empty = []
     
     def update_du_variables(self, g):
         """ Save counts of dispersal units.
@@ -542,7 +575,11 @@ class LeafInspector:
         surface_inc = 0.
         surface_chlo = 0.
         surface_nec = 0.
-        surface_spo = 0.       
+        surface_spo = 0.
+        
+        # Temporary 
+        surface_empty = 0.
+        
         if len(lesion_list)>0:
             for l in lesion_list:
                 l.compute_all_surfaces()
@@ -550,6 +587,8 @@ class LeafInspector:
                 surface_chlo += l.surface_chlo
                 surface_nec += l.surface_nec
                 surface_spo += l.surface_spo
+                # Temporary 
+                surface_empty += l.surface_empty
 
         self.surface_inc.append(surface_inc)
         self.surface_chlo.append(surface_chlo)
@@ -561,6 +600,9 @@ class LeafInspector:
         self.ratio_nec.append(100. * surface_nec / total_area if total_area>0. else 0.)
         self.ratio_spo.append(100. * surface_spo / total_area if total_area>0. else 0.)
         self.ratio_total_nec.append(100. * (surface_nec+surface_spo) / total_area if total_area>0. else 0.)
+        # Temporary
+        self.surface_empty.append(surface_empty)
+        self.ratio_empty.append(100. * surface_empty / total_area if total_area>0. else 0.)
     
     def count_dispersal_units(self, g):
         """ count DU of the leaf.

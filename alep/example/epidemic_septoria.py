@@ -12,6 +12,7 @@ from alinea.alep.disease_outputs import *
 from alinea.alep.inoculation import InoculationFirstLeaves
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.septo3d.alep_interfaces import Septo3DSplash
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.protocol import *
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
 
@@ -83,7 +84,8 @@ def simulate_epi_septo(data_file='meteo01.csv',
     
     # Call models that will be used in disease interface
     controler = NoPriorityGrowthControl()
-    dispersor = Septo3DSplash(reference_surface=1./200)
+    emitter = SeptoriaRainEmission()
+    transporter = Septo3DSplash(reference_surface=1./200)
     
     # Initiate output list
     avg_severity = np.zeros(nb_steps)
@@ -108,7 +110,7 @@ def simulate_epi_septo(data_file='meteo01.csv',
         infect(g, t['disease'].dt, label='LeafElement')
         update(g, t['disease'].dt, controler, label='LeafElement')
         if globalclimate.rain.values[0]>0:
-            disperse(g, dispersor, "septoria", label='LeafElement')
+            disperse(g, emitter, transporter, "septoria", label='LeafElement')
         
         # Save output
         avg_severity[timer.numiter-1] = compute_total_severity(g)

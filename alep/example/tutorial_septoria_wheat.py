@@ -19,6 +19,7 @@ from alinea.alep.disease_outputs import (compute_lesion_areas_by_leaf,
 from alinea.alep.inoculation import InoculationFirstLeaves, RandomInoculation
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.protocol import *
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
@@ -91,7 +92,8 @@ septoria = plugin_septoria()
 inoculator = RandomInoculation()
 controler = NoPriorityGrowthControl()
 sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-dispersor = Septo3DSplash(reference_surface=domain_area)
+emitter = SeptoriaRainEmission()
+transporter = Septo3DSplash(reference_surface=domain_area)
 
 # Define the schedule of calls for each model
 nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
@@ -149,7 +151,7 @@ for t in timer:
     update(g, t['disease'].dt, controler, sen_model, label='LeafElement')
 
     if globalclimate.rain.values[0]>0:
-        disperse(g, dispersor, "septoria", label='LeafElement')
+        disperse(g, emitter, transporter, "septoria", label='LeafElement')
 
     if t['plotting'].dt > 0:
         # print('plotting...')

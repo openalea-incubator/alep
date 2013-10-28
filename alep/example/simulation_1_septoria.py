@@ -22,6 +22,7 @@ from alinea.alep.septoria import plugin_septoria
 from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.disease_outputs import LeafInspector
 from alinea.alep.inoculation import RandomInoculation
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
@@ -51,7 +52,8 @@ inoculator = RandomInoculation()
 growth_controler = NoPriorityGrowthControl()
 infection_controler = BiotrophDUPositionModel()
 sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-dispersor = Septo3DSplash(reference_surface=domain_area)
+emitter = SeptoriaRainEmission()
+transporter = Septo3DSplash(reference_surface=domain_area)
 
 # Define the schedule of calls for each model
 nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
@@ -103,7 +105,7 @@ for t in timer:
     infect(g, t['disease'].dt, infection_controler, label='LeafElement')
     update(g, t['disease'].dt, growth_controler, sen_model, label='LeafElement')
     if data.dispersal_event.values[0]==True:
-        disperse(g, dispersor, "septoria", label='LeafElement')
+        disperse(g, emitter, transporter, "septoria", label='LeafElement')
         
     # Save outputs
     for inspector in inspectors.itervalues():

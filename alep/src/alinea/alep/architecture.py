@@ -9,6 +9,10 @@ def get_leaves(g, label='LeafElement'):
     labels = g.property('label')
     return [k for k,l in labels.iteritems() if l.startswith(label)]
 
+def get_total_leaf_area(g, label='LeafElement'):
+    leaves = get_leaves(g)
+    return sum(g.node(leaf).area for leaf in leaves)
+    
 def add_area_topvine(g, conversion_factor=1000., label='lf'):
     """ Compute the area of the leaves in topvine in cm2
     and add it as a MTG property.

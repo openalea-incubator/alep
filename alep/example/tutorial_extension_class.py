@@ -5,7 +5,8 @@ from openalea.plantgl.all import *
 from alinea.alep.architecture import *
 from alinea.alep.disease_operation import *
 from alinea.alep.inoculation import RandomInoculation
-from alinea.alep.dispersal import RandomDispersal
+from alinea.alep.dispersal_emission import PowderyMildewWindEmission
+from alinea.alep.dispersal_transport import RandomDispersal
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.protocol import *
 
@@ -74,7 +75,8 @@ initiate(g, dispersal_units, inoculator)
 
 # Simulation
 controler = NoPriorityGrowthControl()
-dispersor = RandomDispersal()
+emitter = PowderyMildewWindEmission()
+transporter = RandomDispersal()
 dt = 1
 nb_steps = 1000
 for i in range(0,nb_steps,dt):
@@ -91,6 +93,6 @@ for i in range(0,nb_steps,dt):
     update(g, dt, controler)
     
     scene = plot3d(g)
-    disperse(g, scene, dispersor, "powdery_mildew")
+    disperse(g, scene, transporter, "powdery_mildew")
     
 plot_lesions(g)

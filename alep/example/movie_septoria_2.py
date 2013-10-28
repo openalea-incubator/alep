@@ -22,6 +22,7 @@ from alinea.alep.protocol import *
 from alinea.alep.septoria import plugin_septoria
 from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.inoculation import RandomInoculation
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
@@ -90,41 +91,6 @@ def update_plot(g):
     Viewer.display(scene)
     return scene
 
-# Initialization ##############################################################
-# Set the seed of the simulation
-rd.seed(0)
-np.random.seed(0)
-
-# Choose dates of simulation and initialize the value of date
-start_date = datetime(2000, 10, 1, 1, 00, 00)
-end_date = datetime(2000, 10, 31, 00, 00)
-# end_date = datetime(2001, 07, 01, 00, 00)
-date = start_date
-
-# Read weather and adapt it to septoria (add wetness)
-weather = get_septoria_weather(data_file='meteo01.csv')
-
-# Initialize a wheat canopy
-g, wheat, domain_area = initialize_stand(age=0., length=0.1,
-                                        width=0.2, sowing_density=150,
-                                        plant_density=150, inter_row=0.12)
-
-# Initialize the models for septoria
-septoria = plugin_septoria()
-inoculator = RandomInoculation()
-growth_controler = NoPriorityGrowthControl()
-infection_controler = BiotrophDUPositionModel()
-sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-dispersor = Septo3DSplash(reference_surface=domain_area)
-
-# Define the schedule of calls for each model
-nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
-weather_timing = TimeControl(delay=1, steps=nb_steps)
-wheat_timing = TimeControl(delay=24, steps=nb_steps, model=wheat, weather=weather, start_date=start_date)
-septo_timing = TimeControl(delay=1, steps=nb_steps)
-plot_timing = TimeControl(delay=24, steps=nb_steps)
-timer = TimeControler(weather=weather_timing, wheat=wheat_timing, disease = septo_timing, plotting=plot_timing)
-
 # Initialization #####################################################
 # Set the seed of the simulation
 rd.seed(0)
@@ -140,9 +106,9 @@ date = None
 weather = get_septoria_weather(data_file='meteo01.csv')
 
 # Initialize a wheat canopy
-g, wheat, domain_area = initialize_stand(age=0., length=0.1, 
-                                        width=0.2, sowing_density=150,
-                                        plant_density=150, inter_row=0.12)
+g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, 
+                                                 width=0.2, sowing_density=150,
+                                                 plant_density=150, inter_row=0.12)
 
 # Initialize the models for septoria
 septoria = plugin_septoria()
@@ -150,7 +116,8 @@ inoculator = RandomInoculation()
 growth_controler = NoPriorityGrowthControl()
 infection_controler = BiotrophDUPositionModel()
 sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-dispersor = Septo3DSplash(reference_surface=domain_area)
+emitter = SeptoriaRainEmission()
+transporter = Septo3DSplash(reference_surface=domain_area)
 washor = RapillyWashing()
 
 # Define the schedule of calls for each model
@@ -197,7 +164,7 @@ for t in timer:
     infect(g, t['disease'].dt, infection_controler, label='LeafElement')
     update(g, t['disease'].dt, growth_controler, sen_model, label='LeafElement')
     if data.dispersal_event.values[0]==True:
-        disperse(g, dispersor, "septoria", label='LeafElement')
+        disperse(g, emitter, transporter, "septoria", label='LeafElement')
         wash(g, washor, data.rain.values[0], label='LeafElement')
 
     if t['wheat'].dt > 0:

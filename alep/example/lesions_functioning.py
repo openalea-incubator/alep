@@ -72,9 +72,9 @@ def run_simulation():
     weather = get_septoria_weather(data_file='meteo01.csv')
 
     # Initialize a wheat canopy
-    g, wheat, domain_area = initialize_stand(age=0., length=0.1, 
-                                            width=0.2, sowing_density=150,
-                                            plant_density=150, inter_row=0.12)
+    g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, 
+                                                     width=0.2, sowing_density=150,
+                                                     plant_density=150, inter_row=0.12)
 
     # Initialize the models for septoria
     septoria = plugin_septoria()
@@ -82,7 +82,8 @@ def run_simulation():
     growth_controler = NoPriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-    dispersor = Septo3DSplash(reference_surface=domain_area)
+    emitter = SeptoriaRainEmission()
+    transporter = Septo3DSplash(reference_surface=domain_area)
     washor = RapillyWashing()
 
     # Define the schedule of calls for each model
@@ -140,23 +141,34 @@ def run_simulation():
           
         infect(g, t['disease'].dt, infection_controler, label='LeafElement')
         update(g, t['disease'].dt, growth_controler, sen_model, label='LeafElement')
+        if data.dispersal_event.values[0]==True:
+            disperse(g, emitter, transporter, "septoria", label='LeafElement')
+            wash(g, washor, data.rain.values[0], label='LeafElement')
+        
         for inspector in inspectors.itervalues():
             inspector.compute_ratios(g)
-        if data.dispersal_event.values[0]==True:
-            disperse(g, dispersor, "septoria", label='LeafElement')
-            wash(g, washor, data.rain.values[0], label='LeafElement')
-
+            inspector.update_area(g)
+            
         if timer.numiter%24 == 0:
             update_plot(g)
             
     # Tout stocker dans un dataframe avec les dates en index
     outputs = {}
+    # for id, inspector in inspectors.iteritems():
+        # outs = {'incubating':inspectors[id].ratio_inc,
+                # 'chlorotic':inspectors[id].ratio_chlo,
+                # 'necrotic_bef_spo':inspectors[id].ratio_nec,
+                # 'sporulating':inspectors[id].ratio_spo,
+                # 'total_necrotic':inspectors[id].ratio_total_nec,
+                # 'total_area':inspectors[id].leaf_area}
     for id, inspector in inspectors.iteritems():
         outs = {'incubating':inspectors[id].ratio_inc,
                 'chlorotic':inspectors[id].ratio_chlo,
                 'necrotic_bef_spo':inspectors[id].ratio_nec,
                 'sporulating':inspectors[id].ratio_spo,
-                'total_necrotic':inspectors[id].ratio_total_nec}
+                'empty':inspectors[id].ratio_empty,
+                'total_necrotic':inspectors[id].ratio_total_nec,
+                'total_area':inspectors[id].leaf_area}
         outputs[id] = pandas.DataFrame(data=outs, index=dates)
     return outputs
 
@@ -220,17 +232,43 @@ def draw_outputs(outputs):
     h, l = ax4.get_legend_handles_labels()
     ax4.legend(h,l)
 
-    ax5 = fig.add_subplot(3,2,6)
-    ax5.plot(date_seq, outputs[1].total_necrotic[date_1:date_2], color='b', linewidth=2, label='leaf 1')
-    ax5.plot(date_seq, outputs[2].total_necrotic[date_1:date_2], color='g', linewidth=2, label='leaf 2')
-    ax5.plot(date_seq, outputs[3].total_necrotic[date_1:date_2], color='r', linewidth=2, label='leaf 3')
-    ax5.plot(date_seq, outputs[4].total_necrotic[date_1:date_2], color='k', linewidth=2, label='leaf 4')
+    # ax5 = fig.add_subplot(3,2,6)
+    # ax5.plot(date_seq, outputs[1].total_necrotic[date_1:date_2], color='b', linewidth=2, label='leaf 1')
+    # ax5.plot(date_seq, outputs[2].total_necrotic[date_1:date_2], color='g', linewidth=2, label='leaf 2')
+    # ax5.plot(date_seq, outputs[3].total_necrotic[date_1:date_2], color='r', linewidth=2, label='leaf 3')
+    # ax5.plot(date_seq, outputs[4].total_necrotic[date_1:date_2], color='k', linewidth=2, label='leaf 4')
+    # ax5.set_xticklabels(ax5.get_xticklabels(), fontsize=14, rotation=30, ha='right')
+    # ax5.xaxis.set_major_locator(months)
+    # ax5.xaxis.set_major_formatter(month_fmt)
+    # lim = ax5.set_ylim((0,100))
+    # ax5.set_ylabel('% Total necrotic', fontsize=20)
+    # h, l = ax5.get_legend_handles_labels()
+    # ax5.legend(h,l)
+
+    ax5 = fig.add_subplot(3,2,5)
+    ax5.plot(date_seq, outputs[1]['empty'][date_1:date_2], color='b', linewidth=2, label='leaf 1')
+    ax5.plot(date_seq, outputs[2]['empty'][date_1:date_2], color='g', linewidth=2, label='leaf 2')
+    ax5.plot(date_seq, outputs[3]['empty'][date_1:date_2], color='r', linewidth=2, label='leaf 3')
+    ax5.plot(date_seq, outputs[4]['empty'][date_1:date_2], color='k', linewidth=2, label='leaf 4')
     ax5.set_xticklabels(ax5.get_xticklabels(), fontsize=14, rotation=30, ha='right')
     ax5.xaxis.set_major_locator(months)
     ax5.xaxis.set_major_formatter(month_fmt)
     lim = ax5.set_ylim((0,100))
-    ax5.set_ylabel('% Total necrotic', fontsize=20)
-    h, l = ax4.get_legend_handles_labels()
-    ax4.legend(h,l)
-
+    ax5.set_ylabel('% Empty', fontsize=20)
+    h, l = ax5.get_legend_handles_labels()
+    ax5.legend(h,l)
+    
+    ax6 = fig.add_subplot(3,2,6)
+    ax6.plot(date_seq, (outputs[1]['empty'][date_1:date_2]+outputs[1].sporulating[date_1:date_2]), color='b', linewidth=2, label='leaf 1')
+    ax6.plot(date_seq, (outputs[2]['empty'][date_1:date_2]+outputs[2].sporulating[date_1:date_2]), color='g', linewidth=2, label='leaf 2')
+    ax6.plot(date_seq, (outputs[3]['empty'][date_1:date_2]+outputs[3].sporulating[date_1:date_2]), color='r', linewidth=2, label='leaf 3')
+    ax6.plot(date_seq, (outputs[4]['empty'][date_1:date_2]+outputs[4].sporulating[date_1:date_2]), color='k', linewidth=2, label='leaf 4')
+    ax6.set_xticklabels(ax6.get_xticklabels(), fontsize=14, rotation=30, ha='right')
+    ax6.xaxis.set_major_locator(months)
+    ax6.xaxis.set_major_formatter(month_fmt)
+    lim = ax6.set_ylim((0,100))
+    ax6.set_ylabel('% Total necrotic', fontsize=20)
+    h, l = ax6.get_legend_handles_labels()
+    ax6.legend(h,l)
+    
     show(False)

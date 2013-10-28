@@ -26,40 +26,48 @@ def weather_reader(data_file):
     """
     weather = Weather(data_file=data_file)
 
-def microclimate(g, scene, 
+def microclimate(g, 
                  weather = None, 
                  climate_model = MicroclimateLeaf(), 
-                 t_deb=None, 
                  label='LeafElement', 
-                 timestep=1):
-    """ Compute microclimate on all leaves of g.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    scene : 
-        Scene containing the simulated system
-    climate_model: model
-        A class embending the microclimate model and provide the following methods:    
-        - 'climate_model.microclim(mean_globalclimate, scene)' : Return the dictionnary of scene_id: radiation and rain
-        See :func:`~alinea.echap.microclimate_leaf.MicroclimateLeaf`
-    t_deb: datetime
-        Date of the beginning of calculation
-    label: str
-        Label of the part of the MTG concerned by the calculation
-    timestep: int
-        Time step of calculation
-
-    :Returns:  
-    --------
-    g: MTG
-        Updated MTG representing the canopy
-        'microclimate' property (radiation, rain, etc.) is added to g or updated if present.   
-    """
-    g = local_microclimate(g=g, scene=scene, weather=weather, climate_model=climate_model,
-                           t_deb=t_deb, label=label, timestep=timestep)
+                 activate=True):
+    """ Fake microclimate node """
     return g
+    
+# def microclimate(g, scene, 
+                 # weather = None, 
+                 # climate_model = MicroclimateLeaf(), 
+                 # t_deb=None, 
+                 # label='LeafElement', 
+                 # timestep=1):
+    # """ Compute microclimate on all leaves of g.
+    
+    # Parameters
+    # ----------
+    # g: MTG
+        # MTG representing the canopy
+    # scene : 
+        # Scene containing the simulated system
+    # climate_model: model
+        # A class embending the microclimate model and provide the following methods:    
+        # - 'climate_model.microclim(mean_globalclimate, scene)' : Return the dictionnary of scene_id: radiation and rain
+        # See :func:`~alinea.echap.microclimate_leaf.MicroclimateLeaf`
+    # t_deb: datetime
+        # Date of the beginning of calculation
+    # label: str
+        # Label of the part of the MTG concerned by the calculation
+    # timestep: int
+        # Time step of calculation
+
+    # :Returns:  
+    # --------
+    # g: MTG
+        # Updated MTG representing the canopy
+        # 'microclimate' property (radiation, rain, etc.) is added to g or updated if present.   
+    # """
+    # g = local_microclimate(g=g, scene=scene, weather=weather, climate_model=climate_model,
+                           # t_deb=t_deb, label=label, timestep=timestep)
+    # return g
 
 # Scene ###############################################################
 from alinea.adel.mtg_interpreter import *

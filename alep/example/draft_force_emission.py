@@ -5,6 +5,7 @@ from alinea.adel.astk_interface import AdelWheat
 from alinea.astk.plant_interface import *
 from alinea.alep.protocol import *
 from alinea.septo3d.alep_interfaces import Septo3DSplash
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.disease_operation import generate_lesions_with_emission
 from alinea.alep.disease_outputs import count_dispersal_units_by_leaf, plot_lesions
 from alinea.alep.architecture import set_properties,set_property_on_each_id
@@ -47,8 +48,9 @@ g.node(source).lesions  = generate_lesions_with_emission(nb_lesions=1, nb_dus=10
 update_plot(g, source)
 
 # Call dispersal function
-dispersor = Septo3DSplash()
-disperse(g, dispersor, "septoria", label='LeafElement')
+emitter = SeptoriaRainEmission()
+transporter = Septo3DSplash(reference_surface=domain_area)
+disperse(g, emitter, transporter, "septoria", label='LeafElement')
 
 # Display vine with affected leaves
 sleep(2)

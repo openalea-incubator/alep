@@ -157,7 +157,7 @@ def update(g, dt,
         # Get lesions with inactive lesions removed
         lesions = {k:[l for l in les if l.is_active] 
                     for k, les in g.property('lesions').iteritems()}
-                    
+
         if len(lesions)>0:
             # 1. Determine which lesions will be affected by senescence (optional)
             if senescence_model:
@@ -180,9 +180,10 @@ def update(g, dt,
                 for lesion in l:             
                     lesion.senescence_response()     
     return g
-    
-def disperse(g, 
-             dispersal_model,
+
+def disperse(g,
+             emission_model,
+             transport_model,
              fungus_name, 
              label="LeafElement",
              activate=True):
@@ -192,8 +193,10 @@ def disperse(g,
     ----------
     g: MTG
         MTG representing the canopy (and the soil)
-    dispersal_model: model
-        Model that is used to position each DU in stock on g
+    emission_model: model
+        Model that is used to calculate how many DU are emitted and the spores they contain
+    transport_model: model
+        Model that is used to position each DU emitted on g
     fungus_name: str
         Name of the fungus
     label: str
@@ -230,18 +233,15 @@ def disperse(g,
         # Get lesions with inactive lesions removed
         lesions = {k:[l for l in les if l.is_active] 
                     for k, les in g.property('lesions').iteritems()}  
-        DU = {}
-        for vid, l in lesions.iteritems():
-            for lesion in l:
-                if lesion.fungus.name is fungus_name and lesion.stock_spores > 0.:
-                    leaf = g.node(vid)
-                    if vid not in DU:
-                        DU[vid] = []
-                    DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
+
+        DU = emission_model.get_dispersal_units(g, fungus_name, label)
+        
+        # Temp /!\
+        nb_dus = sum(len(du) for du in DU.itervalues())
         
         # Transport of dispersal units
         if sum([len(v) for v in DU.itervalues()])>0:
-            deposits = dispersal_model.disperse(g, DU) # update DU in g , change position, status       
+            deposits = transport_model.disperse(g, DU) # update DU in g , change position, status       
             # Allocation of new dispersal units
             for vid,dlist in deposits.iteritems():
                 if g.label(vid).startswith(label):
@@ -255,7 +255,85 @@ def disperse(g,
                         # if random.random()<0.05:                        
                             # leaf.dispersal_units.append(d)
                         leaf.dispersal_units.append(d)
-    return g
+    # return g
+    # Temp /!\
+    return g, nb_dus
+    
+# def disperse(g, 
+             # dispersal_model,
+             # fungus_name, 
+             # label="LeafElement",
+             # activate=True):
+    # """ Disperse spores of the lesions of fungus identified by fungus_name.
+        
+    # Parameters
+    # ----------
+    # g: MTG
+        # MTG representing the canopy (and the soil)
+    # dispersal_model: model
+        # Model that is used to position each DU in stock on g
+    # fungus_name: str
+        # Name of the fungus
+    # label: str
+        # Label of the part of the MTG concerned by the calculation
+    # activate: bool
+        # True if computation is achieved, False otherwise
+    
+    # Returns
+    # -------
+    # g: MTG
+        # Updated MTG representing the canopy (and the soil)
+        
+    # Example
+    # -------
+      # >>> g = MTG()
+      # >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
+      # >>> inoculator = RandomInoculation()
+      # >>> initiate(g, stock, inoculator)
+      # >>> controler = GrowthControlModel()
+      # >>> dispersor = SplashModel()
+      # >>> dt = 1
+      # >>> nb_steps = 1000
+      # >>> for i in range(nb_steps):
+      # >>>     update_climate(g)
+      # >>>     infect(g, dt)
+      # >>>     update(g,dt, controler)
+      # >>>     if dispersal_event():
+      # >>>       scene = plot3d(g)
+      # >>>       disperse(g, dispersor, "septoria")
+      # >>> return g
+    
+    # """
+    # if activate:
+        # # Get lesions with inactive lesions removed
+        # lesions = {k:[l for l in les if l.is_active] 
+                    # for k, les in g.property('lesions').iteritems()}  
+        # DU = {}
+        # for vid, l in lesions.iteritems():
+            # for lesion in l:
+                # if lesion.fungus.name is fungus_name and lesion.stock_spores > 0.:
+                    # leaf = g.node(vid)
+                    # if vid not in DU:
+                        # DU[vid] = []
+                    # DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
+
+        # # Transport of dispersal units
+        # if sum([len(v) for v in DU.itervalues()])>0:
+            # deposits = dispersal_model.disperse(g, DU) # update DU in g , change position, status       
+            # # Allocation of new dispersal units
+            # for vid,dlist in deposits.iteritems():
+                # if g.label(vid).startswith(label):
+                    # leaf = g.node(vid)
+                    # for d in dlist:
+                        # d.deposited()
+                        # if not 'dispersal_units' in leaf.properties():
+                            # leaf.dispersal_units=[]  
+                        # # /!\ Temp /!\ G.Garin 07/06/2013:
+                        # # Limit propagation
+                        # # if random.random()<0.05:                        
+                            # # leaf.dispersal_units.append(d)
+                        # leaf.dispersal_units.append(d)
+    # # return g
 
 def wash(g, 
          washing_model, 

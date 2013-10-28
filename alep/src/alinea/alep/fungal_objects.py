@@ -83,36 +83,6 @@ class DispersalUnit(object):
         self.disable()
              
 # Lesions #################################################################################
-
-#X class LesionFactory(object):
-#X     """
-#X     """
-#X 
-#X     def __init__(self, fungus):
-#X         """ Initialize the lesion. 
-#X         
-#X         :Parameters:
-#X           - `fungus` (function): returns a class of specific parameters for 
-#X           the chosen fungus (e.g. 'septoria()' or 'powderyMildew()').
-#X         """
-#X         self.fungus = fungus
-#X         
-#X     def instantiate(self, nb_spores, position) :
-#X         """ instantiate a Lesion
-#X      
-#X         :Parameters:
-#X           - `nb_spores` (int): 
-#X         """
-#X         l = Lesion(self.fungus, nb_spores, position)
-#X         return l
-#X         
-#X     def instantiate_at_stage(self, nb_spores, position) :
-#X         """ force the instantiation of a Lesion at a given stage"""
-#X         l = Lesion(self.fungus, nb_spores, position)
-#X         #to do : deal with spores
-#X         return l
-#X 
-
 class Lesion(object):
     """ Define a lesion interface.
 
@@ -148,6 +118,8 @@ class Lesion(object):
         self.is_active = True
         # Growth activity of the lesion
         self.growth_is_active = True
+        # Growth demand of the lesion (cm2)
+        self.growth_demand = None
         # Is the lesion on senescent tissue
         self.is_senescent = False
         # Number of spores forming the lesion
@@ -179,6 +151,53 @@ class Lesion(object):
         self.is_active = False
         self.growth_demand = 0.
                 
+class BiotrophicLesion(Lesion):
+    """ Define the interface for a biotrophic lesion.
+    """
+    
+    def __init__(self, position=None, nb_spores=None):
+        super(BiotrophicLesion, self).__init__(nb_spores=nb_spores, position=position)
+        # Position of senescence the time step before :
+        # Used to compute the time left for growth before senescence occur
+        self.old_position_senescence = None
+
+    def update(self, leaf=None):
+        if not self.is_senescent:
+            self.update_age(leaf=leaf)
+        else: 
+            self.update_age_before_senescence(leaf=leaf)
+            
+    def senescence_response(self):
+        self.disable()
+
+class HemibiotrophicLesion(Lesion):
+    """ Define the interface for an hemibiotrophic lesion.
+    """
+    def __init__(self, position=None, nb_spores=None):
+        super(BiotrophicLesion, self).__init__(nb_spores=nb_spores, position=position)
+        # Position of senescence the time step before :
+        # Used to compute the time left for growth before senescence occur
+        self.old_position_senescence = None
+
+    def update(self, leaf=None):
+        if not self.is_senescent:
+            self.update_age(leaf=leaf)
+        else: 
+            self.update_age_before_senescence(leaf=leaf)
+            
+    def senescence_response(self):
+        self.disable_growth()
+        self.update_surface_dead()
+        self.complete_update()
+        
+class NecrotrophicLesion(Lesion):
+    """ Define the interface for a necrotrophic lesion.
+    """
+    def __init__(self, position=None, nb_spores=None):
+        super(NecrotrophicLesion, self).__init__(nb_spores=nb_spores, position=position)
+    
+    def update(self, leaf=None):
+        self.update_age(leaf=leaf)
     
 # Rings ##################################################################################
 class Ring(object):

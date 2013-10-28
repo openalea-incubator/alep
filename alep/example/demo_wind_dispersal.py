@@ -21,7 +21,8 @@ from alinea.alep.disease_outputs import (plot_lesions,
                                          count_lesions_by_leaf)
 from alinea.alep.architecture import add_area_topvine, set_property_on_each_id, set_properties
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
-from alinea.alep.dispersal import PowderyMildewWindDispersal
+from alinea.alep.dispersal_transport import PowderyMildewWindDispersal
+from alinea.alep.dispersal_emission import PowderyMildewWindEmission
 from alinea.alep.protocol import disperse
 from alinea.adel.mtg_interpreter import plot3d
 from openalea.plantgl.all import Viewer
@@ -82,8 +83,9 @@ wind_direction = (1,0,0)
 set_properties(g,label = 'lf', wind_direction=wind_direction)
 
 # Call dispersal function
-dispersor = PowderyMildewWindDispersal()
-disperse(g, dispersor, "powdery_mildew", label='lf')
+emitter = SeptoriaRainEmission()
+transporter = PowderyMildewWindDispersal()
+disperse(g, emitter, transporter, "powdery_mildew", label='lf')
 
 # Generate a lesion for each deposited DU
 dispersal_units = g.property('dispersal_units')
@@ -100,7 +102,7 @@ for t in range(11):
                     g.node(vid).lesions = []
                 g.node(vid).lesions += generate_lesions_with_emission(nb_lesions, nb_dus, powdery_mildew)
     print(count_lesions(g))
-    disperse(g, dispersor, "powdery_mildew", label='lf')
+    disperse(g, emitter, transporter, "powdery_mildew", label='lf')
 
     # Generate a lesion for each deposited DU
     dispersal_units = g.property('dispersal_units')

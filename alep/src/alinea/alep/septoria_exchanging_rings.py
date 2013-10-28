@@ -51,18 +51,13 @@ class SeptoriaExchangingRings(Lesion):
         self.age_dday = 0.
         # Delta degree days during time step
         self.ddday = 0.
-        # Growth activity of the lesion
-        self.growth_is_active = True
-        # Growth demand of the lesion (cm2)
-        self.growth_demand = None
         # Is first hour of rain
         self.first_rain_hour = False
         # Stock of spores
         self.stock_spores = None
         
         # Temporary
-        self.surface_previous = 0.
-        self.dja_passe = None
+        self.surface_empty = 0.
 
     def update(self, dt, leaf=None):
         """ Update the status of the lesion and create a new growth ring if needed.
@@ -274,11 +269,6 @@ class SeptoriaExchangingRings(Lesion):
             if growth_offer < self.growth_demand:
                 self.disable_growth()
     
-        if round(self.surface,4) < round(self.surface_previous,4):
-            import pdb
-            pdb.set_trace()
-        self.surface_previous = self.surface
-        
     def update_stock(self):
         """ Update the stock of spores on the lesion.
         
@@ -315,21 +305,32 @@ class SeptoriaExchangingRings(Lesion):
             None
         """
         f = self.fungus
-        dring = f.delta_age_ring
-        s = self.surface_rings
-        time_to_spo = f.degree_days_to_necrosis + f.degree_days_to_sporulation
-        
-        diff = self.delta_age_ring - time_to_spo
-        assert self.status == f.SPORULATING
-        assert diff >= 0
-        nb_full_rings = floor(diff/dring)
-        portion_last_ring = (diff%dring)/dring
-        
-        if nb_full_rings>0:
-            surface_spo = sum(s[-nb_full_rings:]) + portion_last_ring*s[-(nb_full_rings+1)]
+        if self.is_sporulating():
+            width_ring = f.delta_age_ring
+            delta_ring = self.delta_age_ring
+            s = self.surface_rings
+            time_to_spo = f.degree_days_to_necrosis + f.degree_days_to_sporulation
+            
+            diff = delta_ring - time_to_spo
+            nb_full_rings = floor(diff/width_ring)
+            if len(s)>0:
+                if nb_full_rings>0:
+                    portion_sporulating = (diff%width_ring)/width_ring
+                    if portion_sporulating > 0:
+                        surface_spo = sum(s[-nb_full_rings:]) + portion_sporulating*s[-(nb_full_rings+1)]
+                    else:
+                        surface_spo = sum(s[-nb_full_rings:])
+                    delta_ring -= width_ring * nb_full_rings
+                else:
+                    portion_sporulating = (age_dday-time_to_spo)/(age_dday+width_ring-delta_ring)
+                    surface_spo = portion_sporulating*s[-(nb_full_rings+1)]
+            # self.surface_spo = surface_spo + self.first_ring.surface
+            else:
+                surface_spo = 0.
+            # Temporary
+            self.surface_spo = surface_spo + self.first_ring.surface - self.surface_empty
         else:
-            surface_spo = portion_last_ring*s[-(nb_full_rings+1)]
-        self.surface_spo = surface_spo + self.first_ring.surface    
+            self.surface_spo = 0.
         
     def compute_all_surfaces(self):
         """ Compute all the surfaces in different states of the lesion.
@@ -428,7 +429,9 @@ class SeptoriaExchangingRings(Lesion):
         self.surface_inc = surface_inc
         self.surface_chlo = surface_chlo
         self.surface_nec = surface_nec
-        self.surface_spo = surface_spo
+        # self.surface_spo = surface_spo
+        # Temporary
+        self.surface_spo = surface_spo - self.surface_empty
 
     def emission(self, leaf=None):
         """ Create a list of dispersal units emitted by the lesion.
@@ -450,17 +453,34 @@ class SeptoriaExchangingRings(Lesion):
             emissions = []
             stock_available = int(self.stock_spores*2/3.)
             
+            # Temporary
+            initial_stock = self.stock_spores
+            
+            # Temporary REVISION 25/10/2013 G.Garin:
+            tot_surf_spo = 0.
+            for les in leaf.lesions:
+                les.compute_sporulating_surface()
+                tot_surf_spo += les.surface_spo
+            contribution = self.surface_spo/tot_surf_spo if tot_surf_spo>0. else 0.
+            tot_fraction_spo = tot_surf_spo/leaf.area if leaf.area>0. else 0.
+            total_DU_emitted = 0.36 * 6.19e7 * tot_fraction_spo * leaf.rain_intensity
+            nb_DU_emitted = int(contribution * total_DU_emitted)
+            
             # TODO : improve below
-            nb_DU_emitted = int(leaf.rain_intensity * self.surface_spo * 1000)
+            # nb_DU_emitted = int(leaf.rain_intensity * self.surface_spo * 1000)
             nb_spores_by_DU = []
             for DU in range(nb_DU_emitted):
                 if stock_available > 0.:
-                    nb_spores = min(randint(5,100), stock_available)
+                    # nb_spores = min(randint(5,100), stock_available)
+                    nb_spores = min(1, stock_available)
                     nb_spores_by_DU.append(nb_spores)
                     stock_available -= nb_spores
                     # Update stock_spores
                     self.stock_spores -= nb_spores
-            
+                    
+            # Temporary : Test for calculation of empty surface
+            self.update_empty_surface(initial_stock)
+
             # Get rid of DUs without spores
             nb_DU_emitted = len(nb_spores_by_DU)
             
@@ -470,12 +490,47 @@ class SeptoriaExchangingRings(Lesion):
 
             # Return emissions
             SeptoriaDU.fungus = f
-            emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU[i], status='emitted')
-                                    for i in range(nb_DU_emitted)]
+            emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU[i], status='emitted', 
+                            position=self.position) for i in range(nb_DU_emitted)]
 
             return emissions
         else:
             return []
+    
+    def reduce_stock(self, nb_spores_emitted):
+        """ Reduce the stock of spores after emission.
+        
+        Parameters
+        ----------
+        nb_spores_emitted: int
+            Number of spores emitted
+        """
+        self.stock_spores -= nb_spores_emitted
+        if self.stock_spores < self.fungus.treshold_spores:
+            self.stock_spores = 0.
+    
+    def update_empty_surface(self, nb_spores_emitted, initial_stock):  
+        """ Update empty surface after emission. 
+        
+        In this case, the surface is emptied proportionally 
+        to the number of spores emitted.
+        
+        Parameters
+        ----------
+        nb_spores_emitted: int
+            Number of spores emitted
+        initial_stock: int
+            Number of spores on the lesion before emission
+        """
+        assert initial_stock>0.
+        surface_empty = (nb_spores_emitted/initial_stock) * self.surface_spo
+        self.surface_spo -= surface_empty
+        self.surface_empty += surface_empty
+        
+    def is_sporulating(self):
+        """ Check if the lesion is sporulating.
+        """
+        return self.status == self.fungus.SPORULATING
     
     def is_stock_available(self, leaf):
         """ Check if the stock of DU can be emitted.
@@ -557,16 +612,6 @@ class SeptoriaExchangingRings(Lesion):
                 self.surface_rings = s
                 self.surface_alive = sum(self.surface_rings) + self.first_ring.surface
                 self.surface_dead = surface_dead
-
-            # import pdb
-            # print('1 : l.558')
-            # pdb.set_trace()                
-            # if self.dja_passe == None :
-                # self.dja_passe = True
-            
-        # Update 'surface_alive' and 'surface_dead'
-        # self.surface_alive = max(0., self.surface_alive - surface_dead)
-        # self.surface_dead = surface_dead
         
         # Complete the age of the lesion up to the end of time step
         self.ddday = ddday - ddday_sen

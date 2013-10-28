@@ -4,6 +4,12 @@
 
 # Imports #########################################################################
 import random
+import collections
+
+# Useful function #################################################################
+def is_iterable(obj):
+    """ Test if object is iterable """
+    return isinstance(obj, collections.Iterable)
 
 # Random dispersal ################################################################
 class RandomDispersal:
@@ -110,72 +116,161 @@ class SeptoriaRainDispersal:
         
         deposits = {}
         if dt>0:
+            from alinea.astk.plantgl_utils import get_area_and_normal
             from alinea.alep.architecture import get_leaves
             from openalea.plantgl import all as pgl
             from collections import OrderedDict
             from math import exp, pi
             from random import shuffle
-            # Temporary
-            source_angle = (0,0,1)
-            #
+            import numpy as np
             dmax = self.distance_max
             tesselator = pgl.Tesselator()
             bbc = pgl.BBoxComputer(tesselator)
             leaves = get_leaves(g, label=self.label)
             centroids = g.property('centroid')
             geometries = g.property('geometry')
+            _, norm = get_area_and_normal(geometries)
             areas = g.property('area')
             
             def centroid(vid):
-                # /!\ TODO : Make below generic : So far : 
-                # - version of try : for vine
-                # - version of except : for wheat
-                # What will happen with another plant model ?
-                try:
+                if is_iterable(geometries[vid]):
                     bbc.process(pgl.Scene(geometries[vid]))
-                except:
-                    bbc.process(pgl.Scene([geometries[vid]]))
+                else:
+                    bbc.process(pgl.Scene([pgl.Shape(geometries[vid])]))
                 center = bbc.result.getCenter()
                 centroids[vid] = center
             
             for source, dus in dispersal_units.iteritems():
-                ## UPWARD ##
-                # All leaves except the source are potential targets
-                targets = list(leaf for leaf in leaves if leaf in geometries.iterkeys())
-                targets.remove(source)
-                
-                # Compute centroids
-                centroid(source)
-                for vid in targets:
-                    centroid(vid)
-                
-                # Sort the vids based on the direction 
-                # TODO : modify source angle
-                Origin = centroids[source]
-                vects = {vid:(centroids[vid]-Origin) for vid in targets 
-                        if (centroids[vid]-Origin)*source_angle >= 0}
-                
-                # Sort the vids based on the distance
-                distances = {vid:pgl.norm(vects[vid]) for vid in vects if pgl.norm(vects[vid])<dmax}
-                distances = OrderedDict(sorted(distances.iteritems(), key=lambda x: x[1]))
-
-                # Distribute the dispersal units
-                if len(distances.values())>0:
-                    shuffle(dus)
-                    n = len(dus)
-                    sphere_area = 2*pi*distances.values()[-1]**2
-                    for leaf_id in distances:
-                        area_factor = areas[leaf_id]/sphere_area
-                        distance_factor = exp(-self.k * distances[leaf_id])
-                        qc = min(n, (n * area_factor * distance_factor))
+                nb_tri = len(norm[source])
+                borders = np.linspace(0,1,num=nb_tri)
+                dus_by_tri={}
+                # for k in range(nb_tri-1):
+                    # DU = filter(lambda x: borders[k]<x.position[0]<=borders[k+1], dus)
+                    # if len(DU)>0.:
+                        # dus_by_tri = {k:DU}
                         
-                        deposits[leaf_id] = dus[:int(qc)]
-                        del dus[:int(qc)]
-                        # if len(dus) < 1 or len(deposits[leafid]) < 1:
-                        if len(dus) < 1:
-                            for d in dus:
-                                d.disable()
-                            break
+                dus_by_tri = {k:filter(lambda x: borders[k]<x.position[0]<=borders[k+1], dus) 
+                                for k in range(nb_tri-1)
+                                if len(filter(lambda x: borders[k]<x.position[0]<=borders[k+1], dus))>0.}
+                
+                for k,v in dus_by_tri.iteritems():
+                    source_normal = norm[source][k]
+                    
+                    ## UPWARD ##
+                    # All leaves except the source are potential targets
+                    targets = list(leaf for leaf in leaves if leaf in geometries.iterkeys())
+                    targets.remove(source)
+                    
+                    # Compute centroids
+                    centroid(source)
+                    for vid in targets:
+                        centroid(vid)
+                    
+                    # Sort the vids based on the direction 
+                    # TODO : modify source angle
+                    Origin = centroids[source]
+                    vects = {vid:(centroids[vid]-Origin) for vid in targets 
+                            if (centroids[vid]-Origin)*source_normal >= 0}
+                    
+                    # Sort the vids based on the distance
+                    distances = {vid:pgl.norm(vects[vid]) for vid in vects if pgl.norm(vects[vid])<dmax}
+                    distances = OrderedDict(sorted(distances.iteritems(), key=lambda x: x[1]))
+
+                    from math import cos, sin, pi
+                    vects2 = {vid:(centroids[vid]-Origin) for vid in targets}
+                    alpha = pgl.angle(source_normal, (1,0,0))+pi/2.
+                    
+                    xprim = source_normal^(0,0,1)
+                    
+                    a = dmax
+                    b = dmax*cos(pgl.angle(source_normal, (0,0,1)))
+                    for leaf in vects2:
+                        x = vects2[leaf][0]
+                        y = vects2[leaf][1]
+                        vect = vects2[leaf]+xprim
+                        x2 = vect[0]
+                        y2 = vect[1]
+                        # x2 = x*cos(alpha)+y*sin(alpha)
+                        # y2 = -x*sin(alpha)+y*cos(alpha)
+                        if (x2**2)/(a**2) + (y2**2)/(b**2) < 1 :
+                            g.node(leaf).color = (180, 0, 0)
+                    
+                    # vecto = (Origin[0], Origin[1], 0)
+                    # for leaf in centroids:
+                        # a = dmax
+                        # b = dmax*cos(pgl.angle(source_normal, (0,0,1)))
+                        # x = centroids[leaf][0]
+                        # y = centroids[leaf][1]
+                        # vect = (x, y, 0)
+                        # theta = pgl.angle(vect, (1,0,0))
+                        # if x <= a*cos(theta) and y <= b*sin(theta):
+                        # if (abs(x) <= ((Origin[0]+a*cos(theta))*cos(alpha)+(Origin[1]+b*sin(theta))*sin(alpha)) and 
+                            # abs(y) <= (-(Origin[0]+a*cos(theta))*sin(alpha)+(Origin[1]+b*sin(theta))*cos(alpha))):
+                            
+                    
+                       
+                    # 
+                    # # todo : trouver angle par rapport a l'horizontale
+                    # b = dmax*cos(pgl.angle(source_normal, angle))
+                    # vects2 = {vid:(centroids[vid]-Origin) for vid in targets}
+                    # distances2 = {vid:pgl.norm(vects2[vid]) for vid in vects2}
+
+                        # if vects2[leaf][0] < (Origin[0]+
+                        # if ((vects2[leaf][0]-Origin[0])**2)/(a**2) + ((vects2[leaf][1]-Origin[1])**2)/(b**2)< 1 :
+                            
+                    
+                    # a gauche de la verticale trouver ce qui est dans l'ellipse petite longueur = r cos(alpha)
+                    # grande longueur = r
+                    
+                    # theta = pgl.angle(source_angle, (0,0,1))
+                    # dist_origin2 = (dmax/2)*(1-cos(theta))
+                                     
+
+                    # ver_vects = {vid:(centroids[vid]-Origin) for vid in targets 
+                            # if (centroids[vid]-Origin)*vert_angle >= 0}
+                    # for leaf in vects2:
+                        # if (abs(vects2[leaf][0]) <= abs(dmax*cos(vects2[leaf]*source_angle)) and 
+                            # abs(vects2[leaf][1]) <= abs(dmax*cos(vects2[leaf]*source_angle))):
+                    # # for leaf in targets:
+                        # # if (min_x<=centroids[leaf][0]<=max_x and
+                            # # min_y<=centroids[leaf][1]<=max_y and
+                            # # min_z<=centroids[leaf][2]<=max_z):
+                            # g.node(leaf).color = (180, 0, 0)
+                    # out = {k:v for k,v in distances.iteritems() if (centroids[k]-Origin)*vert_angle<=0}
+                    # for leaf in out: 
+                        # g.node(leaf).color = (0, 0, 180)
+                    
+                    for leaf in distances: 
+                        g.node(leaf).color = (0, 0, 180)
+                    # from math import degrees
+                    # for leaf in vects2:
+                        # if degrees(pgl.angle(vects2[leaf], source_normal)) < 5:
+                            # g.node(leaf).color = (180, 0, 0)
+                    
+                    from alinea.adel.mtg_interpreter import plot3d
+                    from openalea.plantgl.all import Viewer
+                    scene = plot3d(g)
+                    Viewer.display(scene)
+                    import pdb
+                    pdb.set_trace()
+                    
+                    # Distribute the dispersal units
+                    if len(distances.values())>0:
+                        shuffle(v)
+                        n = len(v)
+                        sphere_area = 2*pi*distances.values()[-1]**2
+                        for leaf_id in distances:
+                            area_factor = areas[leaf_id]/sphere_area
+                            distance_factor = exp(-self.k * distances[leaf_id])
+                            qc = min(n, (n * area_factor * distance_factor))
+                            
+                            deposits[leaf_id] = v[:int(qc)]
+                            del v[:int(qc)]
+                            # if len(dus) < 1 or len(deposits[leafid]) < 1:
+                            if len(v) < 1:
+                                for d in v:
+                                    d.disable()
+                                # break
 
         return deposits
         
@@ -264,13 +359,9 @@ class PowderyMildewWindDispersal:
             leaves = get_leaves(g, label=self.label)
 
             def centroid(vid):
-                # /!\ TODO : Make below generic : So far : 
-                # - version of try : for vine
-                # - version of except : for wheat
-                # What will happen with another plant model ?
-                try:
+                if is_iterable(geometries[vid]):
                     bbc.process(pgl.Scene(geometries[vid]))
-                except:
+                else:
                     bbc.process(pgl.Scene([pgl.Shape(geometries[vid])]))
                 center = bbc.result.getCenter()
                 centroids[vid] = center

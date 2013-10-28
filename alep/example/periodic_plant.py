@@ -12,5 +12,5 @@ cs = CaribuScene(scene=shapes, pattern=domain)
 cs.runPeriodise()
 shapes = cs.generate_scene()
 newgeom = dict([(s.id,s.geometry) for s in shapes])
+geometries.update(newgeom)
 Viewer.display(shapes)
-# Update geometry avec ca voila

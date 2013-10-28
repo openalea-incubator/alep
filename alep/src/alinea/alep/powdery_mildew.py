@@ -217,8 +217,6 @@ class PowderyMildew(Lesion):
         self.surface = 0.
         # Diameter of the lesion
         self.diameter = 0.
-        # Growth demand of the lesion
-        self.growth_demand = None
         # Temperature around the lesion
         self.temp = None
         # Maximum diameter of the lesion according to its age
@@ -242,7 +240,7 @@ class PowderyMildew(Lesion):
         self.temperatures = []        
     
     def update(self, dt=1., leaf=None):
-        """ Update the status of the lesion and create a new growth ring if needed.
+        """ Update the status of the lesion and calculate growth demand.
  
         Parameters
         ----------
@@ -490,8 +488,8 @@ class PowderyMildew(Lesion):
                 nb_DU_emitted = nb_spores
                 # Return emissions
                 PowderyMildewDU.fungus = f
-                emissions = [PowderyMildewDU(nb_spores=nb_spores_by_DU, status='emitted')
-                                        for i in range(nb_DU_emitted)]
+                emissions = [PowderyMildewDU(nb_spores=nb_spores_by_DU, status='emitted',
+                                        position=self.position) for i in range(nb_DU_emitted)]
                 # Update dtock of spores                       
                 self.stock_spores -= nb_spores if self.stock_spores>nb_spores else 0.
         
@@ -502,6 +500,25 @@ class PowderyMildew(Lesion):
             self.disable()
 
         return emissions
+    
+    def reduce_stock(self, nb_spores_emitted):
+        """ Reduce the stock of spores after emission.
+        
+        Parameters
+        ----------
+        nb_spores_emitted: int
+            Number of spores emitted
+        """
+        self.stock_spores -= nb_spores_emitted
+        if self.stock_spores < self.fungus.treshold_spores:
+            print("coucou")
+            self.stock_spores = 0.
+    
+        # Disable the lesion if not producing spore anymore and stock is empty
+        if (self.is_sporulating() and 
+            not self.production_is_active and
+            self.stock_spores==0.):
+            self.disable()
     
     def become_senescent(self, **kwds):
         """ Set is_senescent to true.
@@ -603,7 +620,7 @@ class PowderyMildewParameters(Parameters):
                  a_for_emission = 0.71, 
                  b_for_emission = -5.8, 
                  r_for_emission = 0.41, 
-                 treshold_nb_du_to_empty = 1,
+                 treshold_spores = 1,
                  
                  *args, **kwds):
         """ Parameters for powdery mildew.
@@ -691,8 +708,8 @@ class PowderyMildewParameters(Parameters):
             Shape parameter to compute emission of spores because of wind
         r_for_emission: float
             Shape parameter to compute emission of spores because of wind
-        treshold_nb_du_to_empty: int
-            Treshold of dispersal unit on a surface to consider it empty
+        treshold_spores: int
+            Treshold of spores on a surface to consider it empty
         """
         self.name = "powdery_mildew"
         self.LATENT = LATENT
@@ -743,7 +760,7 @@ class PowderyMildewParameters(Parameters):
         self.a_for_emission = a_for_emission
         self.b_for_emission = b_for_emission
         self.r_for_emission = r_for_emission
-        self.treshold_nb_du_to_empty = treshold_nb_du_to_empty
+        self.treshold_spores = treshold_spores
 
     def __call__(self, nb_spores=None, position=None):
         if PowderyMildew.fungus is None:

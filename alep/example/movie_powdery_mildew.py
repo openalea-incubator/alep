@@ -23,7 +23,8 @@ from alinea.alep.protocol import *
 from alinea.alep.powdery_mildew import *
 from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.inoculation import RandomInoculation
-from alinea.alep.dispersal import PowderyMildewWindDispersal
+from alinea.alep.dispersal_emission import PowderyMildewWindEmission
+from alinea.alep.dispersal_transport import PowderyMildewWindDispersal
 from alinea.alep.growth_control import GrowthControlVineLeaf
 from alinea.alep.infection_control import BiotrophDUProbaModel
 
@@ -112,7 +113,8 @@ powdery_mildew = diseases['powdery_mildew'].load()
 inoculator = RandomInoculation()
 growth_controler = GrowthControlVineLeaf()
 infection_controler = BiotrophDUProbaModel()
-dispersor = PowderyMildewWindDispersal()
+emitter = PowderyMildewWindEmission()
+transporter = PowderyMildewWindDispersal()
 
 # Define the schedule of calls for each model
 nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
@@ -168,7 +170,7 @@ for t in timer:
         print(max(nb.values()), max(nb.iterkeys(), key=lambda k: nb[k]))  
     infect(g, t['disease'].dt, infection_controler, label='lf')
     update(g, t['disease'].dt, growth_controler, label='lf')
-    disperse(g, dispersor, "powdery_mildew", label='lf')
+    disperse(g, emitter, transporter, "powdery_mildew", label='lf')
 
     from alinea.alep.disease_outputs import plot_lesions
     if t['plotting'].dt > 0:

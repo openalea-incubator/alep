@@ -21,6 +21,7 @@ from alinea.alep.du_position_checker import BiotrophDUProbaModel
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
 from alinea.septo3d.alep_interfaces import Septo3DSplash
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.washing import RapillyWashing
 
 # Tests ###########################################################################
@@ -264,7 +265,8 @@ def test_disperse(model="septoria_exchanging_rings"):
     
     # Call models of growth control and dispersal
     controler = NoPriorityGrowthControl()
-    dispersor = Septo3DSplash()
+    emitter = SeptoriaRainEmission()
+    transporter = Septo3DSplash()
     
     # Loop of simulation
     septo_timing = TimeControl(delay=1, steps = 1000)

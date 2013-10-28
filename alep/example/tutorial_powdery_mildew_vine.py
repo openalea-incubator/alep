@@ -7,7 +7,8 @@ from alinea.astk.TimeControl import *
 
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.growth_control import GrowthControlVineLeaf
-from alinea.alep.dispersal import RandomDispersal, PowderyMildewWindDispersal
+from alinea.alep.dispersal_emission import PowderyMildewWindEmission
+from alinea.alep.dispersal_transport import RandomDispersal, PowderyMildewWindDispersal
 from alinea.alep.powdery_mildew import *
 from alinea.alep.protocol import *
 from alinea.adel.mtg_interpreter import plot3d
@@ -58,8 +59,9 @@ inoculator=RandomInoculation()
 initiate(g0,dispersal_units,inoculator, label='lf')
 
 controler = GrowthControlVineLeaf()
-# dispersor = RandomDispersal()
-dispersor = PowderyMildewWindDispersal()
+emitter = PowderyMildewWindEmission()
+# transporter = RandomDispersal()
+transporter = PowderyMildewWindDispersal()
 # nsteps = 49
 nsteps = 1000
 
@@ -90,7 +92,7 @@ def step(t):
                         
     infect(g, t['disease'].dt, label='lf')
     update(g, t['disease'].dt, controler, label='lf')
-    disperse(g, dispersor, "powdery_mildew", label='lf')  
+    disperse(g, emitter, transporter, "powdery_mildew", label='lf')  
     
     g = vine.grow(g,t['vine'])
     set_properties_on_new_leaves(g,label = 'lf', position_senescence=None)
