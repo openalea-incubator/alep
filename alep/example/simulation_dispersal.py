@@ -4,6 +4,12 @@
 from alinea.adel.mtg_interpreter import plot3d
 from openalea.plantgl.all import Viewer
 
+# Imports for selection of source leaf
+from alinea.alep.architecture import get_leaves
+from openalea.plantgl import all as pgl
+from collections import OrderedDict
+import collections
+
 # Imports for wheat
 from alinea.astk.caribu_interface import *
 from alinea.alep.wheat import initialize_stand
@@ -17,8 +23,6 @@ from alinea.alep.dispersal_transport import PowderyMildewWindDispersal, Septoria
 from alinea.alep.disease_outputs import count_dispersal_units_by_leaf
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
 from alinea.alep.protocol import disperse
-
-from alinea.alep.disease_outputs import plot_dispersal_units
 
 # Useful functions ############################################################
 def update_plot(g, leaf_source):
@@ -50,16 +54,42 @@ def periodise_canopy(g, domain):
     newgeom = dict([(s.id,s.geometry) for s in shapes])
     geometries.update(newgeom)
     return g
+
+def is_iterable(obj):
+    """ Test if object is iterable """
+    return isinstance(obj, collections.Iterable)
+
+def get_source_leaf(g, position='center'):
+    tesselator = pgl.Tesselator()
+    bbc = pgl.BBoxComputer(tesselator)
+    leaves = get_leaves(g, label='LeafElement')
+    centroids = g.property('centroid')
+    geometries = g.property('geometry')    
+    targets = list(leaf for leaf in leaves if leaf in geometries.iterkeys())
+    for vid in targets:
+        if is_iterable(geometries[vid]):
+            bbc.process(pgl.Scene(geometries[vid]))
+        else:
+            bbc.process(pgl.Scene([pgl.Shape(geometries[vid])]))
+        center = bbc.result.getCenter()
+        centroids[vid] = center
+    zmax = max(centroids.items(), key=lambda x:x[1][2])[1][2]
+    distances = {vid:pgl.norm(centroids[vid]-(0,0,zmax/2.)) for vid in centroids}
+    if position=='center':
+        return min(distances.items(), key=lambda x:x[1])[0]
+    elif position=='border':
+        return max(distances.items(), key=lambda x:x[1])[0]
     
 # Dispersal ################################################################### 
+
 # Initialize a wheat canopy
-g, wheat, domain_area, domain = initialize_stand(age=1500., length=1,
-                                                 width=1, sowing_density=150,
-                                                 plant_density=150, inter_row=0.12)
-                                       
 # g, wheat, domain_area, domain = initialize_stand(age=1500., length=1,
-                                                # width=1, sowing_density=250,
-                                                # plant_density=250, inter_row=0.12)
+                                                 # width=1, sowing_density=150,
+                                                 # plant_density=150, inter_row=0.12)
+                                       
+g, wheat, domain_area, domain = initialize_stand(age=1500., length=1,
+                                                width=1, sowing_density=250,
+                                                plant_density=250, inter_row=0.12)
 
 # periodise_canopy(g, domain)
                                                 
@@ -94,17 +124,11 @@ class DummyEmission():
                     DU[vid] = emissions
         return DU
 
-
-# leaf_id = 17749 # for age 200
-# leaf_id = 29368 # for age 500
-# leaf_id = 49497 # for density 250
-# leaf_id = 38128 # for age 700
-leaf_id = 38257 # for age 1500 leaf in center
-# leaf_id = 41920 # for age 1500 leaf on edge
-# leaf_id = 74 # for single plant
+        
+leaf_id = get_source_leaf(g, position='center')
 leaf = g.node(leaf_id)
 leaf.color = (0,0,180)
-leaf.lesions = [DummyLesion(position=[0.9,0])]
+leaf.lesions = [DummyLesion(position=[0.5,0])]
 emitter = DummyEmission()
 
 transporter = Septo3DSplash(reference_surface=domain_area)
@@ -115,7 +139,7 @@ transporter3 = SeptoriaRainDispersal()
 wind_direction = (-1, -0.5, 0)
 set_properties(g,label = 'LeafElement', wind_direction=wind_direction)
 
-disperse(g, emitter, transporter2, "dummy", label='LeafElement')
+disperse(g, emitter, transporter3, "dummy", label='LeafElement')
 
 # scene = plot3d(g)
 # Viewer.display(scene)
