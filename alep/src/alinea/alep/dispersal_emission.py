@@ -19,10 +19,15 @@ class SeptoriaRainEmission:
     Rapilly and Jolivet (1976).
     """
     
-    def __init__(self):
+    def __init__(self, domain_area=None):
         """ Initialize the model with fixed parameters.
+        
+        Parameters
+        ----------
+        domain_area: float
+            Domain area of the canopy stand
         """
-        pass
+        self.domain_area = domain_area
         
     def get_dispersal_units(self, g, fungus_name="septoria", label='LeafElement'):
         """ Compute emission of dispersal units by rain splash on wheat.
@@ -39,8 +44,13 @@ class SeptoriaRainEmission:
         dispersal_units : dict([leaf_id, list of dispersal units])
             Dispersal units emitted by leaf.
         """
+        k_wheat = 0.65
+        
         # Compute total leaf area
         total_area = get_total_leaf_area(g, label=label)
+        
+        # Compute intercept with Beer Lambert
+        intercept = 1 - exp(-k_wheat*total_area*10**-4/self.domain_area)
         
         # Get lesions
         lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 
@@ -55,13 +65,17 @@ class SeptoriaRainEmission:
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 leaf = g.node(vid)
-                total_DU_leaf = 0.36 * 6.19e7 * tot_fraction_spo * leaf.rain_intensity
+                total_DU_leaf = 0.36 * 6.19e7 * intercept * tot_fraction_spo * leaf.rain_intensity
 
                 if lesion.is_stock_available(leaf):
                     initial_stock = lesion.stock_spores
                     stock_available = int(lesion.stock_spores*2/3.)
                     contribution = lesion.surface_spo/total_spo if total_spo>0. else 0.
                     nb_DU_lesion = int(contribution * total_DU_leaf)
+                    
+                    # import pdb
+                    # pdb.set_trace()
+                    
                     # Distribute spores into dispersal units
                     nb_spores_by_DU = 10
                     nb_DU_lesion = min(nb_DU_lesion, stock_available/nb_spores_by_DU)
@@ -130,7 +144,7 @@ class PowderyMildewWindEmission:
                 stock = lesion.stock_spores
                 if stock > 0.:
                     # Dispersal rate
-                    dispersal_rate = min(1, exp(r*wind_speed+b) / (a*(1+exp(r*wind_speed+b))))
+                    dispersal_rate = exp(r*wind_speed+b) / (1+exp(r*wind_speed+b))
                     # Number of spores emitted : One only spore by DU
                     nb_DU_emitted = int(dispersal_rate * stock)
                     

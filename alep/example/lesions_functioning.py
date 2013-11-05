@@ -25,6 +25,7 @@ from alinea.alep.septoria import plugin_septoria
 from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.disease_outputs import LeafInspector
 from alinea.alep.inoculation import RandomInoculation
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
@@ -82,7 +83,7 @@ def run_simulation():
     growth_controler = NoPriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-    emitter = SeptoriaRainEmission()
+    emitter = SeptoriaRainEmission(domain_area=domain_area)
     transporter = Septo3DSplash(reference_surface=domain_area)
     washor = RapillyWashing()
 
@@ -134,9 +135,9 @@ def run_simulation():
                           for vid in vids})
         
         # Develop disease
-        if data.dispersal_event.values[0]==True and timer.numiter <= 1500:
+        if data.dispersal_event.values[0]==True and timer.numiter <= 1000:
             # Refill pool of initial inoculum to simulate differed availability
-            dispersal_units = generate_stock_du(nb_dus=10, disease=septoria)
+            dispersal_units = generate_stock_du(nb_dus=5, disease=septoria)
             initiate(g, dispersal_units, inoculator)
           
         infect(g, t['disease'].dt, infection_controler, label='LeafElement')

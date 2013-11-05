@@ -120,9 +120,10 @@ class SeptoriaRainDispersal:
             from alinea.alep.architecture import get_leaves
             from openalea.plantgl import all as pgl
             from collections import OrderedDict
-            from math import exp, pi
+            from math import exp, pi, cos, sin, tan
             from random import shuffle
             import numpy as np
+            from copy import copy
             dmax = self.distance_max
             tesselator = pgl.Tesselator()
             bbc = pgl.BBoxComputer(tesselator)
@@ -143,12 +144,6 @@ class SeptoriaRainDispersal:
             for source, dus in dispersal_units.iteritems():
                 nb_tri = len(norm[source])
                 borders = np.linspace(0,1,num=nb_tri)
-                dus_by_tri={}
-                # for k in range(nb_tri-1):
-                    # DU = filter(lambda x: borders[k]<x.position[0]<=borders[k+1], dus)
-                    # if len(DU)>0.:
-                        # dus_by_tri = {k:DU}
-                        
                 dus_by_tri = {k:filter(lambda x: borders[k]<x.position[0]<=borders[k+1], dus) 
                                 for k in range(nb_tri-1)
                                 if len(filter(lambda x: borders[k]<x.position[0]<=borders[k+1], dus))>0.}
@@ -175,84 +170,6 @@ class SeptoriaRainDispersal:
                     # Sort the vids based on the distance
                     distances = {vid:pgl.norm(vects[vid]) for vid in vects if pgl.norm(vects[vid])<dmax}
                     distances = OrderedDict(sorted(distances.iteritems(), key=lambda x: x[1]))
-
-                    from math import cos, sin, pi
-                    vects2 = {vid:(centroids[vid]-Origin) for vid in targets}
-                    alpha = pgl.angle(source_normal, (1,0,0))+pi/2.
-                    
-                    xprim = source_normal^(0,0,1)
-                    
-                    a = dmax
-                    b = dmax*cos(pgl.angle(source_normal, (0,0,1)))
-                    for leaf in vects2:
-                        x = vects2[leaf][0]
-                        y = vects2[leaf][1]
-                        vect = vects2[leaf]+xprim
-                        x2 = vect[0]
-                        y2 = vect[1]
-                        # x2 = x*cos(alpha)+y*sin(alpha)
-                        # y2 = -x*sin(alpha)+y*cos(alpha)
-                        if (x2**2)/(a**2) + (y2**2)/(b**2) < 1 :
-                            g.node(leaf).color = (180, 0, 0)
-                    
-                    # vecto = (Origin[0], Origin[1], 0)
-                    # for leaf in centroids:
-                        # a = dmax
-                        # b = dmax*cos(pgl.angle(source_normal, (0,0,1)))
-                        # x = centroids[leaf][0]
-                        # y = centroids[leaf][1]
-                        # vect = (x, y, 0)
-                        # theta = pgl.angle(vect, (1,0,0))
-                        # if x <= a*cos(theta) and y <= b*sin(theta):
-                        # if (abs(x) <= ((Origin[0]+a*cos(theta))*cos(alpha)+(Origin[1]+b*sin(theta))*sin(alpha)) and 
-                            # abs(y) <= (-(Origin[0]+a*cos(theta))*sin(alpha)+(Origin[1]+b*sin(theta))*cos(alpha))):
-                            
-                    
-                       
-                    # 
-                    # # todo : trouver angle par rapport a l'horizontale
-                    # b = dmax*cos(pgl.angle(source_normal, angle))
-                    # vects2 = {vid:(centroids[vid]-Origin) for vid in targets}
-                    # distances2 = {vid:pgl.norm(vects2[vid]) for vid in vects2}
-
-                        # if vects2[leaf][0] < (Origin[0]+
-                        # if ((vects2[leaf][0]-Origin[0])**2)/(a**2) + ((vects2[leaf][1]-Origin[1])**2)/(b**2)< 1 :
-                            
-                    
-                    # a gauche de la verticale trouver ce qui est dans l'ellipse petite longueur = r cos(alpha)
-                    # grande longueur = r
-                    
-                    # theta = pgl.angle(source_angle, (0,0,1))
-                    # dist_origin2 = (dmax/2)*(1-cos(theta))
-                                     
-
-                    # ver_vects = {vid:(centroids[vid]-Origin) for vid in targets 
-                            # if (centroids[vid]-Origin)*vert_angle >= 0}
-                    # for leaf in vects2:
-                        # if (abs(vects2[leaf][0]) <= abs(dmax*cos(vects2[leaf]*source_angle)) and 
-                            # abs(vects2[leaf][1]) <= abs(dmax*cos(vects2[leaf]*source_angle))):
-                    # # for leaf in targets:
-                        # # if (min_x<=centroids[leaf][0]<=max_x and
-                            # # min_y<=centroids[leaf][1]<=max_y and
-                            # # min_z<=centroids[leaf][2]<=max_z):
-                            # g.node(leaf).color = (180, 0, 0)
-                    # out = {k:v for k,v in distances.iteritems() if (centroids[k]-Origin)*vert_angle<=0}
-                    # for leaf in out: 
-                        # g.node(leaf).color = (0, 0, 180)
-                    
-                    for leaf in distances: 
-                        g.node(leaf).color = (0, 0, 180)
-                    # from math import degrees
-                    # for leaf in vects2:
-                        # if degrees(pgl.angle(vects2[leaf], source_normal)) < 5:
-                            # g.node(leaf).color = (180, 0, 0)
-                    
-                    from alinea.adel.mtg_interpreter import plot3d
-                    from openalea.plantgl.all import Viewer
-                    scene = plot3d(g)
-                    Viewer.display(scene)
-                    import pdb
-                    pdb.set_trace()
                     
                     # Distribute the dispersal units
                     if len(distances.values())>0:
@@ -271,7 +188,66 @@ class SeptoriaRainDispersal:
                                 for d in v:
                                     d.disable()
                                 # break
+                    
+                    ## DOWNWARD ##
+                    vects2 = {vid:(centroids[vid]-Origin) for vid in targets if not vid in vects}
+                    projection = {}
 
+                    alpha = pgl.angle(source_normal, (1,0,0))
+                    if alpha>=pi/2. or (alpha<pi/2. and source_normal[2]>=0):
+                        alpha+=pi/2.
+                    a = dmax
+                    b = dmax*cos(pgl.angle(source_normal, (0,0,1)))
+                    
+                    for leaf in vects2:
+                        if (centroids[leaf]-Origin)*(source_normal[0], source_normal[1], 0) >= 0:
+                            # Big side of the projection semi circle
+                            copy_centroid = copy(centroids[leaf])
+                            copy_origin = copy(Origin)
+                            copy_centroid[2] = 0.
+                            copy_origin[2] = 0.
+                            if pgl.norm(copy_centroid-copy_origin) < dmax:
+                                projection[leaf] = vects2[leaf]
+                        else:
+                            # Small side of the projection semi ellipse
+                            x = vects2[leaf][0]
+                            y = vects2[leaf][1]
+                            x2 = x*cos(alpha)+y*sin(alpha)
+                            y2 = -x*sin(alpha)+y*cos(alpha)
+                            if (x2**2)/(a**2) + (y2**2)/(b**2) < 1 :
+                                projection[leaf] = vects2[leaf]
+                    projection = OrderedDict(sorted(projection.items(), key=lambda x:x[1][2], reverse=True))
+                    
+                    if len(projection)>0:
+                        shuffle(v)
+                        n = len(v)
+                        for leaf in projection:
+                            copy_centroid = copy(centroids[leaf])
+                            copy_origin = copy(Origin)
+                            copy_centroid[2] = 0.
+                            copy_origin[2] = 0.
+                            if (centroids[leaf]-Origin)*(source_normal[0],source_normal[1],0) >= 0:
+                                area_factor = areas[leaf]/(pi*dmax**2/2.)
+                                dist = pgl.norm(copy_centroid-copy_origin)
+                            else:
+                                area_factor = areas[leaf]/(pi*a*b/2.)
+                                dist = abs(tan(pgl.angle(source_normal, (1,0,0))))*pgl.norm(copy_centroid-copy_origin)
+                            distance_factor = exp(-self.k * dist)
+                            qc = min(n, (n * area_factor * distance_factor))
+                            deposits[leaf] = v[:int(qc)]
+                            del v[:int(qc)]
+                                       
+                    # for leaf in distances:
+                        # g.node(leaf).color = (0, 180, 0)
+                    
+                    # # Temp
+                    # from alinea.adel.mtg_interpreter import plot3d
+                    # from openalea.plantgl.all import Viewer
+                    # g.node(source).color=(230, 62, 218)
+                    # scene = plot3d(g)
+                    # Viewer.display(scene)
+                    # import pdb
+                    # pdb.set_trace()
         return deposits
         
 # Powdery mildew wind dispersal ###################################################
@@ -402,26 +378,26 @@ class PowderyMildewWindDispersal:
                 n = len(dus)
 
                 if len(distances.values())>0:
-                    # surf_base_cone = pi*(tan(radians(self.a0))*max(distances.values()))**2
-                    # tot_area =sum([areas[k] for k in distances])
-                    # lai_cone = tot_area/surf_base_cone if surf_base_cone>0. else 0.
-                    # intercepted_dus = (1-exp(-self.k_beer*lai_cone))*n
-
-                    # Distribute the dispersal units
-                    n = len(dus)
-                    for leafid in distances:
-                        qc = min(n, (n * (areas[leafid]/self.reduction) * 
-                             exp(-self.cid * distances[leafid]) * 
-                             (self.a0 - angles[leafid])/self.a0))
+                    for leaf in distances:
+                        # qc = min(n, (n * (areas[leaf]/self.reduction) * 
+                             # exp(-self.cid * distances[leaf]) * 
+                             # (self.a0 - angles[leaf])/self.a0))
+                        surf_base_cone = pi*(tan(radians(self.a0))*distances[leaf])**2
+                        area_factor = min(1, areas[leaf]/surf_base_cone)
+                        # import pdb
+                        # pdb.set_trace()
+                        qc = min(n, (n * area_factor * 
+                             exp(-self.cid * distances[leaf]) * 
+                             (self.a0 - angles[leaf])/self.a0))
                         
                         # if qc < 1:
                             # for d in dus:
                                 # d.disable()
                             # break
                                             
-                        deposits[leafid] = dus[:int(qc)]
+                        deposits[leaf] = dus[:int(qc)]
                         del dus[:int(qc)]
-                        # if len(dus) < 1 or len(deposits[leafid]) < 1:
+                        # if len(dus) < 1 or len(deposits[leaf]) < 1:
                         if len(dus) < 1:
                             for d in dus:
                                 d.disable()

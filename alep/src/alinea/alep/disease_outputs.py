@@ -638,3 +638,69 @@ class LeafInspector:
         """
         severity = self.compute_severity(g)/100
         return round(severity * nb_unwashed)
+        
+#################################################################################
+class VineLeafInspector:
+    def __init__(self, leaf_id, label='lf'):
+        self.leaf_id = leaf_id
+        self.label = label
+        # Initialize leaf properties to save
+        self.leaf_area = []
+        self.leaf_green_area = []  
+        self.leaf_healthy_area = []
+        self.leaf_disease_area = []
+        # Initialize surfaces in state
+        self.surface_latent = []
+        self.surface_spo = []
+        self.surface_empty = []
+        # Initialize ratios (surfaces in state compared to leaf area)
+        self.ratio_latent = []
+        self.ratio_spo = []
+        self.ratio_empty = []
+        # Initialize total severity
+        self.severity = []
+
+    def update_data(self, g):
+        leaf = g.node(self.leaf_id)
+        area = leaf.area
+        if area!=None:
+            self.leaf_area.append(area)
+            self.leaf_green_area.append(leaf.green_area)
+            self.leaf_healthy_area.append(leaf.healthy_area)
+            self.leaf_disease_area.append(area - leaf.healthy_area)
+            
+        else:
+            area = 0.
+            self.leaf_area.append(0.)
+            self.leaf_green_area.append(0.)
+            self.leaf_healthy_area.append(0.)
+            self.leaf_disease_area.append(0.)
+        
+        self.severity.append(100.*(1.-leaf.healthy_area/area) if area>0. else 0.)
+        
+        try:
+            lesions = leaf.lesions
+        except:
+            lesions = []
+        surface_latent = 0.
+        surface_spo = 0.
+        surface_empty = 0.
+        if len(lesions)>0.:
+            latent_lesions = [l for l in lesions if l.is_latent()]
+            if len(latent_lesions)>0.:
+                surface_latent = sum([l.surface for l in latent_lesions])
+            
+            spo_lesions = [l for l in lesions if l.is_sporulating()]
+            if len(spo_lesions)>0.:
+                surface_spo = sum([l.surface for l in spo_lesions])
+            
+            empty_lesions = [l for l in lesions if l.is_empty()]
+            if len(empty_lesions)>0.:
+                surface_empty = sum([l.surface for l in empty_lesions])
+                
+        self.surface_latent.append(surface_latent)
+        self.ratio_latent.append(100.*surface_latent/area if area>0. else 0.)
+        self.surface_spo.append(surface_spo)
+        self.ratio_spo.append(100.*surface_spo/area if area>0. else 0.)
+        self.surface_empty.append(surface_empty)
+        self.ratio_empty.append(100.*surface_empty/area if area>0. else 0.)

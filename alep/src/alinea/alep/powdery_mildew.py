@@ -34,7 +34,7 @@ class PowderyMildewDU(DispersalUnit):
         self.age_dday = 0.
         # Viability of the dispersal unit:
         # Scale from 1:viable to 0:not viable
-        # self.viability = 1.
+        self.viability = 1.
         
     def infect(self, dt, leaf, **kwds):
         """ Compute infection by the dispersal unit of powdery mildew.
@@ -81,8 +81,7 @@ class PowderyMildewDU(DispersalUnit):
         if self.is_ready_to_infect():
             # Temperature factor
             t_norm_function = temp_norm_function(temp, t_min, t_max, m, n)
-            temp_factor = (max_rate * t_norm_function * 
-                            exp(-decay_rate * leaf.age))
+            temp_factor = (max_rate * t_norm_function * exp(-decay_rate * leaf.age))
             
             # Relative humidity factor
             RH_factor = min(1., a_RH_effect * relative_humidity + b_RH_effect)
@@ -102,10 +101,10 @@ class PowderyMildewDU(DispersalUnit):
             if proba(infection_rate):
                 self.create_lesion(leaf)
             else:
-                self.disable()
-                # self.update_viability(dt, leaf)
-                # if not self.is_viable():
-                    # self.disable()
+                # self.disable()
+                self.update_viability(dt, leaf)
+                if not self.is_viable():
+                    self.disable()
                 
     def update_age_dday(self, dt=1., leaf=None):
         """ Update the age of the lesion.
@@ -139,7 +138,7 @@ class PowderyMildewDU(DispersalUnit):
         f = self.fungus
         # Calculation
         if dt != 0.:
-            ddday = max(0,(leaf.temp - f.basis_for_dday))*(dt/24.)
+            ddday = max(0,(leaf.temp - f.basis_for_dday*dt)/(24./dt))
         else:
             ddday = 0.
         return ddday 
@@ -313,11 +312,11 @@ class PowderyMildew(Lesion):
         
         # Growth demand in diameter
         kmax = self.diameter_max
-        age = self.age
+        age = self.age * dt/24.
         t_norm_function = temp_norm_function(temp, t_min, t_max, m, n)
-        age_factor = r*exp(r*(half_time-age))/(1+exp(r*(half_time-age)))**2
+        age_factor = (dt/24.)*r*exp(r*(half_time-age))/(1+exp(r*(half_time-age)))**2
         diameter_demand = diameter + kmax * t_norm_function * age_factor
-       
+        
         # Growth demand in surface
         gd = (pi * diameter_demand**2 /4) - self.surface
 
@@ -459,7 +458,7 @@ class PowderyMildew(Lesion):
     def emission(self, leaf=None):
         """ Create a list of dispersal units emitted by the ring.
         
-        Computed with the formalism of Willocquet and Clerjeau, 1998.
+        Computed with the formalism of Willocquet et al., 1998.
         
         Parameters
         ----------
@@ -511,13 +510,14 @@ class PowderyMildew(Lesion):
         """
         self.stock_spores -= nb_spores_emitted
         if self.stock_spores < self.fungus.treshold_spores:
-            print("coucou")
+            # print("coucou")
             self.stock_spores = 0.
     
         # Disable the lesion if not producing spore anymore and stock is empty
         if (self.is_sporulating() and 
             not self.production_is_active and
             self.stock_spores==0.):
+            self.status = self.fungus.EMPTY
             self.disable()
     
     def become_senescent(self, **kwds):
@@ -553,6 +553,16 @@ class PowderyMildew(Lesion):
         f = self.fungus
         return self.status==f.SPORULATING
 
+    def is_empty(self):
+        """ Check if the status of the lesion is EMPTY.
+        
+        Parameters
+        ----------
+            None
+        """
+        f = self.fungus
+        return self.status==f.EMPTY    
+        
     def disable_production(self):
         """ Shut down lesion production activity (turn it to False)
         
@@ -586,7 +596,7 @@ class PowderyMildewParameters(Parameters):
                  m_for_infection = 0.338,
                  n_for_infection = 1.055,
                  max_infection_rate = 0.53,
-                 decay_rate = 0.147/24,
+                 decay_rate = 0.147,
                  a_RH_effect = 0.0023,
                  b_RH_effect = 0.8068,
                  RH_opt_for_infection = 85,
@@ -599,8 +609,8 @@ class PowderyMildewParameters(Parameters):
                  temp_max_for_growth = 33.,
                  m_for_growth = 0.27,
                  n_for_growth = 1.24,
-                 growth_rate = 0.2 / 24,
-                 half_growth_time = 13. * 24, 
+                 growth_rate = 0.2,
+                 half_growth_time = 13., 
                  temp_min_for_latency = 5.,
                  temp_max_for_latency = 33.,
                  m_for_latency = 0.27,

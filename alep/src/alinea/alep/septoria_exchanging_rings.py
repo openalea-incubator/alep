@@ -58,6 +58,8 @@ class SeptoriaExchangingRings(Lesion):
         
         # Temporary
         self.surface_empty = 0.
+        self.hist_delta_spo = []
+        self.hist_stock = []
 
     def update(self, dt, leaf=None):
         """ Update the status of the lesion and create a new growth ring if needed.
@@ -126,7 +128,14 @@ class SeptoriaExchangingRings(Lesion):
                 self.first_rain_hour = True if not self.first_rain_hour else False
             else:
                 self.first_rain_hour = False
-            
+        
+        # Temporary
+        if self.status!=f.SPORULATING:
+            self.hist_stock.append(0.)
+            self.hist_delta_spo.append(0.)
+        else:
+            self.hist_stock.append(self.stock_spores)
+        
     def compute_delta_ddays(self, dt=1., leaf=None):
         """ Compute delta degree days in dt.
         
@@ -296,7 +305,10 @@ class SeptoriaExchangingRings(Lesion):
             self.stock_spores += delta_surface_spo * f.production_rate
         except:
             self.stock_spores = delta_surface_spo * f.production_rate
-
+        
+        # Temporary
+        self.hist_delta_spo.append(delta_surface_spo)
+            
     def compute_sporulating_surface(self):
         """ Compute only the sporulating surface.
         

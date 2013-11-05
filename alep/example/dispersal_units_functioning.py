@@ -25,8 +25,8 @@ from alinea.alep.septoria import plugin_septoria
 from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.disease_outputs import LeafInspector
 from alinea.alep.inoculation import RandomInoculation
-from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
+from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
@@ -73,9 +73,9 @@ def run_simulation():
     weather = get_septoria_weather(data_file='meteo01.csv')
 
     # Initialize a wheat canopy
-    g, wheat, domain_area = initialize_stand(age=0., length=0.1, 
-                                            width=0.2, sowing_density=150,
-                                            plant_density=150, inter_row=0.12)
+    g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, 
+                                                     width=0.2, sowing_density=150,
+                                                     plant_density=150, inter_row=0.12)
 
     # Initialize the models for septoria
     septoria = plugin_septoria()
@@ -83,7 +83,7 @@ def run_simulation():
     growth_controler = NoPriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-    emitter = SeptoriaRainEmission()
+    emitter = SeptoriaRainEmission(domain_area=domain_area)
     transporter = Septo3DSplash(reference_surface=domain_area)
     washor = RapillyWashing()
 
@@ -134,10 +134,10 @@ def run_simulation():
                           for vid in vids})
         
         # Develop disease
-        if data.dispersal_event.values[0]==True and timer.numiter <= 1500:
+        if data.dispersal_event.values[0]==True and timer.numiter <= 1000:
             print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
             # Refill pool of initial inoculum to simulate differed availability
-            dispersal_units = generate_stock_du(nb_dus=10, disease=septoria)
+            dispersal_units = generate_stock_du(nb_dus=5, disease=septoria)
             initiate(g, dispersal_units, inoculator)
           
         infect(g, t['disease'].dt, infection_controler, label='LeafElement')
@@ -190,14 +190,17 @@ def draw_outputs(outputs):
     # ymax = 300
     ymax = max(outputs.nb_dus[date_1:date_2]+100)
     ax1 = fig.add_subplot(2,2,1)
+    ax1.set_yscale('symlog')
     ax1.vlines(date_seq, [0], outputs.nb_dus[date_1:date_2], color='b', linewidth=2)
     ax1.set_xticklabels(ax1.get_xticklabels(), fontsize=15, rotation=30, ha='right')
     ax1.xaxis.set_major_locator(months)
     ax1.xaxis.set_major_formatter(month_fmt)
     ax1.set_ylabel('Total intercepted', fontsize=20)
     lim = ax1.set_ylim((0,ymax))
+    
 
     ax2 = fig.add_subplot(2,2,2)
+    ax2.set_yscale('symlog')
     ax2.vlines(date_seq, [0], outputs.nb_unwashed_dus[date_1:date_2], color='b', linewidth=2)
     lim = ax2.set_ylim((0,ymax))
     ax2.set_xticklabels(ax2.get_xticklabels(), rotation=30, ha='right')
@@ -206,6 +209,7 @@ def draw_outputs(outputs):
     ax2.set_ylabel('Total unwashed', fontsize=20)
 
     ax3 = fig.add_subplot(2,2,3)
+    ax3.set_yscale('symlog')
     ax3.vlines(date_seq, [0], outputs.nb_dus_on_healthy[date_1:date_2], color='b', linewidth=2)
     ax3.set_xticklabels(ax3.get_xticklabels(), fontsize=15, rotation=30, ha='right')
     ax3.xaxis.set_major_locator(months)
@@ -226,11 +230,13 @@ def draw_outputs(outputs):
     ax4.set_ylabel('Leaf area (in cm2)', fontsize=20)
 
     ax5 = fig.add_subplot(2,2,4)
+    ax5.set_yscale('symlog')
     ax5.vlines(date_seq, [0], outputs.nb_infections[date_1:date_2], color='b', linewidth=2)
     ax5.set_xticklabels(ax5.get_xticklabels(), fontsize=15, rotation=30, ha='right')
     ax5.xaxis.set_major_locator(months)
     ax5.xaxis.set_major_formatter(month_fmt)
-    lim = ax5.set_ylim((0,20))
+    # lim = ax5.set_ylim((0,20))
+    lim = ax3.set_ylim((0,ymax))
     ax5.set_ylabel('Total incubating', fontsize=20)
 
     show(False)

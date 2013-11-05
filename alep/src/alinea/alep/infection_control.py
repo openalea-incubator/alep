@@ -47,9 +47,9 @@ class BiotrophDUProbaModel:
         for vid, du in dispersal_units.iteritems():
             # By leaf element, keep only those which are deposited and active
             du = [d for d in du if d.is_active]
-            ratio = severities[vid]/100
+            ratio = severities[vid]/100.
             if du:
-                nb_not_on_green = int(round(ratio)*len(du))
+                nb_not_on_green = int(ratio*len(du))
                 for dispersal_unit in random.sample(du, nb_not_on_green):
                     # Is not on green tissue
                     dispersal_unit.can_not_infect_at_position()

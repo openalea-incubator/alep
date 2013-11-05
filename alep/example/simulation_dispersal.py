@@ -76,9 +76,23 @@ class DummyLesion(Lesion):
         # TODO : change this condition to a method 'can_emit'
         self.stock_spores = 1
         
-    def emission(self, leaf=None):
-        return [DispersalUnit(nb_spores=self.nb_spores, status='emitted',
-                position=self.position) for i in range(int(1e4))]
+    def is_sporulating(self):
+        return True
+
+class DummyEmission():        
+    def get_dispersal_units(self, g, fungus_name="dummy", label='LeafElement'):
+        DU={}
+        lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 
+                    for k, les in g.property('lesions').iteritems()} 
+        for vid, l in lesions.iteritems():
+            for lesion in l:
+                emissions = [DispersalUnit(nb_spores=lesion.nb_spores, status='emitted',
+                             position=lesion.position) for i in range(int(1e4))]
+                try:
+                    DU[vid] += emissions
+                except:
+                    DU[vid] = emissions
+        return DU
 
 
 # leaf_id = 17749 # for age 200
@@ -90,18 +104,18 @@ leaf_id = 38257 # for age 1500 leaf in center
 # leaf_id = 74 # for single plant
 leaf = g.node(leaf_id)
 leaf.color = (0,0,180)
-leaf.lesions = [DummyLesion(position=[0.3,0])]
-emitter = SeptoriaRainEmission()
+leaf.lesions = [DummyLesion(position=[0.9,0])]
+emitter = DummyEmission()
 
 transporter = Septo3DSplash(reference_surface=domain_area)
-transporter2 = PowderyMildewWindDispersal(cid=0.04, k_beer=0.65, label='LeafElement')
+transporter2 = PowderyMildewWindDispersal(cid=0.04, a0=45., k_beer=0.65, label='LeafElement')
 transporter3 = SeptoriaRainDispersal()
 
 # Define the wind direction
-wind_direction = (1, 0.5, 0)
+wind_direction = (-1, -0.5, 0)
 set_properties(g,label = 'LeafElement', wind_direction=wind_direction)
 
-disperse(g, emitter, transporter3, "dummy", label='LeafElement')
+disperse(g, emitter, transporter2, "dummy", label='LeafElement')
 
 # scene = plot3d(g)
 # Viewer.display(scene)
@@ -109,3 +123,4 @@ disperse(g, emitter, transporter3, "dummy", label='LeafElement')
 # plot_dispersal_units(g)
 update_plot(g, leaf_source=leaf_id)
 
+# Check proportion intercepted : must be low
