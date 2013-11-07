@@ -196,8 +196,9 @@ class SeptoriaRainDispersal:
                     alpha = pgl.angle(source_normal, (1,0,0))
                     if alpha>=pi/2. or (alpha<pi/2. and source_normal[2]>=0):
                         alpha+=pi/2.
+                    beta = pgl.angle(source_normal, (0,0,1))
                     a = dmax
-                    b = dmax*cos(pgl.angle(source_normal, (0,0,1)))
+                    b = dmax*cos(beta)
                     
                     for leaf in vects2:
                         if (centroids[leaf]-Origin)*(source_normal[0], source_normal[1], 0) >= 0:
@@ -221,6 +222,8 @@ class SeptoriaRainDispersal:
                     if len(projection)>0:
                         shuffle(v)
                         n = len(v)
+                        n_big = int(n*beta/pi)
+                        n_small = n - n_big
                         for leaf in projection:
                             copy_centroid = copy(centroids[leaf])
                             copy_origin = copy(Origin)
@@ -229,14 +232,16 @@ class SeptoriaRainDispersal:
                             if (centroids[leaf]-Origin)*(source_normal[0],source_normal[1],0) >= 0:
                                 area_factor = areas[leaf]/(pi*dmax**2/2.)
                                 dist = pgl.norm(copy_centroid-copy_origin)
+                                distance_factor = exp(-self.k * dist)
+                                qc = min(n_big, (n_big * area_factor * distance_factor))
                             else:
                                 area_factor = areas[leaf]/(pi*a*b/2.)
                                 dist = abs(tan(pgl.angle(source_normal, (1,0,0))))*pgl.norm(copy_centroid-copy_origin)
-                            distance_factor = exp(-self.k * dist)
-                            qc = min(n, (n * area_factor * distance_factor))
+                                distance_factor = exp(-self.k * dist)
+                                qc = min(n_small, (n_small * area_factor * distance_factor))
                             deposits[leaf] = v[:int(qc)]
                             del v[:int(qc)]
-                                       
+                            
                     # for leaf in distances:
                         # g.node(leaf).color = (0, 180, 0)
                     
