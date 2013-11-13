@@ -20,19 +20,19 @@ __icon__ = ''
 __all__ = []
 
 models_no_priority_growth_control = Factory(name='NoPriorityGrowthControl',
-                                                         nodemodule='models',
+                                                         nodemodule='alinea.alep.growth_control',
                                                          nodeclass='NoPriorityGrowthControl',
                                                )
 __all__.append('models_no_priority_growth_control')
 
 models_random_dispersal = Factory(name='RandomDispersal',
-                                               nodemodule='models',
+                                               nodemodule='alinea.alep.dispersal_transport',
                                                nodeclass='RandomDispersal',
                                                )
 __all__.append('models_random_dispersal')
 
 models_random_inoculation = Factory(name='RandomInoculation',
-                                               nodemodule='models',
+                                               nodemodule='alinea.alep.inoculation',
                                                nodeclass='RandomInoculation',
                                                )
 __all__.append('models_random_inoculation')
