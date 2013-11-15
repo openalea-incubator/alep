@@ -182,9 +182,9 @@ def update(g, dt,
     return g
 
 def disperse(g,
-             emission_model,
-             transport_model,
-             fungus_name, 
+             emission_model=None,
+             transport_model=None,
+             fungus_name='', 
              label="LeafElement",
              activate=True):
     """ Disperse spores of the lesions of fungus identified by fungus_name.
@@ -233,9 +233,18 @@ def disperse(g,
         # Get lesions with inactive lesions removed
         lesions = {k:[l for l in les if l.is_active] 
                     for k, les in g.property('lesions').iteritems()}  
+        if emission_model is not None:
+            DU = emission_model.get_dispersal_units(g, fungus_name, label)
+        else: # keep compatibility with previous way (used in echap)
+            DU = {}
+            for vid, l in lesions.iteritems():
+                for lesion in l:
+                    if lesion.fungus.name is fungus_name and lesion.stock_spores > 0.:
+                        leaf = g.node(vid)
+                        if vid not in DU:
+                            DU[vid] = []
+                        DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
 
-        DU = emission_model.get_dispersal_units(g, fungus_name, label)
-        
         # Temp /!\
         nb_dus = sum(len(du) for du in DU.itervalues())
         

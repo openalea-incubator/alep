@@ -40,6 +40,16 @@ __all__.append('protocol_nodes_update')
 protocol_nodes_disperse = Factory(name='disperse',
                 nodemodule='alinea.alep.protocol',
                 nodeclass='disperse',
+                inputs=[{'interface': None, 'name': 'g', 'value': None},
+                        {'interface': None, 'name': 'emission model', 'value': None, 'desc': 'None if emission is handled by lesions'},
+                        {'interface': None, 'name': 'transport model', 'value': None, 'desc': ''},
+                        {'interface': IStr, 'name': 'fungus_name', 'value': 'septoria'},
+                        {'interface': IStr, 'name': 'label', 'value': 'LeafElement'},
+                        {'interface': IBool, 'name': 'activate', 'value': True},
+                        ],
+                outputs=[{'interface': None, 'name': 'g', 'desc': ''},
+                         {'interface': IFloat, 'name': 'nb_dus', 'desc': ''},
+                ],
                )
 __all__.append('protocol_nodes_disperse')
 
