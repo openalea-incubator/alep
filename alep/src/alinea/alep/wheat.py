@@ -1,50 +1,21 @@
 """ Few functions to call wheat MTGs. """
 
 # Wheat stand ######################################################################
-from alinea.adel.stand.stand import agronomicplot
-from alinea.adel.astk_interface import AdelWheat
+from alinea.adel.astk_interface import initialise_stand
 from alinea.astk.plant_interface import *
 from alinea.alep.architecture import update_healthy_area
 
 def initialize_stand(age=0., length=0.1, width=0.2, sowing_density=150, 
-                     plant_density=150, inter_row=0.12):
-    """ Initialize a wheat canopy.
-    
-    Parameters
-    ----------
-    age: float
-        Age of the canopy at initialization (in degree days)
-    length: float
-        Plot dimension along row direction (in m)
-    width: float
-        Plot dimension perpendicular to row direction (in m)
-    sowing density: int
-        Density of seeds sawn (in seeds.m-2)
-    plant_density: int
-        Density of plants that are present (after loss due to bad emergence, 
-        early death...) (in plants.m-2)
-    inter_row: float
-        Distance between rows (in m)
-    
-    Returns
-    -------
-    g: MTG
-        Wheat canopy
-    wheat: instance
-        Wheat instance of AdelWheat
-    domain_area: float
-        Soil surface occupied by plants (inverse of density) (in m2)
-    """
-    nplants, positions, domain, domain_area = agronomicplot(length=length, 
+                     plant_density=150, inter_row=0.12, seed = None, sample='random'):
+    g, wheat, domain_area, domain = initialise_stand(age = age, length=length, 
                                                             width=width, 
                                                             sowing_density=sowing_density, 
                                                             plant_density=plant_density,
-                                                            inter_row=inter_row)
-    wheat = AdelWheat(nplants=nplants, positions = positions)
-    g,_ = new_canopy(wheat,age=age)
+                                                            inter_row=inter_row, seed= seed, sample=sample)
     # Add the property 'healthy_area' on the leaves
     update_healthy_area(g, label = 'LeafElement')
     return g, wheat, domain_area, domain
+initialize_stand.__doc__ = initialise_stand.__doc__
 
 # Mock-ups #########################################################################
 from alinea.adel.newmtg import *

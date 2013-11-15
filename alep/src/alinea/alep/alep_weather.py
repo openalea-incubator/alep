@@ -7,7 +7,7 @@ import pandas
 from alinea.weather.global_weather import *
 from alinea.weather.mini_models import leaf_wetness_rapilly
 
-def get_septoria_weather(data_file='meteo01.csv'):
+def get_septoria_weather(data_file='meteo01.csv', sep = ';'):
     """ Read weather data and adapt it to septoria model (add wetness)
     
     Parameters
@@ -21,7 +21,7 @@ def get_septoria_weather(data_file='meteo01.csv'):
         Dataframe of weather indexed by date and with explicitely named columns
         See `alinea.weather.global_weather`
     """
-    weather = Weather(data_file=data_file)
+    weather = Weather(data_file=data_file, sep = sep)
     weather = add_wetness(weather)
     weather = add_rain_dispersal_events(weather)
     return weather
