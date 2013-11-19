@@ -2,6 +2,51 @@
 
 import random
 
+def external_contamination(g, 
+             contamination_source, 
+             contamination_model,
+             weather_data, 
+             label = 'LeafElement'):
+    """ Innoculates fungal objects (dispersal units) on elements of the MTG
+        according to contamination_model.
+
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy (and the soil)
+    contamination_source : model
+        A model that return a stock of DUs objects of the contaminant
+        Requires a method named 'emmission(g, weather_data)'
+    contamination_model: model
+        Model that set the position of each DU/lesion in stock on g
+        Requires a method named 'contaminate(g, DU, weather_data)'
+    weather_data: pandas DataFrame
+        Weather data for the time step
+    
+    Returns
+    -------
+    g: MTG
+        Updated MTG representing the canopy (and the soil)
+    
+    """
+    
+    stock = contamination_source.emission(g, weather_data)
+    if len(stock) > 0:
+        # Allocation of stock of inoculum
+        deposits = contamination_model.contaminate(g, stock, weather_data)
+        stock = [] # stock has been used (avoid uncontrolled future re-use)
+            # Allocation of new dispersal units
+            for vid,dlist in deposits.iteritems():
+                if g.label(vid).startswith(label):
+                    leaf = g.node(vid)
+                    for d in dlist:
+                        d.deposited()
+                        if not 'dispersal_units' in leaf.properties():
+                            leaf.dispersal_units=[]  
+                        leaf.dispersal_units.append(d)
+    return g
+
+
 def initiate(g, 
              fungal_objects_stock, 
              initiation_model, 
