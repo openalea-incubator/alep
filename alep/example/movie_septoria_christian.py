@@ -1,7 +1,11 @@
 
 # Imports for weather
-from datetime import datetime
-from alinea.alep.alep_weather import get_septoria_weather
+#from datetime import datetime
+#from alinea.alep.alep_weather import get_septoria_weather
+from alinea.astk.TimeControl import *
+import pandas
+
+
 import alinea.septo3d
 from openalea.deploy.shared_data import shared_data
 
@@ -13,18 +17,23 @@ from alinea.alep.architecture import set_properties, update_healthy_area, get_le
 # Imports for septoria
 from alinea.alep.protocol import *
 from alinea.alep.disease_operation import generate_stock_du
-from alinea.aled.epidemics import SeptoriaSepto3D as septo
+#from alinea.alep.epidemics import SeptoriaSepto3D as septo
 
+# imported last to overwrite old weather class
+from alinea.astk.Weather import Weather
 
 
 
 meteo_path = shared_data(alinea.septo3d, 'meteo00-01.txt')
 # Read weather and adapt it to septoria (add wetness)
-weather = get_septoria_weather(data_file=meteo_path, sep='\t')
-
+#weather = get_septoria_weather(data_file=meteo_path, sep='\t')
+weather = Weather(data_file=meteo_path)
+seq = pandas.date_range(start = "2000-10-01 01:00:00", end = "2001-07-01 01:00:00", freq='H')
 # Choose dates of simulation and initialize the value of date
-start_date = datetime(2000, 10, 1, 1, 00, 00)
-end_date = datetime(2001, 07, 01, 00, 00)
+
+
+#start_date = datetime(2000, 10, 1, 1, 00, 00)
+#end_date = datetime(2001, 07, 01, 00, 00)
 
 
 
@@ -39,13 +48,18 @@ g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1,
                                                 plant_density=150, inter_row=0.12)
                                                 
 # Define the schedule of calls for each model
-nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
-weather_timing = TimeControl(delay=1, steps=nb_steps)
-wheat_timing = TimeControl(delay=24, steps=nb_steps, model=wheat, weather=weather, start_date=start_date)
-septo_timing = TimeControl(delay=1, steps=nb_steps)
-timer = TimeControler(weather=weather_timing, wheat=wheat_timing, disease = septo_timing)
+every_24h = time_filter(seq, delay=24)
+#nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
+#weather_timing = TimeControl(delay=1, steps=nb_steps)
+wheat_timing = IterWithDelays(*time_control(seq, every_24h, weather.data))
+#wheat_timing = TimeControl(delay=24, steps=nb_steps, model=wheat, weather=weather, start_date=start_date)
+#septo_timing = TimeControl(delay=1, steps=nb_steps)
+#timer = TimeControler(weather=weather_timing, wheat=wheat_timing, disease = septo_timing)
 
-for t in timer:
-    date = (weather.next_date(t['weather'].dt, date) if date!=None else start_date)
-    print(date)
-    grow_canopy(g,wheat,t['wheat'])
+for i,wheat_eval in enumerate(wheat_timing):
+    print '\niteration %d'%i
+    if wheat_eval:
+        print '\nwheat is growing...'
+        date = wheat_eval.value.index[0]
+        print date
+        grow_canopy(g,wheat,wheat_eval.value)
