@@ -30,13 +30,22 @@ end_date = datetime(2001, 07, 01, 00, 00)
 
 
 # Initialize a wheat canopy
-g, wheat, domain_area, domain = initialize_stand(age=0., length=0.5, 
-                                                 width=0.5, sowing_density=250,
-                                                 plant_density=250, inter_row=0.12, seed=1)
+# g, wheat, domain_area, domain = initialize_stand(age=0., length=0.5, 
+                                                 # width=0.5, sowing_density=250,
+                                                 # plant_density=250, inter_row=0.12, seed=1)
 
+g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, 
+                                                width=0.2, sowing_density=150,
+                                                plant_density=150, inter_row=0.12)
+                                                
 # Define the schedule of calls for each model
 nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
 weather_timing = TimeControl(delay=1, steps=nb_steps)
 wheat_timing = TimeControl(delay=24, steps=nb_steps, model=wheat, weather=weather, start_date=start_date)
 septo_timing = TimeControl(delay=1, steps=nb_steps)
 timer = TimeControler(weather=weather_timing, wheat=wheat_timing, disease = septo_timing)
+
+for t in timer:
+    date = (weather.next_date(t['weather'].dt, date) if date!=None else start_date)
+    print(date)
+    grow_canopy(g,wheat,t['wheat'])
