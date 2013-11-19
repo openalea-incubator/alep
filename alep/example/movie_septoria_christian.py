@@ -62,4 +62,5 @@ for i,wheat_eval in enumerate(wheat_timing):
         print '\nwheat is growing...'
         date = wheat_eval.value.index[0]
         print date
+        print 'dt = %d'%wheat_eval.dt
         grow_canopy(g,wheat,wheat_eval.value)
