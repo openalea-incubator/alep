@@ -59,4 +59,8 @@ protocol_nodes_wash = Factory(name='wash',
                )
 __all__.append('protocol_nodes_wash')
 
-
+protocol_nodes_contamination = Factory(name='external contamination',
+                nodemodule='alinea.alep.protocol',
+                nodeclass='external_contamination',
+               )
+__all__.append('protocol_nodes_contamination')

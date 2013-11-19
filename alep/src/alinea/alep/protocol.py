@@ -35,15 +35,15 @@ def external_contamination(g,
         # Allocation of stock of inoculum
         deposits = contamination_model.contaminate(g, stock, weather_data)
         stock = [] # stock has been used (avoid uncontrolled future re-use)
-            # Allocation of new dispersal units
-            for vid,dlist in deposits.iteritems():
-                if g.label(vid).startswith(label):
-                    leaf = g.node(vid)
-                    for d in dlist:
-                        d.deposited()
-                        if not 'dispersal_units' in leaf.properties():
-                            leaf.dispersal_units=[]  
-                        leaf.dispersal_units.append(d)
+        # Allocation of new dispersal units
+        for vid,dlist in deposits.iteritems():
+            if g.label(vid).startswith(label):
+                leaf = g.node(vid)
+                for d in dlist:
+                    d.deposited()
+                    if not 'dispersal_units' in leaf.properties():
+                        leaf.dispersal_units=[]  
+                    leaf.dispersal_units.append(d)
     return g
 
 
