@@ -231,7 +231,7 @@ def disperse(g,
              transport_model=None,
              fungus_name='', 
              label="LeafElement",
-             activate=True):
+             weather_data=None):
     """ Disperse spores of the lesions of fungus identified by fungus_name.
         
     Parameters
@@ -246,8 +246,8 @@ def disperse(g,
         Name of the fungus
     label: str
         Label of the part of the MTG concerned by the calculation
-    activate: bool
-        True if computation is achieved, False otherwise
+    weather_data: panda dataframe
+        Weather data for the timestep, or None
     
     Returns
     -------
@@ -274,41 +274,36 @@ def disperse(g,
       >>> return g
     
     """
-    if activate:
-        # Get lesions with inactive lesions removed
-        lesions = {k:[l for l in les if l.is_active] 
-                    for k, les in g.property('lesions').iteritems()}  
-        if emission_model is not None:
-            DU = emission_model.get_dispersal_units(g, fungus_name, label)
-        else: # keep compatibility with previous way (used in echap)
-            DU = {}
-            for vid, l in lesions.iteritems():
-                for lesion in l:
-                    if lesion.fungus.name is fungus_name and lesion.stock_spores > 0.:
-                        leaf = g.node(vid)
-                        if vid not in DU:
-                            DU[vid] = []
-                        DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
 
-        # Temp /!\
-        nb_dus = sum(len(du) for du in DU.itervalues())
-        
-        # Transport of dispersal units
-        if sum([len(v) for v in DU.itervalues()])>0:
-            deposits = transport_model.disperse(g, DU) # update DU in g , change position, status       
-            # Allocation of new dispersal units
-            for vid,dlist in deposits.iteritems():
-                if g.label(vid).startswith(label):
-                    leaf = g.node(vid)
-                    for d in dlist:
-                        d.deposited()
-                        if not 'dispersal_units' in leaf.properties():
-                            leaf.dispersal_units=[]  
-                        # /!\ Temp /!\ G.Garin 07/06/2013:
-                        # Limit propagation
-                        # if random.random()<0.05:                        
-                            # leaf.dispersal_units.append(d)
-                        leaf.dispersal_units.append(d)
+    # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
+    if weather_data is None:
+        DU = emission_model.get_dispersal_units(g, fungus_name, label)
+    else: 
+        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
+
+    # Temp /!\
+    nb_dus = sum(len(du) for du in DU.itervalues())
+    
+    # Transport of dispersal units
+    if sum([len(v) for v in DU.itervalues()])>0:
+        # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
+        if weather_data is not None:
+            deposits = transport_model.disperse(g, DU, weather_data)
+        else:
+            deposits = transport_model.disperse(g, DU) # update DU in g , change position, status 
+        # Allocation of new dispersal units
+        for vid,dlist in deposits.iteritems():
+            if g.label(vid).startswith(label):
+                leaf = g.node(vid)
+                for d in dlist:
+                    d.deposited()
+                    if not 'dispersal_units' in leaf.properties():
+                        leaf.dispersal_units=[]  
+                    # /!\ Temp /!\ G.Garin 07/06/2013:
+                    # Limit propagation
+                    # if random.random()<0.05:                        
+                        # leaf.dispersal_units.append(d)
+                    leaf.dispersal_units.append(d)
     # return g
     # Temp /!\
     return g, nb_dus
