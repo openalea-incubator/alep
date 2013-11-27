@@ -7,25 +7,69 @@ import pandas
 from alinea.weather.global_weather import *
 from alinea.weather.mini_models import leaf_wetness_rapilly
 
-def get_septoria_weather(data_file='meteo01.csv', sep = ';'):
+def is_raining(rain_eval):
+    """ Check if it is raining or not
+    
+    Parameters
+    ----------
+    rain_eval: TimeControl EvalValue instance
+        Weather data divided according to rain occurences
+    
+    Returns
+    -------
+    True or False
+    """
+    if rain_eval:
+        if rain_eval.value.rain.sum() > 0:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def get_septoria_weather(data_file='meteo00-01.txt', sep = ';'):
     """ Read weather data and adapt it to septoria model (add wetness)
     
     Parameters
     ----------
     data_file: str
-        Name of weather data file (in csv)
+        Name of weather data file (in txt)
     
     Returns
     -------
     weather: pandas dataframe
         Dataframe of weather indexed by date and with explicitely named columns
-        See `alinea.weather.global_weather`
+        See `astk.Weather`
     """
-    weather = Weather(data_file=data_file, sep = sep)
-    weather = add_wetness(weather)
-    weather = add_rain_dispersal_events(weather)
+    meteo_path = shared_data(alinea.septo3d, 'meteo00-01.txt')
+    weather = Weather(data_file=meteo_path)
+    weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+    
+    # weather = Weather(data_file=data_file, sep = sep)
+    # weather = add_wetness(weather)
+    # weather = add_rain_dispersal_events(weather)
     return weather
 
+def wetness_rapilly(data):
+    """ Compute leaf wetness as in Rapilly et Jolivet, 1976 as a 
+        function of rain or relative humidity and PAR.
+    
+    Parameters
+    ----------
+    data: pandas dataframe 
+        Weather data as read by Weather class
+    
+    Returns
+    -------
+    sequence of True or False
+        True if the leaf is wet, False oherwise
+    """
+    return np.greater(data[['rain']].values, 0.) + np.less(data[['PPFD']].values,644.) * np.greater_equal(data[['relative_humidity']].values, 85.)
+
+def mean_rain(data):
+    """ Create a sequence of rain events with only mean values."""
+    pass
+    
 def add_wetness(weather):
     """ Complete weather data with wetness.
     """
