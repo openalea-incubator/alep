@@ -28,7 +28,9 @@ from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
+from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
+from alinea.alep.infection_control import BiotrophDUPositionModel
 from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
 from alinea.alep.disease_outputs import LeafInspector
 from alinea.alep.disease_outputs import compute_total_necrotic_area
@@ -87,14 +89,14 @@ def new_septoria(senescence_treshold=330.):
             super(NewSeptoria, self).__init__(nb_spores=nb_spores, position=position)
             self.fungus.senescence_treshold = senescence_treshold
         
-        def senescence_response_new(self):
+        def senescence_response(self):
             """ Find surfaces killed by senescence.
             
             Senescence affects surfaces whose age is below the age treshold.
             """
             from math import floor
-            treshold = self.senescence_treshold
             f = self.fungus
+            treshold = f.senescence_treshold
             rings = self.surface_rings
             surface = self.surface
             delta_ring = self.delta_age_ring
@@ -144,7 +146,10 @@ def new_septoria(senescence_treshold=330.):
                             # update surfaces rings ...
                     surface_non_senescent += self.first_ring.surface
                     surface_dead = self.surface - surface_non_senescent
-
+                else:
+                    surface_non_senescent = self.first_ring.surface
+                    surface_dead = 0.
+                
             self.surface_alive = surface_non_senescent
             self.surface_dead = surface_dead
             
@@ -181,92 +186,120 @@ def new_septoria(senescence_treshold=330.):
     
     return Disease
     
-# Initialization #####################################################
-# Set the seed of the simulation
-rd.seed(0)
-np.random.seed(0)
+def run_simulation(senescence_treshold=330.):
+    # Initialization #####################################################
+    # Set the seed of the simulation
+    rd.seed(0)
+    np.random.seed(0)
 
-# Read weather and adapt it to septoria (add wetness)
-meteo_path = shared_data(alinea.septo3d, 'meteo00-01.txt')
-weather = Weather(data_file=meteo_path)
-weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
-seq = pandas.date_range(start = "2000-10-01 01:00:00",
-                        end = "2001-07-01 01:00:00", 
-                        freq='H')
+    # Read weather and adapt it to septoria (add wetness)
+    meteo_path = shared_data(alinea.septo3d, 'meteo98-99.txt')
+    weather = Weather(data_file=meteo_path)
+    weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+    # seq = pandas.date_range(start = "2000-10-01 01:00:00",
+                            # end = "2001-03-01 01:00:00", 
+                            # freq='H')
+    seq = pandas.date_range(start = "1998-10-01 01:00:00",
+                            end = "1998-12-01 01:00:00", 
+                            freq='H')
 
+    # Initialize a wheat canopy
+    g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, 
+                                                    width=0.2, sowing_density=150,
+                                                    plant_density=150, inter_row=0.12, 
+                                                    seed=4)
 
-# Initialize a wheat canopy
-g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, 
-                                                width=0.2, sowing_density=150,
-                                                plant_density=150, inter_row=0.12)
+    # Initialize the models for septoria
+    septoria = new_septoria(senescence_treshold=senescence_treshold)
+    # septoria = plugin_septoria()
+    inoculator = RandomInoculation()
+    growth_controler = NoPriorityGrowthControl()
+    infection_controler = BiotrophDUPositionModel()
+    sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
+    emitter = SeptoriaRainEmission(domain_area=domain_area)
+    transporter = Septo3DSplash(reference_surface=domain_area)
+    washor = RapillyWashing()
 
-# Initialize the models for septoria
-# septoria = new_septoria()
-septoria = plugin_septoria()
-inoculator = RandomInoculation()
-controler = NoPriorityGrowthControl()
-sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-emitter = SeptoriaRainEmission(domain_area=domain_area)
-transporter = Septo3DSplash(reference_surface=domain_area)
+    # Define the schedule of calls for each model
+    every_h = time_filter(seq, delay=1)
+    every_24h = time_filter(seq, delay=24)
+    every_rain = rain_filter(seq, weather)
+    weather_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
+    wheat_timing = IterWithDelays(*time_control(seq, every_24h, weather.data))
+    septo_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
+    rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
 
-# Define the schedule of calls for each model
-every_h = time_filter(seq, delay=1)
-every_24h = time_filter(seq, delay=24)
-every_rain = rain_filter(seq, weather)
-weather_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
-wheat_timing = IterWithDelays(*time_control(seq, every_24h, weather.data))
-septo_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
-rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
+    # Call leaf inspectors for target blades (top 3)
+    inspectors = {}
+    first_blade = 8
+    ind = 0.
+    for blade in range(8,104,8):
+        ind += 1
+        inspectors[ind] = LeafInspector(g, blade_id=blade)
+    nb_lesions = []
+    nb_dus = []
+    from alinea.alep.disease_outputs import count_lesions
 
-# Call leaf inspectors for target blades (top 3)
-# inspector = LeafInspector(g, blade_id=48)
-
-# Simulation #########################################################
-for i,controls in enumerate(zip(weather_timing, wheat_timing, 
-                                septo_timing, rain_timing)):
-    weather_eval, wheat_eval, septo_eval, rain_eval = controls
-    
-    # Update date
-    date = weather_eval.value.index[0]
-    print(date)
-    
-    # Get weather for date and add it as properties on leaves
-    set_properties(g,label = 'LeafElement',
-                   temp = weather_eval.value.temperature_air[0],
-                   wetness = weather_eval.value.wetness[0],
-                   rain_intensity = rain_eval.value.rain.mean(),
-                   rain_duration = len(rain_eval.value.rain) if rain_eval.value.rain.sum() > 0 else 0.,
-                   relative_humidity = weather_eval.value.relative_humidity[0],
-                   wind_speed = weather_eval.value.wind_speed[0])
-
-
-    # Grow wheat canopy
-    if wheat_eval:
-        grow_canopy(g, wheat, wheat_eval.value)
-    # update_healthy_area(g, label = 'LeafElement')
-    
-    # # Note : The position of senescence goes back to its initial value after
-    # # a while for undetermined reason
-    # # --> temporary hack for keeping senescence position low when it is over
-    # positions = g.property('position_senescence')
-    # are_green = g.property('is_green')
-    # leaves = get_leaves(g, label = 'LeafElement')
-    # vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
-    # positions.update({vid:(0 if positions[vid]==1 and not are_green[vid] else positions[vid]) 
-                      # for vid in vids})
-    
-    # # Develop disease
-    # if data.dispersal_event.values[0]==True and timer.numiter <= 1500:
-        # # Refill pool of initial inoculum to simulate differed availability
-        # dispersal_units = generate_stock_du(nb_dus=10, disease=septoria)
-        # initiate(g, dispersal_units, inoculator)
-    # infect(g, t['disease'].dt, label='LeafElement')
-    # update(g, t['disease'].dt, controler, sen_model, label='LeafElement')
-    # if data.dispersal_event.values[0]==True:
-        # disperse(g, emitter, transporter, "septoria", label='LeafElement')
+    # Simulation #########################################################
+    for i,controls in enumerate(zip(weather_timing, wheat_timing, 
+                                    septo_timing, rain_timing)):
+        weather_eval, wheat_eval, septo_eval, rain_eval = controls
         
-    # Save outputs
-    # inspector.update_variables(g)
+        # Update date
+        date = weather_eval.value.index[0]
+
+        # Get weather for date and add it as properties on leaves
+        if weather_eval:
+            set_properties(g,label = 'LeafElement',
+                           temp = weather_eval.value.temperature_air[0],
+                           wetness = weather_eval.value.wetness[0],
+                           relative_humidity = weather_eval.value.relative_humidity[0],
+                           wind_speed = weather_eval.value.wind_speed[0])
+        if rain_eval:
+            set_properties(g,label = 'LeafElement',
+                           rain_intensity = rain_eval.value.rain.mean(),
+                           rain_duration = len(rain_eval.value.rain) if rain_eval.value.rain.sum() > 0 else 0.)
+
+        # Grow wheat canopy
+        if wheat_eval:
+            print(date)
+            grow_canopy(g, wheat, wheat_eval.value)
+            # Note : The position of senescence goes back to its initial value after
+            # a while for undetermined reason
+            # --> temporary hack for keeping senescence position low when it is over
+            positions = g.property('position_senescence')
+            are_green = g.property('is_green')
+            leaves = get_leaves(g, label = 'LeafElement')
+            vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
+            positions.update({vid:(0 if positions[vid]==1 and not are_green[vid] else positions[vid]) 
+                              for vid in vids})
+            
+        # Develop disease
+        if septo_eval:
+            sen_model.find_senescent_lesions(g, label = 'LeafElement')
+            update_healthy_area(g, label = 'LeafElement')
+            if rain_eval and i <= 500:
+                # Refill pool of initial inoculum to simulate differed availability
+                dispersal_units = generate_stock_du(nb_dus=rd.randint(0,5), disease=septoria)
+                initiate(g, dispersal_units, inoculator)
+            infect(g, septo_eval.dt, infection_controler, label='LeafElement')
+            update(g, septo_eval.dt, growth_controler, sen_model, label='LeafElement')
+        if rain_eval:
+            g, nb = disperse(g, emitter, transporter, "septoria", label='LeafElement')
+            wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
+        else:
+            nb = 0.
+        nb_dus.append(nb)
+        
+        nb_lesions.append(count_lesions(g))
+        # Save outputs
+        if wheat_eval:
+            for inspector in inspectors.itervalues():
+                inspector.update_variables(g)
+                inspector.update_du_variables(g)
+        
+        if wheat_eval:
+            update_plot(g)
     
-    if wheat_eval:
-        update_plot(g)
+    return inspectors, g, nb_dus, nb_lesions
+    
