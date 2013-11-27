@@ -83,28 +83,22 @@ class BiotrophDUPositionModel:
             Updated MTG representing the canopy
         """
         dispersal_units = g.property('dispersal_units')
-        severities = compute_severity_by_leaf(g)
+        severities = compute_severity_by_leaf(g, label)
         for vid, du in dispersal_units.iteritems():
             # By leaf element, keep only those which are deposited and active
             # du = [d for d in du if d.is_active and d.status=="deposited"]
             du = [d for d in du if d.is_active]
             leaf = g.node(vid)
-        
+            nb_on_lesions = int(len(du)*severities[vid]/100.)
+            random.shuffle(du)
+            for DU in du[:nb_on_lesions]:
+                DU.infection_impossible_at_position()
+            
             # Test for senescence:
-            for DU in du:
-                if DU.position[0] >= leaf.position_senescence:
-                    DU.can_not_infect_at_position()
-                elif random.random()<(severities[vid]/100.):
-                    DU.can_not_infect_at_position()
-                # # Test for spaces taken by other lesions
-                # try:
-                    # taken_x_coord = [l.position[0] for l in leaf.lesions]
-                    # # The hypothesis is made that lesions are circular
-                    # radius = [sqrt(l.surface/pi) for l in leaf.lesions]
-                    
-                    # for x in taken_x_coord:
-                        # if DU.can_infect_at_position() and x-radius<=DU.position[0]<=x+radius:
-                            # DU.can_not_infect_at_position()
-                            # break                  
-                # except:
-                    # pass
+            for DU in du[nb_on_lesions:]:
+                if DU.can_infect_at_position==None:
+                    if DU.position[0] >= leaf.position_senescence:
+                        DU.infection_impossible_at_position()
+                    else:
+                        DU.infection_possible_at_position()
+

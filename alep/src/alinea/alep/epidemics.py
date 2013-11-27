@@ -12,7 +12,7 @@ class SeptoriaSepto3D(object):
     from alinea.alep.washing import RapillyWashing
 
    
-    def __init__(g,label='LeafElement', domain_area):
+    def __init__(g,label='LeafElement', domain_area=None):
     #a priori si on considere ces attributs comme generique, plutot viser un ininit de ces champs sans argument, et faire le setting ensuite. Ceci afin d'etre compatible avec plugin (qui ne remplace que l'etape import)
         self.disease = plugin_septoria()
         self.inoculator = RandomInoculation()

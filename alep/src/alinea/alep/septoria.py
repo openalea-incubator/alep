@@ -37,6 +37,7 @@ class SeptoriaDU(DispersalUnit):
         """
         super(SeptoriaDU, self).__init__(nb_spores=nb_spores, position=position, status=status)
         self.cumul_wetness = 0.
+        self.cumul_loss_rate = 0.
             
     def infect(self, dt, leaf, **kwds):
         """ Compute infection by the dispersal unit of Septoria.
@@ -66,10 +67,6 @@ class SeptoriaDU(DispersalUnit):
                     elif self.cumul_wetness > 0: 
                         assert not leaf_wet
                         self.cumul_wetness = 0.
-                        # TODO : find a way to reduce inoculum if wet then dry. 
-                        # Following lines are a hack - NO biological meaning
-                        if proba(self.fungus.loss_rate):
-                            self.disable()
                     else:
                         assert not leaf_wet
                         assert self.cumul_wetness == 0.
@@ -81,8 +78,9 @@ class SeptoriaDU(DispersalUnit):
                             # print('l.91 infection septo')
                             # raise Exception('')
                     elif self.cumul_wetness == 0 :
-                        # TODO : Proba conditionnelle doit se cumuler.
-                        if proba(self.fungus.loss_rate): 
+                        self.cumul_loss_rate+=self.fungus.loss_rate
+                        # Proba conditionnelle doit se cumuler.
+                        if proba(self.cumul_loss_rate): 
                             self.disable()
         else:
             self.disable()

@@ -3,7 +3,7 @@
 """
 
 # Imports #########################################################################
-
+from alinea.alep.disease_outputs import compute_green_lesion_areas_by_leaf
 # Random inoculation ##############################################################
 
 class WheatSeptoriaPositionedSenescence:
@@ -35,15 +35,13 @@ class WheatSeptoriaPositionedSenescence:
             leaf = g.node(vid)
             self.position_senescence[vid] = leaf.position_senescence
     
-    def find_senescent_lesions(self, g, dt=1., label='LeafElement'):
+    def find_senescent_lesions(self, g, label='LeafElement'):
         """ Find lesions affected by leaf senescence.
         
         Parameters
         ----------
         g: MTG
             MTG representing the canopy
-        dt: int
-            Time step of the simulation
         label: str
             Label of the part of the MTG concerned by the calculation
         

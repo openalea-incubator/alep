@@ -222,7 +222,7 @@ class SeptoriaRainDispersal:
                     if len(projection)>0:
                         shuffle(v)
                         n = len(v)
-                        n_big = int(n*beta/pi)
+                        n_big = int(n*(beta+pi/2.)/pi)
                         n_small = n - n_big
                         for leaf in projection:
                             copy_centroid = copy(centroids[leaf])
@@ -234,25 +234,29 @@ class SeptoriaRainDispersal:
                                 dist = pgl.norm(copy_centroid-copy_origin)
                                 distance_factor = exp(-self.k * dist)
                                 qc = min(n_big, (n_big * area_factor * distance_factor))
+                                g.node(leaf).color = (0, 180, 0)
                             else:
                                 area_factor = areas[leaf]/(pi*a*b/2.)
-                                dist = abs(tan(pgl.angle(source_normal, (1,0,0))))*pgl.norm(copy_centroid-copy_origin)
+                                dist = pgl.norm(copy_centroid-copy_origin)/abs(cos(pgl.angle(source_normal, (1,0,0))+pi/2.))
                                 distance_factor = exp(-self.k * dist)
                                 qc = min(n_small, (n_small * area_factor * distance_factor))
+                                g.node(leaf).color = (0, 0, 180)
+                                # import pdb
+                                # pdb.set_trace()
                             deposits[leaf] = v[:int(qc)]
                             del v[:int(qc)]
                             
-                    # for leaf in distances:
-                        # g.node(leaf).color = (0, 180, 0)
+                    for leaf in distances:
+                        g.node(leaf).color = (180, 0, 0)
                     
-                    # # Temp
-                    # from alinea.adel.mtg_interpreter import plot3d
-                    # from openalea.plantgl.all import Viewer
-                    # g.node(source).color=(230, 62, 218)
-                    # scene = plot3d(g)
-                    # Viewer.display(scene)
-                    # import pdb
-                    # pdb.set_trace()
+                    # Temp
+                    from alinea.adel.mtg_interpreter import plot3d
+                    from openalea.plantgl.all import Viewer
+                    g.node(source).color=(230, 62, 218)
+                    scene = plot3d(g)
+                    Viewer.display(scene)
+                    import pdb
+                    pdb.set_trace()
         return deposits
         
 # Powdery mildew wind dispersal ###################################################

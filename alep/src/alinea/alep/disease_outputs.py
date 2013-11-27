@@ -166,11 +166,7 @@ def compute_healthy_area_by_leaf(g, label='LeafElement'):
     from alinea.alep.architecture import get_leaves
     vids = get_leaves(g, label=label)
     green_areas = g.property('green_area')
-    areas = g.property('area')
-    lesion_areas = compute_lesion_areas_by_leaf(g, label)
     green_lesion_areas = compute_green_lesion_areas_by_leaf(g, label)
-    senescent_lesions = {vid:(lesion_areas[vid]-green_lesion_areas[vid]) for vid in vids}
-    green_areas = {vid:min(green_areas[vid], areas[vid]-senescent_lesions[vid]) for vid in vids}
     return {vid:(green_areas[vid] - green_lesion_areas[vid] 
             if round(green_areas[vid], 10)>round(green_lesion_areas[vid], 10) else 0.)
             for vid in vids}
@@ -400,6 +396,7 @@ class LeafInspector:
         self.leaf_green_area = []  
         self.leaf_healthy_area = []
         self.leaf_disease_area = []
+        self.leaf_position_senescence = []
         # Initialize variables relative to DUs
         self.nb_dus = []
         self.nb_dus_on_green = []
@@ -407,27 +404,29 @@ class LeafInspector:
         # Initialize variables relative to number of infections
         self.previous_nb_lesions = 0.
         self.nb_infections = []
+        # Initialize variables relative to number of lesions
+        self.nb_lesions = []
         # Initialize surfaces in state
         self.surface_inc = []
         self.surface_chlo = []
         self.surface_nec = []
         self.surface_spo = []
+        self.surface_empty = []
         self.surface_total_nec = []
         # Initialize ratios (surfaces in state compared to leaf area)
         self.ratio_inc = []
         self.ratio_chlo = []
         self.ratio_nec = []
         self.ratio_spo = []
+        self.ratio_empty = []
         self.ratio_total_nec = []
         # Initialize total severity
         self.severity = []
         # Initialize necrosis percentage
         self.necrosis = []
-    
-        # Temporary
-        self.previous_nb_lesions = 0.
-        self.surface_empty = []
-        self.ratio_empty = []
+        
+        # Temp
+        self.wetness = []
     
     def update_du_variables(self, g):
         """ Save counts of dispersal units.
@@ -446,8 +445,13 @@ class LeafInspector:
                 dus += len(leaf.dispersal_units)
                 dus_on_green = len([du for du in leaf.dispersal_units if du.position[0] < leaf.position_senescence])
                 dus_on_healthy = len([du for du in leaf.dispersal_units if du.can_infect_at_position])
+                inactive_dus = len([du for du in leaf.dispersal_units if du.is_active == False])
             except:
                 pass
+            
+            # Temp
+            self.wetness.append(leaf.wetness)
+            
         self.nb_dus.append(dus)
         self.nb_dus_on_green.append(dus_on_green)
         self.nb_dus_on_healthy.append(dus_on_healthy)
@@ -469,24 +473,36 @@ class LeafInspector:
         lesion_list = []
         for id in self.ids:
             leaf = g.node(id)
-            area += leaf.area
-            green_area += leaf.green_area
+            # area += leaf.area
+            # green_area += leaf.green_area
             try:
                 lesion_list += leaf.lesions
             except:
                 pass
-        
-        if len(lesion_list)>0:
-            green_lesion_area = sum(l.surface for l in lesion_list if not l.is_senescent)
-            disease_area = sum(l.surface for l in lesion_list)
-        else:
-            green_lesion_area = 0.
-            disease_area = 0.
             
-        self.leaf_area.append(area)
-        self.leaf_green_area.append(green_area)
-        self.leaf_healthy_area.append(green_area - green_lesion_area)
-        self.leaf_disease_area.append(disease_area)
+        
+        # if len(lesion_list)>0:
+            # green_lesion_area = sum(l.surface for l in lesion_list if not l.is_senescent)
+            # disease_area = sum(l.surface for l in lesion_list)
+        # else:
+            # green_lesion_area = 0.
+            # disease_area = 0.
+            
+        # self.leaf_area.append(area)
+        # self.leaf_green_area.append(green_area)
+        # self.leaf_healthy_area.append(green_area - green_lesion_area)
+        # self.leaf_disease_area.append(disease_area)
+        self.nb_lesions.append(len(lesion_list))
+        
+        if len(self.ids)==1:
+            self.leaf_position_senescence.append(g.node(id).position_senescence)
+        
+        self.update_area(g)
+        self.update_green_area(g)
+        self.update_healthy_area(g)
+        self.update_disease_area(g)
+        
+        self.compute_nb_infections(g)
         self.compute_ratios(g)
         self.compute_severity(g)
         self.compute_necrosis(g)
@@ -594,12 +610,12 @@ class LeafInspector:
         self.surface_chlo.append(surface_chlo)
         self.surface_nec.append(surface_nec)
         self.surface_spo.append(surface_spo)
-        self.surface_total_nec.append(surface_nec+surface_spo)
+        self.surface_total_nec.append(surface_nec+surface_spo+surface_empty)
         self.ratio_inc.append(100. * surface_inc / total_area if total_area>0. else 0.)
         self.ratio_chlo.append(100. * surface_chlo / total_area if total_area>0. else 0.)
         self.ratio_nec.append(100. * surface_nec / total_area if total_area>0. else 0.)
         self.ratio_spo.append(100. * surface_spo / total_area if total_area>0. else 0.)
-        self.ratio_total_nec.append(100. * (surface_nec+surface_spo) / total_area if total_area>0. else 0.)
+        self.ratio_total_nec.append(100. * (surface_nec+surface_spo+surface_empty) / total_area if total_area>0. else 0.)
         # Temporary
         self.surface_empty.append(surface_empty)
         self.ratio_empty.append(100. * surface_empty / total_area if total_area>0. else 0.)

@@ -83,9 +83,9 @@ class SeptoriaExchangingRings(Lesion):
             ddday = self.ddday_before_senescence
 
         assert self.surface >= 0, 'surface must be positive'
-#        if self.surface<0:
-#            import pdb
-#            pdb.set_trace()
+        if self.surface<0:
+            import pdb
+            pdb.set_trace()
             
         # Update the age of the lesion
         self.age_dday += ddday
@@ -412,7 +412,8 @@ class SeptoriaExchangingRings(Lesion):
                         surface_spo = sum(s[-nb_full_rings:])
                     s[-nb_full_rings:] = 0.
                     delta_ring -= width_ring * nb_full_rings
-                    s = s[s.nonzero()]
+                    # s = s[s.nonzero()]
+                    s = s[:-nb_full_rings]
                 else:
                     portion_sporulating = (age_dday-time_to_spo)/(age_dday+width_ring-delta_ring)
                     surface_spo = portion_sporulating*s[-(nb_full_rings+1)]
@@ -425,6 +426,9 @@ class SeptoriaExchangingRings(Lesion):
                 if nb_full_rings>0:
                     portion_necrotic = (diff%width_ring)/width_ring
                     if portion_necrotic > 0:
+                        if len(s)==1:
+                            import pdb
+                            pdb.set_trace()
                         surface_nec = sum(s[-nb_full_rings:]) + portion_necrotic*s[-(nb_full_rings+1)]
                         s[-(nb_full_rings+1)] *= (1-portion_necrotic)
                     else:
@@ -695,7 +699,7 @@ class SeptoriaExchangingRings(Lesion):
             Status of the lesion
         """
         self.compute_all_surfaces()
-        return self.surface_nec + self.surface_spo
+        return self.surface_nec + self.surface_spo + self.surface_empty
     
     @status.setter
     def status(self, value):

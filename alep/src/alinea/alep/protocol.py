@@ -138,18 +138,25 @@ def infect(g, dt,
        
         # Find dispersal units on MTG
         dispersal_units = g.property('dispersal_units')
+
         for vid, du in dispersal_units.iteritems():
             # By leaf element, keep only those which are deposited and active
             du = [d for d in du if d.is_active]
             leaf = g.node(vid)
+            # Temp Cf l.159
+            dispersal_units[vid] = du
             for d in du:
-                if not d.can_infect_at_position:
-                    d.disable()
+                if infection_control_model:
+                    if d.can_infect_at_position==False:
+                        d.disable()
+                else:
+                    # By default
+                    d.infection_possible_at_position()
                 # If not compute infection success
                 if d.is_active:
                     d.infect(dt, leaf)
             # Update the list of dispersal unit by leaf element
-            dispersal_units[vid] = [d for d in du if d.is_active]
+            # dispersal_units[vid] = [d for d in du if d.is_active]
     return g
     
 def update(g, dt,
@@ -205,8 +212,10 @@ def update(g, dt,
 
         if len(lesions)>0:
             # 1. Determine which lesions will be affected by senescence (optional)
-            if senescence_model:
-                senescence_model.find_senescent_lesions(g, dt)
+            # Temp commentary
+            # print('temp commented l.216 protocol')
+            # if senescence_model:
+                # senescence_model.find_senescent_lesions(g)
             
             # 2. Compute growth demand
             for vid, l in lesions.iteritems():
