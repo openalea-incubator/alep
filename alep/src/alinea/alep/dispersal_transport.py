@@ -250,13 +250,13 @@ class SeptoriaRainDispersal:
                         g.node(leaf).color = (180, 0, 0)
                     
                     # Temp
-                    from alinea.adel.mtg_interpreter import plot3d
-                    from openalea.plantgl.all import Viewer
-                    g.node(source).color=(230, 62, 218)
-                    scene = plot3d(g)
-                    Viewer.display(scene)
-                    import pdb
-                    pdb.set_trace()
+                    # from alinea.adel.mtg_interpreter import plot3d
+                    # from openalea.plantgl.all import Viewer
+                    # g.node(source).color=(230, 62, 218)
+                    # scene = plot3d(g)
+                    # Viewer.display(scene)
+                    # import pdb
+                    # pdb.set_trace()
         return deposits
         
 # Powdery mildew wind dispersal ###################################################

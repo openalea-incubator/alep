@@ -46,8 +46,10 @@ class RapillyWashing:
                 # healthy_area = leaf.healthy_area
                 # leaf.washing_rate = max(0, min(1, rain_int/(healthy_area+rain_int)*rain_dur))
                 area = leaf.area
-                leaf.washing_rate = max(0, min(1, rain_int/(area+rain_int)*rain_dur))           
-                # leaf.washing_rate = 0.2
+                if leaf.geometry!=None:
+                    leaf.washing_rate = max(0, min(1, rain_int/(area+rain_int)*rain_dur))           
+                else:
+                    leaf.washing_rate = 0.
             
             
     # TODO : Check if the model of Rapilly is properly implemented above.

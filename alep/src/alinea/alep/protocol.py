@@ -207,10 +207,10 @@ def update(g, dt,
     """
     if activate:
         # Get lesions with inactive lesions removed
-        lesions = {k:[l for l in les if l.is_active] 
-                    for k, les in g.property('lesions').iteritems()}
+        les = {k:[l for l in v if l.is_active] 
+                    for k, v in g.property('lesions').iteritems()}
 
-        if len(lesions)>0:
+        if len(les)>0:
             # 1. Determine which lesions will be affected by senescence (optional)
             # Temp commentary
             # print('temp commented l.216 protocol')
@@ -218,7 +218,7 @@ def update(g, dt,
                 # senescence_model.find_senescent_lesions(g)
             
             # 2. Compute growth demand
-            for vid, l in lesions.iteritems():
+            for vid, l in les.iteritems():
                 # Update active lesions
                 for lesion in l:
                     leaf=g.node(vid)
@@ -229,8 +229,7 @@ def update(g, dt,
             
             if senescence_model:
                 # 4. Call a specific response if lesions are on senescent tissue
-                # lesions = g.property('lesions')
-                l = [l for les in lesions.values() for l in les if l.is_senescent]
+                l = [l for v in les.values() for l in v if l.is_senescent]
                 for lesion in l:             
                     lesion.senescence_response()     
     return g

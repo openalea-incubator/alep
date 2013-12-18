@@ -53,15 +53,15 @@ class SeptoriaRainEmission:
         intercept = 1 - exp(-k_wheat*total_area*10**-4/self.domain_area)
         
         # Get lesions
-        lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, les in g.property('lesions').iteritems()} 
+        les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating()] 
+                    for k, v in g.property('lesions').iteritems()} 
         
         # Compute total sporulating area
-        total_spo = sum([l.surface_spo for les in lesions.values() for l in les])
+        total_spo = sum([l.surface_spo for v in les.values() for l in v])
         tot_fraction_spo = total_spo/total_area if total_area>0. else 0.
         
         DU = {}
-        for vid, l in lesions.iteritems():
+        for vid, l in les.iteritems():
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 leaf = g.node(vid)
@@ -73,9 +73,6 @@ class SeptoriaRainEmission:
                     contribution = lesion.surface_spo/total_spo if total_spo>0. else 0.
                     nb_DU_lesion = int(contribution * total_DU_leaf)
                     
-                    # import pdb
-                    # pdb.set_trace()
-                    
                     # Distribute spores into dispersal units
                     nb_spores_by_DU = 10
                     nb_DU_lesion = min(nb_DU_lesion, stock_available/nb_spores_by_DU)
@@ -85,6 +82,9 @@ class SeptoriaRainEmission:
                     
                     # Update stock of spores of the lesion
                     nb_spores_emitted = nb_DU_lesion*nb_spores_by_DU
+                    if nb_spores_emitted<0.:
+                        import pdb
+                        pdb.set_trace()
                     lesion.reduce_stock(nb_spores_emitted)
                     
                     # Update empty surface on lesion

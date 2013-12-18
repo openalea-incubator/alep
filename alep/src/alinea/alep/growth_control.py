@@ -37,7 +37,7 @@ class NoPriorityGrowthControl:
         """       
         lesions = g.property('lesions')
         labels = g.property('label')
-        healthy_areas = g.property('healthy_area')           
+        healthy_areas = g.property('healthy_area')
 
         # Select all the leaves
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
@@ -49,10 +49,12 @@ class NoPriorityGrowthControl:
                 raise NameError('Set healthy area on the MTG before simulation' '\n' 
                                 'See alinea.alep.architecture > set_healthy_area')
                 
-            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.is_active]
+            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.growth_is_active]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
             
             if total_demand > leaf_healthy_area:
+                # import pdb
+                # pdb.set_trace()
                 for l in leaf_lesions:
                     growth_offer = leaf_healthy_area * l.growth_demand / total_demand
                     l.control_growth(growth_offer=growth_offer)
@@ -62,6 +64,9 @@ class NoPriorityGrowthControl:
             else:
                 for l in leaf_lesions:
                     growth_offer = l.growth_demand
+                    if growth_offer < 0:
+                        import pdb
+                        pdb.set_trace()
                     l.control_growth(growth_offer=growth_offer)
                 # for lf in leaf:
                     # gd = sum(l.growth_demand for l in lesions.get(lf,[]) if l.is_active)
@@ -72,6 +77,13 @@ class NoPriorityGrowthControl:
                     # But the global healthy area on the entire leaf stays >= 0.
                     # TODO : if the surface of a phyto-element is < 0, report the loss
                     # to its neighbour ?
+        
+            total_surf = sum([l.surface for lf in leaf for l in lesions.get(lf,[])])
+            areas = g.property('area')
+            total_area = sum(areas[lf] for lf in leaf)
+            if round(total_surf,6) > round(total_area,6):
+                import pdb
+                pdb.set_trace()
         
 class GrowthControlVineLeaf:
     """ Class for growth control used when the phyto-element is a vine leaf.
