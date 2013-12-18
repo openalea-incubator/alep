@@ -11,8 +11,11 @@ from alinea.astk.TimeControl import *
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
 
 # Imports for weather
-from datetime import datetime
-from alinea.alep.alep_weather import get_septoria_weather
+from alinea.astk.TimeControl import *
+import alinea.septo3d
+from openalea.deploy.shared_data import shared_data
+from alinea.astk.Weather import Weather
+from alinea.alep.alep_weather import wetness_rapilly, is_raining
 
 # Imports for wheat
 from alinea.alep.wheat import initialize_stand, find_blade_id, find_leaf_ids
@@ -23,7 +26,7 @@ from alinea.alep.architecture import set_properties, update_healthy_area, get_le
 from alinea.alep.protocol import *
 from alinea.alep.septoria import plugin_septoria
 from alinea.alep.disease_operation import generate_stock_du
-from alinea.alep.disease_outputs import LeafInspector
+from alinea.alep.disease_outputs import LeafInspector, save_image
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
@@ -33,12 +36,11 @@ from alinea.alep.infection_control import BiotrophDUPositionModel
 from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
 
 # Useful functions ############################################################
+from alinea.alep.architecture import set_property_on_each_id
+from alinea.alep.disease_outputs import compute_severity_by_leaf
+from alinea.adel.mtg_interpreter import plot3d
+from openalea.plantgl.all import Viewer
 def update_plot(g):
-    from alinea.alep.architecture import set_property_on_each_id
-    from alinea.alep.disease_outputs import compute_severity_by_leaf
-    from alinea.adel.mtg_interpreter import plot3d
-    from openalea.plantgl.all import Viewer
-
     # Compute severity by leaf
     severity_by_leaf = compute_severity_by_leaf(g, label = 'LeafElement')
     set_property_on_each_id(g, 'severity', severity_by_leaf, label = 'LeafElement')
@@ -63,21 +65,22 @@ def run_simulation():
     rd.seed(0)
     np.random.seed(0)
 
-    # Choose dates of simulation and initialize the value of date
-    start_date = datetime(2000, 10, 1, 1, 00, 00)
-    # end_date = datetime(2000, 12, 31, 00, 00)
-    end_date = datetime(2001, 07, 01, 00, 00)
-    date = None
-
     # Read weather and adapt it to septoria (add wetness)
-    weather = get_septoria_weather(data_file='meteo01.csv')
+    meteo_path = shared_data(alinea.septo3d, 'meteo98-99.txt')
+    weather = Weather(data_file=meteo_path)
+    weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+    seq = pandas.date_range(start = "1998-10-01 01:00:00",
+                            end = "1999-04-20 01:00:00", 
+                            freq='H')
 
     # Initialize a wheat canopy
     g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, 
-                                                     width=0.2, sowing_density=150,
-                                                     plant_density=150, inter_row=0.12)
+                                                    width=0.2, sowing_density=150,
+                                                    plant_density=150, inter_row=0.12, 
+                                                    seed=8)
 
     # Initialize the models for septoria
+    # septoria = new_septoria(senescence_treshold=senescence_treshold)
     septoria = plugin_septoria()
     inoculator = RandomInoculation()
     growth_controler = NoPriorityGrowthControl()
@@ -88,12 +91,14 @@ def run_simulation():
     washor = RapillyWashing()
 
     # Define the schedule of calls for each model
-    nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
-    weather_timing = TimeControl(delay=1, steps=nb_steps)
-    wheat_timing = TimeControl(delay=24, steps=nb_steps, model=wheat, weather=weather, start_date=start_date)
-    septo_timing = TimeControl(delay=1, steps=nb_steps)
-    timer = TimeControler(weather=weather_timing, wheat=wheat_timing, disease = septo_timing)
-
+    every_h = time_filter(seq, delay=1)
+    every_24h = time_filter(seq, delay=24)
+    every_rain = rain_filter(seq, weather)
+    weather_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
+    wheat_timing = IterWithDelays(*time_control(seq, every_24h, weather.data))
+    septo_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
+    rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
+    
     # Call leaf inspectors for target blades (top 3)
     inspectors = {}
     # for rank in range(1,3):
@@ -103,51 +108,59 @@ def run_simulation():
     # inspectors[3] = LeafInspector(g, blade_id=80)
     dates = []
     # Simulation #########################################################
-    for t in timer:
-        # print(timer.numiter)
+    for i,controls in enumerate(zip(weather_timing, wheat_timing, 
+                                    septo_timing, rain_timing)):
+        weather_eval, wheat_eval, septo_eval, rain_eval = controls
+        
         # Update date
-        date = (weather.next_date(t['weather'].dt, date) if date!=None else start_date)
+        date = weather_eval.value.index[0]
         dates.append(date)
-        print(date)
         
         # Get weather for date and add it as properties on leaves
-        _, data = weather.get_weather(t['weather'].dt, date)
-        set_properties(g,label = 'LeafElement',
-                        wetness = data.wetness.values[0],
-                        temp = data.temperature_air.values[0],
-                        rain_intensity = data.rain.values[0],
-                        rain_duration = data.rain_duration.values[0],
-                        relative_humidity = data.relative_humidity.values[0],
-                        wind_speed = data.wind_speed.values[0])
+        if weather_eval:
+            set_properties(g,label = 'LeafElement',
+                           temp = weather_eval.value.temperature_air[0],
+                           wetness = weather_eval.value.wetness[0],
+                           relative_humidity = weather_eval.value.relative_humidity[0],
+                           wind_speed = weather_eval.value.wind_speed[0])
+        if rain_eval:
+            set_properties(g,label = 'LeafElement',
+                           rain_intensity = rain_eval.value.rain.mean(),
+                           rain_duration = len(rain_eval.value.rain) if rain_eval.value.rain.sum() > 0 else 0.)
 
         # Grow wheat canopy
-        grow_canopy(g,wheat,t['wheat'])
-        update_healthy_area(g, label = 'LeafElement')
-        # Note : The position of senescence goes back to its initial value after
-        # a while for undetermined reason
-        # --> temporary hack for keeping senescence position low when it is over
-        positions = g.property('position_senescence')
-        are_green = g.property('is_green')
-        leaves = get_leaves(g, label = 'LeafElement')
-        vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
-        positions.update({vid:(0 if positions[vid]==1 and not are_green[vid] else positions[vid]) 
-                          for vid in vids})
-        
+        if wheat_eval:
+            print(date)
+            g,_ = grow_canopy(g, wheat, wheat_eval.value)
+            # Note : The position of senescence goes back to its initial value after
+            # a while for undetermined reason
+            # --> temporary hack for keeping senescence position low when it is over
+            positions = g.property('position_senescence')
+            are_green = g.property('is_green')
+            areas = g.property('area')
+            senesced_areas = g.property('senesced_area')
+            leaves = get_leaves(g, label = 'LeafElement')
+            vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
+            positions.update({vid:(0 if (positions[vid]==1 and not are_green[vid]) or
+                                        (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
+                                        else positions[vid]) for vid in vids})
+            
         # Develop disease
-        if data.dispersal_event.values[0]==True and timer.numiter <= 1000:
-            print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-            # Refill pool of initial inoculum to simulate differed availability
-            dispersal_units = generate_stock_du(nb_dus=5, disease=septoria)
-            initiate(g, dispersal_units, inoculator)
-          
-        infect(g, t['disease'].dt, infection_controler, label='LeafElement')
-        update(g, t['disease'].dt, growth_controler, sen_model, label='LeafElement')
-        if data.dispersal_event.values[0]==True:
-            disperse(g, emitter, transporter, "septoria", label='LeafElement')
-            # Save outputs before washing
-            for inspector in inspectors.itervalues():
-                inspector.update_du_variables(g)
-            wash(g, washor, data.rain.values[0], label='LeafElement')
+        if septo_eval:
+            sen_model.find_senescent_lesions(g, label = 'LeafElement')
+            update_healthy_area(g, label = 'LeafElement')
+            if rain_eval and i <= 500:
+                # Refill pool of initial inoculum to simulate differed availability
+                dispersal_units = generate_stock_du(nb_dus=rd.randint(0,5), disease=septoria)
+                initiate(g, dispersal_units, inoculator)
+            infect(g, septo_eval.dt, infection_controler, label='LeafElement')
+            update(g, septo_eval.dt, growth_controler, sen_model, label='LeafElement')
+        if rain_eval:
+            if rain_eval.value.rain.mean()>0:
+                g, nb = disperse(g, emitter, transporter, "septoria", label='LeafElement')
+                for inspector in inspectors.itervalues():
+                    inspector.update_du_variables(g)
+                wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
             # Save outputs after washing
             infection_controler.control_position(g)
             for inspector in inspectors.itervalues():
@@ -166,8 +179,21 @@ def run_simulation():
         for inspector in inspectors.itervalues():
             inspector.compute_nb_infections(g)
         
-        if timer.numiter%24 == 0:
+        if wheat_eval:
             update_plot(g)
+            # scene = plot3d(g)
+            # index = i/24
+            # if index < 10 :
+                # image_name='./images_septo2/image0000%d.png' % index
+            # elif index < 100 :
+                # image_name='./images_septo2/image000%d.png' % index
+            # elif index < 1000 :
+                # image_name='./images_septo2/image00%d.png' % index
+            # elif index < 10000 :
+                # image_name='./images_septo2/image0%d.png' % index
+            # else :
+                # image_name='./images_septo/image%d.png' % index
+            # save_image(scene, image_name=image_name)
             
     # Tout stocker dans un dataframe avec les dates en index
     outs = {'nb_dus':inspectors[1].nb_dus[::2],
@@ -180,15 +206,15 @@ def run_simulation():
     return outputs
 
 def draw_outputs(outputs):    
-    date_1 = datetime(2001, 3, 1, 1, 00, 00)
-    date_2 = datetime(2001, 7, 1, 0, 00, 00)
+    date_1 = datetime.datetime(1999, 3, 1, 1, 00, 00)
+    date_2 = datetime.datetime(1999, 7, 1, 0, 00, 00)
     date_seq = pandas.date_range(date_1,date_2, freq='H')
     months = MonthLocator(bymonthday=(1,10,20))
     month_fmt = DateFormatter('%b-%d')
 
     fig = plt.figure()
     # ymax = 300
-    ymax = max(outputs.nb_dus[date_1:date_2]+100)
+    ymax = max(outputs.nb_dus[date_1:date_2])+100
     ax1 = fig.add_subplot(2,2,1)
     ax1.set_yscale('symlog')
     ax1.vlines(date_seq, [0], outputs.nb_dus[date_1:date_2], color='b', linewidth=2)

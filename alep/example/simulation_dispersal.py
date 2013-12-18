@@ -13,6 +13,7 @@ import collections
 # Imports for wheat
 from alinea.astk.caribu_interface import *
 from alinea.alep.wheat import initialize_stand
+from alinea.astk.plantgl_utils import get_lai
 from alinea.alep.architecture import set_properties,set_property_on_each_id, get_leaves
 
 # Imports for disease
@@ -97,7 +98,7 @@ def update_plot(g, leaf_source):
     
     # Visualization
     g = alep_colormap(g, 'nb_dus', cmap=green_yellow_red(levels=1000),
-                      lognorm=False, zero_to_one=False, vmax=10)
+                      lognorm=False, zero_to_one=False, vmax=25)
 
     leaves = get_leaves(g, label='LeafElement')
     # pos_sen = g.property('position_senescence')
@@ -127,8 +128,8 @@ def periodise_canopy(g, domain):
 def is_iterable(obj):
     """ Test if object is iterable """
     return isinstance(obj, collections.Iterable)
-
-def get_source_leaf(g, position='center', relative_height=2./3):
+    
+def get_source_leaf_and_max_height(g, position='center', relative_height=2./3):
     tesselator = pgl.Tesselator()
     bbc = pgl.BBoxComputer(tesselator)
     leaves = get_leaves(g, label='LeafElement')
@@ -145,10 +146,10 @@ def get_source_leaf(g, position='center', relative_height=2./3):
     zmax = max(centroids.items(), key=lambda x:x[1][2])[1][2]
     distances = {vid:pgl.norm(centroids[vid]-(0,0,relative_height*zmax)) for vid in centroids}
     if position=='center':
-        return min(distances.items(), key=lambda x:x[1])[0]
+        return min(distances.items(), key=lambda x:x[1])[0], zmax
     elif position=='border':
-        return max(distances.items(), key=lambda x:x[1])[0]
-    
+        return max(distances.items(), key=lambda x:x[1])[0], zmax
+
 # Dummy lesion with dummy emission ############################################                                               
 # Create a undetermined lesion emmitting a stock of dispersal units
 class DummyLesion(Lesion):
@@ -182,19 +183,20 @@ class DummyEmission():
         return DU
 
 # Dispersal ################################################################### 
-def run_dispersal(model=3, position_in_canopy='center', relative_height=2./3, position_on_leaf=0.5):
+def run_dispersal(model=3, position_in_canopy='center', relative_height=2./3, position_on_leaf=0.5, age=1500., seed=3):
     # Initialize a wheat canopy
-    g, wheat, domain_area, domain = initialize_stand(age=1500., length=1,
+    g, wheat, domain_area, domain = initialize_stand(age=age, length=1,
                                                 width=1, sowing_density=250,
-                                                plant_density=250, inter_row=0.12)
-    # periodise_canopy(g, domain)
+                                                plant_density=250, inter_row=0.12,
+                                                seed=seed)
+    lai = get_lai(g.property('geometry'), domain_area)/float(1e4)
 
     # Define the wind direction
     wind_direction = (-1, -0.5, 0)
     set_properties(g,label = 'LeafElement', wind_direction=wind_direction)
     
     # Get source leaf and make it emit DUs
-    leaf_id = get_source_leaf(g, position=position_in_canopy)
+    leaf_id, zmax = get_source_leaf_and_max_height(g, position=position_in_canopy, relative_height=relative_height)
     leaf = g.node(leaf_id)
     leaf.lesions = [DummyLesion(position=[position_on_leaf,0])]
     emitter = DummyEmission()
@@ -210,4 +212,8 @@ def run_dispersal(model=3, position_in_canopy='center', relative_height=2./3, po
     update_plot(g, leaf_source=leaf_id)
     
     # Check proportion intercepted : must be low
-    return g
+    dus = g.property('dispersal_units')
+    nb_deposited = count_dispersal_units(g)
+    max_dus = max([len(du) for du in dus.itervalues()])
+    min_dus = min([len(du) for du in dus.itervalues()])
+    return g, lai, zmax, nb_deposited, max_dus, min_dus

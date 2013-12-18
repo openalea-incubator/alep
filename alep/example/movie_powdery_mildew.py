@@ -4,104 +4,44 @@
 import random as rd
 import numpy as np
 import pandas
-from alinea.astk.TimeControl import *
+
 
 # Imports for weather
-from datetime import datetime
-from alinea.weather.global_weather import *
-from alinea.alep.alep_weather import add_wetness
+import pandas
+import alinea.septo3d
+from openalea.deploy.shared_data import shared_data
+from alinea.astk.Weather import Weather
+from alinea.alep.alep_weather import wetness_rapilly
+from alinea.astk.TimeControl import *
 
 # Imports for grapevine
 from alinea.alep.vine import Vine
 from alinea.astk.plant_interface import new_canopy, grow_canopy
-from alinea.alep.architecture import (update_healthy_area, add_area_topvine,
-                                      set_properties, set_property_on_each_id)
+from alinea.alep.architecture import set_properties, update_healthy_area, add_area_topvine
 
 # Imports for powdery mildew
 from openalea.vpltk import plugin
 from alinea.alep.protocol import *
 from alinea.alep.powdery_mildew import *
 from alinea.alep.disease_operation import generate_stock_du
-from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.dispersal_emission import PowderyMildewWindEmission
 from alinea.alep.dispersal_transport import PowderyMildewWindDispersal
 from alinea.alep.growth_control import GrowthControlVineLeaf
 from alinea.alep.infection_control import BiotrophDUProbaModel
 
-# Imports for movie
-from alinea.alep.disease_outputs import compute_severity_by_leaf
-from alinea.alep.alep_color import alep_colormap, green_yellow_red
-from alinea.adel.mtg_interpreter import plot3d
-from openalea.plantgl.all import Viewer
-
-# /!\ TEMP /!\ ################################################################
-from openalea.plantgl.all import Viewer
-import os.path
-
-def save_image(scene, image_name='%s/img%04d.%s', directory='.', index=0, ext='png'):
-    '''
-    Save an image of a scene in a specific directory
-
-    Parameters
-    ----------
-
-        - scene: a PlantGL scene
-        - image_name: a string template 
-            The format of the string is dir/img5.png
-        - directory (optional: ".") the directory where the images are written
-        - index: the index of the image
-        - ext : the image format
-
-    Example
-    -------
-
-        - Movie:
-            convert *.png movie.mpeg
-            convert *.png movie.gif
-            mencoder "mf://*.png" -mf type=png:fps=25 -ovc lavc -o output.avi
-            mencoder -mc 0 -noskip -skiplimit 0 -ovc lavc -lavcopts vcodec=msmpeg4v2:vhq "mf://*.png" -mf type=png:fps=18 -of avi  -o output.avi
-            
-    '''
-
-    if not image_name:
-        image_name='{directory}/img{index:0>4d}.{ext}'
-    filename = image_name.format(directory=directory, index=index, ext=ext)
-    Viewer.frameGL.saveImage(filename)
-    return scene,
-
-# Useful functions ############################################################
-def update_plot(g):
-    # Compute severity by leaf
-    severity_by_leaf = compute_severity_by_leaf(g, label = 'lf')
-    print(severity_by_leaf)
-    set_property_on_each_id(g, 'severity', severity_by_leaf, label = 'lf')
-                       
-    # Visualization
-    g = alep_colormap(g, 'severity', cmap=green_yellow_red(levels=100),
-                      lognorm=False, zero_to_one=False, vmax=100)
-    brown = (100,70,30)
-    trunk_ids = [n for n in g if g.label(n).startswith('tronc')]
-    for id in trunk_ids:
-        trunk = g.node(id)
-        trunk.color = brown
-    scene = plot3d(g)
-    Viewer.display(scene)
-    return scene
+# Imports for display and saving
+from alinea.alep.disease_outputs import plot_severity_vine, save_image
 
 # Initialization ##############################################################
 # Set the seed of the simulation
 rd.seed(0)
 np.random.seed(0)
 
-# Choose dates of simulation and initialize the value of date
-start_date = datetime(2001, 05, 1, 1, 00, 00)
-# end_date = datetime(2001, 06, 1, 00, 00)
-end_date = datetime(2001, 07, 01, 00, 00)
-date = start_date
-
-# Read weather and adapt it to septoria (add wetness)
-weather = Weather(data_file='meteo01.csv')
-weather = add_wetness(weather)
+# Read weather and adapt it to powdery mildew (add wetness)
+meteo_path = shared_data(alinea.septo3d, 'meteo05-06.txt')
+weather = Weather(data_file=meteo_path)
+weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+seq = pandas.date_range(start = "2005-10-01 01:00:00", end = "2006-07-01 01:00:00", freq='H')
 
 # Initialize a vine canopy
 vine = Vine()
@@ -110,77 +50,69 @@ g,_ = new_canopy(vine, age = 6)
 # Initialize the models for powdery mildew
 diseases=plugin.discover('alep.disease')
 powdery_mildew = diseases['powdery_mildew'].load()
-inoculator = RandomInoculation()
-growth_controler = GrowthControlVineLeaf()
 infection_controler = BiotrophDUProbaModel()
+growth_controler = GrowthControlVineLeaf()
 emitter = PowderyMildewWindEmission()
 transporter = PowderyMildewWindDispersal()
 
 # Define the schedule of calls for each model
-nb_steps = len(pandas.date_range(start_date, end_date, freq='H'))
-weather_timing = TimeControl(delay=1, steps=nb_steps)
-vine_timing = TimeControl(delay=24, steps=nb_steps)
-mildew_timing = TimeControl(delay=1, steps=nb_steps)
-plot_timing = TimeControl(delay=24, steps=nb_steps)
-timer = TimeControler(weather=weather_timing, vine=vine_timing, disease=mildew_timing, plotting=plot_timing)
+every_h = time_filter(seq, delay=1)
+every_24h = time_filter(seq, delay=24)
+weather_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
+vine_timing = IterWithDelays(*time_control(seq, every_24h, weather.data))
+mildew_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
 
 # Simulation #########################################################
-for t in timer:
-    # Update date
-    date = (weather.next_date(t['weather'].dt, date) if date!=None else start_date)
-    print(date)
+for i, controls in enumerate(zip(weather_timing, vine_timing, mildew_timing)):
+    weather_eval, vine_eval, mildew_eval = controls
     
     # Get weather for date and add it as properties on leaves
-    _, data = weather.get_weather(t['weather'].dt, date)
-    set_properties(g,label = 'lf',
-                    wetness = data.wetness.values[0],
-                    temp = data.temperature_air.values[0],
-                    rain_intensity = data.rain.values[0],
-                    relative_humidity = data.relative_humidity.values[0],
-                    wind_speed = data.wind_speed.values[0],
-                    wind_direction = (1,0,0))
+    if weather_eval:
+        set_properties(g,label = 'lf',
+                       temp = weather_eval.value.temperature_air[0],
+                       rain_intensity = weather_eval.value.rain.mean(),
+                       wetness = weather_eval.value.wetness[0],
+                       relative_humidity = weather_eval.value.relative_humidity[0],
+                       wind_speed = weather_eval.value.wind_speed[0],
+                       wind_direction = (1,0,0))
 
     # Grow vine canopy
-    g,_ = grow_canopy(g, vine, t['vine'])
-    add_area_topvine(g)
-    update_healthy_area(g, label = 'lf')
-
+    if vine_eval:
+        g,_ = grow_canopy(g, vine, vine_eval.value)
+        add_area_topvine(g)
+    
     # Develop disease
-    labels = g.property('label')
-    # if timer.numiter < 1500 and timer.numiter%50==0:
-        # # Refill pool of initial inoculum to simulate differed availability
-        # dispersal_units = generate_stock_du(nb_dus=10, disease=powdery_mildew)
-        # initiate(g, dispersal_units, inoculator, label='lf')
-    
-    if timer.numiter < 500 and labels[188]=='lf' and timer.numiter%50==0:
+    if mildew_eval:
+        # Update g for the disease
+        update_healthy_area(g, label = 'lf')
+        
         # Refill pool of initial inoculum to simulate differed availability
-        dispersal_units = generate_stock_du(nb_dus=10000, disease=powdery_mildew)
-        initiate(g, dispersal_units, inoculator, label='lf')
-        # try:
-            # g.node(188).dispersal_units += dispersal_units
-        # except: 
-            # g.node(188).dispersal_units = dispersal_units
-    
-    from alinea.alep.disease_outputs import count_dispersal_units, count_lesions, count_lesions_by_leaf
-    # print('nb_lesions : %d' % count_lesions(g))
-    nb = count_lesions_by_leaf(g)
-    if len(nb.values())==0:
-        print(0)
-    else:
-        print(max(nb.values()), max(nb.iterkeys(), key=lambda k: nb[k]))  
-    infect(g, t['disease'].dt, infection_controler, label='lf')
-    update(g, t['disease'].dt, growth_controler, label='lf')
-    disperse(g, emitter, transporter, "powdery_mildew", label='lf')
+        labels = g.property('label')
+        if timer.numiter < 500 and labels[188]=='lf' and timer.numiter%50==0:
+            dispersal_units = generate_stock_du(nb_dus=100, disease=powdery_mildew)
+            try:
+                g.node(188).dispersal_units += dispersal_units
+            except: 
+                g.node(188).dispersal_units = dispersal_units
+        
+        # Update dispersal units and lesions
+        infect(g, mildew_eval.dt, infection_controler, label='lf')
+        update(g, mildew_eval.dt, growth_controler, sen_model=None, label='lf')
+        
+        # Disperse
+        disperse(g, emitter, transporter, "powdery_mildew", label='lf')
 
-    from alinea.alep.disease_outputs import plot_lesions
-    if t['plotting'].dt > 0:
-        update_plot(g)
-        scene = plot3d(g)
-        index = timer.numiter/24
+    if vine_eval:
+        scene = plot_severity_vine(g, trunk=True, transparency=0.9)
+        index = i/24
         if index < 10 :
-            image_name='./images_oidium/image00%d.png' % index
+            image_name='./images_powdery_mildew/image0000%d.png' % index
         elif index < 100 :
-            image_name='./images_oidium/image0%d.png' % index
+            image_name='./images_powdery_mildew/image000%d.png' % index
+        elif index < 1000 :
+            image_name='./images_powdery_mildew/image00%d.png' % index
+        elif index < 10000 :
+            image_name='./images_powdery_mildew/image0%d.png' % index
         else :
-            image_name='./images_oidium/image%d.png' % index
+            image_name='./images_powdery_mildew/image%d.png' % index
         save_image(scene, image_name=image_name)
