@@ -177,18 +177,22 @@ def compute_healthy_area_by_leaf(g, label='LeafElement'):
     
     # senesced_areas = g.property('senesced_area')
     areas = g.property('area')
+    labels = g.property('label')
     positions_senescence = g.property('position_senescence')
-    senesced_areas = {k:v*(1-positions_senescence[k]) for k,v in areas.iteritems()}
+    if len(positions_senescence)>0:
+        senesced_areas = {k:v*(1-positions_senescence[k]) for k,v in areas.iteritems() if labels[k].startswith(label)}
+    else:
+        senesced_areas = {k:0. for k,v in areas.iteritems() if labels[k].startswith(label)}
     green_lesion_areas = compute_green_lesion_areas_by_leaf(g, label)
 
-    lesions = g.property('lesions')
-    try:
-        surf = sum(l.surface for l in lesions[260])
-        if surf>areas[260]:
-            import pdb
-            pdb.set_trace()
-    except:
-        pass
+    # lesions = g.property('lesions')
+    # try:
+        # surf = sum(l.surface for l in lesions[260])
+        # if round(surf,5)>round(areas[260],5):
+            # import pdb
+            # pdb.set_trace()
+    # except:
+        # pass
     
     # return {vid:(areas[vid] - (senesced_areas[vid] + green_lesion_areas[vid])
             # if positions_senescence[vid]>0.05 and 
@@ -237,7 +241,8 @@ def compute_senescence_by_leaf(g, label='LeafElement'):
     senescence_by_leaf: dict([id:senescence_area])
         Senescence on each part of the MTG given by the label    
     """
-    total_areas = g.property('area')
+    labels = g.property('label')
+    total_areas = {k:v for k,v in g.property('area').iteritems() if labels[k].startswith(label)}
     pos_sen = g.property('position_senescence')
     sen = {}
     for vid in total_areas.iterkeys():
@@ -277,7 +282,7 @@ def compute_senescence_necrosis_by_leaf(g, label='LeafElement'):
             nec = min(nec_on_green, (total_areas[vid]*pos_sen[vid] - healthy_areas[vid])*ratio_nec_on_green)
             sen = total_areas[vid]*(1-pos_sen[vid])
             nec_sen[vid] = nec + sen
-            if vid==90 and nec_sen[vid]>total_areas[vid]:
+            if vid==90 and round(nec_sen[vid],4)>round(total_areas[vid],4):
                 import pdb
                 pdb.set_trace()
         else:
@@ -583,6 +588,11 @@ def plot_severity_by_leaf(g, senescence=True, transparency=None, label='LeafElem
     return scene
 
 def plot_severity_vine(g, trunk=True, transparency=None, label='lf'):
+    from alinea.alep.architecture import set_property_on_each_id
+    from alinea.alep.disease_outputs import compute_severity_by_leaf
+    from alinea.alep.alep_color import alep_colormap, green_yellow_red
+    from alinea.adel.mtg_interpreter import plot3d
+    from openalea.plantgl.all import Viewer
     # Compute severity by leaf
     severity_by_leaf = compute_severity_by_leaf(g, label = label)
     set_property_on_each_id(g, 'severity', severity_by_leaf, label = label)
@@ -607,7 +617,6 @@ def plot_severity_vine(g, trunk=True, transparency=None, label='lf'):
                 g.node(id).transparency = transparency
             else:
                 g.node(id).transparency = 0.
-        
         scene = plot3d_transparency(g)
     else:
         scene = plot3d(g)

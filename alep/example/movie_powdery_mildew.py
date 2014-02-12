@@ -41,7 +41,7 @@ np.random.seed(0)
 meteo_path = shared_data(alinea.septo3d, 'meteo05-06.txt')
 weather = Weather(data_file=meteo_path)
 weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
-seq = pandas.date_range(start = "2005-10-01 01:00:00", end = "2006-07-01 01:00:00", freq='H')
+seq = pandas.date_range(start = "2006-03-01 01:00:00", end = "2006-04-10 01:00:00", freq='H')
 
 # Initialize a vine canopy
 vine = Vine()
@@ -63,7 +63,7 @@ vine_timing = IterWithDelays(*time_control(seq, every_24h, weather.data))
 mildew_timing = IterWithDelays(*time_control(seq, every_h, weather.data))
 
 # Simulation #########################################################
-for i, controls in enumerate(zip(weather_timing, vine_timing, mildew_timing)):
+for ind, controls in enumerate(zip(weather_timing, vine_timing, mildew_timing)):
     weather_eval, vine_eval, mildew_eval = controls
     
     # Get weather for date and add it as properties on leaves
@@ -78,6 +78,7 @@ for i, controls in enumerate(zip(weather_timing, vine_timing, mildew_timing)):
 
     # Grow vine canopy
     if vine_eval:
+        print(vine_eval.value.datetime[0])
         g,_ = grow_canopy(g, vine, vine_eval.value)
         add_area_topvine(g)
     
@@ -88,23 +89,23 @@ for i, controls in enumerate(zip(weather_timing, vine_timing, mildew_timing)):
         
         # Refill pool of initial inoculum to simulate differed availability
         labels = g.property('label')
-        if timer.numiter < 500 and labels[188]=='lf' and timer.numiter%50==0:
+        if ind < 500 and labels[188]=='lf' and ind%50==0:
             dispersal_units = generate_stock_du(nb_dus=100, disease=powdery_mildew)
             try:
                 g.node(188).dispersal_units += dispersal_units
             except: 
                 g.node(188).dispersal_units = dispersal_units
-        
+               
         # Update dispersal units and lesions
         infect(g, mildew_eval.dt, infection_controler, label='lf')
-        update(g, mildew_eval.dt, growth_controler, sen_model=None, label='lf')
+        update(g, mildew_eval.dt, growth_controler, senescence_model=None, label='lf')
         
         # Disperse
         disperse(g, emitter, transporter, "powdery_mildew", label='lf')
 
     if vine_eval:
         scene = plot_severity_vine(g, trunk=True, transparency=0.9)
-        index = i/24
+        index = ind/24
         if index < 10 :
             image_name='./images_powdery_mildew/image0000%d.png' % index
         elif index < 100 :

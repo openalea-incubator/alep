@@ -82,6 +82,34 @@ def add_wetness(weather):
     wetness.index = weather.data.rain.index
     weather.data = weather.data.join(wetness)
     return weather
+
+def add_septoria_infection_risk(weather):
+    """ Add True or False if there is a risk of infection for septoria.
+    
+    Infection is possible if wetness duration > 10h and 10<temp<30°C. 
+    """
+    temp1 = weather.data.temperature_air>=10
+    temp2 = weather.data.temperature_air<=30
+    infect_cond = weather.data.wetness * temp1 * temp2
+    sir = dict(septo_infection_risk=[])
+    counter = 0.
+    tof = False
+    for i_line in range(len(weather.data)):
+        if infect_cond[i_line]==True:
+            counter += 1.
+            if counter >= 10.:
+                tof = True
+            else:
+                tof = False
+        else:
+            counter = 0.
+            tof = False
+        sir['septo_infection_risk'].append(tof)
+    septo_infection_risk = pandas.DataFrame(sir)
+    septo_infection_risk.index = infect_cond.index
+    weather.data = weather.data.join(septo_infection_risk)
+    return weather
+    
     
 def add_rain_dispersal_events(weather):
     """ Add a column to indicate the dispersal events at hours with max rain for each dispersal event,

@@ -850,7 +850,7 @@ class SeptoriaRing(Ring):
         self.delta_age_ring = None
         
     def stage(self, lesion=None):
-        """ Send the ring toward the proper function according to its status.
+        """ Send the ring to the proper function according to its status.
         
         Parameters
         ----------

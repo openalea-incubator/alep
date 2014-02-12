@@ -28,12 +28,17 @@ class WheatSeptoriaPositionedSenescence:
         label: str
             Label of the part of the MTG concerned by the calculation
         """
-        self.position_senescence = {}
-        labels = g.property('label')
-        vids = (v for v,l in labels.iteritems() if l.startswith(label))
-        for vid in vids:
-            leaf = g.node(vid)
-            self.position_senescence[vid] = leaf.position_senescence
+        # Temporary
+        # self.previous_area = {}
+        
+        # self.position_senescence = {}
+        # labels = g.property('label')
+        # vids = (v for v,l in labels.iteritems() if l.startswith(label))
+        # for vid in vids:
+            # leaf = g.node(vid)
+            # self.position_senescence[vid] = leaf.position_senescence
+            # # Temporary
+            # self.previous_area[vid] = leaf.area
     
     def find_senescent_lesions(self, g, label='LeafElement'):
         """ Find lesions affected by leaf senescence.
@@ -68,7 +73,23 @@ class WheatSeptoriaPositionedSenescence:
             if leaf_lesions:
                 for l in leaf_lesions:
                     if leaf.position_senescence!=None and l.position[0] >= leaf.position_senescence:
-                        l.become_senescent(old_position_senescence = self.position_senescence[v])
+                        l.become_senescent()
+                
+                # Temporary
+                # try:
+                    # if self.previous_area[v]>0. and self.position_senescence[v]<leaf.position_senescence:
+                        # import pdb
+                        # pdb.set_trace()
+                # except:
+                    # pass
             
-            # Save senescence position for next time step
-            self.position_senescence[v] = leaf.position_senescence
+            # # Save senescence position for next time step
+            # self.position_senescence[v] = leaf.position_senescence
+            
+            # # Temporary
+            # self.previous_area[v] = leaf.area
+            # if v==163:
+                # try:
+                    # self.hist_sen.append(self.position_senescence[v])
+                # except:
+                    # self.hist_sen=[self.position_senescence[v]]

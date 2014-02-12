@@ -51,6 +51,7 @@ class SeptoriaRainEmission:
         
         # Compute intercept with Beer Lambert
         intercept = 1 - exp(-k_wheat*total_area*10**-4/self.domain_area)
+        # intercept = 1 - exp(-k_wheat*total_area*10**-4)
         
         # Get lesions
         les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating()] 
@@ -58,6 +59,7 @@ class SeptoriaRainEmission:
         
         # Compute total sporulating area
         total_spo = sum([l.surface_spo for v in les.values() for l in v])
+        # tot_fraction_spo = total_spo/(total_area/self.domain_area) if (total_area/self.domain_area)>0. else 0.
         tot_fraction_spo = total_spo/total_area if total_area>0. else 0.
         
         DU = {}
@@ -65,8 +67,8 @@ class SeptoriaRainEmission:
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 leaf = g.node(vid)
-                total_DU_leaf = 0.36 * 6.19e7 * intercept * tot_fraction_spo * leaf.rain_intensity
-
+                total_DU_leaf = 0.36 * 6.19e7 * intercept * tot_fraction_spo * leaf.rain_intensity * self.domain_area
+                
                 if lesion.is_stock_available(leaf):
                     initial_stock = lesion.stock_spores
                     stock_available = int(lesion.stock_spores*2/3.)
@@ -76,15 +78,19 @@ class SeptoriaRainEmission:
                     # Distribute spores into dispersal units
                     nb_spores_by_DU = 10
                     nb_DU_lesion = min(nb_DU_lesion, stock_available/nb_spores_by_DU)
+                    
+                    # import pdb
+                    # pdb.set_trace()
+                    
                     SeptoriaDU.fungus = lesion.fungus
                     emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU, status='emitted', 
                                  position=lesion.position) for i in range(nb_DU_lesion)]
                     
                     # Update stock of spores of the lesion
                     nb_spores_emitted = nb_DU_lesion*nb_spores_by_DU
-                    if nb_spores_emitted<0.:
-                        import pdb
-                        pdb.set_trace()
+                    # if nb_spores_emitted<0.:
+                        # import pdb
+                        # pdb.set_trace()
                     lesion.reduce_stock(nb_spores_emitted)
                     
                     # Update empty surface on lesion

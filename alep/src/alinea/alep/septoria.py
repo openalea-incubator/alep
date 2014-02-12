@@ -11,7 +11,6 @@ from openalea.vpltk import plugin
 from random import random, randint, seed
 from math import floor, ceil
 import numpy as np
-seed(1)
 
 # Dispersal unit ##################################################################
 class SeptoriaDU(DispersalUnit):
@@ -112,7 +111,9 @@ class SeptoriaParameters(Parameters):
                  rh_min = 85.,
                  rain_events_to_empty = 3,
                  production_rate = 100000,
-                 treshold_spores = 1000,
+                 threshold_spores = 1000,
+                 nb_rings_by_state = 10,
+                 age_physio_switch_senescence=1,
                  *args, **kwds):
         """ Parameters for septoria.
         
@@ -182,7 +183,10 @@ class SeptoriaParameters(Parameters):
         self.rain_events_to_empty = rain_events_to_empty
         self.production_rate = production_rate
         # TODO : Improve this parameter. Very Sensitive.
-        self.treshold_spores = treshold_spores
+        self.threshold_spores = threshold_spores
+        # Parameters for new model of septoria with age physio
+        self.nb_rings_by_state = nb_rings_by_state
+        self.age_physio_switch_senescence = age_physio_switch_senescence
         
     def __call__(self, nb_spores=None, position=None):
         model = self.model
@@ -235,5 +239,7 @@ def plugin_septoria(model='septoria_exchanging_rings'):
             from alinea.alep.septoria_exchanging_rings import Disease
         elif model=='septoria_with_rings':
             from alinea.alep.septoria_exchanging_rings import Disease
+        elif model=='septoria_age_physio':
+            from alinea.alep.septoria_age_physio import Disease
         septoria=Disease()
     return septoria        

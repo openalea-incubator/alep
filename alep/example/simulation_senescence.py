@@ -1,9 +1,10 @@
-""" Simulate a septoria epidemics on wheatwith a given response to senescence. """
+""" Simulate a septoria epidemics on wheat with a given response to senescence. """
 
 # Useful imports
 import random as rd
 import numpy as np
 import pandas
+import sys
 
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
 
@@ -93,94 +94,69 @@ def new_septoria(senescence_threshold=330.):
             
             Senescence affects surfaces whose age is below the age threshold.
             """
-            from math import floor
-            f = self.fungus
-            threshold = f.senescence_threshold
-            rings = np.copy(self.surface_rings)
-            surface = self.surface
-            delta_ring = self.delta_age_ring
-            width_ring = f.delta_age_ring
-            time_to_chlo = f.degree_days_to_chlorosis
-            if threshold < time_to_chlo:
-                raise Exception('Do not use a threshold below time to chlorosis')
+            # Runs only for the first time step of senescence occurence
+            if self.ddday_before_senescence!=None:
+                from math import floor
+                f = self.fungus
+                threshold = f.senescence_threshold
+                rings = np.copy(self.surface_rings)
+                surface = self.surface
+                delta_ring = self.delta_age_ring
+                width_ring = f.delta_age_ring
+                time_to_chlo = f.degree_days_to_chlorosis
+                if threshold < time_to_chlo:
+                    raise Exception('Do not use a threshold below time to chlorosis')
+                    
+                ddday = self.ddday
+                ddday_sen = self.ddday_before_senescence
+                age_dday = self.age_dday
                 
-            # todo : modify condition
-            ddday = self.ddday
-            ddday_sen = self.ddday_before_senescence
-            age_dday = self.age_dday
-            
-            # Stop growth
-            self.disable_growth()
-            
-            if age_dday <= threshold:
-                # Everything is affected
-                self.disable()
-                self.first_ring.disable()
-                self.surface_dead = self.surface_alive
-                self.surface_alive = 0.
-                self.surface_rings = np.array([])
-            else:
-                if len(rings)>0 and self.surface_dead==0.:
-                    threshold -= time_to_chlo
-                    diff = delta_ring - threshold
-                    nb_full_rings = floor(diff/width_ring)
-                    portion_non_senescent = (diff%width_ring)/width_ring
-                    if len(rings)>nb_full_rings:
-                        surface_dead = sum(rings[:-(nb_full_rings+1)])+(1-portion_non_senescent)*rings[-(nb_full_rings+1)]
-                        rings[:-(nb_full_rings+1)] = 0.
-                        rings[-(nb_full_rings+1)] *= portion_non_senescent
-                    else:
-                        surface_dead = 0.
-                    self.surface_rings = rings
-                    self.surface_alive = sum(self.surface_rings) + self.first_ring.surface
-                    self.surface_dead = surface_dead
+                # Stop growth
+                self.disable_growth()
                 
-                # if len(rings)>0:
-                    # if nb_full_rings == 0:
-                        # # The threshold is inside the current ring, which is not full
-                        # portion_non_senescent = (age_dday-threshold)/(age_dday+width_ring-delta_ring)
-                        # surface_non_senescent = portion_non_senescent*rings[-1]
-                        # rings[-1] *= portion_non_senescent
-                        # rings[:-1] = 0.
-                    # else:
-                        # # The threshold is inside an already full ring
-                        # portion_non_senescent = (diff%width_ring)/width_ring
-                        # if portion_non_senescent > 0.:
-                            # surface_non_senescent = (sum(rings[-nb_full_rings:]) + 
-                                                     # portion_non_senescent*rings[-(nb_full_rings+1)])
-                            # rings[-(nb_full_rings+1)] *= portion_non_senescent
-                            # rings[:-(nb_full_rings+1)] = 0.
-                        # else:
-                            # surface_non_senescent = sum(rings[-nb_full_rings:])
-                            # rings[:-nb_full_rings] = 0.
-                            # # update surfaces rings ...
-                    # surface_non_senescent += self.first_ring.surface
-                    # surface_dead = self.surface - surface_non_senescent
-                # else:
-                    # surface_non_senescent = self.first_ring.surface
-                    # surface_dead = 0.
+                if age_dday <= threshold:
+                    # Everything is affected
+                    self.disable()
+                    self.first_ring.disable()
+                    self.surface_dead = self.surface_alive
+                    self.surface_alive = 0.
+                    self.surface_rings = np.array([])
+                else:
+                    if len(rings)>0 and self.surface_dead==0.:
+                        threshold -= time_to_chlo
+                        diff = delta_ring - threshold
+                        nb_full_rings = floor(diff/width_ring)
+                        portion_non_senescent = (diff%width_ring)/width_ring
+                        if len(rings)>nb_full_rings:
+                            surface_dead = sum(rings[:-(nb_full_rings+1)])+(1-portion_non_senescent)*rings[-(nb_full_rings+1)]
+                            rings[:-(nb_full_rings+1)] = 0.
+                            rings[-(nb_full_rings+1)] *= portion_non_senescent
+                        else:
+                            surface_dead = 0.
+                        self.surface_rings = rings
+                        self.surface_alive = sum(self.surface_rings) + self.first_ring.surface
+                        self.surface_dead = surface_dead
                 
-            # self.surface_alive = surface_non_senescent
-            # self.surface_dead = surface_dead
-            
-            # Complete the age of the lesion up to the end of time step
-            # self.ddday = ddday - ddday_sen
-            self.ddday = ddday_sen
-            self.age_dday += ddday - ddday_sen
-            
-            # Manage first ring
-            self.first_ring.update(lesion=self)
-            # Manage the other rings
-            if len(self.surface_rings)>0:
-                if self.age_dday-f.degree_days_to_chlorosis > self.delta_age_ring:
-                    self.surface_rings = np.append(self.surface_rings, 0.)
-                    self.delta_age_ring += f.delta_age_ring
-                self.exchange_surfaces()
+                # Complete the age of the lesion up to the end of time step
+                self.ddday = ddday_sen
+                self.age_dday += ddday - ddday_sen
+                
+                # Manage first ring
+                self.first_ring.update(lesion=self)
+                # Manage the other rings
+                if len(self.surface_rings)>0:
+                    if self.age_dday-f.degree_days_to_chlorosis > self.delta_age_ring:
+                        self.surface_rings = np.append(self.surface_rings, 0.)
+                        self.delta_age_ring += f.delta_age_ring
+                    self.exchange_surfaces()
 
-            # Update stock of spores
-            if self.status==f.SPORULATING:
-                self.update_stock()
-        
+                # Update stock of spores
+                if self.status==f.SPORULATING:
+                    self.update_stock()
+                    
+                # Reset self.ddday_before_senescence
+                self.ddday_before_senescence=None
+            
     class Parameters(_SeptoriaParameters):
         def __init__(self,**kwds):
             _SeptoriaParameters.__init__(self, model=NewSeptoria, **kwds)
@@ -197,22 +173,21 @@ def new_septoria(senescence_threshold=330.):
     
     return Disease
     
-def run_simulation(senescence_threshold=330.):
+def run_simulation(start_year=1998, senescence_threshold=330.):
     # Initialization #####################################################
     # Set the seed of the simulation
     rd.seed(0)
     np.random.seed(0)
 
     # Read weather and adapt it to septoria (add wetness)
-    meteo_path = shared_data(alinea.septo3d, 'meteo98-99.txt')
+    weather_file = 'meteo'+ str(start_year)[-2:] + '-' + str(start_year+1)[-2:] + '.txt'
+    meteo_path = shared_data(alinea.septo3d, weather_file)
     weather = Weather(data_file=meteo_path)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
-    # seq = pandas.date_range(start = "2000-10-01 01:00:00",
-                            # end = "2001-03-01 01:00:00", 
-                            # freq='H')
-    seq = pandas.date_range(start = "1998-10-01 01:00:00",
-                            end = "1999-07-01 01:00:00", 
+    seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
+                            end = str(start_year+1)+"-07-01 01:00:00", 
                             freq='H')
+
 
     # Initialize a wheat canopy
     g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, 
@@ -223,8 +198,9 @@ def run_simulation(senescence_threshold=330.):
     # temp
     g.node(66).id = 66
     
-    
     # Initialize the models for septoria
+    if 'alinea.alep.septoria_exchanging_rings' in sys.modules:
+        del(sys.modules['alinea.alep.septoria_exchanging_rings'])
     septoria = new_septoria(senescence_threshold=senescence_threshold)
     # septoria = plugin_septoria()
     inoculator = RandomInoculation()
@@ -246,10 +222,11 @@ def run_simulation(senescence_threshold=330.):
 
     # Call leaf inspectors for target blades (top 3)
     inspectors = {}
-    first_blade = 8
-    ind = 0.
-    for blade in range(8,104,8):
-        ind += 1
+    # first_blade = 8
+    first_blade = 80
+    ind = 4.
+    for blade in range(first_blade,104,8):
+        ind -= 1
         inspectors[ind] = LeafInspector(g, blade_id=blade)
     nb_lesions = []
     nb_dus = []
@@ -294,8 +271,9 @@ def run_simulation(senescence_threshold=330.):
             update_healthy_area(g, label = 'LeafElement')
             if rain_eval and i <= 500:
                 # Refill pool of initial inoculum to simulate differed availability
-                dispersal_units = generate_stock_du(nb_dus=rd.randint(0,3), disease=septoria)
-                initiate(g, dispersal_units, inoculator)
+                if rd.random()<0.4:
+                    dispersal_units = generate_stock_du(nb_dus=rd.randint(0,3), disease=septoria)
+                    initiate(g, dispersal_units, inoculator)
             infect(g, septo_eval.dt, infection_controler, label='LeafElement')
             update(g, septo_eval.dt, growth_controler, sen_model, label='LeafElement')          
         if rain_eval:
@@ -317,7 +295,7 @@ def run_simulation(senescence_threshold=330.):
     
     return inspectors, g, nb_dus, nb_lesions
 
-def test_update(senescence_threshold=330.):
+def test_update(senescence_threshold=330., sen_day=500., model="septoria_exchanging_rings", **kwds):
     """ 
     """
     from alinea.alep.wheat import adel_one_leaf_element
@@ -327,7 +305,7 @@ def test_update(senescence_threshold=330.):
     weather = Weather(data_file=meteo_path)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
     seq = pandas.date_range(start = "2000-10-01 01:00:00",
-                            end = "2001-10-31 01:00:00", 
+                            end = "2000-12-31 01:00:00", 
                             freq='H')
     
     # Generate a wheat MTG
@@ -337,9 +315,9 @@ def test_update(senescence_threshold=330.):
                    wetness=True, temp=22., rain_intensity=0., relative_humidity=90.)
     
     # Generate one lesion of septoria and distribute it on g
-    septoria = new_septoria(senescence_threshold=senescence_threshold)
-    # septoria = plugin_septoria()
-    Lesion = septoria.lesion()
+    # septoria = new_septoria(senescence_threshold=senescence_threshold)
+    septoria = plugin_septoria(model)
+    Lesion = septoria.lesion(**kwds)
     leaf = g.node(10)
     leaf.lesions = [Lesion(nb_spores=1, position=[0.5, 0])]
     
@@ -364,7 +342,7 @@ def test_update(senescence_threshold=330.):
     for i,controls in enumerate(zip(septo_timing, rain_timing)):
         septo_eval, rain_eval = controls
         
-        if i==500:
+        if i==sen_day:
             set_properties(g, label = 'LeafElement', position_senescence=0) 
         if rain_eval:
             set_properties(g,label = 'LeafElement',

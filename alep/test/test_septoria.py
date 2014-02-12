@@ -17,7 +17,7 @@ from alinea.alep.disease_operation import (distribute_dispersal_units,
 from alinea.alep.disease_outputs import count_dispersal_units
 from alinea.alep.architecture import set_properties, update_healthy_area
 from alinea.alep.inoculation import RandomInoculation
-from alinea.alep.du_position_checker import BiotrophDUProbaModel
+from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
 from alinea.septo3d.alep_interfaces import Septo3DSplash

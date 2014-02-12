@@ -7,7 +7,7 @@ import numpy
 import pandas
 from pylab import *
 
-from alinea.alep.wheat_examples import adel_mtg, adel_mtg2, adel_one_leaf
+from alinea.alep.wheat import adel_mtg, adel_mtg2, adel_one_leaf
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 
@@ -16,11 +16,12 @@ from alinea.alep import septoria
 from alinea.alep.septoria import *
 from alinea.alep import powdery_mildew
 
-from alinea.alep.du_position_checker import BiotrophDUProbaModel
-from alinea.alep.dispersal import RandomDispersal
+from alinea.alep.infection_control import BiotrophDUProbaModel
+from alinea.alep.dispersal_transport import RandomDispersal
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.inoculation import RandomInoculation
+from alinea.alep.architecture import set_properties, update_healthy_area
 
 from alinea.alep.protocol import *
 
@@ -384,8 +385,9 @@ def test_update():
 
     """
     g = adel_mtg2()
-    set_initial_properties_g(g, surface_leaf_element=5.)
-    fungus = septoria(); SeptoriaDU.fungus = fungus
+    set_properties(g, area=20., green_area=20.)
+    septoria = plugin_septoria()
+    SeptoriaDU = septoria.dispersal_unit()
     stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
@@ -408,7 +410,8 @@ def test_update():
         update_climate_all(g)
             
         #grow(g)
-        infect(g, dt)        
+        update_healthy_area(g, label = 'LeafElement')
+        infect(g, dt)
         update(g,dt, growth_control_model=controler)
         # control_growth(g, controler)
         

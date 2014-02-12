@@ -116,7 +116,10 @@ for i, controls in enumerate(zip(weather_timing, wheat_timing, septo_timing, rai
         # Possibly refill pool of initial inoculum to simulate differed availability
         if rain_eval and i <= 700 and source_leaf.geometry!=None:
             dus = generate_stock_du(nb_dus=rd.randint(0,5), disease=septoria)
-            source_leaf.dispersal_units = dus
+            try:
+                source_leaf.dispersal_units += dus
+            except:
+                source_leaf.dispersal_units = dus
         
         # Update dispersal units and lesions
         infect(g, septo_eval.dt, infection_controler, label='LeafElement')

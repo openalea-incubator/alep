@@ -39,7 +39,7 @@ class Vine(object):
         return g
         
     def grow(self,g,time_control):
-        if time_control.dt > 0:
+        if len(time_control) > 0:
             axiom = mtg2lpy(g,self.lsys)
             #time_control.check('dt',1)
             # /!\ TEMP /!\ ######################################
