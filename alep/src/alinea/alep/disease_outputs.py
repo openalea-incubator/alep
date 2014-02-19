@@ -694,6 +694,7 @@ class LeafInspector:
         self.nb_infections = []
         # Initialize variables relative to number of lesions
         self.nb_lesions = []
+        self.nb_lesions_after_chlo = []
         # Initialize surfaces in state
         self.surface_inc = []
         self.surface_chlo = []
@@ -764,14 +765,17 @@ class LeafInspector:
         green_area = 0.
         disease_area = 0.
         lesion_list = []
+        after_chlo = []
         for id in self.ids:
             leaf = g.node(id)
             try:
                 lesion_list += leaf.lesions
+                after_chlo += [les for les in leaf.lesions if les.status>=les.fungus.CHLOROTIC]
             except:
                 pass
 
         self.nb_lesions.append(len(lesion_list))
+        self.nb_lesions_after_chlo.append(len(after_chlo))
         
         if len(self.ids)==1:
             self.leaf_position_senescence.append(g.node(id).position_senescence)

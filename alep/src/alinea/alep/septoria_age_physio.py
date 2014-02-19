@@ -109,7 +109,7 @@ class SeptoriaAgePhysio(Lesion):
         # Update age in degree days of the lesion
         self.age_dday += self.ddday        
         # Update growth demand and status
-        self.update_status()       
+        self.update_status()
         
         # Temporary
         self.hist_age.append(self.age_dday)
@@ -250,7 +250,7 @@ class SeptoriaAgePhysio(Lesion):
 
     def chlorosis(self):
         """ Compute growth demand and physiological age progress to necrosis.
-        """
+        """       
         f = self.fungus
         # Compute progress in chlorosis
         time_to_nec = f.degree_days_to_necrosis

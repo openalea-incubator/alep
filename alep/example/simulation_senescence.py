@@ -173,8 +173,8 @@ def new_septoria(senescence_threshold=330.):
     
     return Disease
     
-def run_simulation(start_year=1998, senescence_threshold=330.):
-    # Initialization #####################################################
+def run_simulation(start_year=1998, senescence_threshold=330., **kwds):
+	# Initialization #####################################################
     # Set the seed of the simulation
     rd.seed(0)
     np.random.seed(0)
@@ -199,10 +199,13 @@ def run_simulation(start_year=1998, senescence_threshold=330.):
     g.node(66).id = 66
     
     # Initialize the models for septoria
-    if 'alinea.alep.septoria_exchanging_rings' in sys.modules:
-        del(sys.modules['alinea.alep.septoria_exchanging_rings'])
-    septoria = new_septoria(senescence_threshold=senescence_threshold)
-    # septoria = plugin_septoria()
+    # if 'alinea.alep.septoria_exchanging_rings' in sys.modules:
+        # del(sys.modules['alinea.alep.septoria_exchanging_rings'])
+    # septoria = new_septoria(senescence_threshold=senescence_threshold)
+    if 'alinea.alep.septoria_age_physio' in sys.modules:
+        del(sys.modules['alinea.alep.septoria_age_physio'])
+    septoria = plugin_septoria(model="septoria_age_physio")
+    DU = septoria.dispersal_unit(**kwds)
     inoculator = RandomInoculation()
     growth_controler = NoPriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
@@ -231,8 +234,10 @@ def run_simulation(start_year=1998, senescence_threshold=330.):
     nb_lesions = []
     nb_dus = []
     from alinea.alep.disease_outputs import count_lesions
-
+	
     # Simulation #########################################################
+    # TEMPORARY
+    # previous_surface = 0.
     for i,controls in enumerate(zip(weather_timing, wheat_timing, 
                                     septo_timing, rain_timing)):
         weather_eval, wheat_eval, septo_eval, rain_eval = controls
@@ -272,7 +277,7 @@ def run_simulation(start_year=1998, senescence_threshold=330.):
             if rain_eval and i <= 500:
                 # Refill pool of initial inoculum to simulate differed availability
                 if rd.random()<0.4:
-                    dispersal_units = generate_stock_du(nb_dus=rd.randint(0,3), disease=septoria)
+                    dispersal_units = [DU(nb_spores=rd.randint(1,100), status='emitted') for i in range(rd.randint(0,3))]
                     initiate(g, dispersal_units, inoculator)
             infect(g, septo_eval.dt, infection_controler, label='LeafElement')
             update(g, septo_eval.dt, growth_controler, sen_model, label='LeafElement')          
@@ -285,10 +290,15 @@ def run_simulation(start_year=1998, senescence_threshold=330.):
         
         nb_lesions.append(count_lesions(g))
         # Save outputs
-        if wheat_eval:
-            for inspector in inspectors.itervalues():
-                inspector.update_variables(g)
-                inspector.update_du_variables(g)
+        # if wheat_eval:
+        for inspector in inspectors.itervalues():
+            inspector.update_variables(g)
+            inspector.update_du_variables(g)
+		
+        # if previous_surface>inspectors[3].leaf_disease_area[i]:
+            # import pdb
+            # pdb.set_trace()
+        # previous_surface = inspectors[3].leaf_disease_area[i]
         
         if wheat_eval:
             update_plot(g)

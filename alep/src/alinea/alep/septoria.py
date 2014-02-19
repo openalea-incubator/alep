@@ -8,7 +8,7 @@ from alinea.alep.fungal_objects import *
 #from alinea.alep.septoria_with_rings import *
 #from alinea.alep.septoria_exchanging_rings import *
 from openalea.vpltk import plugin
-from random import random, randint, seed
+from random import random, randint
 from math import floor, ceil
 import numpy as np
 
@@ -194,6 +194,8 @@ class SeptoriaParameters(Parameters):
         if model.fungus is None:
             model.fungus = self
         if SeptoriaDU.fungus is None:
+            import pdb
+            pdb.set_trace()
             SeptoriaDU.fungus = self
         return model(nb_spores=nb_spores, position=position)
 

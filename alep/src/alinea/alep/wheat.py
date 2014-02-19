@@ -7,7 +7,7 @@ from alinea.alep.architecture import update_healthy_area
 
 def initialize_stand(age=0., length=0.1, width=0.2, sowing_density=150, 
                      plant_density=150, inter_row=0.12, seed = None, sample='random'):
-    g, wheat, domain_area, domain = initialise_stand(age = age, length=length, 
+    g, wheat, domain_area, domain, convUnit = initialise_stand(age = age, length=length, 
                                                             width=width, 
                                                             sowing_density=sowing_density, 
                                                             plant_density=plant_density,

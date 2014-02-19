@@ -79,18 +79,12 @@ class SeptoriaRainEmission:
                     nb_spores_by_DU = 10
                     nb_DU_lesion = min(nb_DU_lesion, stock_available/nb_spores_by_DU)
                     
-                    # import pdb
-                    # pdb.set_trace()
-                    
                     SeptoriaDU.fungus = lesion.fungus
                     emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU, status='emitted', 
                                  position=lesion.position) for i in range(nb_DU_lesion)]
-                    
+
                     # Update stock of spores of the lesion
                     nb_spores_emitted = nb_DU_lesion*nb_spores_by_DU
-                    # if nb_spores_emitted<0.:
-                        # import pdb
-                        # pdb.set_trace()
                     lesion.reduce_stock(nb_spores_emitted)
                     
                     # Update empty surface on lesion
