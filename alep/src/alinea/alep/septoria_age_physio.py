@@ -105,11 +105,11 @@ class SeptoriaAgePhysio(Lesion):
         
         # Compute delta degree days in dt
         self.compute_delta_ddays(dt, leaf)
-        # if self.ddday > 0.:
-        # Update age in degree days of the lesion
-        self.age_dday += self.ddday        
-        # Update growth demand and status
-        self.update_status()
+        if self.ddday > 0.:
+            # Update age in degree days of the lesion
+            self.age_dday += self.ddday        
+            # Update growth demand and status
+            self.update_status()
         
         # Temporary
         self.hist_age.append(self.age_dday)
@@ -119,7 +119,7 @@ class SeptoriaAgePhysio(Lesion):
         self.hist_spo.append(self.surface_spo)
         self.hist_empty.append(self.surface_empty)
         
-        # Temporary
+        # Temporary      
         # if self.surface_chlo>0. and len(self.surfaces_nec>1.) and self.surfaces_nec[0]==0.:
             # import pdb
             # pdb.set_trace()
@@ -214,7 +214,6 @@ class SeptoriaAgePhysio(Lesion):
                 # import pdb
                 # pdb.set_trace()
             # self.previous_surface = self.surface           
-            
 
             # If lesion has reached max size, disable growth
             if self.surface >= f.Smax:

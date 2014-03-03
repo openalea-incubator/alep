@@ -89,7 +89,7 @@ class SeptoriaWithRings(Lesion):
                 self.rings[i].update(ddday=ddday, lesion=self)
 
         # Update the perception of rain by the lesion
-        if self.status == f.SPORULATING:
+        if self.status == f.SPORULATING:        
             if leaf.rain_intensity > 0. and leaf.relative_humidity >= f.rh_min:
                 self.first_rain_hour = True if not self.first_rain_hour else False
             else:

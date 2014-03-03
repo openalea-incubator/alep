@@ -69,7 +69,7 @@ class SeptoriaDU(DispersalUnit):
                     else:
                         assert not leaf_wet
                         assert self.cumul_wetness == 0.
-                    if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :
+                    if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :                       
                         # TODO : create a function of the number of spores            
                         spores_factor = self.nb_spores / self.nb_spores # always equals 1 for now
                         if proba(spores_factor):
@@ -190,12 +190,9 @@ class SeptoriaParameters(Parameters):
         
     def __call__(self, nb_spores=None, position=None):
         model = self.model
-        
         if model.fungus is None:
             model.fungus = self
         if SeptoriaDU.fungus is None:
-            import pdb
-            pdb.set_trace()
             SeptoriaDU.fungus = self
         return model(nb_spores=nb_spores, position=position)
 
