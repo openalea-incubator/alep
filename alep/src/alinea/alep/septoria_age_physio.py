@@ -105,6 +105,7 @@ class SeptoriaAgePhysio(Lesion):
         
         # Compute delta degree days in dt
         self.compute_delta_ddays(dt, leaf)
+        
         if self.ddday > 0.:
             # Update age in degree days of the lesion
             self.age_dday += self.ddday        

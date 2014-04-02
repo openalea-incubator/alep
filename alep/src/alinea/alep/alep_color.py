@@ -1,6 +1,7 @@
 """ Adaptation of the colormap function from openalea.mtg to the needs of alep. """
 # Imports #########################################################################
 import numpy as np
+from pylab import *
 from matplotlib import cm
 from matplotlib.colors import Normalize, LogNorm, ListedColormap, LinearSegmentedColormap
 
@@ -100,3 +101,18 @@ def plot_pesticide(g, property_name='surfacic_doses', compound_name='Epoxiconazo
     Viewer.display(scene)
     return g
 
+def cmap_competition(N=None):
+    """ Create a cmap from jet with a finite number of elements."""
+    cmap = cm.jet
+    if N==None:
+        N = cmap.N
+    cmaplist = [cmap(i) for i in range(N)]
+    shuffle(cmaplist)
+    # force the first color entry to be white
+    cmaplist[0] = (1.0,1.0,1.0,1.0)
+    # create the new map
+    cmap = cmap.from_list('Custom cmap', cmaplist, N)
+
+    bounds = np.linspace(0,N,N+1)
+    norm = mpl.colors.BoundaryNorm(bounds, N)
+    return cmap, bounds, norm

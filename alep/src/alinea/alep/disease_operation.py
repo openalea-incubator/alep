@@ -32,7 +32,7 @@ def generate_stock_du(nb_dus, disease):
     return [DU(nb_spores=rd.randint(1,100), status='emitted')
                         for i in range(nb_dus)]
                         
-def generate_stock_lesions(nb_lesions, disease):
+def generate_stock_lesions(nb_lesions, disease, position=None):
     """ Generate a stock of lesions.
     
     Parameters
@@ -48,7 +48,7 @@ def generate_stock_lesions(nb_lesions, disease):
         List of lesions of the given disease
     """
     lesion = disease.lesion()
-    return [lesion(nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+    return [lesion(nb_spores=rd.randint(1,100), position=position) for i in range(nb_lesions)]
 
 def generate_lesions_with_emission(nb_lesions, nb_dus, disease):
     """ Generate a stock of lesions that are emitting dispersal units.

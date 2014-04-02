@@ -1,7 +1,9 @@
 """ Few functions to call wheat MTGs. """
 
 # Wheat stand ######################################################################
-from alinea.adel.astk_interface import initialise_stand
+from alinea.adel.astk_interface import initialise_stand, AdelWheat
+import alinea.adel.data_samples as adel_data
+from alinea.adel.stand.stand import agronomicplot
 from alinea.astk.plant_interface import *
 from alinea.alep.architecture import update_healthy_area
 
@@ -16,6 +18,22 @@ def initialize_stand(age=0., length=0.1, width=0.2, sowing_density=150,
     update_healthy_area(g, label = 'LeafElement')
     return g, wheat, domain_area, domain
 initialize_stand.__doc__ = initialise_stand.__doc__
+
+def init_stand_height(h_factor=1., age=0., length=0.1, width=0.2, sowing_density=150, 
+                      plant_density=150, inter_row=0.12, seed = None, sample='random'):
+    nplants, positions, domain, domain_area, convUnit = agronomicplot(length=length, 
+                                                            width=width, 
+                                                            sowing_density=sowing_density, 
+                                                            plant_density=plant_density,
+                                                            inter_row=inter_row)
+    devT = adel_data.devT()
+    devT['dimT']['L_internode']*=h_factor
+    devT['dimT']['L_sheath']*=h_factor
+    wheat = AdelWheat(nplants=nplants, positions = positions, devT=devT, seed=seed, sample=sample)
+    g,_ = new_canopy(wheat,age=age)
+    # Add the property 'healthy_area' on the leaves
+    update_healthy_area(g, label = 'LeafElement')
+    return g, wheat, domain_area, domain
 
 # Mock-ups #########################################################################
 from alinea.adel.newmtg import *
@@ -73,18 +91,25 @@ def adel_mtg2(nb_sect=1):
     g=mtg_interpreter(g)
     return g
 
-def adel_mtg3(nb_sect=1, d=None, p=None):
+def adel_sample(nb_sect=1, d=None, p=None):
     """ create a less simple adel mtg """
     if p: # nb_plants
-        size = int(ceil(sqrt(p)))
+        if d:
+            p, d = adelR(p, d)
+        else:
+            p, d = adelR(p, 1000)
+        size = int(ceil(sqrt(len(p))))
         stand = numpy.array([(i, j) for i in range(size) for j in range(size)])
         numpy.random.shuffle(stand)
-        stand = [((int(i)-10*size/2., int(j)-10*size/2., 0),random.randint(0,90)) for i, j in 10*stand[:p]]
+        stand = [((int(i)-10*size/2., int(j)-10*size/2., 0),random.randint(0,90)) for i, j in 10*stand[:len(p)]]
     else:
+        size = 1.
         stand = [((0,0,0),0),((10,0,0),90), ((0,10,0), 0)]
     g=mtg_factory(d,adel_metamer, leaf_sectors=nb_sect,leaf_db=adel_data.leaves_db(),stand=stand)
     g=mtg_interpreter(g)
-    return g
+    # approximation of domain area
+    domain_area = size*0.05
+    return g, domain_area
     
 # Index finders ####################################################################
 def find_blade_id(g, leaf_rank = 1, only_visible=True):
