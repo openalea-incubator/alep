@@ -2,6 +2,7 @@
 
 # Useful imports
 import random as rd
+rnd = rd.Random(1)
 import numpy as np
 import pandas
 import sys
@@ -41,10 +42,9 @@ def variable_septoria(mu=None, sigma=None):
     class VariableSeptoria(SeptoriaAgePhysio):
         def __init__(self, nb_spores=None, position=None, **kwds):
             super(VariableSeptoria, self).__init__(nb_spores=nb_spores, position=position)
-            import pdb
-            pdb.set_trace()
-            self.fungus = _SeptoriaParameters(**self.fungus.__dict__)
-            self.fungus.degree_days_to_chlorosis = rd.gauss(mu=mu, sigma=sigma)
+            #self.fungus = copy.copy(super(VariableSeptoria, self).fungus)
+            self.fungus = _SeptoriaParameters(model=self.fungus.model,**self.fungus.__dict__)
+            self.fungus.degree_days_to_chlorosis = rnd.gauss(mu=mu, sigma=sigma)
 
     class Parameters(_SeptoriaParameters):
         def __init__(self,**kwds):
@@ -57,8 +57,6 @@ def variable_septoria(mu=None, sigma=None):
         
         @classmethod
         def lesion(cls, **kwds):
-            import pdb
-            pdb.set_trace()
             VariableSeptoria.fungus=cls.parameters(**kwds)
             return VariableSeptoria
     
@@ -165,6 +163,8 @@ def run_simulation(start_year, variability=True, **kwds):
         
         les = g.property('lesions')
         lesions = sum([l for l in les.values()], [])
+        
+        print([l.fungus.degree_days_to_chlorosis for l in lesions])
         
         # if len(lesions)>10:
             # import pdb
