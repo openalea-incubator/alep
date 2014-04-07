@@ -368,6 +368,9 @@ class PowderyMildewWindDispersal:
                     centroid(vid)
                     # surface(vid)
                 
+                import pdb
+                pdb.set_trace()
+                
                 # Sort the vids based on the direction 
                 Origin = centroids[source]
                 vects = {vid:(centroids[vid]-Origin) for vid in targets 
