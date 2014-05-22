@@ -70,7 +70,7 @@ def run_simulation():
     weather = Weather(data_file=meteo_path)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
     seq = pandas.date_range(start = "1998-10-01 01:00:00",
-                            end = "1999-04-20 01:00:00", 
+                            end = "1999-07-01 01:00:00", 
                             freq='H')
 
     # Initialize a wheat canopy
@@ -161,13 +161,19 @@ def run_simulation():
                 for inspector in inspectors.itervalues():
                     inspector.update_du_variables(g)
                 wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
-            # Save outputs after washing
-            infection_controler.control_position(g)
-            for inspector in inspectors.itervalues():
-                inspector.update_du_variables(g)
-                inspector.update_green_area(g)
-                inspector.update_healthy_area(g)
-                
+                # Save outputs after washing
+                infection_controler.control_position(g)
+                for inspector in inspectors.itervalues():
+                    inspector.update_du_variables(g)
+                    inspector.update_green_area(g)
+                    inspector.update_healthy_area(g)
+            else:
+                for inspector in inspectors.itervalues():
+                    inspector.nb_dus += [0, 0]
+                    inspector.nb_dus_on_green += [0, 0]
+                    inspector.nb_dus_on_healthy += [0, 0]
+                    inspector.update_green_area(g)
+                    inspector.update_healthy_area(g)
         else:
             for inspector in inspectors.itervalues():
                 inspector.nb_dus += [0, 0]

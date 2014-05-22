@@ -8,19 +8,20 @@ from alinea.astk.plant_interface import *
 from alinea.alep.architecture import update_healthy_area
 
 def initialize_stand(age=0., length=0.1, width=0.2, sowing_density=150, 
-                     plant_density=150, inter_row=0.12, seed = None, sample='random'):
+                     plant_density=150, inter_row=0.12, nsect=1, seed = None, sample='random'):
     g, wheat, domain_area, domain, convUnit = initialise_stand(age = age, length=length, 
                                                             width=width, 
                                                             sowing_density=sowing_density, 
                                                             plant_density=plant_density,
-                                                            inter_row=inter_row, seed= seed, sample=sample)
+                                                            inter_row=inter_row, 
+                                                            nsect=nsect, seed= seed, sample=sample)
     # Add the property 'healthy_area' on the leaves
     update_healthy_area(g, label = 'LeafElement')
     return g, wheat, domain_area, domain
 initialize_stand.__doc__ = initialise_stand.__doc__
 
 def init_stand_height(h_factor=1., age=0., length=0.1, width=0.2, sowing_density=150, 
-                      plant_density=150, inter_row=0.12, seed = None, sample='random'):
+                      plant_density=150, inter_row=0.12, nsect=1, seed = None, sample='random'):
     nplants, positions, domain, domain_area, convUnit = agronomicplot(length=length, 
                                                             width=width, 
                                                             sowing_density=sowing_density, 
@@ -29,7 +30,7 @@ def init_stand_height(h_factor=1., age=0., length=0.1, width=0.2, sowing_density
     devT = adel_data.devT()
     devT['dimT']['L_internode']*=h_factor
     devT['dimT']['L_sheath']*=h_factor
-    wheat = AdelWheat(nplants=nplants, positions = positions, devT=devT, seed=seed, sample=sample)
+    wheat = AdelWheat(nplants=nplants, positions = positions, nsect=nsect, devT=devT, seed=seed, sample=sample)
     g,_ = new_canopy(wheat,age=age)
     # Add the property 'healthy_area' on the leaves
     update_healthy_area(g, label = 'LeafElement')

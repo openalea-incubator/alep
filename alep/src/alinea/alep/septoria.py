@@ -227,7 +227,7 @@ def proba(p):
     return random() < p
 
 # Plugin function #################################################################
-def plugin_septoria(model='septoria_exchanging_rings'):
+def plugin_septoria(model='septoria_age_physio'):
     diseases=plugin.discover('alep.disease')
     try:
         septoria = diseases[model].load()

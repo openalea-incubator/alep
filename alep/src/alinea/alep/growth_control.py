@@ -44,7 +44,9 @@ class NoPriorityGrowthControl:
         for blade in bids:
             try:
                 leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
-                leaf_healthy_area = sum(healthy_areas[lf] for lf in leaf)
+                # leaf_healthy_area = sum(healthy_areas[lf] for lf in leaf)
+                # TODO see if following works
+                leaf_healthy_area = max(0., sum(healthy_areas[lf] for lf in leaf))
             except:
                 raise NameError('Set healthy area on the MTG before simulation' '\n' 
                                 'See alinea.alep.architecture > set_healthy_area')
@@ -57,6 +59,9 @@ class NoPriorityGrowthControl:
                 # pdb.set_trace()
                 for l in leaf_lesions:
                     growth_offer = leaf_healthy_area * l.growth_demand / total_demand
+                    if growth_offer<0:
+                        import pdb
+                        pdb.set_trace()
                     l.control_growth(growth_offer=growth_offer)
                 # for lf in leaf:
                     # # Update healthy area

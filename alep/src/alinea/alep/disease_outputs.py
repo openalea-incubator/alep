@@ -144,15 +144,25 @@ def compute_green_lesion_areas_by_leaf(g, label='LeafElement'):
     from alinea.alep.architecture import get_leaves
     vids = get_leaves(g, label=label)
     lesions = g.property('lesions')
+    areas = g.property('area')
     pos_sen = g.property('position_senescence')
     
-    # lesions_on_green = {vid:(sum(l.surface for l in lesions[vid] if not l.is_senescent)
-            # if vid in lesions.keys() else 0.) for vid in vids}
-            
-    # return {vid:(sum(l.surface for l in lesions[vid] if not l.is_senescent)
+    # return {vid:(sum(l.surface for l in lesions[vid])*pos_sen[vid]
         # if vid in lesions.keys() else 0.) for vid in vids}
-    return {vid:(sum(l.surface for l in lesions[vid])*pos_sen[vid]
-        if vid in lesions.keys() else 0.) for vid in vids}
+    
+    gla = {}
+    for vid in vids:
+        if vid in lesions.keys():
+            for l in lesions[vid]:
+                les_surf = sum(l.surface for l in lesions[vid])
+                if les_surf<=areas[vid]:
+                    gla[vid]=les_surf*pos_sen[vid]
+                else:
+                    gla[vid]=les_surf-(areas[vid]*(1-pos_sen[vid]))
+        else:
+            gla[vid]=0.
+    return gla
+    
 
 def compute_healthy_area_by_leaf(g, label='LeafElement'):
     """ Compute healthy area on each part of the MTG given by the label.
@@ -174,8 +184,7 @@ def compute_healthy_area_by_leaf(g, label='LeafElement'):
     from alinea.alep.architecture import get_leaves
     vids = get_leaves(g, label=label)
     green_areas = g.property('green_area')
-    
-    # senesced_areas = g.property('senesced_area')
+
     areas = g.property('area')
     labels = g.property('label')
     positions_senescence = g.property('position_senescence')
@@ -184,24 +193,12 @@ def compute_healthy_area_by_leaf(g, label='LeafElement'):
     else:
         senesced_areas = {k:0. for k,v in areas.iteritems() if labels[k].startswith(label)}
     green_lesion_areas = compute_green_lesion_areas_by_leaf(g, label)
-
-    # lesions = g.property('lesions')
-    # try:
-        # surf = sum(l.surface for l in lesions[260])
-        # if round(surf,5)>round(areas[260],5):
-            # import pdb
-            # pdb.set_trace()
-    # except:
-        # pass
     
     # return {vid:(areas[vid] - (senesced_areas[vid] + green_lesion_areas[vid])
-            # if positions_senescence[vid]>0.05 and 
-            # round(areas[vid],10)>round((senesced_areas[vid] + green_lesion_areas[vid]),10) else 0.)
-            # for vid in vids}
-    
-    return {vid:(areas[vid] - (senesced_areas[vid] + green_lesion_areas[vid])
-        if round(areas[vid],10)>round((senesced_areas[vid] + green_lesion_areas[vid]),10) else 0.)
-        for vid in vids}
+        # if round(areas[vid],10)>round((senesced_areas[vid] + green_lesion_areas[vid]),10) else 0.)
+        # for vid in vids}
+        
+    return {vid:(areas[vid] - (senesced_areas[vid] + green_lesion_areas[vid])) for vid in vids}
     
 def compute_severity_by_leaf(g, label='LeafElement'):
     """ Compute severity of the disease on each part of the MTG given by the label.
@@ -221,11 +218,40 @@ def compute_severity_by_leaf(g, label='LeafElement'):
         Severity on each part of the MTG given by the label
     """
     from alinea.alep.architecture import get_leaves
-    vids = get_leaves(g, label=label)
+    leaves = get_leaves(g, label=label)
     total_areas = g.property('area')
     lesion_areas = compute_lesion_areas_by_leaf(g, label)
-    return {vid:(100*lesion_areas[vid]/float(total_areas[vid]) if total_areas[vid]>0. else 0.) for vid in vids}
-
+    
+    # Calculate by blade
+    blades = np.array_split(leaves,np.where(np.diff(leaves)!=1)[0]+1)
+    sev={}
+    for bl in blades:
+        area_bl = np.array([total_areas[lf] for lf in bl])
+        if any(area_bl==0.):
+            for lf in bl[area_bl==0.]:
+                sev[lf]=0.
+            bl = np.delete(bl,np.where(area_bl==0.))
+            area_bl = np.delete(area_bl,np.where(area_bl==0.))
+        les_bl = np.array([lesion_areas[lf] for lf in bl])
+        sev_bl = np.zeros(len(les_bl))
+        diff = area_bl - les_bl
+        if any(diff<0):
+            for lf in bl[diff<0]:
+                sev[lf]=100.
+            to_share = abs(sum(diff[diff<0]))
+            bl = np.delete(bl,np.where(diff<0))
+            area_bl = np.delete(area_bl,np.where(diff<0))
+            diff = np.delete(diff,np.where(diff<0))
+            diff*=1-to_share/sum(diff)
+        for ind in range(len(bl)):
+            if diff[ind]>area_bl[ind]:
+                import pdb
+                pdb.set_trace()
+            sev[bl[ind]] = 100.*(1-diff[ind]/area_bl[ind])
+    
+    #return {vid:(100*lesion_areas[vid]/float(total_areas[vid]) if total_areas[vid]>0. else 0.) for vid in vids}
+    return sev
+    
 def compute_senescence_by_leaf(g, label='LeafElement'):
     """ Compute senescence on parts of the MTG given by the label.
     
@@ -282,9 +308,6 @@ def compute_senescence_necrosis_by_leaf(g, label='LeafElement'):
             nec = min(nec_on_green, (total_areas[vid]*pos_sen[vid] - healthy_areas[vid])*ratio_nec_on_green)
             sen = total_areas[vid]*(1-pos_sen[vid])
             nec_sen[vid] = nec + sen
-            if vid==90 and round(nec_sen[vid],4)>round(total_areas[vid],4):
-                import pdb
-                pdb.set_trace()
         else:
             nec_sen[vid] = 0.
     return nec_sen
@@ -311,17 +334,45 @@ def compute_necrosis_percentage_by_leaf(g, label='LeafElement'):
         Necrosis percentage on each part of the MTG given by the label
     """
     from alinea.alep.architecture import get_leaves
-    vids = get_leaves(g, label=label)
+    leaves = get_leaves(g, label=label)
     total_areas = g.property('area')
     lesions = g.property('lesions')
     necrotic_areas = {}
     for vid in total_areas.iterkeys():
         if vid in lesions.keys():
-            necrotic_areas[vid] = sum(lesion.necrotic_area for lesion in lesions[vid])
+            necrotic_areas[vid] = sum([lesion.necrotic_area for lesion in lesions[vid]])
         else:
             necrotic_areas[vid] = 0.
-    return {vid:(100*necrotic_areas[vid]/float(total_areas[vid]) if total_areas[vid]>0. else 0.) for vid in vids}
-
+            
+    # Calculate by blade
+    blades = np.array_split(leaves,np.where(np.diff(leaves)!=1)[0]+1)
+    necrosis_by_leaf={}
+    for bl in blades:
+        area_bl = np.array([total_areas[lf] for lf in bl])
+        if any(area_bl==0.):
+            for lf in bl[area_bl==0.]:
+                necrosis_by_leaf[lf]=0.
+            bl = np.delete(bl,np.where(area_bl==0.))
+            area_bl = np.delete(area_bl,np.where(area_bl==0.))
+        nec_bl = np.array([necrotic_areas[lf] for lf in bl])
+        diff = area_bl - nec_bl
+        if any(diff<0):
+            for lf in bl[diff<0]:
+                necrosis_by_leaf[lf]=100.
+            to_share = abs(sum(diff[diff<0]))
+            bl = np.delete(bl,np.where(diff<0))
+            area_bl = np.delete(area_bl,np.where(diff<0))
+            diff = np.delete(diff,np.where(diff<0))
+            diff*=1-to_share/sum(diff)
+        for ind in range(len(bl)):
+            if diff[ind]>area_bl[ind]:
+                import pdb
+                pdb.set_trace()
+            necrosis_by_leaf[bl[ind]] = 100.*(1-diff[ind]/area_bl[ind])
+    
+    #return {vid:(100*necrotic_areas[vid]/float(total_areas[vid]) if total_areas[vid]>0. else 0.) for vid in vids}
+    return necrosis_by_leaf
+    
 def compute_necrotic_area_by_leaf(g, label='LeafElement'):
     """ Compute necrosis percentage on each part of the MTG given by the label.
     
@@ -392,23 +443,7 @@ def compute_total_necrosis_percentage(g, label='LeafElement'):
     -------
     necrosis_percentage: float
         Ratio between necrotic (and sporulating) disease area and total area of leaves (in %)
-    """
-    # Leaf
-    # green_areas = g.property('green_area')
-    # total_green_area = sum(green_areas.values())
-    
-    # Disease
-    # lesions = g.property('lesions')
-    # if lesions:
-        # lesions = [l for les in lesions.values() for l in les 
-                    # if (l.status>=l.fungus.NECROTIC and not l.is_senescent)]
-        # total_necrotic_area = sum(l.surface for l in lesions)
-    # else:
-        # total_necrotic_area = 0.
-
-    # Compute ratio, i.e. necrosis percentage
-    # return 100 * total_necrotic_area / total_green_area if total_green_area > 0. else 0.
-    
+    """   
     from numpy import mean
     nec = compute_necrosis_percentage_by_leaf(g, label=label)
     return mean(nec.values())
@@ -457,7 +492,7 @@ def compute_normalised_audpc(necrosis, total_area):
        AUDPC divided by a theoretical maximum value
     """
     import numpy as np
-    from scipy.integrate import simps, trapz
+    from scipy.integrate import trapz
     full_necrosis = np.array([100. if total_area[k]>0. else 0. 
                               for k in range(len(total_area))])
     
@@ -657,6 +692,8 @@ def save_image(scene, image_name='%s/img%04d.%s', directory='.', index=0, ext='p
  
 ######################################################################
 from numpy import mean
+import numpy as np
+from scipy.integrate import trapz
 
 class LeafInspector:
     def __init__(self, g, blade_id=None, label='LeafElement'):
@@ -816,16 +853,6 @@ class LeafInspector:
     def update_disease_area(self, g):
         disease_area = compute_lesion_areas_by_leaf(g, label=self.label)
         self.leaf_disease_area.append(sum([disease_area[id] for id in self.ids]))
-        
-        lesions = g.property('lesions')
-        nb_lesions = 0.
-        for id in self.ids:
-            if id in lesions:
-                nb_lesions += len(lesions[id])
-        if nb_lesions < self.previous_nb_lesions:
-            import pdb
-            pdb.set_trace()
-        self.previous_nb_lesions = nb_lesions
     
     def update_green_lesions_area(self, g):
         green_lesion_areas = compute_green_lesion_areas_by_leaf(g, label=self.label)
@@ -988,7 +1015,24 @@ class LeafInspector:
             self.nb_spores_emitted.append(sum([(l.nb_spores_emitted if l.nb_spores_emitted!=None else 0.) for l in lesion_list]))
         else:
             self.nb_spores_emitted.append(0.)
-    
+            
+    def update_audpc(self):
+        try:
+            ga = np.array(self.leaf_green_area)
+        except:
+            raise "Calculation of leaf green area with LeafInspector required"
+        try:
+            sev = np.array(self.severity)
+        except:
+            raise "Calculation of severity with LeafInspector required"
+        if ga[-1]==0.:
+            au = np.zeros(len(sev))
+            au[ga>0]=sev[ga>0]
+            tdelta = np.arange(len(sev)/24)
+            self.audpc = trapz(au[::24], tdelta)
+        else:
+            self.audpc = 'audpc not available: leaf has not reached senescence'
+        
 #################################################################################
 class VineLeafInspector:
     def __init__(self, leaf_id, label='lf'):

@@ -121,16 +121,34 @@ class InoculationYoungLeaves:
                     except:
                         leaf.dispersal_units = [i]
                         
-class InoculationFirstLeaves:
+class InoculationLowerLeaves(object):
     """ Template class for inoculum allocation that complies with the guidelines of Alep.
     
     A class for a model of dispersal must include a method 'allocate'. In this example,
     dispersal units are randomly distributed.
     
     """
+        
+    def __init__(self, max_height=20.):
+        self.max_height = max_height
     
+    def is_iterable(self, obj):
+        """ Test if object is iterable """
+        import collections
+        return isinstance(obj, collections.Iterable)
+    
+    def get_leaf_height(self, leaf_geom):
+        from openalea.plantgl import all as pgl
+        tesselator = pgl.Tesselator()
+        bbc = pgl.BBoxComputer(tesselator)
+        if self.is_iterable(leaf_geom):
+            bbc.process(pgl.Scene(leaf_geom))
+        else:
+            bbc.process(pgl.Scene([pgl.Shape(leaf_geom)]))
+        return bbc.result.getCenter()[2]
+        
     def allocate(self, g, inoculum, label='LeafElement'):
-        """ Select randomly elements of the MTG and allocate them a random part of the inoculum.
+        """ Select lower elements of the MTG and allocate them a random part of the inoculum.
 
         Parameters
         ----------
@@ -145,26 +163,32 @@ class InoculationFirstLeaves:
         -------
         None
             Update directly the MTG
-        """        
-        vids = [12, 13, 23, 24, 34, 35, 178, 179, 311, 312, 444, 445]
+        """
+        from alinea.alep.architecture import get_leaves
+        
+        leaves = get_leaves(g, label='LeafElement')
+        geometries = g.property('geometry')
+        vids = list(leaf for leaf in leaves if leaf in geometries.iterkeys()
+                        and self.get_leaf_height(geometries[leaf])<=self.max_height)
         n = len(vids)
-            
-        for i in inoculum:
-            idx = random.randint(0,n-1)
-            v = vids[idx]
-            leaf = g.node(v)
-            # Set a position for i :
-            i.position = [0, 0] # TODO : improve
-            
-            #  Attach it to the leaf
-            if isinstance(i, Lesion):
-                try:
-                    leaf.lesions.append(i)
-                except:
-                    leaf.lesions = [i]            
-            elif isinstance(i, DispersalUnit):
-                i.deposited()
-                try:
-                    leaf.dispersal_units.append(i)
-                except:
-                    leaf.dispersal_units = [i]
+        
+        if n>0:
+            for i in inoculum:
+                idx = random.randint(0,n-1)
+                v = vids[idx]
+                leaf = g.node(v)
+                # Set a position for i :
+                i.position = [0, 0] # TODO : improve
+                
+                #  Attach it to the leaf
+                if isinstance(i, Lesion):
+                    try:
+                        leaf.lesions.append(i)
+                    except:
+                        leaf.lesions = [i]            
+                elif isinstance(i, DispersalUnit):
+                    i.deposited()
+                    try:
+                        leaf.dispersal_units.append(i)
+                    except:
+                        leaf.dispersal_units = [i]

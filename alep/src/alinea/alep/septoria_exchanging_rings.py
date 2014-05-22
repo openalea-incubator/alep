@@ -224,7 +224,7 @@ class SeptoriaExchangingRings(Lesion):
             import pdb
             pdb.set_trace()
         
-        if ddday<self.ddday_before_senescence:
+        if round(ddday,6)<round(self.ddday_before_senescence,6):
             import pdb
             pdb.set_trace()
         #

@@ -134,7 +134,7 @@ def get_source_leaf_and_max_height(g, position='center', relative_height=2./3):
     bbc = pgl.BBoxComputer(tesselator)
     leaves = get_leaves(g, label='LeafElement')
     centroids = g.property('centroid')
-    geometries = g.property('geometry')    
+    geometries = g.property('geometry')
     targets = list(leaf for leaf in leaves if leaf in geometries.iterkeys())
     for vid in targets:
         if is_iterable(geometries[vid]):

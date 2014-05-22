@@ -13,7 +13,7 @@ from alinea.alep.protocol import *
 from alinea.alep.inoculation import RandomInoculation
 from openalea.vpltk import plugin
 
-def generate_stock_du(nb_dus, disease):
+def generate_stock_du(nb_dus, disease, **kwds):
     """ Generate a stock of dispersal units.
     
     Parameters
@@ -28,9 +28,18 @@ def generate_stock_du(nb_dus, disease):
     dus: list of objects
         List of dispersal units of the given disease
     """
-    DU = disease.dispersal_unit()
+    DU = disease.dispersal_unit(**kwds)
     return [DU(nb_spores=rd.randint(1,100), status='emitted')
                         for i in range(nb_dus)]
+
+class DU_Generator(object):
+    """ Generator of DU to be used in the form of SoilInoculum in septo3D."""
+    def __init__(self, disease):
+        self.disease = disease
+        
+    def create_stock(self, nb_dus, **kwds):
+        DU = self.disease.dispersal_unit(**kwds)
+        return [DU(nb_spores=rd.randint(1,100), status='emitted') for i in range(int(nb_dus))]
                         
 def generate_stock_lesions(nb_lesions, disease, position=None):
     """ Generate a stock of lesions.
@@ -47,7 +56,7 @@ def generate_stock_lesions(nb_lesions, disease, position=None):
     lesions: list of objects
         List of lesions of the given disease
     """
-    lesion = disease.lesion()
+    lesion = disease.lesion(**kwds)
     return [lesion(nb_spores=rd.randint(1,100), position=position) for i in range(nb_lesions)]
 
 def generate_lesions_with_emission(nb_lesions, nb_dus, disease):

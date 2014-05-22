@@ -70,6 +70,8 @@ class SeptoriaAgePhysio(Lesion):
         self.hist_nec = []
         self.hist_spo = []
         self.hist_empty = []
+        self.hist_can_compute_rings = []
+        self.hist_nb_rings_chlo = []
     
     def is_incubating(self):
         """ Check if lesion status is incubation. """
@@ -119,6 +121,8 @@ class SeptoriaAgePhysio(Lesion):
         self.hist_nec.append(self.surface_nec)
         self.hist_spo.append(self.surface_spo)
         self.hist_empty.append(self.surface_empty)
+        self.hist_can_compute_rings.append(self.can_compute_rings())
+        self.hist_nb_rings_chlo.append(len(self.surfaces_chlo))
         
         # Temporary      
         # if self.surface_chlo>0. and len(self.surfaces_nec>1.) and self.surfaces_nec[0]==0.:
@@ -177,11 +181,15 @@ class SeptoriaAgePhysio(Lesion):
         if self.growth_is_active:
         
             # TEMPORARY
-            self.age_competition = self.age_dday
+            if growth_offer<self.growth_demand:
+                self.age_competition = self.age_dday
         
             f = self.fungus
             # Growth offer is added to surface according to state
             if self.is_incubating():
+                if growth_offer<0:
+                    import pdb
+                    pdb.set_trace()
                 self.surface_first_ring += growth_offer
             else:
                 if self.surface_first_ring < f.Smin:
@@ -208,13 +216,7 @@ class SeptoriaAgePhysio(Lesion):
                     self.surfaces_chlo = np.append(self.surfaces_chlo, surf[len(self.surfaces_chlo):])
 
             # Reset distribution in new rings and growth demand
-            self.distribution_new_ring = 0.
-                       
-            # Temporary
-            # if round(self.surface,6)<round(self.previous_surface,6):
-                # import pdb
-                # pdb.set_trace()
-            # self.previous_surface = self.surface           
+            self.distribution_new_ring = 0.         
 
             # If lesion has reached max size, disable growth
             if self.surface >= f.Smax:
@@ -236,6 +238,9 @@ class SeptoriaAgePhysio(Lesion):
         self.age_physio += progress
         # Compute growth demand
         if self.age_physio<1.:
+            if self.surface_first_ring<0:
+                import pdb
+                pdb.set_trace()
             if self.growth_is_active:
                 self.growth_demand = progress * f.Smin
         else:
@@ -288,6 +293,7 @@ class SeptoriaAgePhysio(Lesion):
                 if self.status_edge==f.CHLOROTIC:
                     rings = rings[floor(age_edge/width):]
                     rings[0] = age_edge
+                
                 # 3. Get the beginnings and the ends of age classes
                 begs = rings[:-1]
                 ends = rings[1:]
@@ -334,6 +340,10 @@ class SeptoriaAgePhysio(Lesion):
                 self.change_status()
                 self.reset_age_physio()
                 self.necrosis()
+        
+        # if self.is_necrotic() and self.status_edge==f.CHLOROTIC and self.age_physio_edge==0. and len(self.surfaces_chlo)<=10.:
+            # import pdb
+            # pdb.set_trace()
     
     def necrosis(self):
         """ Compute physiological age progress to sporulation.
@@ -525,6 +535,9 @@ class SeptoriaAgePhysio(Lesion):
                         
             if self.status < f.CHLOROTIC:
                 self.surface_dead = self.surface_alive
+                if self.surface_dead<0.:
+                    import pdb
+                    pdb.set_trace()
                 self.surface_first_ring = 0.
                 self.disable()
             elif self.is_chlorotic() and age_switch >= age_physio:
@@ -596,7 +609,7 @@ class SeptoriaAgePhysio(Lesion):
     def can_compute_rings(self):
         """ Allow ring formation only if particular first ring has reached Smin. """
         f = self.fungus
-        return self.surface_first_ring == f.Smin
+        return round(self.surface_first_ring, 16) == f.Smin
 
     def compute_all_surfaces(self):
         """ Not needed in this model.
