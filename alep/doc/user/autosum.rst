@@ -10,15 +10,6 @@ Reference guide
 .. currentmodule:: alinea.alep.__init__
 
 
-:mod:`cycle2` module
-===============================================
-.. automodule:: alinea.alep.cycle2
-    :members:
-    :undoc-members:
-    :inherited-members:
-    :show-inheritance:
-    :synopsis: doc todo
-
 :mod:`protocol` module
 ===============================================
 .. automodule:: alinea.alep.protocol
@@ -26,5 +17,19 @@ Reference guide
     :undoc-members:
     :inherited-members:
     :show-inheritance:
-    :synopsis: doc todo
 
+:mod:`fungal objects` module
+===============================================
+.. automodule:: alinea.alep.fungal_objects
+    :members:
+    :undoc-members:
+    :inherited-members:
+    :show-inheritance:
+
+:mod:`disease operation` module
+===============================================
+.. automodule:: alinea.alep.disease_operation
+    :members:
+    :undoc-members:
+    :inherited-members:
+    :show-inheritance:
