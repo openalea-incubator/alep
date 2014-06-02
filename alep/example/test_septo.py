@@ -49,7 +49,8 @@ def run_simulation(start_year=1998, **kwds):
     sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
     emitter = SeptoriaRainEmission(domain_area=domain_area)
     transporter = Septo3DSplash()
-    washor = RapillyWashing()
+    # transporter = Septo3DTransport(wash=True)
+    # washor = RapillyWashing()
     
     # Temp
     inoculator = InoculationLowerLeaves()
@@ -130,7 +131,7 @@ def run_simulation(start_year=1998, **kwds):
         if rain_eval:
             if rain_eval.value.rain.mean()>0.:
                 g, nb = disperse(g, emitter, transporter, "septoria", label='LeafElement')
-                wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
+                # wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
         
         # if wheat_eval:
             # scene = plot_severity_by_leaf(g)
@@ -198,3 +199,10 @@ def read_outputs(start_years = [1998, 2001, 2002], **kwds):
         else:
             out[str(year)] = load_out(year)
     return out
+    
+def run_sensi():
+    run_all_simulations(start_years = [1998, 2001, 2002], degree_days_to_chlorosis=[120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320])
+    run_all_simulations(start_years = [1998, 2001, 2002], Smin=[0.001, 0.003, 0.005, 0.01, 0.03, 0.05, 0.1, 0.3])
+    run_all_simulations(start_years = [1998, 2001, 2002], Smax=[0.04, 0.1, 0.2, 0.3, 0.5, 0.8, 1, 3, 5, 10])
+    run_all_simulations(start_years = [1998, 2001, 2002], frac=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1])
+    
