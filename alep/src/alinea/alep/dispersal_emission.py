@@ -29,7 +29,7 @@ class SeptoriaRainEmission:
         """
         self.domain_area = domain_area
         
-    def get_dispersal_units(self, g, fungus_name="septoria", label='LeafElement'):
+    def get_dispersal_units(self, g, fungus_name="septoria", label='LeafElement', weather_data=None):
         """ Compute emission of dispersal units by rain splash on wheat.
         
         Parameters
