@@ -85,10 +85,22 @@ def get_disease_area(out, year=1998, leaf='rosette', **kwds):
     params = np.unique([k[5:] for k in out.iterkeys()])
     df = pd.DataFrame()
     out_yr = {k:v for k,v in out.iteritems() if k.startswith(str(year))}
-    # seq = pd.date_range(start = str(year)+"-10-01 01:00:00", end = str(year+1)+"-07-01 01:00:00", freq='H')
-    seq = pd.date_range(start = str(year)+"-10-01 01:00:00", end = str(year)+"-12-31 01:00:00", freq='H')
+    seq = pd.date_range(start = str(year)+"-10-01 01:00:00", end = str(year+1)+"-07-01 01:00:00", freq='H')
     seq = seq[1:] # TODO check if normal
     areas = {k[5:]:out_yr[k][leaf].leaf_disease_area for k in out_yr.keys()}
+    for par in params:
+        df[par] = areas[par]
+    df.index = seq
+    return df
+    
+def get_green_area(out, year=1998, leaf='rosette', **kwds):
+    years = np.unique([k[:4] for k in out.iterkeys()])
+    params = np.unique([k[5:] for k in out.iterkeys()])
+    df = pd.DataFrame()
+    out_yr = {k:v for k,v in out.iteritems() if k.startswith(str(year))}
+    seq = pd.date_range(start = str(year)+"-10-01 01:00:00", end = str(year+1)+"-07-01 01:00:00", freq='H')
+    seq = seq[1:] # TODO check if normal
+    areas = {k[5:]:out_yr[k][leaf].leaf_green_area for k in out_yr.keys()}
     for par in params:
         df[par] = areas[par]
     df.index = seq
@@ -120,4 +132,35 @@ def plot_audpc(df_audpc):
     
 def plot_disease_area(df_area):
     pass
+
+def plot_disease_area_by_leaf(out, year=1998, **kwds):    
+    fig, ax = plt.subplots(2,2)
+    df_ros = get_disease_area(out, year=year, leaf='rosette', **kwds)
+    df_3 = get_disease_area(out, year=year, leaf='F 3', **kwds)
+    df_2 = get_disease_area(out, year=year, leaf='F 2', **kwds)
+    df_1 = get_disease_area(out, year=year, leaf='F 1', **kwds)
     
+    df_1.plot(ax=ax[0][0])
+    ax[0][0].annotate('Leaf 1', xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
+    df_2.plot(ax=ax[0][1])
+    ax[0][1].annotate('Leaf 2', xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
+    df_3.plot(ax=ax[1][0])
+    ax[1][0].annotate('Leaf 3', xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
+    df_ros.plot(ax=ax[1][1])
+    ax[1][1].annotate('Rosette', xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
+    
+def plot_green_area_by_leaf(out, year=1998, **kwds):    
+    fig, ax = plt.subplots(2,2)
+    df_ros = get_green_area(out, year=year, leaf='rosette', **kwds)
+    df_3 = get_green_area(out, year=year, leaf='F 3', **kwds)
+    df_2 = get_green_area(out, year=year, leaf='F 2', **kwds)
+    df_1 = get_green_area(out, year=year, leaf='F 1', **kwds)
+    
+    df_1.plot(ax=ax[0][0])
+    ax[0][0].annotate('Leaf 1', xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
+    df_2.plot(ax=ax[0][1])
+    ax[0][1].annotate('Leaf 2', xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
+    df_3.plot(ax=ax[1][0])
+    ax[1][0].annotate('Leaf 3', xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
+    df_ros.plot(ax=ax[1][1])
+    ax[1][1].annotate('Rosette', xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
