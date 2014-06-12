@@ -17,7 +17,7 @@ class SeptoriaDU(DispersalUnit):
     """ Define a dispersal unit specific of septoria.
     
     """
-    fungus = None
+    #fungus = None
     def __init__(self, nb_spores=None, position=None, status=None):
         """ Initialize the dispersal unit of septoria.
         
@@ -112,6 +112,10 @@ class SeptoriaParameters(Parameters):
                  rain_events_to_empty = 3,
                  production_rate = 100000,
                  threshold_spores = 1000,
+                 nb_dispersal_events_to_emtpy = 3,
+                 density_dus_emitted_ref = 1.79e3,
+                 reduction_by_rain = 0.5,
+                 threshold_spo = 1e-4,
                  nb_rings_by_state = 10,
                  age_physio_switch_senescence=1,
                  *args, **kwds):
@@ -156,6 +160,16 @@ class SeptoriaParameters(Parameters):
             Number of spores produced by cm2 of new sporulating surface
         treshold_spores: int
             Number of spores left in stock to consider the lesion empty
+        rain_events_to_empty: int
+            Number of dispersal events required to empty a surface in sporulation
+        density_dus_emitted_ref: float
+            Reference value for the number of dispersal units emitted at each event by a cm2 of surface in sporulation
+            Used to calculate 'density_dus_emitted_max': list([int, int, int])
+                Maximal number of dispersal units emitted at each event by a cm2 of surface in sporulation.
+                Indexes in list refer to the number of rain events undergone by the surface in sporulation.
+                len(density_dus_emitted_max) = nb_dispersal_events_to_emtpy
+        reduction_by_rain: float
+            Reduction factor of number of dus emitted by cm2 of surface in sporulation after each rain event.
         """
         self.name = "septoria"
         self.__class__.model = model
@@ -184,6 +198,11 @@ class SeptoriaParameters(Parameters):
         self.production_rate = production_rate
         # TODO : Improve this parameter. Very Sensitive.
         self.threshold_spores = threshold_spores
+        # TODO : link values in list of density_dus_emitted_max to rain_events_to_empty
+        self.density_dus_emitted_max = np.zeros(rain_events_to_empty)
+        for ind in range(rain_events_to_empty):
+            self.density_dus_emitted_max[ind] = density_dus_emitted_ref*(reduction_by_rain**ind)
+        self.threshold_spo = threshold_spo
         # Parameters for new model of septoria with age physio
         self.nb_rings_by_state = nb_rings_by_state
         self.age_physio_switch_senescence = age_physio_switch_senescence
@@ -227,6 +246,8 @@ def proba(p):
     return random() < p
 
 # Plugin function #################################################################
+# Disease == Fungus !!!!!!
+
 def plugin_septoria(model='septoria_age_physio'):
     diseases=plugin.discover('alep.disease')
     try:

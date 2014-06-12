@@ -86,9 +86,9 @@ class NoPriorityGrowthControl:
             total_surf = sum([l.surface for lf in leaf for l in lesions.get(lf,[])])
             areas = g.property('area')
             total_area = sum(areas[lf] for lf in leaf)
-            if round(total_surf,6) > round(total_area,6):
-                import pdb
-                pdb.set_trace()
+            # if round(total_surf,6) > round(total_area,6):
+                # import pdb
+                # pdb.set_trace()
         
 class GrowthControlVineLeaf:
     """ Class for growth control used when the phyto-element is a vine leaf.

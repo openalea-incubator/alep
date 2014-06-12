@@ -1,5 +1,5 @@
 # -*- coding: latin1 -*- 
-
+import copy
 ##
 ##
 
@@ -7,12 +7,14 @@
     rings and parameters.
 
 """
+
 # Dispersal unit ##################################################################
 class DispersalUnit(object):
     """ Generic class for a dispersal unit.
     
     """
-    def __init__(self, nb_spores=None, position=None, status=None):
+    fungus = None
+    def __init__(self, nb_spores=None, position=None, mutable=False):
         """ Initialize the dispersal unit.
         
         Parameters
@@ -30,9 +32,10 @@ class DispersalUnit(object):
         """
         self.nb_spores = nb_spores
         self.position = position
-        self.status = status
         self.is_active = True
         self.can_infect_at_position = None
+        if mutable:
+            self.fungus = copy.copy(self.__class__.fungus)
     
     def disable(self):
         """ disable a dispersal unit.
@@ -80,14 +83,21 @@ class DispersalUnit(object):
             None
         
         """
-        les = self.fungus(position=self.position, nb_spores=self.nb_spores)
-        try:
-            leaf.lesions.append(les)
-        except:
-            leaf.lesions = [les]
-        self.disable()
+        les = self.fungus.lesion()
+        if leaf==None:
+            self.disable()
+            return les
+        else:
+            try:
+                leaf.lesions.append(les)
+            except:
+                leaf.lesions = [les]
+            self.disable()
              
 # Lesions #################################################################################
+# /!\ TODO : Dans le cas ou on veut des parametres variables par lesion, il faut ecraser la variable
+# de classe 'fungus' par une variable d'instance. A mettre en option de init de lesion.
+
 class Lesion(object):
     """ Define a lesion interface.
 
@@ -108,7 +118,7 @@ class Lesion(object):
     ..todo:: improve header and doc
     """
     fungus = None
-    def __init__(self, position=None, nb_spores=None):
+    def __init__(self, position=None, nb_spores=None, mutable=False):
         """ Initialize the lesion. 
         
         Parameters
@@ -131,9 +141,20 @@ class Lesion(object):
         self.nb_spores = nb_spores
         # Position of the center of the lesion
         self.position = position
-        # List of dispersal units emitted by the lesion
-        self.emissions = []
+        if mutable:
+            self.fungus = copy.copy(self.__class__.fungus)
+        
+    def update(self, leaf):
+        pass
     
+    def emission(self, **kwds):
+        pass
+    
+    def create_dispersal_units(self, nb_dus=1):
+        """ Create new dispersal units of fungus.
+        """
+        return [self.fungus.dispersal_unit() for i in range(nb_dus)]
+        
     def disable_growth(self):
         """ Shut down lesion growth activity (turn it to False)
         
@@ -155,65 +176,52 @@ class Lesion(object):
         """
         self.is_active = False
         self.growth_demand = 0.
-                
-class BiotrophicLesion(Lesion):
-    """ Define the interface for a biotrophic lesion.
-    """
-    
-    def __init__(self, position=None, nb_spores=None):
-        super(BiotrophicLesion, self).__init__(nb_spores=nb_spores, position=position)
-        # Position of senescence the time step before :
-        # Used to compute the time left for growth before senescence occur
-        self.old_position_senescence = None
-
-    def update(self, leaf=None):
-        if not self.is_senescent:
-            self.update_age(leaf=leaf)
-        else: 
-            self.update_age_before_senescence(leaf=leaf)
-            
-    def senescence_response(self):
-        self.disable()
-
-class HemibiotrophicLesion(Lesion):
-    """ Define the interface for an hemibiotrophic lesion.
-    """
-    def __init__(self, position=None, nb_spores=None):
-        super(BiotrophicLesion, self).__init__(nb_spores=nb_spores, position=position)
-        # Position of senescence the time step before :
-        # Used to compute the time left for growth before senescence occur
-        self.old_position_senescence = None
-
-    def update(self, leaf=None):
-        if not self.is_senescent:
-            self.update_age(leaf=leaf)
-        else: 
-            self.update_age_before_senescence(leaf=leaf)
-            
-    def senescence_response(self):
-        self.disable_growth()
-        self.update_surface_dead()
-        self.complete_update()
-        
-class NecrotrophicLesion(Lesion):
-    """ Define the interface for a necrotrophic lesion.
-    """
-    def __init__(self, position=None, nb_spores=None):
-        super(NecrotrophicLesion, self).__init__(nb_spores=nb_spores, position=position)
-    
-    def update(self, leaf=None):
-        self.update_age(leaf=leaf)
-    
-# Rings ##################################################################################
-class Ring(object):
-    """ Ring of Lesion at a given age.
-    """
 
 # Fungus Parameters (e.g. .ini): config of the fungus ####################################
-class Parameters(object):
-    def write(self, filename):
-        pass
+#class Parameters(object):
+#    def write(self, filename):
+#        pass
     
-    @staticmethod
-    def read(filename):
-        pass
+#    @staticmethod
+#    def read(filename):
+#        pass
+        
+
+ 
+# class _Fungus(object):
+    # def __init__(self, name='base_fungus', Lesion=Lesion, DispersalUnit = DispersalUnit, parameters = {}):
+        # self.name = name
+        # self.Lesion = Lesion
+        # self.DispersalUnit = DispersalUnit
+        # for k,v in parameters.iteritems():
+            # exec "self.%s = %s"%(k,v)
+            
+class Fungus(object):
+    
+    def __init__(self, name='template', Lesion=Lesion, DispersalUnit = DispersalUnit, parameters = {}):
+        self.name = name
+        self.Lesion_class = Lesion
+        self.DispersalUnit_class = DispersalUnit
+        self.__dict__.update(parameters)
+    
+#    @classmethod
+#    def fungus(self):
+#        return _Fungus(self.name, self.lesion_class, self.DU_class, self.parameters)
+    
+#    @classmethod
+    def dispersal_unit(self, mutable=False, **kwds):
+        self.__dict__.update(kwds)
+        self.DispersalUnit_class.fungus = self
+        instance = self.DispersalUnit_class(mutable=mutable)
+        return instance
+        
+#    @classmethod
+    def lesion(self, mutable=False, **kwds):
+        self.__dict__.update(kwds)
+        self.Lesion_class.fungus = self
+        instance = self.Lesion_class(mutable=mutable)
+        return instance
+
+class Parameters(object):
+    pass
+    

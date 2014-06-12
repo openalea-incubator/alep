@@ -45,13 +45,13 @@ class SeptoriaAgePhysio(Lesion):
         self.surface_first_ring = 0.
         self.surfaces_chlo = np.array([])
         self.surfaces_nec = np.array([])
-        self.surface_spo = 0.
+        self.surfaces_spo = np.zeros(self.fungus.rain_events_to_empty)
         self.surface_empty = 0.
         # Surface of disabled rings
         self.surface_dead = 0.
         # Stock of spores
         self.stock_spores = None
-        self.nb_spores_emitted = 0.
+        self.nb_spores_emitted = None
         # Is first hour of rain
         self.first_rain_hour = False
         # Counter of calculation for senescence
@@ -128,12 +128,6 @@ class SeptoriaAgePhysio(Lesion):
         # if self.surface_chlo>0. and len(self.surfaces_nec>1.) and self.surfaces_nec[0]==0.:
             # import pdb
             # pdb.set_trace()
-        
-        # Manage rain perception
-        if leaf.rain_intensity > 0. and leaf.relative_humidity >= self.fungus.rh_min:
-            self.first_rain_hour = True if not self.first_rain_hour else False
-        else:
-            self.first_rain_hour = False
 
     def compute_delta_ddays(self, dt=1., leaf=None):
         """ Compute delta degree days in dt.
@@ -340,10 +334,6 @@ class SeptoriaAgePhysio(Lesion):
                 self.change_status()
                 self.reset_age_physio()
                 self.necrosis()
-        
-        # if self.is_necrotic() and self.status_edge==f.CHLOROTIC and self.age_physio_edge==0. and len(self.surfaces_chlo)<=10.:
-            # import pdb
-            # pdb.set_trace()
     
     def necrosis(self):
         """ Compute physiological age progress to sporulation.
@@ -438,11 +428,18 @@ class SeptoriaAgePhysio(Lesion):
         """ Compute production of spores. """
         f = self.fungus
         # First time first ring sporulates
+        # if self.stock_spores==None:
+            # self.stock_spores = self.surface_first_ring * f.production_rate
+            # self.surface_spo += self.surface_first_ring
+        # self.stock_spores += self.to_sporulation * f.production_rate
+        # self.surface_spo += self.to_sporulation
+        # self.to_sporulation = 0.
+        
         if self.stock_spores==None:
             self.stock_spores = self.surface_first_ring * f.production_rate
-            self.surface_spo += self.surface_first_ring
+            self.surfaces_spo[0] += self.surface_first_ring
         self.stock_spores += self.to_sporulation * f.production_rate
-        self.surface_spo += self.to_sporulation
+        self.surfaces_spo[0] += self.to_sporulation
         self.to_sporulation = 0.
     
     def is_stock_available(self, leaf):
@@ -466,10 +463,30 @@ class SeptoriaAgePhysio(Lesion):
             Availability of the stock
         
         """
-        f = self.fungus
-        return (self.stock_spores>0. and self.is_sporulating() and 
-                leaf.relative_humidity >= f.rh_min and self.first_rain_hour)
+        # f = self.fungus
+        # return (self.stock_spores>0. and self.is_sporulating() and 
+                # leaf.relative_humidity >= f.rh_min and self.first_rain_hour)
+        return self.is_sporulating()
 
+    def emission(self, density_DU_emitted, rain_exposition=1.):
+        """ Return number of DUs emitted by the lesion. """
+        from alinea.alep.septoria import SeptoriaDU
+        f = self.fungus
+        du_factor = float(density_DU_emitted)/f.density_dus_emitted_max
+        du_factor[du_factor>1.]=1.
+        delta_spo = rain_exposition*self.surfaces_spo*du_factor
+        self.surfaces_spo -= delta_spo
+        self.surfaces_spo[1:]+=delta_spo[:f.rain_events_to_empty-1]
+        if delta_spo[-1]>0.:
+            self.surface_empty += delta_spo[-1]
+        if self.status_edge == f.SPORULATING and self.surface_spo <= f.threshold_spo:
+            # Everything becomes empty and the lesion is disabled
+            self.surface_empty += sum(self.surfaces_spo)
+            self.surfaces_spo = np.zeros(len(self.surfaces_spo))
+            self.change_status()
+            self.disable()
+        return [SeptoriaDU() for i in range(sum(delta_spo*[min(x,density_DU_emitted) for x in f.density_dus_emitted_max]))]
+        
     def reduce_stock(self, nb_spores_emitted):
         """ Reduce the stock of spores after emission.
         
@@ -631,6 +648,11 @@ class SeptoriaAgePhysio(Lesion):
         """ Calculate the surface in chlorosis. """
         return (sum(self.surfaces_nec)+self.surface_first_ring) if self.is_necrotic() else sum(self.surfaces_nec)
 
+    @property
+    def surface_spo(self):
+        """ Calculate the surface in sporulation. """
+        return sum(self.surfaces_spo)
+    
     @property
     def necrotic_area(self):
         """ calculate surface necrotic + sporulating. """

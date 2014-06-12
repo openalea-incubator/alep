@@ -1,6 +1,7 @@
 import numpy as np
 from alinea.alep.wheat import adel_one_leaf
 from alinea.alep.protocol import disperse
+from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.alep.fungal_objects import DispersalUnit, Lesion
 from alinea.alep.septoria import plugin_septoria
 

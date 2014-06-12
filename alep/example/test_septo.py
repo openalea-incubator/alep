@@ -111,18 +111,21 @@ def run_simulation(start_year=1998, **kwds):
                                         (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
                                         else positions[vid]) for vid in vids})
 
-        # Develop disease
+
+        # Update g for the disease:
         if septo_eval:
-            # Update g for the disease
             sen_model.find_senescent_lesions(g, label = 'LeafElement')
             update_healthy_area(g, label = 'LeafElement')
-            
-            # External contamination
+        
+        # External contamination
+        if rain_eval:        
             if rain_eval.value.rain.mean()>0.:
                 g = external_contamination(g, inoc, contaminator, weather_eval.value, **kwds)
                 # dus = generate_stock_du(10, septoria, **kwds)
                 # initiate(g, dus, inoculator)
 
+        # Develop disease
+        if septo_eval:
             # Update dispersal units and lesions
             infect(g, septo_eval.dt, infection_controler, label='LeafElement')
             update(g, septo_eval.dt, growth_controler, sen_model, label='LeafElement')

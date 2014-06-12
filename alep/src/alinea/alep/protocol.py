@@ -288,9 +288,6 @@ def disperse(g,
         DU = emission_model.get_dispersal_units(g, fungus_name, label)
     else: 
         DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
-
-    # Temp /!\
-    nb_dus = sum(len(du) for du in DU.itervalues())
     
     # Transport of dispersal units
     if sum([len(v) for v in DU.itervalues()])>0:
@@ -308,85 +305,7 @@ def disperse(g,
                     if not 'dispersal_units' in leaf.properties():
                         leaf.dispersal_units=[]  
                     leaf.dispersal_units.append(d)
-    # return g
-    # Temp /!\
-    return g, nb_dus
-    
-# def disperse(g, 
-             # dispersal_model,
-             # fungus_name, 
-             # label="LeafElement",
-             # activate=True):
-    # """ Disperse spores of the lesions of fungus identified by fungus_name.
-        
-    # Parameters
-    # ----------
-    # g: MTG
-        # MTG representing the canopy (and the soil)
-    # dispersal_model: model
-        # Model that is used to position each DU in stock on g
-    # fungus_name: str
-        # Name of the fungus
-    # label: str
-        # Label of the part of the MTG concerned by the calculation
-    # activate: bool
-        # True if computation is achieved, False otherwise
-    
-    # Returns
-    # -------
-    # g: MTG
-        # Updated MTG representing the canopy (and the soil)
-        
-    # Example
-    # -------
-      # >>> g = MTG()
-      # >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
-      # >>> inoculator = RandomInoculation()
-      # >>> initiate(g, stock, inoculator)
-      # >>> controler = GrowthControlModel()
-      # >>> dispersor = SplashModel()
-      # >>> dt = 1
-      # >>> nb_steps = 1000
-      # >>> for i in range(nb_steps):
-      # >>>     update_climate(g)
-      # >>>     infect(g, dt)
-      # >>>     update(g,dt, controler)
-      # >>>     if dispersal_event():
-      # >>>       scene = plot3d(g)
-      # >>>       disperse(g, dispersor, "septoria")
-      # >>> return g
-    
-    # """
-    # if activate:
-        # # Get lesions with inactive lesions removed
-        # lesions = {k:[l for l in les if l.is_active] 
-                    # for k, les in g.property('lesions').iteritems()}  
-        # DU = {}
-        # for vid, l in lesions.iteritems():
-            # for lesion in l:
-                # if lesion.fungus.name is fungus_name and lesion.stock_spores > 0.:
-                    # leaf = g.node(vid)
-                    # if vid not in DU:
-                        # DU[vid] = []
-                    # DU[vid] += lesion.emission(leaf) # other derterminant (microclimate...) are expected on leaf
-
-        # # Transport of dispersal units
-        # if sum([len(v) for v in DU.itervalues()])>0:
-            # deposits = dispersal_model.disperse(g, DU) # update DU in g , change position, status       
-            # # Allocation of new dispersal units
-            # for vid,dlist in deposits.iteritems():
-                # if g.label(vid).startswith(label):
-                    # leaf = g.node(vid)
-                    # for d in dlist:
-                        # d.deposited()
-                        # if not 'dispersal_units' in leaf.properties():
-                            # leaf.dispersal_units=[]  
-                        # # /!\ Temp /!\ G.Garin 07/06/2013:
-                        # # Limit propagation
-                        # # if random.random()<0.05:                        
-                            # # leaf.dispersal_units.append(d)
-                        # leaf.dispersal_units.append(d)
-    # # return g
+    return g
 
 def wash(g, 
          washing_model, 
@@ -446,29 +365,3 @@ def wash(g,
                            
             dispersal_units[vid] = [d for d in du if d.is_active]
     return g
-
-def control_growth(g, control_model, label="LeafElement"):
-    """ Regulate the growth of lesion according to their growth demand,
-    the free space on leaves and a set of rules in the growth model.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy (and the soil)
-    control_model: 
-        Model with rules of competition between the lesions
-    label: str
-        Label of the part of the MTG concerned by the calculation
-    
-    Returns
-    -------
-    g: MTG
-        Updated MTG representing the canopy (and the soil)
-    
-    """
-    control_model.control(g, label)
-    # Note : method is not useful anymore... Integrated into update
-    return g,
-
-def nutrients_uptake(g):
-    pass
