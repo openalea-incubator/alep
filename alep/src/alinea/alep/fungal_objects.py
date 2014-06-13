@@ -202,15 +202,16 @@ class Fungus(object):
         self.name = name
         self.Lesion_class = Lesion
         self.DispersalUnit_class = DispersalUnit
+        self.parameter_names = parameters.keys()
         self.__dict__.update(parameters)
     
 #    @classmethod
-#    def fungus(self):
-#        return _Fungus(self.name, self.lesion_class, self.DU_class, self.parameters)
+    def parameters(self):
+        return {k:getattr(self,k) for k in self.parameter_names}
     
 #    @classmethod
     def dispersal_unit(self, mutable=False, **kwds):
-        self.__dict__.update(kwds)
+        self.__dict__.update(kwds) #should theses new attributes be added to parameters ?
         self.DispersalUnit_class.fungus = self
         instance = self.DispersalUnit_class(mutable=mutable)
         return instance

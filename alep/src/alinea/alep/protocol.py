@@ -163,7 +163,8 @@ def update(g, dt,
            growth_control_model,
            senescence_model=None, 
            label="LeafElement",
-           activate=True):
+           activate=True,
+           weather_data=None):
     """ Update the status of every lesion on the MTG.
     
     Parameters
@@ -222,7 +223,10 @@ def update(g, dt,
                 # Update active lesions
                 for lesion in l:
                     leaf=g.node(vid)
-                    lesion.update(dt, leaf)
+                    if weather_data is None:
+                        lesion.update(dt, leaf)
+                    else:
+                        lesion.update(dt, leaf, weather_data)
             
             # 3. Allocate or not growth demand, and compute corresponding production of spores 
             growth_control_model.control(g, label=label)
