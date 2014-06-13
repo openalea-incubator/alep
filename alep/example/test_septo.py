@@ -16,6 +16,7 @@ def run_simulation(start_year=1998, **kwds):
     meteo_path = shared_data(alinea.septo3d, weather_file)
     weather = Weather(data_file=meteo_path)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+    weather.check(varnames=['degree_days'], models={'degree_days':basic_degree_days}, start_date=str(start_year)+"-10-01 01:00:00")
     seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
                             end = str(start_year+1)+"-07-01 01:00:00", 
                             freq='H')
@@ -40,15 +41,18 @@ def run_simulation(start_year=1998, **kwds):
         frac = kwds['sporulating_fraction']
         del kwds['sporulating_fraction']
     else:
-        frac = 0.01
+        # See Baccar et al. for parameters
+        frac = 0.65e-4
     inoc = SoilInoculum(DU_generator=generator, sporulating_fraction=frac, domain_area=domain_area)
     contaminator = Septo3DSoilContamination(domain=domain, domain_area=domain_area)
 
     growth_controler = NoPriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
-    emitter = SeptoriaRainEmission(domain_area=domain_area)
-    transporter = Septo3DSplash()
+    # emitter = SeptoriaRainEmission(domain_area=domain_area)
+    # transporter = Septo3DSplash()
+    emitter = PopDropsEmission(domain=domain)
+    transporter = PopDropsTransport(domain=domain, domain_area=domain_area)
     # transporter = Septo3DTransport(wash=True)
     # washor = RapillyWashing()
     
@@ -107,6 +111,12 @@ def run_simulation(start_year=1998, **kwds):
             senesced_areas = g.property('senesced_area')
             leaves = get_leaves(g, label = 'LeafElement')
             vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
+            for vid in vids:
+                if ('dispersal_units' in g.node(vid).properties() and len(g.node(vid).dispersal_units)>0. and
+                    ((positions[vid]==1 and not greens[vid]) or
+                   (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5)))):
+                    import pdb
+                    pdb.set_trace()
             positions.update({vid:(0 if (positions[vid]==1 and not greens[vid]) or
                                         (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
                                         else positions[vid]) for vid in vids})
@@ -119,7 +129,7 @@ def run_simulation(start_year=1998, **kwds):
         
         # External contamination
         if rain_eval:        
-            if rain_eval.value.rain.mean()>0.:
+            if rain_eval.value.rain.mean()>0. and rain_eval.value.degree_days[-1]<1000:
                 g = external_contamination(g, inoc, contaminator, weather_eval.value, **kwds)
                 # dus = generate_stock_du(10, septoria, **kwds)
                 # initiate(g, dus, inoculator)
@@ -133,11 +143,11 @@ def run_simulation(start_year=1998, **kwds):
         # Disperse and wash
         if rain_eval:
             if rain_eval.value.rain.mean()>0.:
-                g, nb = disperse(g, emitter, transporter, "septoria", label='LeafElement')
+                g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=weather_eval.value)
                 # wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
         
-        # if wheat_eval:
-            # scene = plot_severity_by_leaf(g)
+        if wheat_eval:
+            scene = plot_severity_by_leaf(g)
         
         # Save outputs
         for inspector in inspectors.itervalues():

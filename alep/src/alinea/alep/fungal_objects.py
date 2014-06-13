@@ -84,7 +84,7 @@ class DispersalUnit(object):
         
         """
         les = self.fungus.lesion()
-        if leaf==None:
+        if leaf is None:
             self.disable()
             return les
         else:
@@ -223,6 +223,6 @@ class Fungus(object):
         instance = self.Lesion_class(mutable=mutable)
         return instance
 
+## TEMP ##
 class Parameters(object):
     pass
-    

@@ -38,8 +38,7 @@ class DU_Generator(object):
         self.disease = disease
         
     def create_stock(self, nb_dus, **kwds):
-        DU = self.disease.dispersal_unit(**kwds)
-        return [DU(nb_spores=rd.randint(1,100), status='emitted') for i in range(int(nb_dus))]
+        return [self.disease.dispersal_unit(**kwds) for i in range(int(nb_dus))]
                         
 def generate_stock_lesions(nb_lesions, disease, position=None):
     """ Generate a stock of lesions.

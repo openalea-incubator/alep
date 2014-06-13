@@ -4,7 +4,7 @@
 
 # Imports #########################################################################
 from alinea.alep.fungal_objects import *
-from alinea.alep.septoria import Disease as _Disease, SeptoriaParameters as _SeptoriaParameters
+from alinea.alep.septoria import SeptoriaDU, septoria_parameters
 import numpy as np
 from math import floor, ceil
 
@@ -13,7 +13,7 @@ class SeptoriaAgePhysio(Lesion):
     """ Lesion of septoria implemented with growth stages that exchange surfaces
         according to their physiological age.
     """
-    def __init__(self,  nb_spores=None, position=None):
+    def __init__(self, mutable=False):
         """ Initialize the lesion of septoria. 
         
         Parameters
@@ -23,7 +23,9 @@ class SeptoriaAgePhysio(Lesion):
         position: non defined
             Position of the dispersal unit on the phyto-element
         """
-        super(SeptoriaAgePhysio, self).__init__(nb_spores=nb_spores, position=position)
+        super(SeptoriaAgePhysio, self).__init__(mutable=False)
+        # Calculate parameter for emission from other parameters
+        self.fungus.density_dus_emitted_max = np.array([self.fungus.density_dus_emitted_ref*(self.fungus.reduction_by_rain**ind) for ind in range(self.fungus.rain_events_to_empty)])
         # Status of the center of the lesion
         self.status = self.fungus.INCUBATING
         # Age of the center of the lesion
@@ -470,8 +472,9 @@ class SeptoriaAgePhysio(Lesion):
 
     def emission(self, density_DU_emitted, rain_exposition=1.):
         """ Return number of DUs emitted by the lesion. """
-        from alinea.alep.septoria import SeptoriaDU
         f = self.fungus
+        # print 'density DU popDrops %f' % density_DU_emitted
+        # print 'rain exposition %f' % rain_exposition
         du_factor = float(density_DU_emitted)/f.density_dus_emitted_max
         du_factor[du_factor>1.]=1.
         delta_spo = rain_exposition*self.surfaces_spo*du_factor
@@ -485,7 +488,7 @@ class SeptoriaAgePhysio(Lesion):
             self.surfaces_spo = np.zeros(len(self.surfaces_spo))
             self.change_status()
             self.disable()
-        return [SeptoriaDU() for i in range(sum(delta_spo*[min(x,density_DU_emitted) for x in f.density_dus_emitted_max]))]
+        return [f.dispersal_unit() for i in range(int(sum(delta_spo*[min(x,density_DU_emitted) for x in f.density_dus_emitted_max])))]
         
     def reduce_stock(self, nb_spores_emitted):
         """ Reduce the stock of spores after emission.
@@ -633,6 +636,26 @@ class SeptoriaAgePhysio(Lesion):
         ..TODO: Remove """
         pass
     
+    def set_position(self, position=None):
+        """ Set the position of the DU to position given in argument.
+        
+        Parameters
+        ----------
+        position: list[x, y] on leaf blade
+            Position of the DU.
+        """
+        self.position = position
+        
+    def set_nb_spores(self, nb_spores=0.):
+        """ Set the position of the DU to position given in argument.
+        
+        Parameters
+        ----------
+        nb_spores: int
+            Number of spores in the DU forming the lesion
+        """
+        self.nb_spores = nb_spores
+    
     @property
     def surface_inc(self):
         """ Calculate the surface in incubation. """
@@ -668,16 +691,20 @@ class SeptoriaAgePhysio(Lesion):
         """ Calculate the total surface of the lesion. """
         return self.surface_alive + self.surface_dead
 
-class Parameters(_SeptoriaParameters):
-    def __init__(self,**kwds):
-        _SeptoriaParameters.__init__(self, model=SeptoriaAgePhysio, **kwds)
+class SeptoriaFungus(Fungus):
+    def __init__(self, name='septoria', Lesion=SeptoriaAgePhysio, DispersalUnit=SeptoriaDU, parameters=septoria_parameters):
+        super(SeptoriaFungus, self).__init__(name=name, Lesion=Lesion, DispersalUnit=DispersalUnit, parameters=parameters)
         
-class Disease(_Disease):
-    @classmethod
-    def parameters(cls, **kwds):
-        return Parameters(**kwds)
+# class Parameters(_SeptoriaParameters):
+    # def __init__(self,**kwds):
+        # _SeptoriaParameters.__init__(self, model=SeptoriaAgePhysio, **kwds)
+        
+# class Disease(_Disease):
+    # @classmethod
+    # def parameters(cls, **kwds):
+        # return Parameters(**kwds)
     
-    @classmethod
-    def lesion(cls, **kwds):
-        SeptoriaAgePhysio.fungus=cls.parameters(**kwds)
-        return SeptoriaAgePhysio
+    # @classmethod
+    # def lesion(cls, **kwds):
+        # SeptoriaAgePhysio.fungus=cls.parameters(**kwds)
+        # return SeptoriaAgePhysio

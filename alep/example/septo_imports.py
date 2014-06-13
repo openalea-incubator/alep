@@ -8,7 +8,7 @@ import alinea.septo3d
 import datetime
 from openalea.deploy.shared_data import shared_data
 from alinea.astk.Weather import Weather
-from alinea.alep.alep_weather import wetness_rapilly
+from alinea.alep.alep_weather import wetness_rapilly, basic_degree_days
 from alinea.astk.TimeControl import *
 
 # Imports for wheat
@@ -24,6 +24,7 @@ from alinea.alep.inoculation import InoculationLowerLeaves
 from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DSoilContamination, Septo3DTransport
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.septo3d.alep_interfaces import Septo3DSplash
+from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport, emission_csv, diameter_csv
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel

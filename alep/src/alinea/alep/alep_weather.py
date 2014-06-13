@@ -82,6 +82,19 @@ def add_wetness(weather):
     wetness.index = weather.data.rain.index
     weather.data = weather.data.join(wetness)
     return weather
+    
+def basic_degree_days(data, start_date, base_temp=0):
+    df = data['temperature_air'].copy()
+    df[df<0]=0.
+    dd = np.zeros(len(df))
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    ind_start = len(df.ix[:start_date+timedelta(0,60)])
+    seq = pd.date_range(start=df.index[0], end=start_date-timedelta(0,60), freq='H')
+    seq = seq.order(ascending=False)
+    dd[ind_start:]=np.cumsum((df.ix[start_date+timedelta(0,60):].values-base_temp)/24.)
+    dd[:len(seq)]=-np.cumsum((df.ix[seq].values[::-1]-base_temp)/24.)[::-1]
+    return dd
 
 def add_septoria_infection_risk(data):
     """ Add True or False if there is a risk of infection for septoria.

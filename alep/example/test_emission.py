@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from alinea.alep.wheat import adel_one_leaf
 from alinea.alep.protocol import disperse
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
@@ -58,16 +59,17 @@ class DummyTransport():
         
 g = adel_one_leaf()
 septoria = plugin_septoria()
-Lesion = septoria.lesion()
-lesion = Lesion()
+lesion = septoria.lesion()
 lesion.surfaces_spo = np.array([1., 0., 0.])
 lesion.status = lesion.fungus.SPORULATING
 lesion.status_edge = lesion.fungus.SPORULATING
 print lesion.is_sporulating()
 g.node(10).lesions = [lesion]
-emitter = DummyEmission()
-transporter = DummyTransport()
+emitter = PopDropsEmission()
+transporter = PopDropsTransport()
 nb_steps = 25
+rain = {'rain':[1.,1.,1.,1.]}
+weather_data = pd.DataFrame(rain)
 # for i in range(4):
 for i in range(nb_steps):
     les = g.property('lesions')
@@ -79,4 +81,4 @@ for i in range(nb_steps):
     print 'Surface empty: %f' % lesion.surface_empty
     # if i<3:
     if i<nb_steps-1:
-        disperse(g, emitter, transporter, "septoria", label='LeafElement')
+        disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=weather_data)
