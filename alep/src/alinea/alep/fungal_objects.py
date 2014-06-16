@@ -147,11 +147,17 @@ class Lesion(object):
     def update(self, leaf):
         pass
     
-    def emission(self, **kwds):
-        pass
+    def emission(self, emission_rate = 1e4):
+        """ This method simulates the biological regulation of spore emission. Not generic
+        
+        Parameters to this function generaly are expressed as a climatic-dependant potential rate of emmission
+        """
+        nb_dus = int(emission_rate * self.fungus.length_unit**2)
+        
+        return create_dispersal_units(nb_dus)
     
     def create_dispersal_units(self, nb_dus=1):
-        """ Create new dispersal units of fungus.
+        """ Generic method to create new dispersal units.
         """
         return [self.fungus.dispersal_unit() for i in range(nb_dus)]
         
@@ -198,8 +204,9 @@ class Lesion(object):
             
 class Fungus(object):
     
-    def __init__(self, name='template', Lesion=Lesion, DispersalUnit = DispersalUnit, parameters = {}):
+    def __init__(self, name='template', Lesion=Lesion, DispersalUnit = DispersalUnit, parameters = {}, length_unit = 0.01):
         self.name = name
+        self.length_unit = length_unit
         self.Lesion_class = Lesion
         self.DispersalUnit_class = DispersalUnit
         self.parameter_names = parameters.keys()
