@@ -120,7 +120,7 @@ class Lesion(object):
     ..todo:: improve header and doc
     """
     fungus = None
-    def __init__(self, position=None, nb_spores=None, mutable=False):
+    def __init__(self, mutable=False):
         """ Initialize the lesion. 
         
         Parameters
@@ -139,10 +139,8 @@ class Lesion(object):
         self.growth_demand = None
         # Is the lesion on senescent tissue
         self.is_senescent = False
-        # Number of spores forming the lesion
-        self.nb_spores = nb_spores
-        # Position of the center of the lesion
-        self.position = position
+        # Position of the lesion
+        self.position = None
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
         

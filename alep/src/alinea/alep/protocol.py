@@ -141,7 +141,7 @@ def infect(g, dt,
 
         for vid, du in dispersal_units.iteritems():
             # By leaf element, keep only those which are deposited and active
-            du = [d for d in du if d.is_active]
+            dispersal_units[vid] = [d for d in du if d.is_active]
             leaf = g.node(vid)
             for du in dispersal_units[vid]:
                 du.infect(dt, leaf)
@@ -202,9 +202,9 @@ def update(g, dt,
         
         # 1. Compute growth demand
         for vid, les in lesions.iteritems():
-            les = [lesion for lesion in les if lesion.is_active]
+            lesions[vid] = [lesion for lesion in les if lesion.is_active]
             # Update active lesions
-            for lesion in les:
+            for lesion in lesions[vid]:
                 leaf=g.node(vid)
                 if weather_data is None:
                     lesion.update(dt, leaf)

@@ -111,12 +111,12 @@ def run_simulation(start_year=1998, **kwds):
             senesced_areas = g.property('senesced_area')
             leaves = get_leaves(g, label = 'LeafElement')
             vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
-            for vid in vids:
-                if ('dispersal_units' in g.node(vid).properties() and len(g.node(vid).dispersal_units)>0. and
-                    ((positions[vid]==1 and not greens[vid]) or
-                   (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5)))):
-                    import pdb
-                    pdb.set_trace()
+            # for vid in vids:
+                # if ('dispersal_units' in g.node(vid).properties() and len(g.node(vid).dispersal_units)>0. and
+                    # ((positions[vid]==1 and not greens[vid]) or
+                   # (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5)))):
+                    # import pdb
+                    # pdb.set_trace()
             positions.update({vid:(0 if (positions[vid]==1 and not greens[vid]) or
                                         (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
                                         else positions[vid]) for vid in vids})
