@@ -143,20 +143,8 @@ def infect(g, dt,
             # By leaf element, keep only those which are deposited and active
             du = [d for d in du if d.is_active]
             leaf = g.node(vid)
-            # Temp Cf l.159
-            dispersal_units[vid] = du
-            for d in du:
-                if infection_control_model:
-                    if d.can_infect_at_position==False:
-                        d.disable()
-                else:
-                    # By default
-                    d.infection_possible_at_position()
-                # If not compute infection success
-                if d.is_active:
-                    d.infect(dt, leaf)
-            # Update the list of dispersal unit by leaf element
-            # dispersal_units[vid] = [d for d in du if d.is_active]
+            for du in dispersal_units[vid]:
+                du.infect(dt, leaf)
     return g
     
 def update(g, dt,
@@ -208,34 +196,53 @@ def update(g, dt,
     """
     if activate:
         # Get lesions with inactive lesions removed
-        les = {k:[l for l in v if l.is_active] 
-                    for k, v in g.property('lesions').iteritems()}
-
-        if len(les)>0:
-            # 1. Determine which lesions will be affected by senescence (optional)
-            # Temp commentary
-            # print('temp commented l.216 protocol')
+        # les = {k:[l for l in v if l.is_active] 
+                    # for k, v in g.property('lesions').iteritems()}
+        lesions = g.property('lesions')
+        
+        # 1. Compute growth demand
+        for vid, les in lesions.iteritems():
+            les = [lesion for lesion in les if lesion.is_active]
+            # Update active lesions
+            for lesion in les:
+                leaf=g.node(vid)
+                if weather_data is None:
+                    lesion.update(dt, leaf)
+                else:
+                    lesion.update(dt, leaf, weather_data)
+        
+        # 2. Allocate or not growth demand, and compute corresponding production of spores 
+        growth_control_model.control(g, label=label)
+            
+            # if senescence_model:
+                # # 4. Call a specific response if lesions are on senescent tissue
+                # l = [l for v in les.values() for l in v if l.is_senescent]
+                # for lesion in l:             
+                    # lesion.senescence_response()
+        
+        
+            # # 1. Determine which lesions will be affected by senescence (optional)
             # if senescence_model:
                 # senescence_model.find_senescent_lesions(g)
             
-            # 2. Compute growth demand
-            for vid, l in les.iteritems():
-                # Update active lesions
-                for lesion in l:
-                    leaf=g.node(vid)
-                    if weather_data is None:
-                        lesion.update(dt, leaf)
-                    else:
-                        lesion.update(dt, leaf, weather_data)
+            # # 2. Compute growth demand
+            # for vid, l in les.iteritems():
+                # # Update active lesions
+                # for lesion in l:
+                    # leaf=g.node(vid)
+                    # if weather_data is None:
+                        # lesion.update(dt, leaf)
+                    # else:
+                        # lesion.update(dt, leaf, weather_data)
             
-            # 3. Allocate or not growth demand, and compute corresponding production of spores 
-            growth_control_model.control(g, label=label)
+            # # 3. Allocate or not growth demand, and compute corresponding production of spores 
+            # growth_control_model.control(g, label=label)
             
-            if senescence_model:
-                # 4. Call a specific response if lesions are on senescent tissue
-                l = [l for v in les.values() for l in v if l.is_senescent]
-                for lesion in l:             
-                    lesion.senescence_response()     
+            # if senescence_model:
+                # # 4. Call a specific response if lesions are on senescent tissue
+                # l = [l for v in les.values() for l in v if l.is_senescent]
+                # for lesion in l:             
+                    # lesion.senescence_response()     
     return g
 
 def disperse(g,

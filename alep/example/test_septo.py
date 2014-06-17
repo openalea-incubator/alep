@@ -17,14 +17,14 @@ def run_simulation(start_year=1998, **kwds):
     weather = Weather(data_file=meteo_path)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
     weather.check(varnames=['degree_days'], models={'degree_days':basic_degree_days}, start_date=str(start_year)+"-10-01 01:00:00")
-    seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
-                            end = str(start_year+1)+"-07-01 01:00:00", 
-                            freq='H')
+    # seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
+                            # end = str(start_year+1)+"-07-01 01:00:00", 
+                            # freq='H')
     print start_year
     
-    # seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
-                            # end = str(start_year)+"-12-31 01:00:00", 
-                            # freq='H')
+    seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
+                            end = str(start_year)+"-11-01 01:00:00", 
+                            freq='H')
     # g, wheat, domain_area, domain = initialize_stand(age=1250., length=0.1, width=0.1,
         # sowing_density=150, plant_density=150, inter_row=0.12, nsect=5, seed=3)
                             
@@ -36,7 +36,7 @@ def run_simulation(start_year=1998, **kwds):
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
     septoria = plugin_septoria()
-    generator = DU_Generator(septoria)
+    generator = DU_Generator(septoria, group_dus=True)
     if 'sporulating_fraction' in kwds:
         frac = kwds['sporulating_fraction']
         del kwds['sporulating_fraction']
@@ -48,7 +48,7 @@ def run_simulation(start_year=1998, **kwds):
 
     growth_controler = NoPriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
-    sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
+    # sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
     # emitter = SeptoriaRainEmission(domain_area=domain_area)
     # transporter = Septo3DSplash()
     emitter = PopDropsEmission(domain=domain)
@@ -124,7 +124,7 @@ def run_simulation(start_year=1998, **kwds):
 
         # Update g for the disease:
         if septo_eval:
-            sen_model.find_senescent_lesions(g, label = 'LeafElement')
+            #sen_model.find_senescent_lesions(g, label = 'LeafElement')
             update_healthy_area(g, label = 'LeafElement')
         
         # External contamination
@@ -138,7 +138,7 @@ def run_simulation(start_year=1998, **kwds):
         if septo_eval:
             # Update dispersal units and lesions
             infect(g, septo_eval.dt, infection_controler, label='LeafElement')
-            update(g, septo_eval.dt, growth_controler, sen_model, label='LeafElement')
+            update(g, septo_eval.dt, growth_controler, senescence_model=None, label='LeafElement')
             
         # Disperse and wash
         if rain_eval:
@@ -149,14 +149,14 @@ def run_simulation(start_year=1998, **kwds):
         if wheat_eval:
             scene = plot_severity_by_leaf(g)
         
-        # Save outputs
-        for inspector in inspectors.itervalues():
-            inspector.update_variables(g)
-            inspector.update_du_variables(g)
+        # # Save outputs
+        # for inspector in inspectors.itervalues():
+            # inspector.update_variables(g)
+            # inspector.update_du_variables(g)
 
-    for inspector in inspectors.itervalues():
-        inspector.update_audpc()
-        inspector.dates = dates
+    # for inspector in inspectors.itervalues():
+        # inspector.update_audpc()
+        # inspector.dates = dates
         
     return g, inspectors
 

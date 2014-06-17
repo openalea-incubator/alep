@@ -83,33 +83,29 @@ class SeptoriaDU(DispersalUnit):
             None
         """
         leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
-        temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).
-        if self.can_infect_at_position:
-            if self.nb_spores == 0.:
-                self.disable()
-            else:
-                if self.status == 'deposited':
-                    # TODO: design a new equation : see Magarey (2005)
-                    if leaf_wet:
-                        self.cumul_wetness += 1
-                    elif self.cumul_wetness > 0: 
-                        assert not leaf_wet
-                        self.cumul_wetness = 0.
-                    else:
-                        assert not leaf_wet
-                        assert self.cumul_wetness == 0.
-                    if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :                       
-                        # TODO : create a function of the number of spores            
-                        spores_factor = self.nb_spores / self.nb_spores # always equals 1 for now
-                        if proba(spores_factor):
-                            self.create_lesion(leaf)
-                    elif self.cumul_wetness == 0 :
-                        self.cumul_loss_rate+=self.fungus.loss_rate
-                        # Proba conditionnelle doit se cumuler.
-                        if proba(self.cumul_loss_rate): 
-                            self.disable()
-        else:
+        temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).  
+        if self.nb_spores == 0.:
             self.disable()
+        else:
+            # TODO: design a new equation : see Magarey (2005)
+            if leaf_wet:
+                self.cumul_wetness += 1
+            elif self.cumul_wetness > 0: 
+                assert not leaf_wet
+                self.cumul_wetness = 0.
+            else:
+                assert not leaf_wet
+                assert self.cumul_wetness == 0.
+            if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :                       
+                # TODO : create a function of the number of spores            
+                spores_factor = self.nb_spores / self.nb_spores # always equals 1 for now
+                if proba(spores_factor):
+                    self.create_lesion(leaf)
+            elif self.cumul_wetness == 0 :
+                self.cumul_loss_rate+=self.fungus.loss_rate
+                # Proba conditionnelle doit se cumuler.
+                if proba(self.cumul_loss_rate): 
+                    self.disable()
     
     def set_nb_spores(self, nb_spores=0.):
         """ Set the number of spores in the DU.
@@ -149,7 +145,8 @@ septoria_parameters = dict(INCUBATING = 0,
                  reduction_by_rain = 0.5,
                  threshold_spo = 1e-4,
                  nb_rings_by_state = 10,
-                 age_physio_switch_senescence=1)
+                 age_physio_switch_senescence=1,
+                 group_dus = False)
                  
 # class SeptoriaParameters(Parameters):
     # model = None

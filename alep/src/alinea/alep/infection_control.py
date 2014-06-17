@@ -67,9 +67,7 @@ class BiotrophDUPositionModel:
     Its property 'position' in its interface is required.
     """   
     def control_position(self, g, label='LeafElement'):
-        """ Control if the lesion can infect at its current position.
-        
-        Call the method 'can_not_infect_at_position' of DU interface eventually
+        """ Control if the lesion can infect at its current position. If not, disable the dispersal unit.
         
         Parameters
         ----------
@@ -84,21 +82,24 @@ class BiotrophDUPositionModel:
         """
         dispersal_units = g.property('dispersal_units')
         severities = compute_severity_by_leaf(g, label)
-        for vid, du in dispersal_units.iteritems():
-            # By leaf element, keep only those which are deposited and active
-            # du = [d for d in du if d.is_active and d.status=="deposited"]
-            du = [d for d in du if d.is_active]
+        for vid, du_list in dispersal_units.iteritems():
+            du_list = [du for du in du_list if du.is_active]
+            controlled_dus = [du for du in du_list if du.can_infect_at_position is None]
             leaf = g.node(vid)
-            nb_on_lesions = int(len(du)*severities[vid]/100.)
-            random.shuffle(du)
-            for DU in du[:nb_on_lesions]:
-                DU.infection_impossible_at_position()
-            
-            # Test for senescence:
-            for DU in du[nb_on_lesions:]:
-                if DU.can_infect_at_position==None:
-                    if DU.position[0] >= leaf.position_senescence:
-                        DU.infection_impossible_at_position()
-                    else:
-                        DU.infection_possible_at_position()
-
+            # Compare to lesions
+            total_nb_dus = len(sum([du.position for du in controlled_dus],[]))
+            nb_on_lesions = int(total_nb_dus*severities[vid]/100.)
+            for du in range(nb_on_lesions):
+                random.shuffle(controlled_dus)
+                controlled_dus[0].position = controlled_dus[0].position[1:]
+                if controlled_dus[0].nb_dispersal_units==0.:
+                    controlled_dus[0].disable()
+                    controlled_dus=controlled_dus[1:]
+                
+            # Compare to senescence
+            for DU in du_list:
+                DU.position = filter(lambda x: x[0]<leaf.position_senescence, DU.position)
+                if DU.nb_dispersal_units == 0.:
+                    DU.disable()
+                else:
+                    DU.set_can_infect(True)

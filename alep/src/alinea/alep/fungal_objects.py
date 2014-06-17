@@ -59,15 +59,10 @@ class DispersalUnit(object):
         """
         self.position = position
     
-    def infection_impossible_at_position(self):
-        """ Turn the property 'can_infect_at_position' to False.
-        """
-        self.can_infect_at_position = False
-    
-    def infection_possible_at_position(self):
+    def set_can_infect(self, can_infect=True):
         """ Turn the property 'can_infect_at_position' to True.
         """
-        self.can_infect_at_position = True
+        self.can_infect_at_position = can_infect
     
     def create_lesion(self, leaf=None):
         """ Create a new lesion of fungus and disable dispersal unit.
@@ -93,6 +88,13 @@ class DispersalUnit(object):
             except:
                 leaf.lesions = [les]
             self.disable()
+    
+    @property
+    def nb_dispersal_units(self):
+        if self.position is None:
+            return None
+        else:
+            return len(self.position)
              
 # Lesions #################################################################################
 # /!\ TODO : Dans le cas ou on veut des parametres variables par lesion, il faut ecraser la variable
@@ -144,7 +146,7 @@ class Lesion(object):
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
         
-    def update(self, leaf):
+    def update(self, dt, leaf):
         pass
     
     def emission(self, emission_rate = 1e4):
@@ -155,6 +157,17 @@ class Lesion(object):
         nb_dus = int(emission_rate * self.fungus.length_unit**2)
         
         return create_dispersal_units(nb_dus)
+    
+    def senescence_response(self, **kwds):
+        pass
+        
+    def control_growth(self, growth_offer=0.):
+        pass
+        
+    def become_senescent(self):
+        """ The lesion will become senescent during this time step.
+        """
+        self.is_senescent = True    
     
     def create_dispersal_units(self, nb_dus=1):
         """ Generic method to create new dispersal units.
@@ -182,6 +195,10 @@ class Lesion(object):
         """
         self.is_active = False
         self.growth_demand = 0.
+        
+    def set_position(self, position):
+        self.position = position
+        
 
 # Fungus Parameters (e.g. .ini): config of the fungus ####################################
 #class Parameters(object):
