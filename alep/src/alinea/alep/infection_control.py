@@ -82,9 +82,10 @@ class BiotrophDUPositionModel:
         """
         dispersal_units = g.property('dispersal_units')
         severities = compute_severity_by_leaf(g, label)
-        for vid, du_list in dispersal_units.iteritems():
-            du_list = [du for du in du_list if du.is_active]
-            controlled_dus = [du for du in du_list if du.can_infect_at_position is None]
+        for vid in dispersal_units.iterkeys():
+            dispersal_units[vid] = [du for du in dispersal_units[vid] if du.is_active]
+            controlled_dus = [dispersal_units[vid].pop(ind) for ind, du in enumerate(dispersal_units[vid])
+                               if du.can_infect_at_position is None]
             leaf = g.node(vid)
             # Compare to lesions
             total_nb_dus = len(sum([du.position for du in controlled_dus],[]))
@@ -95,11 +96,19 @@ class BiotrophDUPositionModel:
                 if controlled_dus[0].nb_dispersal_units==0.:
                     controlled_dus[0].disable()
                     controlled_dus=controlled_dus[1:]
+            dispersal_units[vid]+=controlled_dus
                 
             # Compare to senescence
-            for DU in du_list:
-                DU.position = filter(lambda x: x[0]<leaf.position_senescence, DU.position)
+            for DU in dispersal_units[vid]:
+                if not is_iterable(DU.position[0]):
+                    DU.position = [DU.position]
+                DU.position = filter(lambda x: x[0]>leaf.senesced_length, DU.position)
                 if DU.nb_dispersal_units == 0.:
                     DU.disable()
                 else:
                     DU.set_can_infect(True)
+                
+import collections        
+def is_iterable(obj):
+    """ Test if object is iterable """
+    return isinstance(obj, collections.Iterable)

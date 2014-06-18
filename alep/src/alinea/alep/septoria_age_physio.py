@@ -69,12 +69,13 @@ class SeptoriaAgePhysio(Lesion):
         # self.previous_surface = 0.
         # self.hist_age = []
         # self.hist_inc = []
-        # self.hist_chlo = []
+        self.hist_chlo = []
         # self.hist_nec = []
         # self.hist_spo = []
         # self.hist_empty = []
-        # self.hist_can_compute_rings = []
-        # self.hist_nb_rings_chlo = []
+        self.hist_can_compute_rings = []
+        self.hist_nb_rings_chlo = []
+        self.hist_progress = []
     
     def is_incubating(self):
         """ Check if lesion status is incubation. """
@@ -107,8 +108,8 @@ class SeptoriaAgePhysio(Lesion):
         # if self.is_senescent and self.can_compute_senescence==True:
             # dt = self.compute_time_before_senescence(dt, leaf=leaf)
         # self.old_position_senescence = leaf.position_senescence
-        if any([x[0]>leaf.position_senescence for x in self.position]):
-            self.senescence_response(leaf.position_senescence)
+        if any([x[0]<leaf.senesced_length for x in self.position]):
+            self.senescence_response(leaf.senesced_length)
                
         # Compute delta degree days in dt
         self.compute_delta_ddays(dt, leaf)
@@ -122,12 +123,12 @@ class SeptoriaAgePhysio(Lesion):
         # Temporary
         # self.hist_age.append(self.age_dday)
         # self.hist_inc.append(self.surface_inc)
-        # self.hist_chlo.append(self.surface_chlo)
+        self.hist_chlo.append(self.surface_chlo)
         # self.hist_nec.append(self.surface_nec)
         # self.hist_spo.append(self.surface_spo)
         # self.hist_empty.append(self.surface_empty)
         # self.hist_can_compute_rings.append(self.can_compute_rings())
-        # self.hist_nb_rings_chlo.append(len(self.surfaces_chlo))
+        self.hist_nb_rings_chlo.append(len(self.surfaces_chlo))
         
         # Temporary      
         # if self.surface_chlo>0. and len(self.surfaces_nec>1.) and self.surfaces_nec[0]==0.:
@@ -260,6 +261,10 @@ class SeptoriaAgePhysio(Lesion):
         # Compute progress in chlorosis
         time_to_nec = f.degree_days_to_necrosis
         progress = self.progress(age_threshold=time_to_nec)
+        
+        # Temp debug
+        self.hist_progress.append(progress)
+        self.hist_can_compute_rings.append(self.can_compute_rings())
                 
         # Compute growth demand
         if self.growth_is_active:
@@ -269,7 +274,10 @@ class SeptoriaAgePhysio(Lesion):
             # Limit growth to size max
             Smax = self._surface_max
             if self.surface + self.growth_demand >= Smax:
-                self.growth_demand = Smax - self.surface 
+                self.growth_demand = Smax - self.surface
+            if self.growth_demand<0.:
+                import pdb
+                pdb.set_trace()
                 
         # Compute exchanges of surfaces
         if self.can_compute_rings():
@@ -320,7 +328,12 @@ class SeptoriaAgePhysio(Lesion):
                 # 7. Update surfaces and calculate what passes to necrosis
                 self.surfaces_chlo = np.extract(new_ends<=1, new_surf)
                 self.to_necrosis = sum(np.extract(new_ends>1, new_surf))
-                
+        
+        # Temp debug
+        if self.is_necrotic() and self.status_edge<2 and self.age_physio_edge==0 and self.surface_dead==0 and len(self.surfaces_chlo)<10:
+            import pdb
+            pdb.set_trace()
+        
         # Ageing of the periphery of the lesion if growth has been stopped
         if self.status_edge==f.CHLOROTIC and not self.growth_is_active :
             if self.age_physio_edge+progress < 1.:
@@ -341,7 +354,7 @@ class SeptoriaAgePhysio(Lesion):
                 self.change_status()
                 self.reset_age_physio()
                 self.necrosis()
-    
+                    
     def necrosis(self):
         """ Compute physiological age progress to sporulation.
         """
@@ -539,13 +552,13 @@ class SeptoriaAgePhysio(Lesion):
         self.dt_left_after_senescence = dt - new_dt
         return new_dt
     
-    def senescence_response(self, position_senescence):
+    def senescence_response(self, senesced_length):
         """ Compute surface alive and surface dead after senescence. """
         if not self.is_senescent:
             self.become_senescent()
             
         if not self.senescence_response_completed:
-            nb_sen = len([x[0]>position_senescence for x in self.position])
+            nb_sen = len(filter(lambda x: x[0]<senesced_length, self.position))
             ratio_sen = float(nb_sen)/self.nb_lesions
             
             # Reduce surfaces alive
@@ -554,10 +567,10 @@ class SeptoriaAgePhysio(Lesion):
             age_physio = self.age_physio
             age_edge = self.age_physio_edge
             if self.status < f.CHLOROTIC:
-                self.surface_dead = self.surface_first_ring * ratio_sen
+                self.surface_dead += self.surface_first_ring * ratio_sen
                 self.surface_first_ring = max(0., self.surface_first_ring-self.surface_dead)
             elif self.is_chlorotic() and age_switch >= age_physio:
-                self.surface_dead = self.surface_first_ring * ratio_sen + sum(self.surfaces_chlo * ratio_sen)
+                self.surface_dead += self.surface_first_ring * ratio_sen + sum(self.surfaces_chlo * ratio_sen)
                 self.surface_first_ring = max(0., self.surface_first_ring-self.surface_dead)
                 self.surfaces_chlo *= (1-ratio_sen)
                 self.surfaces_chlo[self.surfaces_chlo<0.] = 0.               
@@ -569,10 +582,10 @@ class SeptoriaAgePhysio(Lesion):
                     rings[-1] = age_physio
                 rings = rings[floor(age_edge/width):]
                 rings[0] = age_edge
-                self.surface_dead = sum(np.extract(rings<age_switch-width, self.surfaces_chlo * ratio_sen))
-                self.surfaces_chlo[np.where(rings<age_switch)[0][-1]:] *= (1 - ratio_sen)
-                self.surface_dead += self.surfaces_chlo[np.where(rings<age_switch)[0][-1]+1]*ratio_sen*round(age_switch%width, 14)/width
-                self.surfaces_chlo[np.where(rings<age_switch)[0][-1]+1]*= (1 - ratio_sen)*(1-round(age_switch%width, 14)/width)
+                self.surface_dead += sum(np.extract(rings<age_switch-width, self.surfaces_chlo * ratio_sen))
+                self.surfaces_chlo[:np.where(rings<age_switch)[0][-1]] *= (1 - ratio_sen)
+                self.surface_dead += self.surfaces_chlo[np.where(rings<age_switch)[0][-1]]*ratio_sen*round(age_switch%width, 14)/width
+                self.surfaces_chlo[np.where(rings<age_switch)[0][-1]]*= (1 - ratio_sen)*(1-round(age_switch%width, 14)/width)
                 self.surfaces_chlo = self.surfaces_chlo[self.surfaces_chlo>0.]
                 if nb_sen==self.nb_lesions:
                     if age_switch==1:
@@ -580,8 +593,15 @@ class SeptoriaAgePhysio(Lesion):
                         self.change_status_edge()
                     else:
                         self.age_physio_edge = age_switch
+                else:
+                    rings = rings[self.surfaces_chlo>0.]
+                    if len(rings)>0:
+                        self.age_physio_edge = 0.
+                        self.change_status_edge()
+                    else:
+                        self.age_physio_edge = rings[0]
 
-            self.position = filter(lambda x: x[0]<position_senescence, self.position)
+            self.position = filter(lambda x: x[0]>senesced_length, self.position)
 
             # Stop growth when last lesion of cohort is reached
             if self.nb_lesions==0.:
@@ -682,8 +702,7 @@ class SeptoriaAgePhysio(Lesion):
     
     def can_compute_rings(self):
         """ Allow ring formation only if particular first ring has reached Smin. """
-        f = self.fungus
-        return round(self.surface_first_ring, 16) == f.Smin
+        return round(self.surface_first_ring, 16) == self._surface_min
 
     def compute_all_surfaces(self):
         """ Not needed in this model.
@@ -779,3 +798,8 @@ class SeptoriaFungus(Fungus):
     # def lesion(cls, **kwds):
         # SeptoriaAgePhysio.fungus=cls.parameters(**kwds)
         # return SeptoriaAgePhysio
+
+import collections        
+def is_iterable(obj):
+    """ Test if object is iterable """
+    return isinstance(obj, collections.Iterable)

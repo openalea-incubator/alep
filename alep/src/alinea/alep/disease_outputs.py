@@ -18,8 +18,7 @@ def count_lesions(g):
     nb_lesions: int
         Number of lesions on the MTG
     """
-    lesions = g.property('lesions')
-    return sum(len(l) for l in lesions.itervalues())
+    return len(sum(g.property('lesions').values(), []))
 
 def count_dispersal_units(g):
     """ Count dispersal units of the mtg.
@@ -34,8 +33,7 @@ def count_dispersal_units(g):
     nb_dispersal_units: int
         Number of dispersal units on the MTG
     """
-    dispersal_units = g.property('dispersal_units')
-    return sum(len(du) for du in dispersal_units.itervalues())
+    return len(sum(g.property('dispersal_units').values(), []))
     
 def count_lesions_by_leaf(g):
     """ Count lesions on each leaf of the MTG.
@@ -145,7 +143,9 @@ def compute_green_lesion_areas_by_leaf(g, label='LeafElement'):
     vids = get_leaves(g, label=label)
     lesions = g.property('lesions')
     areas = g.property('area')
-    pos_sen = g.property('position_senescence')
+    green_lengths = g.property('green_length')
+    # pos_sen = g.property('position_senescence')
+    sen_lengths = g.property('senesced_length')
     
     # return {vid:(sum(l.surface for l in lesions[vid])*pos_sen[vid]
         # if vid in lesions.keys() else 0.) for vid in vids}
@@ -153,16 +153,17 @@ def compute_green_lesion_areas_by_leaf(g, label='LeafElement'):
     gla = {}
     for vid in vids:
         if vid in lesions.keys():
-            for l in lesions[vid]:
-                les_surf = sum(l.surface for l in lesions[vid])
-                if les_surf<=areas[vid]:
-                    gla[vid]=les_surf*pos_sen[vid]
-                else:
-                    gla[vid]=les_surf-(areas[vid]*(1-pos_sen[vid]))
+            les_surf = sum(l.surface for l in lesions[vid])
+            ratio_sen = sen_lengths[vid]/(sen_lengths[vid]+green_lengths[vid]) if (sen_lengths[vid]+green_lengths[vid])>0. else 0.
+            if les_surf<=areas[vid]:
+                # gla[vid]=les_surf*pos_sen[vid]
+                gla[vid]=les_surf*(1-ratio_sen)
+            else:
+                # gla[vid]=les_surf-(areas[vid]*(1-pos_sen[vid]))
+                gla[vid]=les_surf-(areas[vid]*ratio_sen)
         else:
             gla[vid]=0.
     return gla
-    
 
 def compute_healthy_area_by_leaf(g, label='LeafElement'):
     """ Compute healthy area on each part of the MTG given by the label.
@@ -183,15 +184,19 @@ def compute_healthy_area_by_leaf(g, label='LeafElement'):
     """
     from alinea.alep.architecture import get_leaves
     vids = get_leaves(g, label=label)
-    green_areas = g.property('green_area')
+    # green_areas = g.property('green_area')
 
     areas = g.property('area')
     labels = g.property('label')
-    positions_senescence = g.property('position_senescence')
-    if len(positions_senescence)>0:
-        senesced_areas = {k:v*(1-positions_senescence[k]) for k,v in areas.iteritems() if labels[k].startswith(label)}
-    else:
-        senesced_areas = {k:0. for k,v in areas.iteritems() if labels[k].startswith(label)}
+    # positions_senescence = g.property('position_senescence')
+    sen_lengths = g.property('senesced_length')
+    green_lengths = g.property('green_length')
+    senesced_areas = {k:v*(sen_lengths[k]/(sen_lengths[k]+green_lengths[k]) if (sen_lengths[k]+green_lengths[k])>0. else 0.) for k,v in areas.iteritems() if labels[k].startswith(label)}
+    
+    # if len(positions_senescence)>0:
+        # senesced_areas = {k:v*(1-positions_senescence[k]) for k,v in areas.iteritems() if labels[k].startswith(label)}
+    # else:
+        # senesced_areas = {k:0. for k,v in areas.iteritems() if labels[k].startswith(label)}
     green_lesion_areas = compute_green_lesion_areas_by_leaf(g, label)
     
     # return {vid:(areas[vid] - (senesced_areas[vid] + green_lesion_areas[vid])
@@ -600,9 +605,11 @@ def plot_severity_by_leaf(g, senescence=True, transparency=None, label='LeafElem
 
     if senescence==True:
         leaves = get_leaves(g, label=label)
-        pos_sen = g.property('position_senescence')
+        # pos_sen = g.property('position_senescence')
+        sen_lengths = g.property('senesced_length')
+        green_lengths = g.property('green_length')
         for leaf in leaves:
-            if pos_sen[leaf]==0.:
+            if sen_lengths[leaf]>0. and round(green_lengths[leaf],15)==0.:
                 g.node(leaf).color = (157, 72, 7)
     
     if transparency!=None:

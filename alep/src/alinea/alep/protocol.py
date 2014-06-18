@@ -40,7 +40,6 @@ def external_contamination(g,
             if g.label(vid).startswith(label):
                 leaf = g.node(vid)
                 for d in dlist:
-                    d.deposited()
                     if not 'dispersal_units' in leaf.properties():
                         leaf.dispersal_units=[]  
                     leaf.dispersal_units.append(d)
@@ -202,9 +201,9 @@ def update(g, dt,
         
         # 1. Compute growth demand
         for vid, les in lesions.iteritems():
-            lesions[vid] = [lesion for lesion in les if lesion.is_active]
+            les = [lesion for lesion in les if lesion.is_active]
             # Update active lesions
-            for lesion in lesions[vid]:
+            for lesion in les:
                 leaf=g.node(vid)
                 if weather_data is None:
                     lesion.update(dt, leaf)

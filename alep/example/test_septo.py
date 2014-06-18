@@ -4,6 +4,9 @@ import collections
 import pickle
 import sys
 
+# Temp
+from alinea.alep.disease_outputs import count_lesions
+
 def run_simulation(start_year=1998, **kwds):
 
     # Initiation of the simulation ##########################################
@@ -17,14 +20,14 @@ def run_simulation(start_year=1998, **kwds):
     weather = Weather(data_file=meteo_path)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
     weather.check(varnames=['degree_days'], models={'degree_days':basic_degree_days}, start_date=str(start_year)+"-10-01 01:00:00")
-    # seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
-                            # end = str(start_year+1)+"-07-01 01:00:00", 
-                            # freq='H')
+    seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
+                            end = str(start_year+1)+"-07-01 01:00:00", 
+                            freq='H')
     print start_year
     
-    seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
-                            end = str(start_year)+"-11-01 01:00:00", 
-                            freq='H')
+    # seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
+                            # end = str(start_year)+"-11-10 01:00:00", 
+                            # freq='H')
     # g, wheat, domain_area, domain = initialize_stand(age=1250., length=0.1, width=0.1,
         # sowing_density=150, plant_density=150, inter_row=0.12, nsect=5, seed=3)
                             
@@ -37,12 +40,14 @@ def run_simulation(start_year=1998, **kwds):
         del(sys.modules['alinea.alep.septoria_age_physio'])
     septoria = plugin_septoria()
     generator = DU_Generator(septoria, group_dus=True)
+    # generator = DU_Generator(septoria, group_dus=False)
     if 'sporulating_fraction' in kwds:
         frac = kwds['sporulating_fraction']
         del kwds['sporulating_fraction']
     else:
         # See Baccar et al. for parameters
-        frac = 0.65e-4
+        # frac = 0.65e-4
+        frac = 0.01
     inoc = SoilInoculum(DU_generator=generator, sporulating_fraction=frac, domain_area=domain_area)
     contaminator = Septo3DSoilContamination(domain=domain, domain_area=domain_area)
 
@@ -102,24 +107,24 @@ def run_simulation(start_year=1998, **kwds):
         # Grow wheat canopy
         if wheat_eval:
             g,_ = grow_canopy(g, wheat, wheat_eval.value)
-            # Note : The position of senescence goes back to its initial value after
-            # a while for undetermined reason
-            # --> temporary hack for keeping senescence position low when it is over
-            positions = g.property('position_senescence')
-            greens = g.property('is_green')
-            areas = g.property('area')
-            senesced_areas = g.property('senesced_area')
-            leaves = get_leaves(g, label = 'LeafElement')
-            vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
-            # for vid in vids:
-                # if ('dispersal_units' in g.node(vid).properties() and len(g.node(vid).dispersal_units)>0. and
-                    # ((positions[vid]==1 and not greens[vid]) or
-                   # (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5)))):
-                    # import pdb
-                    # pdb.set_trace()
-            positions.update({vid:(0 if (positions[vid]==1 and not greens[vid]) or
-                                        (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
-                                        else positions[vid]) for vid in vids})
+            # # Note : The position of senescence goes back to its initial value after
+            # # a while for undetermined reason
+            # # --> temporary hack for keeping senescence position low when it is over
+            # positions = g.property('position_senescence')
+            # greens = g.property('is_green')
+            # areas = g.property('area')
+            # senesced_areas = g.property('senesced_area')
+            # leaves = get_leaves(g, label = 'LeafElement')
+            # vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
+            # # for vid in vids:
+                # # if ('dispersal_units' in g.node(vid).properties() and len(g.node(vid).dispersal_units)>0. and
+                    # # ((positions[vid]==1 and not greens[vid]) or
+                   # # (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5)))):
+                    # # import pdb
+                    # # pdb.set_trace()
+            # positions.update({vid:(0 if (positions[vid]==1 and not greens[vid]) or
+                                        # (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
+                                        # else positions[vid]) for vid in vids})
 
 
         # Update g for the disease:
@@ -148,6 +153,7 @@ def run_simulation(start_year=1998, **kwds):
         
         if wheat_eval:
             scene = plot_severity_by_leaf(g)
+            print 'nb lesions %d' % count_lesions(g)
         
         # # Save outputs
         # for inspector in inspectors.itervalues():
