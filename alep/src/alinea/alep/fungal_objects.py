@@ -23,8 +23,7 @@ class DispersalUnit(object):
             Number of spores aggregated in the dispersal unit
         position: non defined
             Position of the dispersal unit on the phyto-element
-        status: str
-            'emitted' or 'deposited'
+
         
         Returns
         -------
@@ -43,11 +42,6 @@ class DispersalUnit(object):
         """
         self.is_active = False
     
-    def deposited(self):
-        """ Change the status of the spore to 'deposited'.
-        
-        """
-        self.status = 'deposited'
     
     def set_position(self, position=None):
         """ Set the position of the DU to position given in argument.
@@ -65,7 +59,7 @@ class DispersalUnit(object):
         self.can_infect_at_position = can_infect
     
     def infect(self, leaf=None):
-        self.create_lesion()
+        self.create_lesion(leaf)
     
     def create_lesion(self, leaf=None, **kwds):
         """ Create a new lesion of fungus and disable dispersal unit.
