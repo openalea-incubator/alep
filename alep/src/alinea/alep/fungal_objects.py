@@ -67,7 +67,7 @@ class DispersalUnit(object):
     def infect(self, leaf=None):
         self.create_lesion()
     
-    def create_lesion(self, leaf=None):
+    def create_lesion(self, leaf=None, **kwds):
         """ Create a new lesion of fungus and disable dispersal unit.
         
         Parameters
