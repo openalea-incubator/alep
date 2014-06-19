@@ -39,7 +39,8 @@ def run_simulation(start_year=1998, **kwds):
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
     septoria = plugin_septoria()
-    generator = DU_Generator(septoria, group_dus=True)
+    generator = DU_Generator(septoria, group_dus=True, **kwds)
+    # generator = DU_Generator(septoria, group_dus=True, nb_rings_by_state=1, **kwds)
     # generator = DU_Generator(septoria, group_dus=False)
     if 'sporulating_fraction' in kwds:
         frac = kwds['sporulating_fraction']
@@ -51,7 +52,7 @@ def run_simulation(start_year=1998, **kwds):
     inoc = SoilInoculum(DU_generator=generator, sporulating_fraction=frac, domain_area=domain_area)
     contaminator = Septo3DSoilContamination(domain=domain, domain_area=domain_area)
 
-    growth_controler = NoPriorityGrowthControl()
+    growth_controler = PriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     # sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
     # emitter = SeptoriaRainEmission(domain_area=domain_area)
@@ -135,7 +136,7 @@ def run_simulation(start_year=1998, **kwds):
         # External contamination
         if rain_eval:        
             if rain_eval.value.rain.mean()>0. and rain_eval.value.degree_days[-1]<1000:
-                g = external_contamination(g, inoc, contaminator, weather_eval.value, **kwds)
+                g = external_contamination(g, inoc, contaminator, weather_eval.value)
                 # dus = generate_stock_du(10, septoria, **kwds)
                 # initiate(g, dus, inoculator)
 
@@ -151,18 +152,18 @@ def run_simulation(start_year=1998, **kwds):
                 g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=weather_eval.value)
                 # wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
         
-        if wheat_eval:
-            scene = plot_severity_by_leaf(g)
-            print 'nb lesions %d' % count_lesions(g)
+        # if wheat_eval:
+            # scene = plot_severity_by_leaf(g)
+            # print 'nb lesions %d' % count_lesions(g)
         
         # # Save outputs
-        # for inspector in inspectors.itervalues():
-            # inspector.update_variables(g)
+        for inspector in inspectors.itervalues():
+            inspector.update_variables(g)
             # inspector.update_du_variables(g)
 
-    # for inspector in inspectors.itervalues():
-        # inspector.update_audpc()
-        # inspector.dates = dates
+    for inspector in inspectors.itervalues():
+        inspector.update_audpc()
+        inspector.dates = dates
         
     return g, inspectors
 
