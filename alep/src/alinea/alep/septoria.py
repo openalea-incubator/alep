@@ -117,6 +117,12 @@ class SeptoriaDU(DispersalUnit):
         """
         self.nb_spores = nb_spores
         
+    def set_position(self, position=[0.,0.]):
+        if not is_iterable(position[0]):
+            self.position = [position]
+        else:
+            self.position = position
+        
 # Fungus parameters (e.g. .ini): config of the fungus #############################
 septoria_parameters = dict(INCUBATING = 0,
                  CHLOROTIC = 1,
@@ -307,6 +313,11 @@ def proba(p):
     """
     return random() < p
 
+import collections        
+def is_iterable(obj):
+    """ Test if object is iterable """
+    return isinstance(obj, collections.Iterable)
+    
 # Plugin function #################################################################
 # Disease == Fungus !!!!!!
 

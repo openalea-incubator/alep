@@ -191,6 +191,7 @@ class Lesion(object):
         ----------
             None
         """
+        self.growth_is_active = False
         self.is_active = False
         self.growth_demand = 0.
         

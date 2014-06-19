@@ -34,12 +34,13 @@ def generate_stock_du(nb_dus, disease, **kwds):
 
 class DU_Generator(object):
     """ Generator of DU to be used in the form of SoilInoculum in septo3D."""
-    def __init__(self, disease, group_dus=False):
+    def __init__(self, disease, group_dus=False, **kwds):
         self.disease = disease
         self.group_dus = group_dus
+        self.kwds = kwds
         
-    def create_stock(self, nb_dus, **kwds):
-        return [self.disease.dispersal_unit(group_dus=self.group_dus, **kwds) for i in range(int(nb_dus))]
+    def create_stock(self, nb_dus):
+        return [self.disease.dispersal_unit(group_dus=self.group_dus, **self.kwds) for i in range(int(nb_dus))]
                         
 def generate_stock_lesions(nb_lesions, disease, position=None):
     """ Generate a stock of lesions.

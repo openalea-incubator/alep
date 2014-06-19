@@ -100,15 +100,8 @@ class BiotrophDUPositionModel:
                 
             # Compare to senescence
             for DU in dispersal_units[vid]:
-                if not is_iterable(DU.position[0]):
-                    DU.position = [DU.position]
                 DU.position = filter(lambda x: x[0]>leaf.senesced_length, DU.position)
                 if DU.nb_dispersal_units == 0.:
                     DU.disable()
                 else:
                     DU.set_can_infect(True)
-                
-import collections        
-def is_iterable(obj):
-    """ Test if object is iterable """
-    return isinstance(obj, collections.Iterable)
