@@ -311,7 +311,6 @@ def disperse(g,
             if g.label(vid).startswith(label):
                 leaf = g.node(vid)
                 for d in dlist:
-                    d.deposited()
                     if not 'dispersal_units' in leaf.properties():
                         leaf.dispersal_units=[]  
                     leaf.dispersal_units.append(d)
