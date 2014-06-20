@@ -939,7 +939,6 @@ class LeafInspector:
         
         if len(lesion_list)>0:
             for l in lesion_list:
-                l.compute_all_surfaces()
                 surface_inc += l.surface_inc
                 surface_chlo += l.surface_chlo
                 surface_nec += l.surface_nec
