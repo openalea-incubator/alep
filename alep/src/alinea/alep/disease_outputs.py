@@ -838,8 +838,8 @@ class LeafInspector:
         self.compute_necrosis(g)
         self.compute_senescence_necrosis(g)
         
-        self.compute_stock(g)
-        self.compute_nb_spores_emitted(g)
+        # self.compute_stock(g)
+        # self.compute_nb_spores_emitted(g)
     
     def update_area(self,g):
         areas = g.property('area')
@@ -996,31 +996,31 @@ class LeafInspector:
         severity = self.compute_severity(g)/100
         return round(severity * nb_unwashed)
 
-    def compute_stock(self, g):
-        lesion_list = []
-        for id in self.ids:
-            leaf = g.node(id)
-            try:
-                lesion_list += leaf.lesions
-            except:
-                pass
-        if len(lesion_list)>0.:
-            self.stock_spores.append(sum([(l.stock_spores if l.stock_spores!=None else 0.) for l in lesion_list]))
-        else:
-            self.stock_spores.append(0.)
+    # def compute_stock(self, g):
+        # lesion_list = []
+        # for id in self.ids:
+            # leaf = g.node(id)
+            # try:
+                # lesion_list += leaf.lesions
+            # except:
+                # pass
+        # if len(lesion_list)>0.:
+            # self.stock_spores.append(sum([(l.stock_spores if l.stock_spores!=None else 0.) for l in lesion_list]))
+        # else:
+            # self.stock_spores.append(0.)
             
-    def compute_nb_spores_emitted(self, g):
-        lesion_list = []
-        for id in self.ids:
-            leaf = g.node(id)
-            try:
-                lesion_list += leaf.lesions
-            except:
-                pass
-        if len(lesion_list)>0.:
-            self.nb_spores_emitted.append(sum([(l.nb_spores_emitted if l.nb_spores_emitted!=None else 0.) for l in lesion_list]))
-        else:
-            self.nb_spores_emitted.append(0.)
+    # def compute_nb_spores_emitted(self, g):
+        # lesion_list = []
+        # for id in self.ids:
+            # leaf = g.node(id)
+            # try:
+                # lesion_list += leaf.lesions
+            # except:
+                # pass
+        # if len(lesion_list)>0.:
+            # self.nb_spores_emitted.append(sum([(l.nb_spores_emitted if l.nb_spores_emitted!=None else 0.) for l in lesion_list]))
+        # else:
+            # self.nb_spores_emitted.append(0.)
             
     def update_audpc(self):
         try:
