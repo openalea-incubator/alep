@@ -1104,3 +1104,189 @@ class VineLeafInspector:
         self.ratio_spo.append(100.*surface_spo/area if area>0. else 0.)
         self.surface_empty.append(surface_empty)
         self.ratio_empty.append(100.*surface_empty/area if area>0. else 0.)
+        
+######################################################################
+import pandas
+from scipy.integrate import trapz
+
+class SeptoRecorder:
+    def __init__(self, vids=None, group_dus=True, date_sequence=None):
+        self.vids = vids
+        self.group_dus = group_dus
+        self.date_sequence = date_sequence
+        # Initialize leaf properties to save
+        self.leaf_area = []
+        self.leaf_green_area = []  
+        # Initialize variables relative to DUs
+        self.nb_dispersal_units = []
+        self.nb_dus_on_green = []
+        # Initialize variables relative to number of lesions
+        self.nb_lesions = []
+        self.nb_lesions_on_green = []
+        # Initialize surfaces in state
+        self.surface_inc = []
+        self.surface_chlo = []
+        self.surface_nec = []
+        self.surface_spo = []
+        self.surface_empty = []
+        self.surface_dead = []
+        
+    def record(self, g):
+        # Update leaf properties
+        self.leaf_area.append(sum([g.node(id).area for id in self.vids]))
+        self.leaf_green_area.append(sum([g.node(id).green_area for id in self.vids]))
+        
+        # Update properties of dispersal units and lesions
+        nb_dus = 0
+        nb_dus_on_green = 0
+        nb_lesions = 0
+        nb_lesions_on_green = 0
+        surface_inc = 0.
+        surface_chlo = 0.
+        surface_nec = 0.
+        surface_spo = 0.
+        surface_empty = 0.
+        surface_dead = 0.
+        
+        for id in self.vids:
+            leaf = g.node(id)
+            if 'dispersal_units' in leaf.properties():
+                leaf = g.node(id)
+                if self.group_dus:
+                    for du in leaf.dispersal_units:
+                        nb_dus += len(du.position)
+                        nb_dus_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, du.position))
+                else:
+                    nb_dus += len(leaf.dispersal_units)
+                    nb_dus_on_green += len([du for du in leaf.dispersal_units if du.position[0][0]>leaf.senesced_length])
+            
+            if 'lesions' in leaf.properties():
+                if self.group_dus:
+                    for les in leaf.lesions:
+                        nb_lesions += len(les.position)
+                        nb_lesions_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, les.position))
+                        surface_inc += les.surface_inc
+                        surface_chlo += les.surface_chlo
+                        surface_nec += les.surface_nec
+                        surface_spo += les.surface_spo
+                        surface_empty += les.surface_empty
+                        surface_dead += les.surface_dead
+                else:
+                    nb_lesions += len(leaf.lesions)
+                    for les in leaf.lesions:
+                        if les.position[0][0]>leaf.senesced_length:
+                            nb_lesions_on_green += 1
+                        surface_inc += les.surface_inc
+                        surface_chlo += les.surface_chlo
+                        surface_nec += les.surface_nec
+                        surface_spo += les.surface_spo
+                        surface_empty += les.surface_empty
+                        surface_dead += les.surface_dead
+        
+        self.nb_dispersal_units.append(nb_dus)
+        self.nb_dus_on_green.append(nb_dus_on_green)                
+        self.nb_lesions.append(nb_lesions)
+        self.nb_lesions_on_green.append(nb_lesions_on_green)
+        self.surface_inc.append(surface_inc)
+        self.surface_chlo.append(surface_chlo)
+        self.surface_nec.append(surface_nec)
+        self.surface_spo.append(surface_spo)
+        self.surface_empty.append(surface_empty)
+        self.surface_dead.append(surface_dead)
+        
+    def create_dataframe(self):
+        dico = {k:v for k,v in self.__dict__.iteritems() if k!='group_dus' and k!='vids'}
+        self.data = pandas.DataFrame(data=dico, index=self.date_sequence)
+    
+    def leaf_senesced_area(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
+    
+    def leaf_disease_area(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            self.data['leaf_disease_area'] = self.data['surface_inc'] + self.data['surface_chlo'] + self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty'] + self.data['surface_dead']
+
+    def leaf_lesion_area_on_green(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            if not 'leaf_disease_area' in self.data:
+                self.leaf_disease_area()
+            self.data['leaf_lesion_area_on_green'] = [self.data['nb_lesions_on_green'][ind]*self.data['leaf_disease_area'][ind]/self.data['nb_lesions'][ind] if self.data['nb_lesions'][ind]>0. else 0. for ind in self.data.index]
+    
+    def leaf_healthy_area(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            if not 'leaf_lesion_area_on_green' in self.data:
+                self.leaf_lesion_area_on_green()
+            self.data['leaf_healthy_area'] = self.data['leaf_green_area'] - self.data['leaf_lesion_area_on_green']
+            
+    def surface_alive(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            self.data['surface_alive'] = self.data['surface_inc'] + self.data['surface_chlo'] + self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
+
+    def ratios(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            self.data['ratio_inc'] = [self.data['surface_inc'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+            self.data['ratio_chlo'] = [self.data['surface_chlo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+            self.data['ratio_nec'] = [self.data['surface_nec'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+            self.data['ratio_spo'] = [self.data['surface_spo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+            self.data['ratio_empty'] = [self.data['surface_empty'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+
+    def severity(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            if not 'leaf_disease_area' in self.data:
+                self.leaf_disease_area()
+            self.data['severity'] = [self.data['leaf_disease_area'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+    
+    def necrosis(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            self.data['necrosis'] = self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
+    
+    def necrosis_percentage(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            if not 'necrosis' in self.data:
+                self.necrosis()
+            self.data['necrosis_percentage'] = [self.data['necrosis'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+                
+    def get_audpc(self, variable='severity'):
+        """ Variable can be 'severity' or 'necrosis'. """
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        else:
+            if not variable in self.data:
+                exec('self.'+variable+'()')
+            if self.data['leaf_green_area'][-1]==0.:
+                self.audpc = trapz(self.data[variable], dx=1)
+            else:
+                self.audpc = 'audpc not available: leaf has not reached senescence'
+                
+    def get_complete_dataframe(self):
+        self.create_dataframe()
+        self.leaf_senesced_area()
+        self.leaf_disease_area()
+        self.leaf_lesion_area_on_green()
+        self.leaf_healthy_area()
+        self.surface_alive()
+        self.ratios()
+        self.severity()
+        self.necrosis()
+        self.necrosis_percentage()
+
+        
+        

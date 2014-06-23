@@ -180,11 +180,13 @@ class SeptoriaAgePhysio(Lesion):
             Surface available on the leaf for the ring to grow (cm2)
         """
         if self.growth_is_active:
-        
-            # TEMPORARY
-            if growth_offer<self.growth_demand:
+            
+            # Disable growth in case of competition 
+            if round(growth_offer,14) < round(self.growth_demand,14):
+                self.disable_growth()
+                # TEMPORARY
                 self.age_competition = self.age_dday
-        
+
             f = self.fungus
             # Growth offer is added to surface according to state
             if self.is_incubating():
@@ -194,7 +196,7 @@ class SeptoriaAgePhysio(Lesion):
                 self.surface_first_ring += growth_offer
             else:
                 Smin = self._surface_min
-                if self.surface_first_ring < Smin:
+                if round(self.surface_first_ring,14) < round(Smin,14):
                     if self.surface_first_ring + growth_offer <= Smin:
                         self.surface_first_ring += growth_offer
                         growth_offer = 0.
@@ -208,7 +210,7 @@ class SeptoriaAgePhysio(Lesion):
                     filling = growth_offer/self.distribution_new_rings
                     growth_offer-=filling
                     surf = np.append(surf, filling)
-                surf = np.append(surf, round(growth_offer, 16))
+                surf = np.append(surf, round(growth_offer, 14))
                 # Fill surfaces chlo
                 if len(surf)<=len(self.surfaces_chlo):
                     self.surfaces_chlo[:len(surf)]+=surf
@@ -222,13 +224,9 @@ class SeptoriaAgePhysio(Lesion):
             self.distribution_new_ring = 0.         
 
             # If lesion has reached max size, disable growth
-            if round(self.surface,16) >= round(self._surface_max,16):
+            if round(self.surface,14) >= round(self._surface_max,14):
                 self.disable_growth()  
 
-            # Disable growth in case of competition 
-            if round(growth_offer,16) < round(self.growth_demand,16):
-                self.disable_growth()
-                
             self.growth_demand = 0.
     
     def incubation(self):
@@ -251,7 +249,7 @@ class SeptoriaAgePhysio(Lesion):
                 Smin = self._surface_min
                 self.growth_demand = Smin - self.surface
             # Change status
-            self.ratio_left = (self.age_physio - 1.)/progress
+            self.ratio_left = round((self.age_physio - 1.)/progress,14)
             self.change_status()
             self.change_status_edge()
             self.reset_age_physio()
@@ -259,7 +257,7 @@ class SeptoriaAgePhysio(Lesion):
 
     def chlorosis(self):
         """ Compute growth demand and physiological age progress to necrosis.
-        """       
+        """
         f = self.fungus
         # Compute progress in chlorosis
         time_to_nec = f.degree_days_to_necrosis
@@ -483,14 +481,13 @@ class SeptoriaAgePhysio(Lesion):
                 # leaf.relative_humidity >= f.rh_min and self.first_rain_hour)
         return self.is_sporulating()
 
-    def emission(self, density_DU_emitted, rain_exposition=1.):
+    def emission(self, density_DU_emitted):
         """ Return number of DUs emitted by the lesion. """
         f = self.fungus
         # print 'density DU popDrops %f' % density_DU_emitted
-        # print 'rain exposition %f' % rain_exposition
         du_factor = float(density_DU_emitted)/f.density_dus_emitted_max
         du_factor[du_factor>1.]=1.
-        delta_spo = rain_exposition*self.surfaces_spo*du_factor
+        delta_spo = self.surfaces_spo*du_factor
         self.surfaces_spo -= delta_spo
         self.surfaces_spo[1:]+=delta_spo[:f.rain_events_to_empty-1]
         if delta_spo[-1]>0.:
@@ -707,8 +704,11 @@ class SeptoriaAgePhysio(Lesion):
     
     def can_compute_rings(self):
         """ Allow ring formation only if particular first ring has reached Smin. """
-        return round(self.surface_first_ring, 16) == self._surface_min
-
+        if self.status_edge<=self.fungus.CHLOROTIC:
+            return (len(self.surfaces_chlo)>0. and round(self.surface_first_ring, 14) == round(self._surface_min, 14))
+        elif self.status_edge<=self.fungus.NECROTIC:
+            return (len(self.surfaces_nec)>0. and round(self.surface_first_ring, 14) == round(self._surface_min, 14))
+            
     def compute_all_surfaces(self):
         """ Not needed in this model.
         ..TODO: Remove """
@@ -749,7 +749,7 @@ class SeptoriaAgePhysio(Lesion):
 
     @property
     def surface_nec(self):
-        """ Calculate the surface in chlorosis. """
+        """ Calculate the surface in necrosis. """
         return (sum(self.surfaces_nec)+self.surface_first_ring) if self.is_necrotic() else sum(self.surfaces_nec)
 
     @property

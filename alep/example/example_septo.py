@@ -15,8 +15,9 @@ from alinea.alep.protocol import *
 from alinea.alep.septoria import plugin_septoria
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import NoPriorityGrowthControl
+from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
-from alinea.alep.disease_outputs import LeafInspector
+from alinea.alep.disease_outputs import LeafInspector, SeptoRecorder
 from alinea.alep.disease_outputs import plot_severity_by_leaf
 
 def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=False, nb_steps=1000, leaf_area=None):
@@ -40,7 +41,9 @@ def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i i
     growth_controler = NoPriorityGrowthControl()
 
     # Initiate output recorder
-    inspector = LeafInspector(g, blade_id=8)
+    # inspector = LeafInspector(g, blade_id=8)
+    recorder = SeptoRecorder(vids=[10],group_dus=group_dus, 
+                date_sequence=pandas.date_range("2014-01-01 01:00:00", periods=nb_steps, freq='H'))
 
     # Simulation loop
     for i in range(nb_steps):
@@ -52,13 +55,15 @@ def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i i
         update(g, 1, growth_controler, senescence_model=None, label='LeafElement')
         
         # Get outputs
-        inspector.update_variables(g)
-        inspector.update_du_variables(g)
+        recorder.record(g)
+    recorder.get_complete_dataframe()
     
-    return g, inspector
+    # return g, inspector
+    return g, recorder
     
 def plot_lesion_states():
     g, insp = example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1)], nb_steps=1000)
+    # g, insp = example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1) for i in range(10)], nb_steps=1000, leaf_area=20.)
     outputs = pandas.DataFrame({'disease area': insp.leaf_disease_area,
                                 'surface incubating': insp.surface_inc,
                                 'surface chlorotic': insp.surface_chlo,
@@ -70,6 +75,9 @@ def plot_lesion_states():
 
 
 def example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=False, nb_steps=1000):
+    rd.seed(0)
+    np.random.seed(0)
+    
     # Initiate wheat MTG with one leaf and good conditions for disease
     g, wheat, domain_area, domain = initialize_stand(age=1600., length=0.1, width=0.1,
             sowing_density=150, plant_density=150, inter_row=0.12, nsect=1, seed=3)
@@ -87,19 +95,23 @@ def example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in r
         dispersal_units = [dispersal_units[0]]
     source_leaf.dispersal_units = dispersal_units
     infection_controler = BiotrophDUPositionModel()
-    growth_controler = NoPriorityGrowthControl()
+    growth_controler = PriorityGrowthControl()
     emitter = PopDropsEmission(domain=domain)
     transporter = PopDropsTransport(domain=domain, domain_area=domain_area)
     
     # Initiate output recorder
-    inspectors = {}
+    recorders = {}
     ind=4
     for blade in [80, 88, 96]:
-            ind -= 1
-            inspectors['F%d' % ind] = LeafInspector(g, blade_id=blade)
+        ind -= 1
+        recorders['F%d' % ind] = SeptoRecorder(vids=[blade+2],group_dus=group_dus, 
+                date_sequence=pandas.date_range("2014-01-01 01:00:00", periods=nb_steps, freq='H'))
     
     # Simulation loop
     for i in range(nb_steps):
+        # Temp
+        # set_properties(g, label='LeafElement', temp=rd.uniform(-5., 25.))
+    
         # Update wheat healthy area
         update_healthy_area(g, label = 'LeafElement')
         
@@ -111,12 +123,14 @@ def example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in r
         if i%100==0.:
             g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_data)
         
-        # Get outputs
-        for inspector in inspectors.itervalues():
-            inspector.update_variables(g)
-            inspector.update_du_variables(g)
+        # Get outputs        
+        for recorder in recorders.itervalues():
+            recorder.record(g)
+    
+    for recorder in recorders.itervalues():
+        recorder.get_complete_dataframe()
 
-    return g, inspectors
+    return g, recorders
 
 def plot_plant_outputs(call='example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000)'):
     exec('g, inspectors = ' + call)
@@ -126,21 +140,23 @@ def plot_plant_outputs(call='example_plant(dispersal_units=[plugin_septoria().di
     disease_area.plot(ax=axs[0])
     surf_nec.plot(ax=axs[1])
     
-g, inspectors10 = example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000)
-disease_area10 = pandas.DataFrame({k:v.leaf_disease_area for k,v in inspectors10.iteritems()})
-surf_nec10 = pandas.DataFrame({k:v.surface_total_nec for k,v in inspectors10.iteritems()})
+# g, inspectors10 = example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000)
+# disease_area10 = pandas.DataFrame({k:v.leaf_disease_area for k,v in inspectors10.iteritems()})
+# surf_nec10 = pandas.DataFrame({k:v.surface_total_nec for k,v in inspectors10.iteritems()})
 
-g, inspectors1 = example_plant(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1) for i in range(10)], group_dus=True, nb_steps=1000)
-disease_area1 = pandas.DataFrame({k:v.leaf_disease_area for k,v in inspectors10.iteritems()})
-surf_nec1 = pandas.DataFrame({k:v.surface_total_nec for k,v in inspectors10.iteritems()})
-fig, axs = plt.subplots(1,2)
-disease_area10.plot(ax=axs[0])
-surf_nec10.plot(ax=axs[1])
-disease_area1.plot(ax=axs[0])
-surf_nec1.plot(ax=axs[1])
+# g, inspectors1 = example_plant(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1) for i in range(10)], group_dus=True, nb_steps=1000)
+# disease_area1 = pandas.DataFrame({k:v.leaf_disease_area for k,v in inspectors10.iteritems()})
+# surf_nec1 = pandas.DataFrame({k:v.surface_total_nec for k,v in inspectors10.iteritems()})
+# fig, axs = plt.subplots(1,2)
+# disease_area10.plot(ax=axs[0])
+# # surf_nec10.plot(ax=axs[1])
+# surf_spo10.plot(ax=axs[1])
+# disease_area1.plot(ax=axs[0])
+# # surf_nec1.plot(ax=axs[1])
+# surf_spo1.plot(ax=axs[1])
 
     
-def stat_profiler(call='example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=False, nb_steps=1000)'):
+def stat_profiler(call='example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000)'):
     import cProfile
     import pstats
     cProfile.run(call, 'restats')

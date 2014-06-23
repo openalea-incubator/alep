@@ -29,5 +29,5 @@ from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
 from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
-from alinea.alep.disease_outputs import LeafInspector
+from alinea.alep.disease_outputs import LeafInspector, SeptoRecorder
 

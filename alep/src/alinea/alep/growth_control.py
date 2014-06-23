@@ -58,7 +58,7 @@ class NoPriorityGrowthControl:
                 # import pdb
                 # pdb.set_trace()
                 for l in leaf_lesions:
-                    growth_offer = round(leaf_healthy_area * l.growth_demand / total_demand, 16)
+                    growth_offer = round(leaf_healthy_area * l.growth_demand / total_demand, 14)
                     if growth_offer<0:
                         import pdb
                         pdb.set_trace()
@@ -110,7 +110,8 @@ class PriorityGrowthControl:
                 raise NameError('Set healthy area on the MTG before simulation' '\n' 
                                 'See alinea.alep.architecture > set_healthy_area')
                 
-            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.growth_is_active]
+            # leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.growth_is_active]
+            leaf_lesions = [l for lf in leaf if lf in lesions for l in lesions[lf] if l.growth_is_active ]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
             
             if total_demand > leaf_healthy_area:
@@ -121,7 +122,7 @@ class PriorityGrowthControl:
                     for l in non_prior_lesions:
                         l.control_growth(growth_offer=0.)
                     for l in prior_lesions:
-                        growth_offer = round(leaf_healthy_area * l.growth_demand / prior_demand, 16)
+                        growth_offer = round(leaf_healthy_area * l.growth_demand / prior_demand, 14)
                         l.control_growth(growth_offer=growth_offer)
                 else:
                     for l in prior_lesions:
@@ -130,7 +131,7 @@ class PriorityGrowthControl:
                     non_prior_demand = sum(l.growth_demand for l in non_prior_lesions)
                     assert non_prior_demand >= (leaf_healthy_area-prior_demand)
                     for l in non_prior_lesions:
-                        growth_offer = round((leaf_healthy_area-prior_demand) * l.growth_demand / non_prior_demand, 16)
+                        growth_offer = round((leaf_healthy_area-prior_demand) * l.growth_demand / non_prior_demand, 14)
                         l.control_growth(growth_offer=growth_offer)
             else:
                 for l in leaf_lesions:

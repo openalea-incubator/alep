@@ -32,8 +32,9 @@ def run_simulation(start_year=1998, **kwds):
         # sowing_density=150, plant_density=150, inter_row=0.12, nsect=5, seed=3)
                             
     # Initialize a wheat canopy
+    nsect=5
     g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, width=0.1,
-        sowing_density=150, plant_density=150, inter_row=0.12, nsect=5, seed=3)
+        sowing_density=150, plant_density=150, inter_row=0.12, nsect=nsect, seed=3)
         
     # Initialize the models for septoria
     if 'alinea.alep.septoria_age_physio' in sys.modules:
@@ -75,15 +76,22 @@ def run_simulation(start_year=1998, **kwds):
     rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
 
     # Call leaf inspectors for target blades (top 3)
-    inspectors = {}
-    #first_blade = 80
-    ind = 4.
-    # for blade in range(first_blade,104,8):
+    # inspectors = {}
+    # #first_blade = 80
+    # ind = 4.
+    # # for blade in range(first_blade,104,8):
+    # for blade in [116, 128, 140]:
+            # ind -= 1
+            # inspectors['F %d' % ind] = LeafInspector(g, blade_id=blade)    
+    # inspectors['rosette'] = LeafInspector(g, blade_id=8)
+    # dates = []
+    
+    recorders = {}
+    ind=4
     for blade in [116, 128, 140]:
-            ind -= 1
-            inspectors['F %d' % ind] = LeafInspector(g, blade_id=blade)    
-    inspectors['rosette'] = LeafInspector(g, blade_id=8)
-    dates = []
+        ind -= 1
+        recorders['F%d' % ind] = SeptoRecorder(vids=[blade+2+sect for sect in range(nsect)],group_dus=True, date_sequence=seq[1:])
+    recorders['rosette'] = SeptoRecorder(vids=[8+2+sect for sect in range(nsect)],group_dus=True, date_sequence=seq[1:])
     
     # Simulation ############################################################
     for i, controls in enumerate(zip(weather_timing, wheat_timing, septo_timing, rain_timing)):
@@ -108,24 +116,24 @@ def run_simulation(start_year=1998, **kwds):
         # Grow wheat canopy
         if wheat_eval:
             g,_ = grow_canopy(g, wheat, wheat_eval.value)
-            # # Note : The position of senescence goes back to its initial value after
-            # # a while for undetermined reason
-            # # --> temporary hack for keeping senescence position low when it is over
-            # positions = g.property('position_senescence')
-            # greens = g.property('is_green')
-            # areas = g.property('area')
-            # senesced_areas = g.property('senesced_area')
-            # leaves = get_leaves(g, label = 'LeafElement')
-            # vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
-            # # for vid in vids:
-                # # if ('dispersal_units' in g.node(vid).properties() and len(g.node(vid).dispersal_units)>0. and
-                    # # ((positions[vid]==1 and not greens[vid]) or
-                   # # (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5)))):
-                    # # import pdb
-                    # # pdb.set_trace()
-            # positions.update({vid:(0 if (positions[vid]==1 and not greens[vid]) or
-                                        # (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
-                                        # else positions[vid]) for vid in vids})
+            # Note : The position of senescence goes back to its initial value after
+            # a while for undetermined reason
+            # --> temporary hack for keeping senescence position low when it is over
+            positions = g.property('position_senescence')
+            greens = g.property('is_green')
+            areas = g.property('area')
+            senesced_areas = g.property('senesced_area')
+            leaves = get_leaves(g, label = 'LeafElement')
+            vids = [leaf for leaf in leaves if leaf in g.property('geometry')]
+            # for vid in vids:
+                # if ('dispersal_units' in g.node(vid).properties() and len(g.node(vid).dispersal_units)>0. and
+                    # ((positions[vid]==1 and not greens[vid]) or
+                   # (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5)))):
+                    # import pdb
+                    # pdb.set_trace()
+            positions.update({vid:(0 if (positions[vid]==1 and not greens[vid]) or
+                                        (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
+                                        else positions[vid]) for vid in vids})
 
 
         # Update g for the disease:
@@ -157,15 +165,20 @@ def run_simulation(start_year=1998, **kwds):
             # print 'nb lesions %d' % count_lesions(g)
         
         # # Save outputs
-        for inspector in inspectors.itervalues():
-            inspector.update_variables(g)
+        # for inspector in inspectors.itervalues():
+            # inspector.update_variables(g)
             # inspector.update_du_variables(g)
+        for recorder in recorders.itervalues():
+            recorder.record(g)
 
-    for inspector in inspectors.itervalues():
-        inspector.update_audpc()
-        inspector.dates = dates
+    # for inspector in inspectors.itervalues():
+        # inspector.update_audpc()
+        # inspector.dates = dates
+    for recorder in recorders.itervalues():
+        recorder.get_complete_dataframe()
+        recorder.get_audpc()
         
-    return g, inspectors
+    return g, recorders
 
 def is_iterable(obj):
     """ Test if object is iterable """
