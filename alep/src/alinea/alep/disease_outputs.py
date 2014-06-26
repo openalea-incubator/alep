@@ -1158,7 +1158,7 @@ class SeptoRecorder:
                         nb_dus_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, du.position))
                 else:
                     nb_dus += len(leaf.dispersal_units)
-                    nb_dus_on_green += len([du for du in leaf.dispersal_units if du.position[0][0]>leaf.senesced_length])
+                    nb_dus_on_green += len([du for du in leaf.dispersal_units if du.position[0]>leaf.senesced_length])
             
             if 'lesions' in leaf.properties():
                 if self.group_dus:
@@ -1174,7 +1174,7 @@ class SeptoRecorder:
                 else:
                     nb_lesions += len(leaf.lesions)
                     for les in leaf.lesions:
-                        if les.position[0][0]>leaf.senesced_length:
+                        if les.position[0]>leaf.senesced_length:
                             nb_lesions_on_green += 1
                         surface_inc += les.surface_inc
                         surface_chlo += les.surface_chlo
