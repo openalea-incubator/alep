@@ -11,12 +11,12 @@ def is_iterable(obj):
 
 def load_out(year, **kwds):
     if len(kwds)>0:
-        stored_insp =  '.\sensitivity\inspector_'+str(year)+'_'+kwds.keys()[0][:3]+'-'+str(kwds.values()[0])+'.pckl'
+        stored_rec =  '.\sensitivity\recorder_'+str(year)+'_'+kwds.keys()[0][:3]+'-'+str(kwds.values()[0])+'.pckl'
     else:
-        stored_insp = '.\sensitivity\inspector_'+str(year)+'.pckl'
-    f_insp = open(stored_insp)
-    out = pickle.load(f_insp)
-    f_insp.close()
+        stored_rec = '.\sensitivity\recorder_'+str(year)+'.pckl'
+    f_rec = open(stored_rec)
+    out = pickle.load(f_rec)
+    f_rec.close()
     return out
 
 def read_outputs(start_years = [1998, 2001, 2002], **kwds):
@@ -61,7 +61,7 @@ def get_necrosis(out, year=1998, leaf='rosette', **kwds):
     out_yr = {k:v for k,v in out.iteritems() if k.startswith(str(year))}
     seq = pd.date_range(start = str(year)+"-10-01 01:00:00", end = str(year+1)+"-07-01 01:00:00", freq='H')
     seq = seq[1:] # TODO check if normal
-    surf_necs = {k[5:]:out_yr[k][leaf].surface_total_nec for k in out_yr.keys()}
+    surf_necs = {k[5:]:out_yr[k][leaf].data.surface_total_nec for k in out_yr.keys()}
     for par in params:
         df[par] = surf_necs[par]
     df.index = seq
@@ -74,7 +74,7 @@ def get_necrosis_percentage(out, year=1998, leaf='rosette', **kwds):
     out_yr = {k:v for k,v in out.iteritems() if k.startswith(str(year))}
     seq = pd.date_range(start = str(year)+"-10-01 01:00:00", end = str(year+1)+"-07-01 01:00:00", freq='H')
     seq = seq[1:] # TODO check if normal
-    ratio_necs = {k[5:]:out_yr[k][leaf].ratio_total_nec for k in out_yr.keys()}
+    ratio_necs = {k[5:]:out_yr[k][leaf].data.ratio_total_nec for k in out_yr.keys()}
     for par in params:
         df[par] = ratio_necs[par]
     df.index = seq
@@ -87,7 +87,7 @@ def get_disease_area(out, year=1998, leaf='rosette', **kwds):
     out_yr = {k:v for k,v in out.iteritems() if k.startswith(str(year))}
     seq = pd.date_range(start = str(year)+"-10-01 01:00:00", end = str(year+1)+"-07-01 01:00:00", freq='H')
     seq = seq[1:] # TODO check if normal
-    areas = {k[5:]:out_yr[k][leaf].leaf_disease_area for k in out_yr.keys()}
+    areas = {k[5:]:out_yr[k][leaf].data.leaf_disease_area for k in out_yr.keys()}
     for par in params:
         df[par] = areas[par]
     df.index = seq
@@ -100,7 +100,7 @@ def get_green_area(out, year=1998, leaf='rosette', **kwds):
     out_yr = {k:v for k,v in out.iteritems() if k.startswith(str(year))}
     seq = pd.date_range(start = str(year)+"-10-01 01:00:00", end = str(year+1)+"-07-01 01:00:00", freq='H')
     seq = seq[1:] # TODO check if normal
-    areas = {k[5:]:out_yr[k][leaf].leaf_green_area for k in out_yr.keys()}
+    areas = {k[5:]:out_yr[k][leaf].data.leaf_green_area for k in out_yr.keys()}
     for par in params:
         df[par] = areas[par]
     df.index = seq

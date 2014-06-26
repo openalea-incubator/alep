@@ -67,7 +67,7 @@ class SeptoriaDU(DispersalUnit):
                 leaf.lesions = [les]
             self.disable()
         
-    def infect(self, dt, leaf, **kwds):
+    def infect(self, dt=1, leaf=None, **kwds):
         """ Compute infection by the dispersal unit of Septoria.
         
         Parameters
@@ -88,24 +88,27 @@ class SeptoriaDU(DispersalUnit):
             self.disable()
         else:
             # TODO: design a new equation : see Magarey (2005)
-            if leaf_wet:
-                self.cumul_wetness += 1
-            elif self.cumul_wetness > 0: 
-                assert not leaf_wet
+            if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and leaf_wet:
+                self.cumul_wetness += dt
+            elif self.cumul_wetness > 0:                 
                 self.cumul_wetness = 0.
-            else:
-                assert not leaf_wet
-                assert self.cumul_wetness == 0.
-            if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and self.cumul_wetness >= self.fungus.wd_min :                       
+                
+            if self.cumul_wetness >= self.fungus.wd_min :
                 # TODO : create a function of the number of spores            
                 spores_factor = self.nb_spores / self.nb_spores # always equals 1 for now
                 if proba(spores_factor):
                     self.create_lesion(leaf)
             elif self.cumul_wetness == 0 :
-                self.cumul_loss_rate+=self.fungus.loss_rate
+                self.cumul_loss_rate+=self.fungus.loss_rate*dt
                 # Proba conditionnelle doit se cumuler.
-                if proba(self.cumul_loss_rate): 
-                    self.disable()
+                if self.fungus.group_dus:
+                    nb_disabled = sum([proba(self.cumul_loss_rate) for i in range(self.nb_dispersal_units)])
+                    self.position = self.position[nb_disabled:]
+                    if self.nb_dispersal_units == 0.:
+                        self.disable()
+                else:
+                    if proba(self.cumul_loss_rate):
+                        self.disable()
     
     def set_nb_spores(self, nb_spores=0.):
         """ Set the number of spores in the DU.
@@ -122,6 +125,13 @@ class SeptoriaDU(DispersalUnit):
             self.position = [position]
         else:
             self.position = position
+    
+    @property
+    def nb_dispersal_units(self):
+        if self.position is None:
+            return None
+        else:
+            return len(self.position)
         
 # Fungus parameters (e.g. .ini): config of the fungus #############################
 septoria_parameters = dict(INCUBATING = 0,

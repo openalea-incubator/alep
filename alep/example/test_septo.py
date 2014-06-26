@@ -6,13 +6,29 @@ import sys
 
 # Temp
 from alinea.alep.disease_outputs import count_lesions
+from alinea.alep.architecture import get_leaves
+
+class DummyEmission():
+    def __init__(self, **kwds):
+        self.kwds = kwds
+    def get_dispersal_units(self, g, fungus_name="septoria", label='LeafElement', weather_data=None):
+        leaves = get_leaves(g)
+        du = plugin_septoria().dispersal_unit(**self.kwds)
+        du.position=[[10.,0.] for i in range(100)]
+        return {lf:[du] for lf in leaves}
+
+class DummyTransport():
+    def __init__(self, **kwds):
+        self.kwds = kwds
+    def disperse(self, g, DU, weather_data=None):
+        return DU
 
 def run_simulation(start_year=1998, **kwds):
 
     # Initiation of the simulation ##########################################
     # Set the seed of the simulation
-    rd.seed(0)
-    np.random.seed(0)
+    # rd.seed(0)
+    # np.random.seed(0)
 
     # Read weather and adapt it to septoria (add wetness)
     weather_file = 'meteo'+ str(start_year)[-2:] + '-' + str(start_year+1)[-2:] + '.txt'
@@ -26,7 +42,7 @@ def run_simulation(start_year=1998, **kwds):
     print start_year
     
     # seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
-                            # end = str(start_year)+"-11-10 01:00:00", 
+                            # end = str(start_year)+"-12-31 01:00:00", 
                             # freq='H')
     # g, wheat, domain_area, domain = initialize_stand(age=1250., length=0.1, width=0.1,
         # sowing_density=150, plant_density=150, inter_row=0.12, nsect=5, seed=3)
@@ -60,6 +76,8 @@ def run_simulation(start_year=1998, **kwds):
     # transporter = Septo3DSplash()
     emitter = PopDropsEmission(domain=domain)
     transporter = PopDropsTransport(domain=domain, domain_area=domain_area)
+    # emitter = DummyEmission(group_dus=True, **kwds)
+    # transporter = DummyTransport()
     # transporter = Septo3DTransport(wash=True)
     # washor = RapillyWashing()
     
@@ -134,6 +152,9 @@ def run_simulation(start_year=1998, **kwds):
             positions.update({vid:(0 if (positions[vid]==1 and not greens[vid]) or
                                         (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
                                         else positions[vid]) for vid in vids})
+            
+            # Temp
+            set_properties(g, label='LeafElement', senesced_length=0.)
 
 
         # Update g for the disease:
@@ -185,26 +206,16 @@ def is_iterable(obj):
     return isinstance(obj, collections.Iterable)
     
 def run_and_save(year, **kwds):
-    g, inspector = run_simulation(start_year=year, **kwds)
+    g, recorder = run_simulation(start_year=year, **kwds)
     ind = 0
     if len(kwds)>0:
-        stored_insp = '.\sensitivity\inspector_'+str(year)+'_'+kwds.keys()[0][:3]+'-'+str(kwds.values()[0])+'.pckl'
+        stored_rec = '.\sensitivity\recorder_'+str(year)+'_'+kwds.keys()[0][:3]+'-'+str(kwds.values()[0])+'.pckl'
     else:
-        stored_insp = '.\sensitivity\inspector_'+str(year)+'.pckl'
-    f_insp = open(stored_insp, 'w')
-    pickle.dump(inspector, f_insp)
-    f_insp.close()
-    del inspector
-
-def load_out(year, **kwds):
-    if len(kwds)>0:
-        stored_insp =  '.\sensitivity\inspector_'+str(year)+'_'+kwds.keys()[0][:3]+'-'+str(kwds.values()[0])+'.pckl'
-    else:
-        stored_insp = '.\sensitivity\inspector_'+str(year)+'.pckl'
-    f_insp = open(stored_insp)
-    out = pickle.load(f_insp)
-    f_insp.close()
-    return out
+        stored_rec = '.\sensitivity\recorder_'+str(year)+'.pckl'
+    f_rec = open(stored_rec, 'w')
+    pickle.dump(recorder, f_rec)
+    f_rec.close()
+    del recorder
     
 def run_all_simulations(start_years = [1998, 2001, 2002], **kwds):
     # Run simulation for each year with variable and fixed chlorosis threshold
@@ -237,7 +248,8 @@ def run_sensi():
     run_all_simulations(start_years = [1998, 2001, 2002], degree_days_to_chlorosis=[120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320])
     run_all_simulations(start_years = [1998, 2001, 2002], Smin=[0.001, 0.003, 0.005, 0.01, 0.03, 0.05, 0.1, 0.3])
     run_all_simulations(start_years = [1998, 2001, 2002], Smax=[0.04, 0.1, 0.2, 0.3, 0.5, 0.8, 1, 3, 5, 10])
-    run_all_simulations(start_years = [1998, 2001, 2002], frac=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1])
+    run_all_simulations(start_years = [1998, 2001, 2002], nb_rings_by_state=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    run_all_simulations(start_years = [1998, 2001, 2002], frac=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5])
 
 def run_sensi_smax():
     run_all_simulations(start_years = [1998, 2001, 2002], Smax=[0.04, 0.3, 3])
