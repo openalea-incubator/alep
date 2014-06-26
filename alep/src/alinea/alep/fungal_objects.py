@@ -108,7 +108,7 @@ class Lesion(object):
         - emission()
         - disable()        
     
-    And the lesion have to answer to a set of queries:
+    And the lesion have to a provide the following attributes:
         - is_dead
         - surface
         - status
@@ -145,6 +145,10 @@ class Lesion(object):
     def update(self, dt, leaf):
         pass
     
+    def is_sporulating(self):
+        """Filter used by emission model to filter input lesion (default true, ie noFilter) """
+        return True
+    
     def emission(self, emission_rate = 1e4):
         """ This method simulates the biological regulation of spore emission. Not generic
         
@@ -168,7 +172,7 @@ class Lesion(object):
     def create_dispersal_units(self, nb_dus=1):
         """ Generic method to create new dispersal units.
         """
-        return [self.fungus.dispersal_unit() for i in range(nb_dus)]
+        return [self.fungus.dispersal_unit() for i in range(int(nb_dus))]
         
     def disable_growth(self):
         """ Shut down lesion growth activity (turn it to False)
