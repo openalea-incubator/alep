@@ -147,7 +147,7 @@ def infect(g, dt,
     return g
     
 def update(g, dt,
-           growth_control_model,
+           growth_control_model=None,
            senescence_model=None, 
            label="LeafElement",
            activate=True,
@@ -211,7 +211,8 @@ def update(g, dt,
                     lesion.update(dt, leaf, weather_data)
         
         # 2. Allocate or not growth demand, and compute corresponding production of spores 
-        growth_control_model.control(g, label=label)
+        if growth_control_model:
+            growth_control_model.control(g, label=label)
             
             # if senescence_model:
                 # # 4. Call a specific response if lesions are on senescent tissue
