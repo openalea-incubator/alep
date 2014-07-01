@@ -130,7 +130,6 @@ def infect(g, dt,
       
     """
     if activate:
-            
         # Check if its position prevent it from infecting (optional)
         if infection_control_model:
             infection_control_model.control_position(g, label)

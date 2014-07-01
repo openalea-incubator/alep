@@ -5,6 +5,7 @@ import random as rd
 import numpy as np
 import pandas
 import matplotlib.pyplot as plt
+plt.ion()
 
 # Imports for wheat
 from alinea.alep.wheat import adel_one_leaf, initialize_stand
@@ -25,7 +26,8 @@ from alinea.alep.disease_outputs import plot_severity_by_leaf
 def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=False, nb_steps=1000, leaf_area=None):
     # Initiate wheat MTG with one leaf and good conditions for disease
     g = adel_one_leaf()
-    set_properties(g, label='LeafElement', wetness=True, temp=22., rain_intensity=0.)
+    # set_properties(g, label='LeafElement', wetness=True, temp=22., rain_intensity=0.)
+    set_properties(g, label='LeafElement', wetness=False, temp=22., rain_intensity=0.)
     if leaf_area is not None:
         set_properties(g, label='LeafElement', area=leaf_area, green_area=leaf_area)
 
@@ -50,7 +52,6 @@ def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i i
     
     # Simulation loop
     for i in range(nb_steps):
-        print i
         # Update wheat healthy area
         update_healthy_area(g, label = 'LeafElement')
         
@@ -90,7 +91,7 @@ def plot_lesion_states():
         # self.kwds = kwds
     # def disperse(self, g, DU, weather_data=None):
         # return DU
-def example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=False, nb_steps=1000):
+def example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000):
     # rd.seed(0)
     # np.random.seed(0)
     
@@ -123,7 +124,7 @@ def example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in r
     growth_controler = PriorityGrowthControl()
     emitter = PopDropsEmission(domain=domain)
     transporter = PopDropsTransport(domain=domain, domain_area=domain_area)
-    
+
     # Initiate output recorder
     recorders = {}
     ind=4
@@ -134,10 +135,11 @@ def example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in r
     
     # Simulation loop
     for i in range(nb_steps):
-        if i%100<=10:
-            set_properties(g, label='LeafElement', wetness=True)
-        else:
-            set_properties(g, label='LeafElement', wetness=False)
+        if i>100:
+            if 20<=i%100<=30:
+                set_properties(g, label='LeafElement', wetness=True)
+            else:
+                set_properties(g, label='LeafElement', wetness=False)
         # Temp
         # set_properties(g, lsabel='LeafElement', temp=rd.uniform(-5., 25.))
         # if i%24==0:
@@ -252,6 +254,20 @@ def example_plant_optimised(dispersal_units=[plugin_septoria().dispersal_unit() 
 
     return g, recorders
 
+def test_stability(nb_rep=10):
+    recs = {}
+    for i_sim in range(nb_rep):
+        print i_sim
+        g, recs[i_sim] = example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], nb_steps=2000)
+    return recs
+    
+def test_infection_loss(nb_dus=10, nb_rep=20):
+    recs = {}
+    for i_sim in range(nb_rep):
+        print i_sim
+        g, recs[i_sim] = example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(nb_dus)], nb_steps=24*5)
+        plt.plot(recs[i_sim].data.nb_dispersal_units)
+    return recs
     
 def example_mercia(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000):
     rd.seed(0)
@@ -310,7 +326,6 @@ def example_mercia(dispersal_units=[plugin_septoria().dispersal_unit() for i in 
 
     return g, recorders
     
-    
 def plot_plant_outputs(call='example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000)'):
     exec('g, inspectors = ' + call)
     disease_area = pandas.DataFrame({k:v.leaf_disease_area for k,v in inspectors.iteritems()})
@@ -318,23 +333,7 @@ def plot_plant_outputs(call='example_plant(dispersal_units=[plugin_septoria().di
     fig, axs = plt.subplots(1,2)
     disease_area.plot(ax=axs[0])
     surf_nec.plot(ax=axs[1])
-    
-# g, inspectors10 = example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000)
-# disease_area10 = pandas.DataFrame({k:v.leaf_disease_area for k,v in inspectors10.iteritems()})
-# surf_nec10 = pandas.DataFrame({k:v.surface_total_nec for k,v in inspectors10.iteritems()})
-
-# g, inspectors1 = example_plant(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1) for i in range(10)], group_dus=True, nb_steps=1000)
-# disease_area1 = pandas.DataFrame({k:v.leaf_disease_area for k,v in inspectors10.iteritems()})
-# surf_nec1 = pandas.DataFrame({k:v.surface_total_nec for k,v in inspectors10.iteritems()})
-# fig, axs = plt.subplots(1,2)
-# disease_area10.plot(ax=axs[0])
-# # surf_nec10.plot(ax=axs[1])
-# surf_spo10.plot(ax=axs[1])
-# disease_area1.plot(ax=axs[0])
-# # surf_nec1.plot(ax=axs[1])
-# surf_spo1.plot(ax=axs[1])
-
-    
+       
 def stat_profiler(call='example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=True, nb_steps=1000)'):
     import cProfile
     import pstats

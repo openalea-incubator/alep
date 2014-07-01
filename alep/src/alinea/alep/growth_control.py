@@ -95,8 +95,8 @@ class PriorityGrowthControl:
     """   
     def control(self, g, label='LeafElement'):
         """ 
-        """       
-        lesions = g.property('lesions')
+        """
+        lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
         labels = g.property('label')
         healthy_areas = g.property('healthy_area')
 
@@ -111,7 +111,7 @@ class PriorityGrowthControl:
                                 'See alinea.alep.architecture > set_healthy_area')
                 
             # leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.growth_is_active]
-            leaf_lesions = [l for lf in leaf if lf in lesions for l in lesions[lf] if l.growth_is_active ]
+            leaf_lesions = [l for lf in leaf if lf in lesions for l in lesions[lf] if l.growth_is_active]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
             
             if total_demand > leaf_healthy_area:

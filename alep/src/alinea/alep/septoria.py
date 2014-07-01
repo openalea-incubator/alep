@@ -37,6 +37,7 @@ class SeptoriaDU(DispersalUnit):
         super(SeptoriaDU, self).__init__(mutable=mutable)
         self.cumul_wetness = 0.
         self.cumul_loss_rate = 0.
+        self.dry_dt = -1.
         # Temp
         self.nb_spores = 10.
     
@@ -66,7 +67,7 @@ class SeptoriaDU(DispersalUnit):
             except:
                 leaf.lesions = [les]
             self.disable()
-        
+                
     def infect(self, dt=1, leaf=None, **kwds):
         """ Compute infection by the dispersal unit of Septoria.
         
@@ -90,8 +91,9 @@ class SeptoriaDU(DispersalUnit):
             # TODO: design a new equation : see Magarey (2005)
             if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and leaf_wet:
                 self.cumul_wetness += dt
-            elif self.cumul_wetness > 0:                 
+            else:                 
                 self.cumul_wetness = 0.
+                self.dry_dt = min(self.fungus.loss_delay-1, self.dry_dt + dt)
                 
             if self.cumul_wetness >= self.fungus.wd_min :
                 # TODO : create a function of the number of spores            
@@ -99,15 +101,15 @@ class SeptoriaDU(DispersalUnit):
                 if proba(spores_factor):
                     self.create_lesion(leaf)
             elif self.cumul_wetness == 0 :
-                self.cumul_loss_rate+=self.fungus.loss_rate*dt
+                loss_rate = 1./(self.fungus.loss_delay - self.dry_dt)
                 # Proba conditionnelle doit se cumuler.
                 if self.fungus.group_dus:
-                    nb_disabled = sum([proba(self.cumul_loss_rate) for i in range(self.nb_dispersal_units)])
+                    nb_disabled = sum([proba(loss_rate) for i in range(self.nb_dispersal_units)])
                     self.position = self.position[nb_disabled:]
                     if self.nb_dispersal_units == 0.:
                         self.disable()
                 else:
-                    if proba(self.cumul_loss_rate):
+                    if proba(loss_rate):
                         self.disable()
     
     def set_nb_spores(self, nb_spores=0.):
@@ -145,6 +147,7 @@ septoria_parameters = dict(INCUBATING = 0,
                  temp_min = 10.,
                  temp_max = 30.,
                  wd_min = 10.,
+                 loss_delay = 120.,
                  loss_rate = 1./120,
                  degree_days_to_chlorosis = 220.,
                  degree_days_to_necrosis = 110.,

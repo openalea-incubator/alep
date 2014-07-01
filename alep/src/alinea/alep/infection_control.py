@@ -80,7 +80,7 @@ class BiotrophDUPositionModel:
         g: MTG
             Updated MTG representing the canopy
         """
-        dispersal_units = g.property('dispersal_units')
+        dispersal_units = {k:v for k,v in g.property('dispersal_units').iteritems() if len(v)>0.}
         severities = compute_severity_by_leaf(g, label)
         for vid in dispersal_units.iterkeys():
             dispersal_units[vid] = [du for du in dispersal_units[vid] if du.is_active]

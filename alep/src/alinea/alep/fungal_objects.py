@@ -233,7 +233,8 @@ class Fungus(object):
         self.__dict__.update(parameters)
     
 #    @classmethod
-    def parameters(self):
+    def parameters(self, **kwds):
+        self.__dict__.update(kwds)
         return {k:getattr(self,k) for k in self.parameter_names}
     
 #    @classmethod

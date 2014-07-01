@@ -1110,10 +1110,10 @@ import pandas
 from scipy.integrate import trapz
 
 class SeptoRecorder:
-    def __init__(self, vids=None, group_dus=True, date_sequence=None):
+    def __init__(self, vids=None, group_dus=True):
         self.vids = vids
         self.group_dus = group_dus
-        self.date_sequence = date_sequence
+        self.date_sequence = []
         # Initialize leaf properties to save
         self.leaf_area = []
         self.leaf_green_area = []  
@@ -1131,7 +1131,9 @@ class SeptoRecorder:
         self.surface_empty = []
         self.surface_dead = []
         
-    def record(self, g):
+    def record(self, g, date):
+        self.date_sequence.append(date)
+    
         # Update leaf properties
         self.leaf_area.append(sum([g.node(id).area for id in self.vids]))
         self.leaf_green_area.append(sum([g.node(id).green_area for id in self.vids]))
@@ -1224,7 +1226,10 @@ class SeptoRecorder:
         else:
             if not 'leaf_disease_area' in self.data:
                 self.leaf_disease_area()
-            self.data['leaf_lesion_area_on_green'] = [self.data['nb_lesions_on_green'][ind]*self.data['leaf_disease_area'][ind]/self.data['nb_lesions'][ind] if self.data['nb_lesions'][ind]>0. else 0. for ind in self.data.index]
+            if not 'leaf_senesced_area' in self.data:
+                self.leaf_senesced_area()
+            # self.data['leaf_lesion_area_on_green'] = [self.data['leaf_disease_area'][ind]*self.data['nb_lesions_on_green'][ind]/self.data['nb_lesions'][ind] if self.data['nb_lesions'][ind]>0. else 0. for ind in self.data.index]
+            self.data['leaf_lesion_area_on_green'] = [self.data['leaf_disease_area'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
     
     def leaf_healthy_area(self):
         if not 'data' in self.__dict__.keys():

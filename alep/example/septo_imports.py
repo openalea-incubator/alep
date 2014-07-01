@@ -10,6 +10,7 @@ from openalea.deploy.shared_data import shared_data
 from alinea.astk.Weather import Weather
 from alinea.alep.alep_weather import wetness_rapilly, basic_degree_days
 from alinea.astk.TimeControl import *
+from alinea.alep.alep_time_control import *
 
 # Imports for wheat
 from alinea.alep.wheat import initialize_stand
