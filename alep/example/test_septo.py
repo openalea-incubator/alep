@@ -203,7 +203,7 @@ def run_simulation_opti(start_year=1998, **kwds):
                             
     # Initialize a wheat canopy
     nsect=5
-    g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, width=0.1,
+    g, wheat, domain_area, domain = initialize_stand(age=0., length=0.3, width=0.1,
         sowing_density=150, plant_density=150, inter_row=0.12, nsect=nsect, seed=3)
         
     # Initialize the models for septoria
@@ -253,12 +253,11 @@ def run_simulation_opti(start_year=1998, **kwds):
         # dates.append(date)
 
         # Get weather for date and add it as properties on leaves
-        if weather_eval:
+        if septo_eval:
             set_properties(g,label = 'LeafElement',
-                           temp = weather_eval.value.temperature_air[0],
-                           wetness = weather_eval.value.wetness[0],
-                           relative_humidity = weather_eval.value.relative_humidity[0],
-                           wind_speed = weather_eval.value.wind_speed[0])
+                           temperature_sequence = septo_eval.value.temperature_air,
+                           wetness = septo_eval.value.wetness.mean(),
+                           relative_humidity = septo_eval.value.relative_humidity.mean())
         if rain_eval:
             set_properties(g,label = 'LeafElement',
                            rain_intensity = rain_eval.value.rain.mean(),
@@ -281,13 +280,13 @@ def run_simulation_opti(start_year=1998, **kwds):
             positions.update({vid:(0 if (positions[vid]==1 and not greens[vid]) or
                                         (positions[vid]>0 and round(areas[vid],5)==round(senesced_areas[vid],5))
                                         else positions[vid]) for vid in vids})
-            # senesced_length.update({vid:(length if (senesced_length[vid]==0. and not greens[vid]) or
+            # senesced_length.update({vid:(length[vid] if (senesced_length[vid]==0. and not greens[vid]) or
                                         # (senesced_length[vid]<length[vid] and round(areas[vid],5)==round(senesced_areas[vid],5))
                                         # else senesced_length[vid]) for vid in vids})
 
         # Update g for the disease:
         if septo_eval:
-            print 'dt : %d' % septo_eval.dt
+            # print 'dt : %d' % septo_eval.dt
             update_healthy_area(g, label = 'LeafElement')
         
         # External contamination
@@ -307,14 +306,14 @@ def run_simulation_opti(start_year=1998, **kwds):
                 g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=weather_eval.value)
                 # wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
         
-        # if wheat_eval:
-            # scene = plot_severity_by_leaf(g)
+        if wheat_eval:
+            scene = plot_severity_by_leaf(g)
             # print 'nb lesions %d' % count_lesions(g)
         
         # Save outputs
         if septo_eval:
             for recorder in recorders.itervalues():
-                recorder.record(g, date)
+                recorder.record(g, date, degree_days = septo_eval.value.degree_days[-1])
 
     for recorder in recorders.itervalues():
         recorder.get_complete_dataframe()

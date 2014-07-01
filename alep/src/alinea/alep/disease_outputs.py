@@ -1114,6 +1114,7 @@ class SeptoRecorder:
         self.vids = vids
         self.group_dus = group_dus
         self.date_sequence = []
+        self.degree_days = []
         # Initialize leaf properties to save
         self.leaf_area = []
         self.leaf_green_area = []  
@@ -1131,12 +1132,19 @@ class SeptoRecorder:
         self.surface_empty = []
         self.surface_dead = []
         
-    def record(self, g, date):
+        # Temp
+        self.senesced_length = []
+        
+    def record(self, g, date, degree_days=None):
         self.date_sequence.append(date)
+        self.degree_days.append(degree_days)
     
         # Update leaf properties
         self.leaf_area.append(sum([g.node(id).area for id in self.vids]))
         self.leaf_green_area.append(sum([g.node(id).green_area for id in self.vids]))
+        
+        # Temp
+        self.senesced_length.append(g.node(self.vids[0]).senesced_length)
         
         # Update properties of dispersal units and lesions
         nb_dus = 0
@@ -1285,7 +1293,10 @@ class SeptoRecorder:
             if not variable in self.data:
                 exec('self.'+variable+'()')
             if self.data['leaf_green_area'][-1]==0.:
-                self.audpc = trapz(self.data[variable], dx=1)
+                ind = self.data.index[self.data['leaf_green_area']>0]
+                # self.audpc = trapz(self.data[variable][ind], dx=1)
+                data = self.data[variable][ind]
+                self.audpc = sum([trapz(data[i:j], dx=(j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
             else:
                 self.audpc = 'audpc not available: leaf has not reached senescence'
                 

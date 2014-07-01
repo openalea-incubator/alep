@@ -160,7 +160,7 @@ class SeptoriaAgePhysio(Lesion):
             f = self.fungus
             # Calculation
             if dt != 0.:
-                ddday = max(0,(leaf.temp - f.basis_for_dday)*dt/24.)
+                ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) for temp in leaf.temperature_sequence])
             else:
                 ddday = 0.
             # Save variable

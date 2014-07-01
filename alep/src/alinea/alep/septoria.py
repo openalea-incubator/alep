@@ -84,7 +84,7 @@ class SeptoriaDU(DispersalUnit):
             None
         """
         leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
-        temp = leaf.temp # (float) : mean temperature on the leaf sector during the time step (in degree).  
+        temp = leaf.temperature_sequence.mean() # (float) : mean temperature on the leaf sector during the time step (in degree).  
         if self.nb_spores == 0.:
             self.disable()
         else:
