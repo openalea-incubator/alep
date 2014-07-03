@@ -20,43 +20,43 @@ __icon__ = ''
 __all__ = []
 
 test_protocol_nodes_wheat = Factory(name='wheat',
-                                    nodemodule='test_protocol_nodes',
+                                    nodemodule='alinea.alep_wralea.Test_nodes.test_protocol_nodes',
                                     nodeclass='wheat',
                                     )
 __all__.append('test_protocol_nodes_wheat')
 
 test_protocol_nodes_microclimate = Factory(name='microclimate',
-                                    nodemodule='test_protocol_nodes',
+                                    nodemodule='alinea.alep_wralea.Test_nodes.test_protocol_nodes',
                                     nodeclass='microclimate',
                                     )
 __all__.append('test_protocol_nodes_microclimate')
 
 test_protocol_nodes_weather_reader = Factory(name='weather_reader',
-                                    nodemodule='test_protocol_nodes',
+                                    nodemodule='alinea.alep_wralea.Test_nodes.test_protocol_nodes',
                                     nodeclass='weather_reader',
                                     )
 __all__.append('test_protocol_nodes_weather_reader')
 
 test_protocol_nodes_scene_from_g = Factory(name='scene_from_g',
-                                           nodemodule='test_protocol_nodes',
+                                           nodemodule='alinea.alep_wralea.Test_nodes.test_protocol_nodes',
                                            nodeclass='scene_from_g',
                                            )
 __all__.append('test_protocol_nodes_scene_from_g')
 
 test_protocol_nodes_set_properties_node = Factory(name='set_properties_node',
-                                             nodemodule='test_protocol_nodes',
+                                             nodemodule='alinea.alep_wralea.Test_nodes.test_protocol_nodes',
                                              nodeclass='set_properties_node',
                                              )
 __all__.append('test_protocol_nodes_set_properties_node')
 
 test_protocol_nodes_distribute_dispersal_units = Factory(name='distribute_dispersal_units',
-                                                         nodemodule='test_protocol_nodes',
+                                                         nodemodule='alinea.alep_wralea.Test_nodes.test_protocol_nodes',
                                                          nodeclass='distribute_dispersal_units',
                                                          )
 __all__.append('test_protocol_nodes_distribute_dispersal_units')
 
 test_protocol_nodes_distribute_lesions = Factory(name='distribute_lesions',
-                                                 nodemodule='test_protocol_nodes',
+                                                 nodemodule='alinea.alep_wralea.Test_nodes.test_protocol_nodes',
                                                  nodeclass='distribute_lesions',
                                                  )
 __all__.append('test_protocol_nodes_distribute_lesions')
