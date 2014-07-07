@@ -110,14 +110,14 @@ def run_simulation(start_year=1998, **kwds):
     for i, controls in enumerate(zip(weather_timing, wheat_timing, septo_timing, rain_timing)):
         weather_eval, wheat_eval, septo_eval, rain_eval = controls
         date = weather_eval.value.index[0]
-        if wheat_eval:
-            print date
+        # if wheat_eval:
+            # print date
         # dates.append(date)
 
         # Get weather for date and add it as properties on leaves
         if weather_eval:
             set_properties(g,label = 'LeafElement',
-                           temp = weather_eval.value.temperature_air[0],
+                           temperature_sequence = weather_eval.value.temperature_air,
                            wetness = weather_eval.value.wetness[0],
                            relative_humidity = weather_eval.value.relative_humidity[0],
                            wind_speed = weather_eval.value.wind_speed[0])
@@ -203,7 +203,7 @@ def run_simulation_opti(start_year=1998, **kwds):
                             
     # Initialize a wheat canopy
     nsect=5
-    g, wheat, domain_area, domain = initialize_stand(age=0., length=0.3, width=0.1,
+    g, wheat, domain_area, domain = initialize_stand(age=0., length=0.1, width=0.1,
         sowing_density=150, plant_density=150, inter_row=0.12, nsect=nsect, seed=3)
         
     # Initialize the models for septoria
@@ -337,12 +337,12 @@ def run_and_save(year, **kwds):
     f_rec.close()
     del recorder
 
-def run_stability(start_years = [1998, 2001, 2002], nb_rep=20):
+def run_stability(start_years = [1998, 2001, 2002], nb_rep=60):
     for i_sim in range(nb_rep):
         for year in start_years:
             # Compute and store results for simulation with variability
             g, recorder = run_simulation(year)
-            stored_rec = '.\stability\\recorder_'+str(year)+'_'+str(i_sim)+'.pckl'
+            stored_rec = '.\stability\\recorder_'+str(year)+'_'+str(40+i_sim)+'.pckl'
             f_rec = open(stored_rec, 'w')
             pickle.dump(recorder, f_rec)
             f_rec.close()

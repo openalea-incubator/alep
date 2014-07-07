@@ -10,7 +10,6 @@ plt.ion()
 # Imports for wheat
 from alinea.alep.wheat import adel_one_leaf, initialize_stand
 from alinea.alep.architecture import set_properties, update_healthy_area
-
 from alinea.astk.plant_interface import grow_canopy
 
 # Imports for septoria

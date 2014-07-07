@@ -97,9 +97,14 @@ class SeptoriaDU(DispersalUnit):
                 
             if self.cumul_wetness >= self.fungus.wd_min :
                 # TODO : create a function of the number of spores            
-                spores_factor = self.nb_spores / self.nb_spores # always equals 1 for now
-                if proba(spores_factor):
+                proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
+                if 'global_efficacy' in leaf.properties():
+                    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
+                if proba(proba_infection):
                     self.create_lesion(leaf)
+                else:
+                    # Todo: discuss this point
+                    self.disable()
             elif self.cumul_wetness == 0 :
                 loss_rate = 1./(self.fungus.loss_delay - self.dry_dt)
                 # Proba conditionnelle doit se cumuler.

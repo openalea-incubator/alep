@@ -1111,6 +1111,7 @@ from scipy.integrate import trapz
 
 class SeptoRecorder:
     def __init__(self, vids=None, group_dus=True):
+        """ vids are ids of leaf sectors on the same blade. """
         self.vids = vids
         self.group_dus = group_dus
         self.date_sequence = []
