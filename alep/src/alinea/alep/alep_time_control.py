@@ -36,7 +36,7 @@ class CustomIterWithDelays(IterWithDelays):
             self.dt = None
         return EvalValue(self.ev, self.val, self.dt)
 
-def septo_infection_filter(seq, weather, rain_filter, degree_days=20, start_date=None):
+def septo_infection_filter(seq, weather, rain_filter, degree_days=20., start_date=None):
     if not 'septo_infection_risk' in weather.data.columns:
         from alinea.alep.alep_weather import add_septoria_infection_risk
         weather.check(varnames=['septo_infection_risk'], models={'septo_infection_risk':add_septoria_infection_risk})
@@ -47,17 +47,18 @@ def septo_infection_filter(seq, weather, rain_filter, degree_days=20, start_date
     ddays = weather.data['septo_degree_days'][seq].values
     ind = []
     count=0
-    previous_count =0.
+    counts = []
     for i in range(len(cond_inf)):
-        if rain_filter[i]==True:
+        if rain_filter[i]==True and round(weather.data['rain'][seq][i], 14)>0:
             cond_inf[i] = True
-        if cond_inf[i]==True:
-            count = 0.
+            count = ddays[i]
         else:
-            count += (ddays[i] - previous_count)
+            if i == 0:
+                count += ddays[i]
+            else:
+                count += (ddays[i] - ddays[i-1])
             if count >= degree_days:
-                ind.append(i-1)
-                count = 0.
-            previous_count = ddays[i]
-    cond_inf[ind] = True
+                cond_inf[i] = True
+                count = ddays[i]
+        counts.append(count)
     return cond_inf==1

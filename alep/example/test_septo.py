@@ -348,16 +348,17 @@ def run_stability(start_years = [1998, 2001, 2002], nb_rep=60):
             f_rec.close()
             del recorder
 
-def load_stability(year = 1998, nb_rep=20):
+def load_stability(year = 1998, nb_rep=71):
     recs = {}
     for i_sim in range(nb_rep):
+        print i_sim
         stored_rec = '.\stability\\recorder_'+str(year)+'_'+str(i_sim)+'.pckl'
         f_rec = open(stored_rec)
         recs[i_sim] = pickle.load(f_rec)
         f_rec.close()
     return recs
     
-def test_stability(recs, nb_tested=10, nb_combi=100):
+def test_stability(recs, nb_tested=15, nb_combi=50, nb_rep=71):
     fig, axs = plt.subplots(1,2)
     leaves = ['F1', 'F2', 'F3']
     colors = ['b', 'r', 'k']
@@ -368,17 +369,40 @@ def test_stability(recs, nb_tested=10, nb_combi=100):
             df_sev[k] = reco[leaves[i_leaf]].data['severity']
             df_nec[k] = reco[leaves[i_leaf]].data['necrosis_percentage']
         for i in range(nb_combi):
-            df_sev_rand = df_sev[df_sev.columns[random.sample(range(20), nb_tested)]]
+            df_sev_rand = df_sev[df_sev.columns[random.sample(range(nb_rep), nb_tested)]]
             axs[0].plot(df_sev_rand.index, df_sev_rand.mean(axis=1), color=colors[i_leaf])
             axs[0].set_ylabel('severity (in %)', fontsize = 20)
             axs[0].set_ylim([0.,1.])
             
-            df_nec_rand = df_nec[df_nec.columns[random.sample(range(20), nb_tested)]]
+            df_nec_rand = df_nec[df_nec.columns[random.sample(range(nb_rep), nb_tested)]]
             axs[1].plot(df_nec_rand.index, df_nec_rand.mean(axis=1), color=colors[i_leaf])
             axs[1].set_ylabel('necrotic percentage (in %)', fontsize = 20)
             axs[1].set_ylim([0.,1.])
     fig.text(0.5, 0.95, 'Means of '+ str(nb_tested)+' repetitions', fontsize = 20, horizontalalignment='center')
+
+def test_stability2(recs, nb_tested=15, nb_rep=71):
+    fig, axs = plt.subplots(1,2)
+    leaves = ['F1', 'F2', 'F3']
+    colors = ['b', 'r', 'k']
+    for i_leaf in range(len(leaves)):
+        df_sev = pandas.DataFrame()
+        df_nec = pandas.DataFrame()
+        for k,reco in recs.iteritems():
+            df_sev[k] = reco[leaves[i_leaf]].data['severity']
+            df_nec[k] = reco[leaves[i_leaf]].data['necrosis_percentage']
+        for i in range(int(nb_rep/nb_tested)):
+            df_sev_rand = df_sev[df_sev.columns[i*int(nb_rep/nb_tested):(i+1)*int(nb_rep/nb_tested)]]
+            axs[0].plot(df_sev_rand.index, df_sev_rand.mean(axis=1), color=colors[i_leaf])
+            axs[0].set_ylabel('severity (in %)', fontsize = 20)
+            axs[0].set_ylim([0.,1.])
             
+            df_nec_rand = df_nec[df_nec.columns[i*int(nb_rep/nb_tested):(i+1)*int(nb_rep/nb_tested)]]
+            axs[1].plot(df_nec_rand.index, df_nec_rand.mean(axis=1), color=colors[i_leaf])
+            axs[1].set_ylabel('necrotic percentage (in %)', fontsize = 20)
+            axs[1].set_ylim([0.,1.])
+    fig.text(0.5, 0.95, 'Means of '+ str(nb_tested)+' repetitions', fontsize = 20, horizontalalignment='center')
+
+    
 def run_all_simulations(start_years = [1998, 2001, 2002], **kwds):
     # Run simulation for each year with variable and fixed chlorosis threshold
     for year in start_years:
@@ -391,7 +415,7 @@ def run_all_simulations(start_years = [1998, 2001, 2002], **kwds):
                     run_and_save(year, **{k:v})
         else:
             run_and_save(year)
-            
+
 def read_outputs(start_years = [1998, 2001, 2002], **kwds):
     out = {}
     for year in start_years:

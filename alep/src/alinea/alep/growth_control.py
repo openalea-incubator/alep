@@ -105,6 +105,9 @@ class PriorityGrowthControl:
         for blade in bids:
             try:
                 leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
+                # if round(sum(healthy_areas[lf] for lf in leaf), 14)<0:
+                    # import pdb
+                    # pdb.set_trace()
                 leaf_healthy_area = max(0., sum(healthy_areas[lf] for lf in leaf))
             except:
                 raise NameError('Set healthy area on the MTG before simulation' '\n' 
@@ -113,7 +116,7 @@ class PriorityGrowthControl:
             # leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.growth_is_active]
             leaf_lesions = [l for lf in leaf if lf in lesions for l in lesions[lf] if l.growth_is_active]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
-            
+                       
             if total_demand > leaf_healthy_area:
                 prior_lesions = [l for l in leaf_lesions if l.status>=l.fungus.CHLOROTIC]
                 non_prior_lesions = [l for l in leaf_lesions if l.status<l.fungus.CHLOROTIC]

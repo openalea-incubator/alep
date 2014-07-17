@@ -252,7 +252,7 @@ def compute_severity_by_leaf(g, label='LeafElement'):
             if diff[ind]>area_bl[ind]:
                 import pdb
                 pdb.set_trace()
-            sev[bl[ind]] = 100.*(1-diff[ind]/area_bl[ind])
+            sev[bl[ind]] = max(0, min(100, 100.*(1-diff[ind]/area_bl[ind])))
     
     #return {vid:(100*lesion_areas[vid]/float(total_areas[vid]) if total_areas[vid]>0. else 0.) for vid in vids}
     return sev
@@ -1135,18 +1135,26 @@ class SeptoRecorder:
         
         # Temp
         self.senesced_length = []
-        
+
+    def update_vids(self, vids=[]):
+        self.vids = vids
+    
     def record(self, g, date, degree_days=None):
+        vids = [id for id in self.vids if g.node(id) is not None and g.node(id).area is not None]
+    
         self.date_sequence.append(date)
         self.degree_days.append(degree_days)
     
         # Update leaf properties
-        self.leaf_area.append(sum([g.node(id).area for id in self.vids]))
-        self.leaf_green_area.append(sum([g.node(id).green_area for id in self.vids]))
+        self.leaf_area.append(sum([g.node(id).area for id in vids]))
+        self.leaf_green_area.append(sum([g.node(id).green_area for id in vids]))
         
         # Temp
-        self.senesced_length.append(g.node(self.vids[0]).senesced_length)
-        
+        if len(vids)>0:
+            self.senesced_length.append(g.node(vids[0]).senesced_length)
+        else:
+            self.senesced_length.append(0)
+            
         # Update properties of dispersal units and lesions
         nb_dus = 0
         nb_dus_on_green = 0
@@ -1159,7 +1167,7 @@ class SeptoRecorder:
         surface_empty = 0.
         surface_dead = 0.
         
-        for id in self.vids:
+        for id in vids:
             leaf = g.node(id)
             if 'dispersal_units' in leaf.properties():
                 leaf = g.node(id)
@@ -1214,92 +1222,106 @@ class SeptoRecorder:
         self.surface_dead.append(surface_dead)
         
     def create_dataframe(self):
-        dico = {k:v for k,v in self.__dict__.iteritems() if k!='group_dus' and k!='vids'}
+        dico = {k:v for k,v in self.__dict__.iteritems() if k!='group_dus' and k!='vids' and k!='init_vids'}
         self.data = pandas.DataFrame(data=dico, index=self.date_sequence)
     
     def leaf_senesced_area(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
+        self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
     
     def leaf_disease_area(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            self.data['leaf_disease_area'] = self.data['surface_inc'] + self.data['surface_chlo'] + self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty'] + self.data['surface_dead']
+        self.data['leaf_disease_area'] = self.data['surface_inc'] + self.data['surface_chlo'] + self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty'] + self.data['surface_dead']
 
     def leaf_lesion_area_on_green(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            if not 'leaf_disease_area' in self.data:
-                self.leaf_disease_area()
-            if not 'leaf_senesced_area' in self.data:
-                self.leaf_senesced_area()
-            # self.data['leaf_lesion_area_on_green'] = [self.data['leaf_disease_area'][ind]*self.data['nb_lesions_on_green'][ind]/self.data['nb_lesions'][ind] if self.data['nb_lesions'][ind]>0. else 0. for ind in self.data.index]
-            self.data['leaf_lesion_area_on_green'] = [self.data['leaf_disease_area'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        if not 'leaf_disease_area' in self.data:
+            self.leaf_disease_area()
+        if not 'leaf_senesced_area' in self.data:
+            self.leaf_senesced_area()
+        self.data['leaf_lesion_area_on_green'] = [self.data['leaf_disease_area'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+    
+    def leaf_necrotic_area_on_green(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        if not 'necrosis' in self.data:
+            self.necrosis()
+        if not 'leaf_senesced_area' in self.data:
+            self.leaf_senesced_area()
+        self.data['leaf_necrotic_area_on_green'] = [self.data['necrosis'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
     
     def leaf_healthy_area(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            if not 'leaf_lesion_area_on_green' in self.data:
-                self.leaf_lesion_area_on_green()
-            self.data['leaf_healthy_area'] = self.data['leaf_green_area'] - self.data['leaf_lesion_area_on_green']
-            
+        if not 'leaf_lesion_area_on_green' in self.data:
+            self.leaf_lesion_area_on_green()
+        self.data['leaf_healthy_area'] = self.data['leaf_green_area'] - self.data['leaf_lesion_area_on_green']
+    
+    def leaf_unhealthy_area(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        if not 'leaf_healthy_area' in self.data:
+            self.leaf_healthy_area()
+        self.data['leaf_unhealthy_area'] = self.data['leaf_area'] - self.data['leaf_healthy_area']
+
     def surface_alive(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            self.data['surface_alive'] = self.data['surface_inc'] + self.data['surface_chlo'] + self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
+        self.data['surface_alive'] = self.data['surface_inc'] + self.data['surface_chlo'] + self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
 
     def ratios(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            self.data['ratio_inc'] = [self.data['surface_inc'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-            self.data['ratio_chlo'] = [self.data['surface_chlo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-            self.data['ratio_nec'] = [self.data['surface_nec'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-            self.data['ratio_spo'] = [self.data['surface_spo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-            self.data['ratio_empty'] = [self.data['surface_empty'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['ratio_inc'] = [self.data['surface_inc'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['ratio_chlo'] = [self.data['surface_chlo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['ratio_nec'] = [self.data['surface_nec'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['ratio_spo'] = [self.data['surface_spo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['ratio_empty'] = [self.data['surface_empty'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
 
     def severity(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            if not 'leaf_disease_area' in self.data:
-                self.leaf_disease_area()
-            self.data['severity'] = [self.data['leaf_disease_area'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        if not 'leaf_disease_area' in self.data:
+            self.leaf_disease_area()
+        self.data['severity'] = [self.data['leaf_disease_area'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
     
+    def severity_on_green(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        if not 'severity' in self.data:
+            self.severity()
+        if not 'leaf_lesion_area_on_green' in self.data:
+            self.leaf_lesion_area_on_green()
+        self.data['severity_on_green'] = [self.data['leaf_lesion_area_on_green'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+
     def necrosis(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            self.data['necrosis'] = self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
+        self.data['necrosis'] = self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
     
     def necrosis_percentage(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
-        else:
-            if not 'necrosis' in self.data:
-                self.necrosis()
-            self.data['necrosis_percentage'] = [self.data['necrosis'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        if not 'necrosis' in self.data:
+            self.necrosis()
+        self.data['necrosis_percentage'] = [self.data['necrosis'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
                 
     def get_audpc(self, variable='severity'):
         """ Variable can be 'severity' or 'necrosis'. """
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
+        if not variable in self.data:
+            exec('self.'+variable+'()')
+        if self.data['leaf_green_area'][-1]==0.:
+            ind = self.data.index[self.data['leaf_green_area']>0]
+            # self.audpc = trapz(self.data[variable][ind], dx=1)
+            data = self.data[variable][ind]
+            self.audpc = sum([trapz(data[i:j], dx=(j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
         else:
-            if not variable in self.data:
-                exec('self.'+variable+'()')
-            if self.data['leaf_green_area'][-1]==0.:
-                ind = self.data.index[self.data['leaf_green_area']>0]
-                # self.audpc = trapz(self.data[variable][ind], dx=1)
-                data = self.data[variable][ind]
-                self.audpc = sum([trapz(data[i:j], dx=(j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
-            else:
-                self.audpc = 'audpc not available: leaf has not reached senescence'
+            self.audpc = 'audpc not available: leaf has not reached senescence'
                 
     def get_complete_dataframe(self):
         self.create_dataframe()
@@ -1307,9 +1329,11 @@ class SeptoRecorder:
         self.leaf_disease_area()
         self.leaf_lesion_area_on_green()
         self.leaf_healthy_area()
+        self.leaf_unhealthy_area()
         self.surface_alive()
         self.ratios()
         self.severity()
+        self.severity_on_green()
         self.necrosis()
         self.necrosis_percentage()
 

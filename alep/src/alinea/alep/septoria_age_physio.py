@@ -318,7 +318,7 @@ class SeptoriaAgePhysio(Lesion):
             if self.is_chlorotic() and age_physio==0.:
                 pass
                 # (No exchange of surface the first time step the lesion enters stage)
-            else:
+            elif len(self.surfaces_chlo)>0:
                 # Calculate exchanges of surfaces between rings 
                 # 1. Reduce the superior limit of ring ages if age_physio in chlorosis
                 if self.is_chlorotic():
@@ -392,7 +392,7 @@ class SeptoriaAgePhysio(Lesion):
             (rings, width) = np.linspace(0,1, default_nb_rings+1, retstep=True)
             if self.is_necrotic() and age_physio==0.:
                 pass
-            else:           
+            elif len(self.surfaces_nec)>0:
                 if self.is_necrotic():
                     rings = rings[:ceil(age_physio/width)+1]
                     rings[-1] = self.age_physio
@@ -511,22 +511,25 @@ class SeptoriaAgePhysio(Lesion):
 
     def emission(self, density_DU_emitted):
         """ Return number of DUs emitted by the lesion. """
-        f = self.fungus
-        # print 'density DU popDrops %f' % density_DU_emitted
-        du_factor = float(density_DU_emitted)/f.density_dus_emitted_max
-        du_factor[du_factor>1.]=1.
-        delta_spo = self.surfaces_spo*du_factor
-        self.surfaces_spo -= delta_spo
-        self.surfaces_spo[1:]+=delta_spo[:f.rain_events_to_empty-1]
-        if delta_spo[-1]>0.:
-            self.surface_empty += delta_spo[-1]
-        if self.status_edge == f.SPORULATING and round(self.surface_spo,14) <= round(f.threshold_spo * self.nb_lesions,14):
-            # Everything becomes empty and the lesion is disabled
-            self.surface_empty += sum(self.surfaces_spo)
-            self.surfaces_spo = np.zeros(len(self.surfaces_spo))
-            self.change_status()
-            self.disable()
-        return [f.dispersal_unit() for i in range(int(sum(delta_spo*[min(x,density_DU_emitted) for x in f.density_dus_emitted_max])))]
+        if density_DU_emitted>0:
+            f = self.fungus
+            # print 'density DU popDrops %f' % density_DU_emitted
+            du_factor = [float(density_DU_emitted)/dmax if dmax>0. else 0. for dmax in f.density_dus_emitted_max]
+            du_factor[du_factor>1.]=1.
+            delta_spo = self.surfaces_spo*du_factor
+            self.surfaces_spo -= delta_spo
+            self.surfaces_spo[1:]+=delta_spo[:f.rain_events_to_empty-1]
+            if delta_spo[-1]>0.:
+                self.surface_empty += delta_spo[-1]
+            if self.status_edge == f.SPORULATING and round(self.surface_spo,14) <= round(f.threshold_spo * self.nb_lesions,14):
+                # Everything becomes empty and the lesion is disabled
+                self.surface_empty += sum(self.surfaces_spo)
+                self.surfaces_spo = np.zeros(len(self.surfaces_spo))
+                self.change_status()
+                self.disable()
+            return [f.dispersal_unit() for i in range(int(sum(delta_spo*[min(x,density_DU_emitted) for x in f.density_dus_emitted_max])))]
+        else:
+            return []
         
     def reduce_stock(self, nb_spores_emitted):
         """ Reduce the stock of spores after emission.
@@ -614,7 +617,7 @@ class SeptoriaAgePhysio(Lesion):
                     self.surfaces_chlo[np.where(rings<age_switch)[0][-1]]*= (1 - ratio_sen)*((1-round(age_switch%width, 14)/width) if 
                                                                             (1-round(age_switch%width, 14)/width)>0. else 1.)
                     if nb_sen==self.nb_lesions:
-                        if age_switch==1:
+                        if age_switch==1 or len(self.surfaces_chlo>0.)==0:
                             self.age_physio_edge = 0.
                             self.change_status_edge()
                         else:
