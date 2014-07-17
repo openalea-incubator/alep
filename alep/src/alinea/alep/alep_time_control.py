@@ -47,7 +47,6 @@ def septo_infection_filter(seq, weather, rain_filter, degree_days=20., start_dat
     ddays = weather.data['septo_degree_days'][seq].values
     ind = []
     count=0
-    counts = []
     for i in range(len(cond_inf)):
         if rain_filter[i]==True and round(weather.data['rain'][seq][i], 14)>0:
             cond_inf[i] = True
@@ -59,6 +58,5 @@ def septo_infection_filter(seq, weather, rain_filter, degree_days=20., start_dat
                 count += (ddays[i] - ddays[i-1])
             if count >= degree_days:
                 cond_inf[i] = True
-                count = ddays[i]
-        counts.append(count)
+                count = (ddays[i] - ddays[i-1])
     return cond_inf==1

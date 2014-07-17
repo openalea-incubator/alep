@@ -60,7 +60,9 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", npla
     every_dd_or_rain = filter_or([every_dd, every_rain])
     canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data))
     septo_filter = septo_infection_filter(seq, weather, every_rain)
-    return adel, domain, domain_area, convUnit, weather, seq, every_rain, septo_filter, canopy_timing
+    rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
+    septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
+    return adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing
 
 def septo_disease(domain, domain_area, sporulating_fraction, **kwds):
     fungus = plugin_septoria()
@@ -73,24 +75,19 @@ def septo_disease(domain, domain_area, sporulating_fraction, **kwds):
     transporter = PopDropsTransport(domain=domain, domain_area=domain_area)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
-def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00",
-                nplants = 3, nsect = 5, dir = './adel/adel_3'):
-                
-    adel, domain, domain_area, convUnit, weather, seq, every_rain, septo_filter, canopy_timing = setup(
-            start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect)
-            
-    g = adel.setup_canopy(age=0.)
-    rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
-    it = 0
-    adel.save(g, it, dir=dir)    
-    for control in canopy_timing:
-        if control:
-            it += 1
-            g = adel.grow(g, control.value)
-            rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
-            adel.save(g, it, dir=dir)
-            print it
-            
+def save_ids(ids, it, dir = './adel/adel_saved'):
+    stored_ids = dir+'/ids_'+str(it)+'.pckl'
+    f_ids = open(stored_ids, 'w')
+    pickle.dump(ids, f_ids)
+    f_ids.close()
+
+def load_ids(it, dir = './adel/adel_saved'):
+    stored_ids = dir+'/ids_'+str(it)+'.pckl'
+    f_ids = open(stored_ids)
+    ids = pickle.load(f_ids)
+    f_ids.close()
+    return ids
+    
 def get_leaf_ids(g, nsect = 5):
     labels = g.property('label')
     stems = [id for id,lb in labels.iteritems() if lb.startswith('MS')]
@@ -108,20 +105,65 @@ def get_leaf_ids(g, nsect = 5):
             stem_elt = g.node(lf).components()[0].index()
             leaf_sectors['P%d' % ind_plant]['F%d' % ind_lf] = range(stem_elt+1, stem_elt+nsect+1)
     return leaf_sectors
-   
+    
+def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00",
+                nplants = 3, nsect = 5, dir = './adel/adel_3'):
+                
+    adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing = setup(
+            start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect)
+            
+    g = adel.setup_canopy(age=0.)
+    rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
+    it_wheat = 0
+    it_septo = 0
+    adel.save(g, it_wheat, dir=dir)
+    ids = get_leaf_ids(g, nsect=nsect)
+    save_ids(ids, it_septo, dir=dir)
+    for i, controls in enumerate(zip(canopy_timing, septo_timing)):
+        canopy_iter, septo_iter = controls
+        if canopy_iter:
+            it_wheat += 1
+            g = adel.grow(g, canopy_iter.value)
+            rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
+            adel.save(g, it_wheat, dir=dir)
+        
+        if septo_iter:
+            it_septo += 1
+            ids = get_leaf_ids(g, nsect=nsect)
+            save_ids(ids, it_wheat, dir=dir)
+
+def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00",
+                nplants = 3, nsect = 5, dir = './adel/adel_3'):
+       
+    adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing = setup(
+            start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect)
+    g = adel.setup_canopy(age=0.)
+    it_septo = 0
+    ids = get_leaf_ids(g, nsect=nsect)
+    save_ids(ids, it_septo, dir=dir)
+    for i, controls in enumerate(zip(canopy_timing, septo_timing)):
+        canopy_iter, septo_iter = controls
+        if canopy_iter:
+            g = adel.grow(g, canopy_iter.value)
+            
+        if septo_iter:
+            it_septo += 1
+            print it_septo
+            ids = get_leaf_ids(g, nsect=nsect)
+            save_ids(ids, it_septo, dir=dir)
+
 def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", nplants = 3, nsect = 5,
                 dir = './adel/adel_saved', sporulating_fraction = 1e-3, **kwds):
 
-    adel, domain, domain_area, convUnit, weather, seq, every_rain, septo_filter, canopy_timing = setup(
+    adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing = setup(
             start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect)
             
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
     inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(domain, domain_area, sporulating_fraction, **kwds)
-    rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
-    septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
-    it = 0
-    g,TT = adel.load(it, dir=dir)
+    it_wheat = 0
+    it_septo = 0
+    g,TT = adel.load(it_wheat, dir=dir)
     
     # Prepare saving of outputs
     recorders = {}
@@ -139,9 +181,9 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         
         # Grow wheat canopy
         if canopy_iter:
-            it += 1
+            it_wheat += 1
             print it
-            newg,TT = adel.load(it, dir=dir)
+            newg,TT = adel.load(it_wheat, dir=dir)
             move_properties(g, newg)
             g = newg
         
@@ -180,9 +222,10 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
 
         # Save outputs
         if septo_iter:
+            it_septo += 1
             date = septo_iter.value.index[0]
             # print date
-            leaf_sectors = get_leaf_ids(g, nsect)
+            leaf_sectors = load_leaf_ids(it_septo, dir=dir)
             for plant in recorders:
                 for lf, recorder in recorders[plant].iteritems():
                     recorder.update_vids(vids=leaf_sectors[plant][lf])
@@ -220,7 +263,7 @@ def suite_run_and_save():
                 f_rec.close()
                 del recorder
                 
-    incub = ['120', '210', '220', '230', '320']
+    incub = ['120', '220', '320']
     for inc in incub:
         for i_sim in range(10):
             print inc, i_sim
@@ -289,3 +332,15 @@ def save_canopies_date(years=[1998, 2003, 2004]):
         print '---------------------------------------------------'
         make_canopy(start_date = str(yr)+"-10-15 12:00:00", end_date = str(yr+1)+"-06-20 01:00:00",
                     nplants = 3, dir = './adel/adel_%d' % yr)
+                    
+def save_ids_date(years=[1998, 2003, 2004, 2010]):
+    for yr in years:
+        print '---------------------------------------------------'
+        print 'Year: %d' % yr
+        print '---------------------------------------------------'
+        if yr!=2010:
+            save_leaf_ids(start_date = str(yr)+"-10-15 12:00:00", end_date = str(yr+1)+"-06-20 01:00:00",
+                        nplants = 3, dir = './adel/adel_%d' % yr)
+        else:
+            save_leaf_ids(start_date = str(yr)+"-10-15 12:00:00", end_date = str(yr+1)+"-06-20 01:00:00",
+                        nplants = 3, dir = './adel/adel_saved')
