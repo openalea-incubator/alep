@@ -113,24 +113,24 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect)
             
     g = adel.setup_canopy(age=0.)
-    rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
+    # rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
     it_wheat = 0
     it_septo = 0
     adel.save(g, it_wheat, dir=dir)
-    ids = get_leaf_ids(g, nsect=nsect)
-    save_ids(ids, it_septo, dir=dir)
+    # ids = get_leaf_ids(g, nsect=nsect)
+    # save_ids(ids, it_septo, dir=dir)
     for i, controls in enumerate(zip(canopy_timing, septo_timing)):
         canopy_iter, septo_iter = controls
         if canopy_iter:
             it_wheat += 1
             g = adel.grow(g, canopy_iter.value)
-            rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
+            # rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
             adel.save(g, it_wheat, dir=dir)
         
-        if septo_iter:
-            it_septo += 1
-            ids = get_leaf_ids(g, nsect=nsect)
-            save_ids(ids, it_wheat, dir=dir)
+        # if septo_iter:
+            # it_septo += 1
+            # ids = get_leaf_ids(g, nsect=nsect)
+            # save_ids(ids, it_septo, dir=dir)
 
 def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00",
                 nplants = 3, nsect = 5, dir = './adel/adel_3'):
@@ -167,7 +167,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
     
     # Prepare saving of outputs
     recorders = {}
-    leaf_sectors = get_leaf_ids(g, nsect)
+    leaf_sectors = load_ids(it_septo)
     for plant in leaf_sectors:
         recorders[plant] = {}
         for leaf, lf_sectors in leaf_sectors[plant].iteritems():
@@ -225,7 +225,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             it_septo += 1
             date = septo_iter.value.index[0]
             # print date
-            leaf_sectors = load_leaf_ids(it_septo, dir=dir)
+            leaf_sectors = load_ids(it_septo, dir=dir)
             for plant in recorders:
                 for lf, recorder in recorders[plant].iteritems():
                     recorder.update_vids(vids=leaf_sectors[plant][lf])
