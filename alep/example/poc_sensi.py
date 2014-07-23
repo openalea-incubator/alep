@@ -130,7 +130,7 @@ pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = 3, nsect=n
 # Manage weather
 weather = Boigneville_2010_2011()
 start_date = "2010-10-15 12:00:00"
-end_date = "2011-06-20 01:00:00"
+end_date = "2011-08-31 01:00:00"
 weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
 weather.check(varnames=['degree_days'], models={'degree_days':basic_degree_days}, start_date=start_date)
 weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':basic_degree_days}, start_date=start_date, base_temp=-2.)
