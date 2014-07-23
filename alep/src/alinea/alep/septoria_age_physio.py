@@ -71,16 +71,17 @@ class SeptoriaAgePhysio(Lesion):
     
         # Temporary
         # self.previous_surface = 0.
-        # self.hist_age = []
+        self.hist_age = []
         # self.hist_inc = []
         self.hist_chlo = []
         # self.hist_nec = []
-        # self.hist_spo = []
+        self.hist_spo = []
         # self.hist_empty = []
         # self.hist_can_compute_rings = []
         self.hist_nb_rings_chlo = []
         self.hist_progress = []
         self.hist_age_physio = []
+        self.hist_nb_les = []
     
     def is_incubating(self):
         """ Check if lesion status is incubation. """
@@ -130,15 +131,16 @@ class SeptoriaAgePhysio(Lesion):
                 self.growth_demand = 0.
             
             # Temporary
-            # self.hist_age.append(self.age_dday)
+            self.hist_age.append(self.age_dday)
             # self.hist_inc.append(self.surface_inc)
             self.hist_chlo.append(self.surface_chlo)
             # self.hist_nec.append(self.surface_nec)
-            # self.hist_spo.append(self.surface_spo)
+            self.hist_spo.append(self.surface_spo)
             # self.hist_empty.append(self.surface_empty)
             # self.hist_can_compute_rings.append(self.can_compute_rings())
             self.hist_nb_rings_chlo.append(len(self.surfaces_chlo))
             self.hist_age_physio.append(self.age_physio)
+            self.hist_nb_les.append(self.nb_lesions)
             
             # Temporary      
             # if self.surface_chlo>0. and len(self.surfaces_nec>1.) and self.surfaces_nec[0]==0.:
@@ -193,6 +195,10 @@ class SeptoriaAgePhysio(Lesion):
         growth_offer: float
             Surface available on the leaf for the ring to grow (cm2)
         """
+        if growth_offer > 100:
+            import pdb
+            pdb.set_trace()
+            
         if self.growth_is_active:
             
             # Disable growth in case of competition 
@@ -336,11 +342,11 @@ class SeptoriaAgePhysio(Lesion):
                 begs_prog = begs + progress
                 ends_prog = ends + progress
                 # 5. Find ends of new classes in which surfaces will be distributed after progress
-                new_ends = np.arange(max(0.1, width*ceil(begs_prog[0]/width)), width*(ceil(ends_prog[-1]/width)+1), width)
+                new_ends = np.arange(max(width, width*ceil(begs_prog[0]/width)), width*(ceil(ends_prog[-1]/width)+1), width)
                 new_ends = np.round(new_ends, 14)
                 
                 # 6. Loop over this classes to calculate the new distribution in each class
-                new_surf = np.zeros(len(new_ends))              
+                new_surf = np.zeros(len(new_ends))
                 for j in range(len(new_ends)):
                     # Find beginnings and ends of rings in new class
                     ind_begs = np.where((new_ends[j]-width <= begs_prog) * (begs_prog < new_ends[j]))[0]
@@ -514,13 +520,17 @@ class SeptoriaAgePhysio(Lesion):
         if density_DU_emitted>0:
             f = self.fungus
             # print 'density DU popDrops %f' % density_DU_emitted
-            du_factor = [float(density_DU_emitted)/dmax if dmax>0. else 0. for dmax in f.density_dus_emitted_max]
-            du_factor[du_factor>1.]=1.
+            du_factor = [min(1., float(density_DU_emitted)/dmax) if dmax>0. else 0. for dmax in f.density_dus_emitted_max]
             delta_spo = self.surfaces_spo*du_factor
             self.surfaces_spo -= delta_spo
-            self.surfaces_spo[1:]+=delta_spo[:f.rain_events_to_empty-1]
+            self.surfaces_spo[1:]+=delta_spo[:-1]
             if delta_spo[-1]>0.:
                 self.surface_empty += delta_spo[-1]
+            
+            if any([x<0 for x in self.surfaces_spo]):
+                import pdb
+                pdb.set_trace()
+                
             if self.status_edge == f.SPORULATING and round(self.surface_spo,14) <= round(f.threshold_spo * self.nb_lesions,14):
                 # Everything becomes empty and the lesion is disabled
                 self.surface_empty += sum(self.surfaces_spo)
@@ -585,6 +595,14 @@ class SeptoriaAgePhysio(Lesion):
             nb_sen = len(filter(lambda x: x[0]<senesced_length, self.position))
             ratio_sen = float(nb_sen)/self.nb_lesions
             
+            # Temp
+            # try:
+                # self.count_sen += 1
+                # self.hist_nb_sen.append(nb_sen)
+            # except:
+                # self.count_sen = 1
+                # self.hist_nb_sen = [nb_sen]
+            
             # Save surface of senesced lesions in cohort
             self.surface_senesced = self.surface * ratio_sen
             
@@ -601,7 +619,7 @@ class SeptoriaAgePhysio(Lesion):
                 self.surface_first_ring = round(self.surface_first_ring * (1-ratio_sen),14)
                 self.surfaces_chlo *= (1-ratio_sen)
                 self.surfaces_chlo = self.surfaces_chlo[self.surfaces_chlo>0.]
-            elif self.status_edge == f.CHLOROTIC and age_switch > age_edge:
+            elif self.status_edge == f.CHLOROTIC and age_switch > age_edge and round(self.surface_first_ring/self.nb_lesions, 14)>f.Smin:
                 default_nb_rings = f.nb_rings_by_state
                 (rings, width) = np.linspace(0,1, default_nb_rings+1, retstep=True)
                 if self.is_chlorotic():
@@ -610,12 +628,23 @@ class SeptoriaAgePhysio(Lesion):
                 rings = rings[floor(age_edge/width):]
                 rings[0] = age_edge
                 if age_switch>rings[0]:
+                    
+                    # Temp
+                    # if self.nb_lesions == 5:
+                        # import pdb
+                        # pdb.set_trace()
+                
                     self.surface_dead += sum(np.extract(rings<age_switch-width, self.surfaces_chlo * ratio_sen))
-                    self.surface_dead += self.surfaces_chlo[np.where(rings<age_switch)[0][-1]]*ratio_sen*(round(age_switch%width, 14)/width if 
-                                                                            (round(age_switch%width, 14)/width)>0. else 1.)                    
-                    self.surfaces_chlo[:np.where(rings<age_switch)[0][-1]] *= (1 - ratio_sen)
-                    self.surfaces_chlo[np.where(rings<age_switch)[0][-1]]*= (1 - ratio_sen)*((1-round(age_switch%width, 14)/width) if 
-                                                                            (1-round(age_switch%width, 14)/width)>0. else 1.)
+                    ind_cut = np.where(rings<age_switch)[0][-1]
+                    ratio_to_dead = round((age_switch - rings[ind_cut])/(rings[ind_cut+1]-rings[ind_cut]), 14)
+                    self.surface_dead += self.surfaces_chlo[ind_cut]*ratio_sen*ratio_to_dead
+                    self.surfaces_chlo[:ind_cut] *= (1 - ratio_sen)
+                    self.surfaces_chlo[ind_cut] *= (1 - ratio_sen)*(1-ratio_to_dead)
+                    # self.surface_dead += self.surfaces_chlo[np.where(rings<age_switch)[0][-1]]*ratio_sen*(round(age_switch%width, 14)/width if 
+                                                                            # (round(age_switch%width, 14)/width)>0. else 1.)                    
+                    # self.surfaces_chlo[:np.where(rings<age_switch)[0][-1]] *= (1 - ratio_sen)
+                    # self.surfaces_chlo[np.where(rings<age_switch)[0][-1]]*= (1 - ratio_sen)*((1-round(age_switch%width, 14)/width) if 
+                                                                            # (1-round(age_switch%width, 14)/width)>0. else 1.)
                     if nb_sen==self.nb_lesions:
                         if age_switch==1 or len(self.surfaces_chlo>0.)==0:
                             self.age_physio_edge = 0.
@@ -806,7 +835,6 @@ class SeptoriaAgePhysio(Lesion):
     @property
     def _surface_max(self):
         """ Calculate the surface max for a lesion. """
-        # return self.fungus.Smax * self.nb_lesions + self.surface_dead
         return self.fungus.Smax * self.nb_lesions + self.surface_senesced
     
     @property

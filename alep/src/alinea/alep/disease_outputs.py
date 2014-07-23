@@ -144,22 +144,17 @@ def compute_green_lesion_areas_by_leaf(g, label='LeafElement'):
     lesions = g.property('lesions')
     areas = g.property('area')
     green_lengths = g.property('green_length')
-    # pos_sen = g.property('position_senescence')
     sen_lengths = g.property('senesced_length')
-    
-    # return {vid:(sum(l.surface for l in lesions[vid])*pos_sen[vid]
-        # if vid in lesions.keys() else 0.) for vid in vids}
     
     gla = {}
     for vid in vids:
         if vid in lesions.keys():
-            les_surf = sum(l.surface for l in lesions[vid])
+            les_surf = sum(l.surface_alive for l in lesions[vid])
             ratio_sen = sen_lengths[vid]/(sen_lengths[vid]+green_lengths[vid]) if (sen_lengths[vid]+green_lengths[vid])>0. else 0.
+            # /!\ TODO : Can be replaced by green_areas[vid]/senesced_areas[vid]
             if les_surf<=areas[vid]:
-                # gla[vid]=les_surf*pos_sen[vid]
                 gla[vid]=les_surf*(1-ratio_sen)
             else:
-                # gla[vid]=les_surf-(areas[vid]*(1-pos_sen[vid]))
                 gla[vid]=les_surf-(areas[vid]*ratio_sen)
         else:
             gla[vid]=0.
@@ -1106,8 +1101,10 @@ class VineLeafInspector:
         self.ratio_empty.append(100.*surface_empty/area if area>0. else 0.)
         
 ######################################################################
+import numpy
 import pandas
 from scipy.integrate import trapz
+from alinea.astk.plantgl_utils import get_height
 
 class SeptoRecorder:
     def __init__(self, vids=None, group_dus=True):
@@ -1118,7 +1115,9 @@ class SeptoRecorder:
         self.degree_days = []
         # Initialize leaf properties to save
         self.leaf_area = []
-        self.leaf_green_area = []  
+        self.leaf_green_area = []
+        self.leaf_senesced_length = []
+        self.leaf_length = []
         # Initialize variables relative to DUs
         self.nb_dispersal_units = []
         self.nb_dus_on_green = []
@@ -1133,14 +1132,11 @@ class SeptoRecorder:
         self.surface_empty = []
         self.surface_dead = []
         
-        # Temp
-        self.senesced_length = []
-
     def update_vids(self, vids=[]):
         self.vids = vids
     
     def record(self, g, date, degree_days=None):
-        vids = [id for id in self.vids if g.node(id) is not None and g.node(id).area is not None]
+        vids = [id for id in self.vids if g.node(id).geometry is not None and g.node(id).area is not None]
     
         self.date_sequence.append(date)
         self.degree_days.append(degree_days)
@@ -1148,12 +1144,8 @@ class SeptoRecorder:
         # Update leaf properties
         self.leaf_area.append(sum([g.node(id).area for id in vids]))
         self.leaf_green_area.append(sum([g.node(id).green_area for id in vids]))
-        
-        # Temp
-        if len(vids)>0:
-            self.senesced_length.append(g.node(vids[0]).senesced_length)
-        else:
-            self.senesced_length.append(0)
+        self.leaf_length.append(sum([g.node(id).length for id in vids]))
+        self.leaf_senesced_length.append(sum([g.node(id).senesced_length for id in vids]))
             
         # Update properties of dispersal units and lesions
         nb_dus = 0
@@ -1337,5 +1329,36 @@ class SeptoRecorder:
         self.necrosis()
         self.necrosis_percentage()
 
+    def record_only_leaf_data(self, g, date, degree_days=None):
+        vids = [id for id in self.vids if g.node(id).geometry is not None and g.node(id).area is not None]
+    
+        self.date_sequence.append(date)
+        self.degree_days.append(degree_days)
+    
+        # Update leaf properties
+        self.leaf_area.append(sum([g.node(id).area for id in vids]))
+        self.leaf_green_area.append(sum([g.node(id).green_area for id in vids]))
+        self.leaf_length.append(sum([g.node(id).length for id in vids]))
+        self.leaf_senesced_length.append(sum([g.node(id).senesced_length for id in vids]))
+        heights = [numpy.mean(get_height({vid:g.node(vid).geometry}).values()) for vid in vids]
+        try:
+            self.senesced_area.append(sum([g.node(id).senesced_area for id in vids]))
+            self.leaf_green_length.append(sum([g.node(id).green_length for id in vids]))
+            self.leaf_heights.append(heights if len(heights)>0. else [0.])
+        except:
+            self.senesced_area = [sum([g.node(id).senesced_area for id in vids])]
+            self.leaf_green_length = [sum([g.node(id).green_length for id in vids])]
+            self.leaf_heights = [heights if len(heights)>0. else [0.]]
+                
+    def create_dataframe_only_leaf_data(self):
+        exclude = ['group_dus', 'vids', 'init_vids', 'surface_inc', 'surface_chlo', 
+                   'surface_nec', 'surface_spo', 'surface_dead', 'surface_empty', 
+                   'nb_lesions', 'nb_lesions_on_green', 'nb_dispersal_units', 
+                   'nb_dus_on_green', 'senesced_length', 'leaf_heights']
+        self.leaf_min_height = [min(heights) for heights in self.leaf_heights]
+        self.leaf_max_height = [max(heights) for heights in self.leaf_heights]
+        self.leaf_mean_height = [numpy.mean(heights) for heights in self.leaf_heights]
+        dico = {k:v for k,v in self.__dict__.iteritems() if k not in exclude}
+        self.data = pandas.DataFrame(data=dico, index=self.date_sequence)
         
         

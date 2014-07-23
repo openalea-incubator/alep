@@ -113,24 +113,24 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect)
             
     g = adel.setup_canopy(age=0.)
-    # rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
+    rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
     it_wheat = 0
     it_septo = 0
     adel.save(g, it_wheat, dir=dir)
-    # ids = get_leaf_ids(g, nsect=nsect)
-    # save_ids(ids, it_septo, dir=dir)
+    ids = get_leaf_ids(g, nsect=nsect)
+    save_ids(ids, it_septo, dir=dir)
     for i, controls in enumerate(zip(canopy_timing, septo_timing)):
         canopy_iter, septo_iter = controls
         if canopy_iter:
             it_wheat += 1
             g = adel.grow(g, canopy_iter.value)
-            # rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
+            rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
             adel.save(g, it_wheat, dir=dir)
         
-        # if septo_iter:
-            # it_septo += 1
-            # ids = get_leaf_ids(g, nsect=nsect)
-            # save_ids(ids, it_septo, dir=dir)
+        if septo_iter:
+            it_septo += 1
+            ids = get_leaf_ids(g, nsect=nsect)
+            save_ids(ids, it_septo, dir=dir)
 
 def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00",
                 nplants = 3, nsect = 5, dir = './adel/adel_3'):
@@ -182,7 +182,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         # Grow wheat canopy
         if canopy_iter:
             it_wheat += 1
-            print it
+            print it_wheat
             newg,TT = adel.load(it_wheat, dir=dir)
             move_properties(g, newg)
             g = newg
@@ -264,6 +264,17 @@ def suite_run_and_save():
                 del recorder
                 
     incub = ['120', '220', '320']
+    for inc in incub:
+        for i_sim in range(10):
+            print inc, i_sim
+            g, recorder = run_disease(sporulating_fraction = 1e-2, degree_days_to_chlorosis = float(inc))
+            stored_rec = '.\mercia\\recorder_incub_'+inc+'_'+str(i_sim)+'.pckl'
+            f_rec = open(stored_rec, 'w')
+            pickle.dump(recorder, f_rec)
+            f_rec.close()
+            del recorder
+            
+    growth_rates = ['6e-10', '220', '320']
     for inc in incub:
         for i_sim in range(10):
             print inc, i_sim

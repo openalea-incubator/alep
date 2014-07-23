@@ -81,15 +81,19 @@ class BiotrophDUPositionModel:
             Updated MTG representing the canopy
         """
         dispersal_units = {k:v for k,v in g.property('dispersal_units').iteritems() if len(v)>0.}
-        severities = compute_severity_by_leaf(g, label)
         for vid in dispersal_units.iterkeys():
             dispersal_units[vid] = [du for du in dispersal_units[vid] if du.is_active]
             controlled_dus = [dispersal_units[vid].pop(ind) for ind, du in enumerate(dispersal_units[vid])
                                if du.can_infect_at_position is None]
             leaf = g.node(vid)
             # Compare to lesions
+            if 'lesions' in leaf.properties():
+                les_surf = sum([les.surface for les in leaf.lesions])
+            else:
+                les_surf = 0.
+            ratio_les_surface = min(1, les_surf/leaf.area) if leaf.area>0. else 0.
             total_nb_dus = len(sum([du.position for du in controlled_dus],[]))
-            nb_on_lesions = int(total_nb_dus*severities[vid]/100.)
+            nb_on_lesions = int(total_nb_dus*ratio_les_surface)
             for du in range(nb_on_lesions):
                 random.shuffle(controlled_dus)
                 controlled_dus[0].position = controlled_dus[0].position[1:]

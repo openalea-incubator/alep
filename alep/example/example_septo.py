@@ -25,8 +25,8 @@ from alinea.alep.disease_outputs import plot_severity_by_leaf
 def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=False, nb_steps=1000, leaf_area=None):
     # Initiate wheat MTG with one leaf and good conditions for disease
     g = adel_one_leaf()
-    # set_properties(g, label='LeafElement', wetness=True, temp=22., rain_intensity=0.)
-    set_properties(g, label='LeafElement', wetness=False, temp=22., rain_intensity=0.)
+    set_properties(g, label='LeafElement', wetness=True, temperature_sequence=np.array([22.]), rain_intensity=0.)
+    # set_properties(g, label='LeafElement', wetness=False, temperature_sequence=np.array([22.]), rain_intensity=0.)
     if leaf_area is not None:
         set_properties(g, label='LeafElement', area=leaf_area, green_area=leaf_area)
 
@@ -41,13 +41,12 @@ def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i i
         dispersal_units = [dispersal_units[0]]
     leaf.dispersal_units = dispersal_units
     infection_controler = BiotrophDUPositionModel()
-    growth_controler = NoPriorityGrowthControl()
+    growth_controler = PriorityGrowthControl()
 
     # Initiate output recorder
     # inspector = LeafInspector(g, blade_id=8)
-    recorder = SeptoRecorder(vids=[10],group_dus=group_dus, 
-                date_sequence=pandas.date_range("2014-01-01 01:00:00", periods=nb_steps+1, freq='H'))
-    recorder.record(g)
+    recorder = SeptoRecorder(vids=[10],group_dus=group_dus)
+    recorder.record(g, 0)
     
     # Simulation loop
     for i in range(nb_steps):
@@ -59,20 +58,20 @@ def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i i
         update(g, 1, growth_controler, senescence_model=None, label='LeafElement')
         
         # Get outputs
-        recorder.record(g)
+        recorder.record(g, i+1)
     recorder.get_complete_dataframe()
     
     # return g, inspector
     return g, recorder
     
 def plot_lesion_states():
-    g, insp = example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1)], nb_steps=1000)
-    # g, insp = example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1) for i in range(10)], nb_steps=1000, leaf_area=20.)
-    outputs = pandas.DataFrame({'disease area': insp.leaf_disease_area,
-                                'surface incubating': insp.surface_inc,
-                                'surface chlorotic': insp.surface_chlo,
-                                'surface necrotic': insp.surface_nec,
-                                'surface sporulating': insp.surface_spo})
+    g, reco = example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1)], nb_steps=800)
+    # g, reco = example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit(nb_rings_by_state=1) for i in range(5)], nb_steps=800)#, leaf_area=20.)
+    outputs = pandas.DataFrame({'disease area': reco.data.leaf_disease_area,
+                                'surface incubating': reco.data.surface_inc,
+                                'surface chlorotic': reco.data.surface_chlo,
+                                'surface necrotic': reco.data.surface_nec,
+                                'surface sporulating': reco.data.surface_spo})
     ax = outputs.plot()
     ax.set_xlabel('Degree days')
     ax.set_ylabel('Surface (in cm2)')
