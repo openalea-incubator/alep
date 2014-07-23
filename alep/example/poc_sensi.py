@@ -25,6 +25,21 @@ from alinea.echap.weather_data import *
 from alinea.alep.protocol import *
 from septo_decomposed import septo_disease 
 
+def get_flag_leaves(g):
+    labels = g.property('label')
+    stems = [id for id,lb in labels.iteritems() if lb.startswith('MS')]
+    blades = [id for id,lb in labels.iteritems() if lb.startswith('blade')]
+    flag_leaves_ids = {}
+    ind_plant = 0
+    for st in stems:
+        ind_plant += 1
+        flag_leaves_ids['P%d' % ind_plant] = {}
+        nff = int(g.node(st).properties()['nff'])
+        lf = [bl for bl in blades if bl>st][nff]
+        stem_elt = g.node(lf).components()[0].index()
+        flag_leaves_ids['P%d' % ind_plant]['F1'] = range(stem_elt+1, stem_elt+nsect+1)
+    return flag_leaves_ids
+
 def run_disease(sporulating_fraction=1e-2,
                 degree_days_to_chlorosis=220.,
                 Smin = 0.03,
