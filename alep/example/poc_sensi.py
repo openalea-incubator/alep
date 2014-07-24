@@ -25,6 +25,7 @@ from alinea.echap.weather_data import *
 from alinea.alep.protocol import *
 from septo_decomposed import septo_disease
 from alinea.alep.disease_outputs import SeptoRecorder
+import time
 
 def get_flag_leaves(g):
     labels = g.property('label')
@@ -121,7 +122,8 @@ def run_disease(sporulating_fraction=1e-2,
 def evaluate(values): 
     Y = np.empty([values.shape[0]])
     for i, X in enumerate(values):
-        print i
+        # print '\n-------------------------------------------'
+        # print i
         Y[i] = run_disease(sporulating_fraction=X[0],
                            degree_days_to_chlorosis=X[1],
                            Smin = X[2],
@@ -130,7 +132,10 @@ def evaluate(values):
                            age_physio_switch_senescence=X[5],
                            density_dus_emitted_ref = X[6],
                            reduction_by_rain=X[7])
+        # print time.strftime('%d-%m-%Y %H:%M:%S')
+        # print '-------------------------------------------'
     return Y
+
 
 # Set random seed (does not affect quasi-random Sobol sampling)
 seed = 1
@@ -159,24 +164,25 @@ every_dd_or_rain = filter_or([every_dd, every_rain])
 canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data))
 septo_filter = septo_infection_filter(seq, weather, every_rain)
 
-# Read the parameter range file and generate samples
-param_file = 'poc_sensi.txt'
-pf = read_param_file(param_file)
+def run_sensi():
+    # Read the parameter range file and generate samples
+    param_file = 'poc_sensi.txt'
+    pf = read_param_file(param_file)
 
-# Generate samples 
-# param_values = morris_oat.sample(20, pf['num_vars'], num_levels = 10, grid_jump = 5)
-param_values = morris_oat.sample(10, pf['num_vars'], num_levels = 10, grid_jump = 5)
+    # Generate samples 
+    # param_values = morris_oat.sample(20, pf['num_vars'], num_levels = 10, grid_jump = 5)
+    param_values = morris_oat.sample(10, pf['num_vars'], num_levels = 10, grid_jump = 5)
 
-# Samples are given in range [0, 1] by default. Rescale them to your parameter bounds. (If using normal distributions, use "scale_samples_normal" instead)
-scale_samples(param_values, pf['bounds'])
+    # Samples are given in range [0, 1] by default. Rescale them to your parameter bounds. (If using normal distributions, use "scale_samples_normal" instead)
+    scale_samples(param_values, pf['bounds'])
 
-# For Method of Morris, save the parameter values in a file (they are needed in the analysis)
-np.savetxt('SGInput.txt', param_values, delimiter=' ')
+    # For Method of Morris, save the parameter values in a file (they are needed in the analysis)
+    np.savetxt('SGInput.txt', param_values, delimiter=' ')
 
-# Run the model and save the output in a text file
-# This will happen offline for external models
-Y = evaluate(param_values)
-np.savetxt("SGOutput.txt", Y, delimiter=' ')
+    # Run the model and save the output in a text file
+    # This will happen offline for external models
+    Y = evaluate(param_values)
+    np.savetxt("SGOutput.txt", Y, delimiter=' ')
 
-# Perform the sensitivity analysis using the model output
-Si = morris.analyze(param_file, 'SGInput.txt', 'SGOutput.txt', column = 0, conf_level = 0.95)
+    # Perform the sensitivity analysis using the model output
+    Si = morris.analyze(param_file, 'SGInput.txt', 'SGOutput.txt', column = 0, conf_level = 0.95)
