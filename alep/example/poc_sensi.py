@@ -23,7 +23,8 @@ from alinea.echap.weather_data import *
 
 # Imports for alep septoria
 from alinea.alep.protocol import *
-from septo_decomposed import septo_disease 
+from septo_decomposed import septo_disease
+from alinea.alep.disease_outputs import SeptoRecorder
 
 def get_flag_leaves(g):
     labels = g.property('label')
@@ -35,7 +36,7 @@ def get_flag_leaves(g):
         ind_plant += 1
         flag_leaves_ids['P%d' % ind_plant] = {}
         nff = int(g.node(st).properties()['nff'])
-        lf = [bl for bl in blades if bl>st][nff]
+        lf = [bl for bl in blades if bl>st][nff-1]
         stem_elt = g.node(lf).components()[0].index()
         flag_leaves_ids['P%d' % ind_plant]['F1'] = range(stem_elt+1, stem_elt+nsect+1)
     return flag_leaves_ids
@@ -71,7 +72,6 @@ def run_disease(sporulating_fraction=1e-2,
         
         # Grow wheat canopy
         if canopy_iter:
-            print canopy_iter.value.index[0]
             it += 1
             newg,TT = adel.load(it, dir = './adel/adel_saved2')
             move_properties(g, newg)

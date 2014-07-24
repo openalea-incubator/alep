@@ -32,7 +32,7 @@ from alinea.echap.weather_data import *
 
 # Imports for alep septoria
 from alinea.alep.protocol import *
-from septo_decomposed import septo_disease
+from septo_decomposed import septo_disease, load_ids
 from alinea.alep.disease_outputs import SeptoRecorder
 
 def get_flag_leaves(g):
@@ -45,7 +45,7 @@ def get_flag_leaves(g):
         ind_plant += 1
         flag_leaves_ids['P%d' % ind_plant] = {}
         nff = int(g.node(st).properties()['nff'])
-        lf = [bl for bl in blades if bl>st][nff]
+        lf = [bl for bl in blades if bl>st][nff-1]
         stem_elt = g.node(lf).components()[0].index()
         flag_leaves_ids['P%d' % ind_plant]['F1'] = range(stem_elt+1, stem_elt+nsect+1)
     return flag_leaves_ids
@@ -75,6 +75,15 @@ def run_disease(sporulating_fraction=1e-2,
     flag_ids = get_flag_leaves(g)
     for plant, flag in flag_ids.iteritems():
         recorders[plant] = SeptoRecorder(vids=flag.values()[0], group_dus=True)
+    
+    # recorders = {}
+    # it_septo = 0
+    # leaf_sectors = load_ids(it_septo, dir = './adel/adel_saved2')
+    # print 'leaf_sectors: '+ str(leaf_sectors['P1']['F1'])
+    # for plant in leaf_sectors:
+        # recorders[plant] = {}
+        # for leaf, lf_sectors in leaf_sectors[plant].iteritems():
+            # recorders[plant][leaf] = SeptoRecorder(vids=lf_sectors, group_dus=True)
     
     for i, controls in enumerate(zip(canopy_timing, rain_timing, septo_timing)):
         canopy_iter, rain_iter, septo_iter = controls
@@ -114,6 +123,22 @@ def run_disease(sporulating_fraction=1e-2,
             if rain_iter.value.rain.mean()>0.:
                 g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_iter.value)
     
+        # if septo_iter:
+            # it_septo += 1
+            # date = septo_iter.value.index[0]
+            # print date
+            # leaf_sectors = load_ids(it_septo, dir = './adel/adel_saved2')
+            # print 'leaf_sectors: ' + str(leaf_sectors['P1']['F1'])
+            # for plant in recorders:
+                # for lf, recorder in recorders[plant].iteritems():
+                    # recorder.update_vids(vids=leaf_sectors[plant][lf])
+                    # recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
+                    
+    # for plant in recorders:
+        # for recorder in recorders[plant].itervalues():
+            # recorder.get_complete_dataframe()
+            # recorder.get_audpc(variable = 'necrosis_percentage')
+
         # Save outputs
         if septo_iter:
             date = septo_iter.value.index[0]
@@ -127,6 +152,7 @@ def run_disease(sporulating_fraction=1e-2,
         recorder.get_audpc()
 
     return np.mean([recorder.audpc for recorder in recorders.itervalues()])
+    # return recorders
  
  # Set random seed (does not affect quasi-random Sobol sampling)
 seed = 1

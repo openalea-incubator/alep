@@ -167,7 +167,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
     
     # Prepare saving of outputs
     recorders = {}
-    leaf_sectors = load_ids(it_septo)
+    leaf_sectors = load_ids(it_septo, dir=dir)
     for plant in leaf_sectors:
         recorders[plant] = {}
         for leaf, lf_sectors in leaf_sectors[plant].iteritems():
