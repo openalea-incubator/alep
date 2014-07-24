@@ -114,7 +114,7 @@ def run_disease(sporulating_fraction=1e-2,
     
     for recorder in recorders.itervalues():
         recorder.get_complete_dataframe()
-        recorder.get_audpc()
+        recorder.get_audpc('necrosis_percentage')
 
     return np.mean([recorder.audpc for recorder in recorders.itervalues()])
 
