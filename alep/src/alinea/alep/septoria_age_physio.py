@@ -129,6 +129,23 @@ class SeptoriaAgePhysio(Lesion):
                 self.update_status()
             else:
                 self.growth_demand = 0.
+                
+            # Temp
+            if self.growth_demand < 0.:
+                import pdb
+                pdb.set_trace()
+            
+            if any([x<0. for x in self.surfaces_chlo]):
+                import pdb
+                pdb.set_trace()
+            
+            if any([x<0. for x in self.surfaces_nec]):
+                import pdb
+                pdb.set_trace()
+                
+            if any([x<0. for x in self.surfaces_spo]):
+                import pdb
+                pdb.set_trace()
             
             # Temporary
             self.hist_age.append(self.age_dday)
@@ -195,7 +212,7 @@ class SeptoriaAgePhysio(Lesion):
         growth_offer: float
             Surface available on the leaf for the ring to grow (cm2)
         """
-        if growth_offer > 100:
+        if growth_offer < 0.:
             import pdb
             pdb.set_trace()
             
@@ -604,7 +621,7 @@ class SeptoriaAgePhysio(Lesion):
                 # self.hist_nb_sen = [nb_sen]
             
             # Save surface of senesced lesions in cohort
-            self.surface_senesced = self.surface * ratio_sen
+            self.surface_senesced += (self.surface-self.surface_senesced) * ratio_sen
             
             # Reduce surfaces alive
             f = self.fungus
