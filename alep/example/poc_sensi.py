@@ -119,7 +119,12 @@ def run_disease(sporulating_fraction=1e-2,
 
     return np.mean([recorder.audpc for recorder in recorders.itervalues()])
 
-def evaluate(values): 
+def evaluate(values):
+    # Set random seed (does not affect quasi-random Sobol sampling)
+    seed = 1
+    np.random.seed(seed)
+    rd.seed(seed)
+    
     Y = np.empty([values.shape[0]])
     for i, X in enumerate(values):
         # print '\n-------------------------------------------'
@@ -135,12 +140,6 @@ def evaluate(values):
         # print time.strftime('%d-%m-%Y %H:%M:%S')
         # print '-------------------------------------------'
     return Y
-
-
-# Set random seed (does not affect quasi-random Sobol sampling)
-seed = 1
-np.random.seed(seed)
-rd.seed(seed)
 
 # Initialize wheat plant
 Mercia = reconst_db['Mercia']
@@ -165,6 +164,11 @@ canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data
 septo_filter = septo_infection_filter(seq, weather, every_rain)
 
 def run_sensi():
+    # Set random seed (does not affect quasi-random Sobol sampling)
+    seed = 1
+    np.random.seed(seed)
+    rd.seed(seed)
+
     # Read the parameter range file and generate samples
     param_file = 'poc_sensi.txt'
     pf = read_param_file(param_file)
