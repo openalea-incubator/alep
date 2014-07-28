@@ -1105,11 +1105,13 @@ import numpy
 import pandas
 from scipy.integrate import trapz
 from alinea.astk.plantgl_utils import get_height
+from alinea.adel.newmtg import adel_ids
 
-class SeptoRecorder:
-    def __init__(self, vids=None, group_dus=True):
+class AdelSeptoRecorder:
+    def __init__(self, vids=None, adel_labels=None, group_dus=True):
         """ vids are ids of leaf sectors on the same blade. """
         self.vids = vids
+        self.adel_labels = adel_labels
         self.group_dus = group_dus
         self.date_sequence = []
         self.degree_days = []
@@ -1131,6 +1133,9 @@ class SeptoRecorder:
         self.surface_spo = []
         self.surface_empty = []
         self.surface_dead = []
+
+    def update_vids_with_labels(self, adel_ids):
+        self.vids = [adel_ids[lb] for lb in self.adel_labels]
         
     def update_vids(self, vids=[]):
         self.vids = vids
@@ -1214,7 +1219,8 @@ class SeptoRecorder:
         self.surface_dead.append(surface_dead)
         
     def create_dataframe(self):
-        dico = {k:v for k,v in self.__dict__.iteritems() if k!='group_dus' and k!='vids' and k!='init_vids'}
+        exclude = ['vids', 'init_vids', 'adel_labels', 'group_dus']
+        dico = {k:v for k,v in self.__dict__.iteritems() if k not in exclude}
         self.data = pandas.DataFrame(data=dico, index=self.date_sequence)
     
     def leaf_senesced_area(self):
@@ -1245,6 +1251,22 @@ class SeptoRecorder:
             self.leaf_senesced_area()
         self.data['leaf_necrotic_area_on_green'] = [self.data['necrosis'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
     
+    def leaf_necrotic_senescent(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        if not 'leaf_necrotic_area_on_green' in self.data:
+            self.leaf_necrotic_area_on_green()
+        if not 'leaf_senesced_area' in self.data:
+            self.leaf_senesced_area()
+        self.data['leaf_necrotic_senescent'] = self.data['leaf_senesced_area'] + self.data['leaf_necrotic_area_on_green']
+        
+    def necrotic_senescent_percentage(self):
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        if not 'leaf_necrotic_senescent' in self.data:
+            self.leaf_necrotic_senescent()
+        self.data['leaf_necrotic_senescent'] = [self.data['leaf_necrotic_senescent'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        
     def leaf_healthy_area(self):
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
@@ -1351,7 +1373,7 @@ class SeptoRecorder:
             self.leaf_heights = [heights if len(heights)>0. else [0.]]
                 
     def create_dataframe_only_leaf_data(self):
-        exclude = ['group_dus', 'vids', 'init_vids', 'surface_inc', 'surface_chlo', 
+        exclude = ['group_dus', 'vids', 'adel_labels', 'init_vids', 'surface_inc', 'surface_chlo', 
                    'surface_nec', 'surface_spo', 'surface_dead', 'surface_empty', 
                    'nb_lesions', 'nb_lesions_on_green', 'nb_dispersal_units', 
                    'nb_dus_on_green', 'senesced_length', 'leaf_heights']
@@ -1361,4 +1383,35 @@ class SeptoRecorder:
         dico = {k:v for k,v in self.__dict__.iteritems() if k not in exclude}
         self.data = pandas.DataFrame(data=dico, index=self.date_sequence)
         
+
+def initiate_all_adel_septo_recorders(g, nsect=5):
+    """ Used in the case of recording all blades of the main stem of each plant.
+    
+    Returns
+    -------
+    leaf_labels: dict('P1'=dict('F1'= recorder init with list of labels for leaf sectors,
+                                ...,
+                                'Fi'= recorder),
+                      ...,
+                      'Pn'=dict('F1' = recorder,
+                                ...,
+                                'Fi' = recorder))
+    
+    """
+    vids = adel_ids(g)
+    labels = g.property('label')
+    stems = [id for id,lb in labels.iteritems() if lb.startswith('MS')]
+    recorders = {}
+    ind_plant = 0
+    for st in stems:
+        ind_plant += 1
+        recorders['P%d' % ind_plant] = {}
+        nff = int(g.node(st).properties()['nff'])
+        ind_lf = nff+1
+        for leaf in range(1, nff+1):
+            ind_lf -= 1
+            lf_labels = ['plant%d_MS_metamer%d_blade_LeafElement%d' % (ind_plant, leaf, sect) for sect in range(1, nsect+1)]
+            recorders['P%d' % ind_plant]['F%d' % ind_lf] = AdelSeptoRecorder(adel_labels = lf_labels)
+            recorders['P%d' % ind_plant]['F%d' % ind_lf].update_vids_with_labels(vids)
+    return recorders
         
