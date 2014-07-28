@@ -29,7 +29,7 @@ from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DSoilC
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
-from alinea.alep.disease_outputs import SeptoRecorder, plot_severity_by_leaf
+from alinea.alep.disease_outputs import initiate_all_adel_septo_recorders, plot_severity_by_leaf
 
 def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"):
     start_yr = start_date[2:4]
@@ -38,10 +38,10 @@ def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"
     meteo_path = shared_data(alinea.septo3d, weather_file)
     return Weather(data_file=meteo_path)
 
-def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", nplants = 3, nsect = 5):
+def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", nplants = 3, nsect = 5, disc_level = 20):
     # Initialize wheat plant
     Mercia = reconst_db['Mercia']
-    pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = nplants, nsect=nsect)
+    pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = nplants, nsect = nsect, disc_level = disc_level)
 
     # Manage weather
     if start_date[:4]=='2010':
@@ -107,18 +107,18 @@ def get_leaf_ids(g, nsect = 5):
     return leaf_sectors
     
 def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00",
-                nplants = 3, nsect = 5, dir = './adel/adel_3'):
+                nplants = 3, nsect = 5, disc_level = 20, dir = './adel/adel_3'):
                 
     adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing = setup(
-            start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect)
+            start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect, disc_level = disc_level)
             
     g = adel.setup_canopy(age=0.)
     rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
     it_wheat = 0
-    it_septo = 0
+    # it_septo = 0
     adel.save(g, it_wheat, dir=dir)
-    ids = get_leaf_ids(g, nsect=nsect)
-    save_ids(ids, it_septo, dir=dir)
+    # ids = get_leaf_ids(g, nsect=nsect)
+    # save_ids(ids, it_septo, dir=dir)
     for i, controls in enumerate(zip(canopy_timing, septo_timing)):
         canopy_iter, septo_iter = controls
         if canopy_iter:
@@ -127,10 +127,10 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
             adel.save(g, it_wheat, dir=dir)
         
-        if septo_iter:
-            it_septo += 1
-            ids = get_leaf_ids(g, nsect=nsect)
-            save_ids(ids, it_septo, dir=dir)
+        # if septo_iter:
+            # it_septo += 1
+            # ids = get_leaf_ids(g, nsect=nsect)
+            # save_ids(ids, it_septo, dir=dir)
 
 def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00",
                 nplants = 3, nsect = 5, dir = './adel/adel_3'):
@@ -166,15 +166,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
     g,TT = adel.load(it_wheat, dir=dir)
     
     # Prepare saving of outputs
-    recorders = {}
-    leaf_sectors = load_ids(it_septo, dir=dir)
-    for plant in leaf_sectors:
-        recorders[plant] = {}
-        for leaf, lf_sectors in leaf_sectors[plant].iteritems():
-            recorders[plant][leaf] = SeptoRecorder(vids=lf_sectors, group_dus=True)
-    
-    # leaves = get_leaves(g, label='LeafElement')
-    # recorder = SeptoRecorder(vids=leaves,group_dus=True)
+    recorders = initiate_all_adel_septo_recorders(g, nsect)
     
     for i, controls in enumerate(zip(canopy_timing, rain_timing, septo_timing)):
         canopy_iter, rain_iter, septo_iter = controls
@@ -203,7 +195,8 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             update_healthy_area(g, label = 'LeafElement')
 
         # External contamination
-        if rain_iter:        
+        geom = g.property('geometry')
+        if rain_iter and len(geom)>0:
             if rain_iter.value.rain.mean()>0. and rain_iter.value.degree_days[-1]<1000:
                 g = external_contamination(g, inoculum, contaminator, rain_iter.value)
 
@@ -213,7 +206,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             update(g, septo_iter.dt, growth_controler, senescence_model=None, label='LeafElement')
             
         # Disperse and wash
-        if rain_iter:
+        if rain_iter and len(geom)>0:
             if rain_iter.value.rain.mean()>0.:
                 g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_iter.value)
         
@@ -222,13 +215,12 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
 
         # Save outputs
         if septo_iter:
-            it_septo += 1
-            date = septo_iter.value.index[0]
-            # print date
-            leaf_sectors = load_ids(it_septo, dir=dir)
+            # it_septo += 1
+            date = septo_iter.value.index[-1]
+            # leaf_sectors = load_ids(it_septo, dir=dir)
             for plant in recorders:
                 for lf, recorder in recorders[plant].iteritems():
-                    recorder.update_vids(vids=leaf_sectors[plant][lf])
+                    recorder.update_vids_with_labels(vids=adel_ids(g))
                     recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
                     
     for plant in recorders:
@@ -355,3 +347,9 @@ def save_ids_date(years=[1998, 2003, 2004, 2010]):
         else:
             save_leaf_ids(start_date = str(yr)+"-10-15 12:00:00", end_date = str(yr+1)+"-06-20 01:00:00",
                         nplants = 3, dir = './adel/adel_saved')
+                        
+def stat_profiler(call='run_disease()'):
+    import cProfile
+    import pstats
+    cProfile.run(call, 'restats')
+    return pstats.Stats('restats')   
