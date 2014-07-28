@@ -8,7 +8,7 @@ import pickle
 import sys
 
 # Imports for wheat and rain/light interception
-from alinea.adel.newmtg import move_properties
+from alinea.adel.newmtg import move_properties, adel_ids
 from alinea.echap.architectural_reconstructions import reconst_db
 from alinea.alep.architecture import set_properties, update_healthy_area, get_leaves
 from alinea.caribu.caribu_star import rain_and_light_star
@@ -220,7 +220,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             # leaf_sectors = load_ids(it_septo, dir=dir)
             for plant in recorders:
                 for lf, recorder in recorders[plant].iteritems():
-                    recorder.update_vids_with_labels(vids=adel_ids(g))
+                    recorder.update_vids_with_labels(adel_ids = adel_ids(g))
                     recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
                     
     for plant in recorders:
