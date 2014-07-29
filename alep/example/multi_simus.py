@@ -1,6 +1,7 @@
 from openalea.multiprocessing.parallel import pymap
 from multiprocessing import cpu_count
 from septo_decomposed import run_disease
+import pickle
 
 num_simus = range(200)
 
