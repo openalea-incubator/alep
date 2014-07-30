@@ -132,6 +132,60 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             # ids = get_leaf_ids(g, nsect=nsect)
             # save_ids(ids, it_septo, dir=dir)
 
+######### TEMP #####################
+
+def get_leaf_ids(g):
+    nsect = 5
+    labels = g.property('label')
+    stems = [id for id,lb in labels.iteritems() if lb.startswith('MS')]
+    blades = [id for id,lb in labels.iteritems() if lb.startswith('blade')]
+    leaf_sectors = {}
+    ind_plant = 0
+    for st in stems:
+        ind_plant += 1
+        leaf_sectors['P%d' % ind_plant] = {}
+        nff = int(g.node(st).properties()['nff'])
+        leaves = [bl for bl in blades if bl>st][:nff]
+        ind_lf = nff+1
+        for lf in leaves:
+            ind_lf -= 1
+            leaf_sectors['P%d' % ind_plant]['F%d' % ind_lf] = range(lf+2, lf+nsect+2)
+    return leaf_sectors
+
+# @profile    
+def run_canopy(start_date = "2011-03-01 12:00:00", end_date = "2011-04-01 01:00:00",
+                nplants = 3, nsect = 5, disc_level = 20, get_ids = 0):
+    Mercia = reconst_db['Mercia']
+    pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = nplants, nsect = nsect, disc_level = disc_level)
+
+    # Manage weather
+    weather = Boigneville_2010_2011()
+    weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+    weather.check(varnames=['degree_days'], models={'degree_days':basic_degree_days}, start_date=start_date)
+    weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':basic_degree_days}, start_date=start_date, base_temp=-2.)
+
+    # Define the schedule of calls for each model
+    seq = pandas.date_range(start = start_date, end = end_date, freq='H')
+    TTmodel = DegreeDayModel(Tbase = 0)
+    every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 10)
+    every_rain = rain_filter(seq, weather)
+    every_dd_or_rain = filter_or([every_dd, every_rain])
+    canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data))
+    
+    g = adel.setup_canopy(age=1000.)
+    it_wheat = 0
+    for i, canopy_iter in enumerate(canopy_timing):
+        if canopy_iter:
+            it_wheat += 1
+            print canopy_iter.value.index[-1]
+            g = adel.grow(g, canopy_iter.value)
+            vids = adel_ids(g)
+            vids2 = get_leaf_ids(g)
+
+# run_canopy()
+            
+######### TEMP #####################
+            
 def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00",
                 nplants = 3, nsect = 5, dir = './adel/adel_3'):
        
@@ -153,10 +207,13 @@ def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:
             save_ids(ids, it_septo, dir=dir)
 
 def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", nplants = 3, nsect = 5,
-                dir = './adel/adel_saved', sporulating_fraction = 1e-3, **kwds):
+                disc_level = 20, dir = './adel/adel_saved', sporulating_fraction = 1e-4, adel = None, 
+                domain = None, domain_area = None, convUnit = None, weather = None, seq = None, 
+                rain_timing = None, canopy_timing = None, septo_timing = None, **kwds):
 
-    adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing = setup(
-            start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect)
+    if any(x==None for x in [adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing]):
+        adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing = setup(
+                start_date = start_date, end_date = end_date, nplants = nplants, nsect = nsect, disc_level = disc_level)
             
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
@@ -178,6 +235,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             newg,TT = adel.load(it_wheat, dir=dir)
             move_properties(g, newg)
             g = newg
+            leaf_ids = adel_ids(g)
         
         # Get weather for date and add it as properties on leaves
         if septo_iter:
@@ -189,10 +247,6 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             set_properties(g,label = 'LeafElement',
                            rain_intensity = rain_iter.value.rain.mean(),
                            rain_duration = len(rain_iter.value.rain) if rain_iter.value.rain.sum() > 0 else 0.)
-        
-        # Update g for the disease:
-        if septo_iter:
-            update_healthy_area(g, label = 'LeafElement')
 
         # External contamination
         geom = g.property('geometry')
@@ -220,7 +274,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             # leaf_sectors = load_ids(it_septo, dir=dir)
             for plant in recorders:
                 for lf, recorder in recorders[plant].iteritems():
-                    recorder.update_vids_with_labels(adel_ids = adel_ids(g))
+                    recorder.update_vids_with_labels(adel_ids = leaf_ids)
                     recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
                     
     for plant in recorders:
@@ -229,7 +283,11 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             recorder.get_audpc()
             
     return g, recorders
-    
+
+######### TEMP #####################
+run_disease()    
+######### TEMP #####################
+
 def run_and_save():
     frac = ['1e-4', '1e-3', '1e-2', '1e-1']
     for fr in frac:
@@ -243,7 +301,7 @@ def run_and_save():
             del recorder
             
 def suite_run_and_save():
-    frac = ['1e-3', '1e-2', '1e-1']
+    frac = ['1e-5', '1e-4', '1e-3', '1e-2', '1e-1']
     for fr in frac:
         for i_sim in range(15):
             if not (fr == '1e-3' and i_sim < 13):
@@ -295,17 +353,24 @@ def run_and_save_years():
             f_rec.close()
             del recorder
             
-def load_out():
-    frac = ['1e-3', '1e-2', '1e-1']
+def load_out(params=None, file_path='.\mercia\\recorder_', nb_rep=15):
     out = {}
-    for fr in frac:
-        out[fr] = {}
-        for i_sim in range(15):
-            print fr, i_sim
-            stored_rec = '.\mercia\\recorder_'+fr+'_'+str(i_sim)+'.pckl'
+    if params is None:
+        for i_sim in range(1,nb_rep):
+            print i_sim
+            stored_rec = file_path+str(i_sim)+'.pckl'
             f_rec = open(stored_rec)
-            out[fr][i_sim] = pickle.load(f_rec)
+            out[i_sim] = pickle.load(f_rec)
             f_rec.close()
+    else:
+        for par in params:
+            out[par] = {}
+            for i_sim in range(15):
+                print par, i_sim
+                stored_rec = file_path+par+'_'+str(i_sim)+'.pckl'
+                f_rec = open(stored_rec)
+                out[par][i_sim] = pickle.load(f_rec)
+                f_rec.close()
     return out
     
 def load_out_lat():
