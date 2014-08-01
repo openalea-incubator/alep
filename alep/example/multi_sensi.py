@@ -30,11 +30,11 @@ def create_full_params():
     np.savetxt('SGInput.txt', param_values, delimiter=' ')
 
     # Add years, number of plants and number of sectors as non crossed discrete parameters
-    years = [1998, 2001, 2003, 2010]
+    years = [1998, 2003, 2004, 2010]
     nb_plants = [3, 6, 10]
     nb_sects = [1, 3, 5, 7]
 
-    default_yr = 2001
+    default_yr = 2004
     default_nplants = 6
     default_nsect = 5
 
