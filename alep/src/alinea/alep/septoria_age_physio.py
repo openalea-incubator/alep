@@ -131,21 +131,21 @@ class SeptoriaAgePhysio(Lesion):
                 self.growth_demand = 0.
                 
             # Temp
-            if self.growth_demand < 0.:
-                import pdb
-                pdb.set_trace()
+            # if self.growth_demand < 0.:
+                # import pdb
+                # pdb.set_trace()
             
-            if any([x<0. for x in self.surfaces_chlo]):
-                import pdb
-                pdb.set_trace()
+            # if any([x<0. for x in self.surfaces_chlo]):
+                # import pdb
+                # pdb.set_trace()
             
-            if any([x<0. for x in self.surfaces_nec]):
-                import pdb
-                pdb.set_trace()
+            # if any([x<0. for x in self.surfaces_nec]):
+                # import pdb
+                # pdb.set_trace()
                 
-            if any([x<0. for x in self.surfaces_spo]):
-                import pdb
-                pdb.set_trace()
+            # if any([x<0. for x in self.surfaces_spo]):
+                # import pdb
+                # pdb.set_trace()
             
             # Temporary
             self.hist_age.append(self.age_dday)
@@ -212,9 +212,9 @@ class SeptoriaAgePhysio(Lesion):
         growth_offer: float
             Surface available on the leaf for the ring to grow (cm2)
         """
-        if growth_offer < 0.:
-            import pdb
-            pdb.set_trace()
+        # if growth_offer < 0.:
+            # import pdb
+            # pdb.set_trace()
             
         if self.growth_is_active:
             
@@ -227,9 +227,9 @@ class SeptoriaAgePhysio(Lesion):
             f = self.fungus
             # Growth offer is added to surface according to state
             if self.is_incubating():
-                if growth_offer<0:
-                    import pdb
-                    pdb.set_trace()
+                # if growth_offer<0:
+                    # import pdb
+                    # pdb.set_trace()
                 self.surface_first_ring += growth_offer
                 if round(self.surface_first_ring,14) == round(self.fungus.Smin * self.nb_lesions, 14) and self.incubation_completed==False:
                     self.incubation_completed = True
@@ -262,9 +262,9 @@ class SeptoriaAgePhysio(Lesion):
                     self.surfaces_chlo += surf[:len(self.surfaces_chlo)]
                     self.surfaces_chlo = np.append(self.surfaces_chlo, surf[len(self.surfaces_chlo):])
                 
-                if self.is_sporulating() and self.status_edge==f.CHLOROTIC and self.age_physio_edge==0. and len(self.surfaces_chlo)<f.nb_rings_by_state:
-                    import pdb
-                    pdb.set_trace()
+                # if self.is_sporulating() and self.status_edge==f.CHLOROTIC and self.age_physio_edge==0. and len(self.surfaces_chlo)<f.nb_rings_by_state:
+                    # import pdb
+                    # pdb.set_trace()
 
             # Reset distribution in new rings and growth demand
             self.distribution_new_ring = 0.         
@@ -285,9 +285,9 @@ class SeptoriaAgePhysio(Lesion):
         self.age_physio += progress
         # Compute growth demand
         if self.age_physio<1.:
-            if self.surface_first_ring<0:
-                import pdb
-                pdb.set_trace()
+            # if self.surface_first_ring<0:
+                # import pdb
+                # pdb.set_trace()
             if self.growth_is_active:
                 self.growth_demand = progress * f.Smin * self.nb_lesions
         else:
@@ -295,9 +295,9 @@ class SeptoriaAgePhysio(Lesion):
                 Smin = self._surface_min
                 self.growth_demand = round(Smin - self.surface_alive,14)
                     
-            if self.growth_demand < 0:
-                import pdb
-                pdb.set_trace()
+            # if self.growth_demand < 0:
+                # import pdb
+                # pdb.set_trace()
             
             # Change status
             self.ratio_left = round((self.age_physio - 1.)/progress,14)
@@ -544,9 +544,9 @@ class SeptoriaAgePhysio(Lesion):
             if delta_spo[-1]>0.:
                 self.surface_empty += delta_spo[-1]
             
-            if any([x<0 for x in self.surfaces_spo]):
-                import pdb
-                pdb.set_trace()
+            # if any([x<0 for x in self.surfaces_spo]):
+                # import pdb
+                # pdb.set_trace()
                 
             if self.status_edge == f.SPORULATING and round(self.surface_spo,14) <= round(f.threshold_spo * self.nb_lesions,14):
                 # Everything becomes empty and the lesion is disabled
