@@ -19,7 +19,7 @@ from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
-from alinea.alep.disease_outputs import LeafInspector, SeptoRecorder
+from alinea.alep.disease_outputs import LeafInspector, AdelSeptoRecorder
 from alinea.alep.disease_outputs import plot_severity_by_leaf
 
 def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i in range(10)], group_dus=False, nb_steps=1000, leaf_area=None):
@@ -45,7 +45,7 @@ def example_one_leaf(dispersal_units=[plugin_septoria().dispersal_unit() for i i
 
     # Initiate output recorder
     # inspector = LeafInspector(g, blade_id=8)
-    recorder = SeptoRecorder(vids=[10],group_dus=group_dus)
+    recorder = AdelSeptoRecorder(vids=[10],group_dus=group_dus)
     recorder.record(g, 0)
     
     # Simulation loop
@@ -128,7 +128,7 @@ def example_plant(dispersal_units=[plugin_septoria().dispersal_unit() for i in r
     ind=4
     for blade in [80, 88, 96]:
         ind -= 1
-        recorders['F%d' % ind] = SeptoRecorder(vids=[blade+2],group_dus=group_dus, 
+        recorders['F%d' % ind] = AdelSeptoRecorder(vids=[blade+2],group_dus=group_dus, 
                 date_sequence=pandas.date_range("2014-01-01 01:00:00", periods=nb_steps, freq='H'))
     
     # Simulation loop
@@ -171,8 +171,7 @@ def example_plant_optimised(dispersal_units=[plugin_septoria().dispersal_unit() 
     # Initiate wheat MTG with one leaf and good conditions for disease
     g, wheat, domain_area, domain = initialize_stand(age=1600., length=0.1, width=0.1,
             sowing_density=150, plant_density=150, inter_row=0.12, nsect=1, seed=3)
-    set_properties(g, label='LeafElement', wetness=True, temp=22.)
-    # set_properties(g, label='LeafElement', wetness=True, temp=20.)
+    set_properties(g, label='LeafElement', wetness=True, temperature_sequence=np.array([22.]))
     rain_data = pandas.DataFrame({'rain':[1.,1.,1.,1.]})
 
     # Temp
@@ -189,6 +188,7 @@ def example_plant_optimised(dispersal_units=[plugin_septoria().dispersal_unit() 
     if group_dus:
         pos = [du.position[0] for du in dispersal_units]
         dispersal_units[0].fungus.group_dus = True
+        dispersal_units[0].fungus.nb_rings_by_state = 1
         dispersal_units[0].set_position(pos)
         dispersal_units = [dispersal_units[0]]
     source_leaf.dispersal_units = dispersal_units
@@ -202,11 +202,9 @@ def example_plant_optimised(dispersal_units=[plugin_septoria().dispersal_unit() 
     ind=4
     for blade in [80, 88, 96]:
         ind -= 1
-        recorders['F%d' % ind] = SeptoRecorder(vids=[blade+2],group_dus=group_dus, 
+        recorders['F%d' % ind] = AdelSeptoRecorder(vids=[blade+2],group_dus=group_dus, 
                 date_sequence=pandas.date_range("2014-01-01 01:00:00", periods=nb_steps, freq='H'))
-        # recorders['F%d' % ind] = SeptoRecorder(vids=[blade+2],group_dus=group_dus, 
-                # date_sequence=pandas.date_range("2014-01-01 01:00:00", periods=nb_steps, freq='H')[::2])
-    
+
     # Simulation loop
     j=0.
     k=0.
@@ -217,10 +215,7 @@ def example_plant_optimised(dispersal_units=[plugin_septoria().dispersal_unit() 
             set_properties(g, label='LeafElement', wetness=True)
         else:
             set_properties(g, label='LeafElement', wetness=False)
-        # if i%24==0:
-            # g,_ = grow_canopy(g, wheat, wheat_eval)
-            # plot_severity_by_leaf(g)
-        
+
         # Update wheat healthy area
         update_healthy_area(g, label = 'LeafElement')
         
@@ -239,11 +234,8 @@ def example_plant_optimised(dispersal_units=[plugin_septoria().dispersal_unit() 
         # Disperse
         if i%100==0.:
             g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_data)
-        
-        # print 'nb lesions %d' % len(sum(g.property('lesions').values(), []))
-        
+               
         # Get outputs
-        # if i%2==0:
         for recorder in recorders.itervalues():
             recorder.record(g)
     

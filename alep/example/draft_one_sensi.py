@@ -154,8 +154,9 @@ def run_disease(sporulating_fraction=1e-2,
     return np.mean([recorder.audpc for recorder in recorders.itervalues()])
     # return recorders
  
- # Set random seed (does not affect quasi-random Sobol sampling)
-seed = 1
+# Set random seed (does not affect quasi-random Sobol sampling)
+# seed = 1
+seed = 0
 np.random.seed(seed)
 rd.seed(seed)
 
@@ -190,13 +191,13 @@ septo_filter = septo_infection_filter(seq, weather, every_rain)
                 # density_dus_emitted_ref = 2555.5555555555557,
                 # reduction_by_rain=0.77777777777777779)
 
-# recorders = run_disease(sporulating_fraction=6.670000000000000581e-03,
-                        # degree_days_to_chlorosis=1.866666666666666572e+02,
-                        # Smin = 1.188888888888889068e-03,
-                        # Smax = 2.299999999999999822e-01,
-                        # growth_rate = 1.699999999999999255e-03,
-                        # age_physio_switch_senescence = 3.399999999999999689e-01,
-                        # density_dus_emitted_ref = 1.000000000000000000e+03,
-                        # reduction_by_rain = 1.111111111111111049e-01)                
-                
-recorders = run_disease()
+recorders = run_disease(sporulating_fraction=7.780000000000000457e-03,
+                        degree_days_to_chlorosis=2.311111111111111143e+02,
+                        Smin = 1.000000000000000048e-04,
+                        Smax = 3.399999999999999689e-01,
+                        growth_rate = 4.449999999999999963e-03,
+                        age_physio_switch_senescence = 7.800000000000000266e-01,
+                        density_dus_emitted_ref = 1.222222222222222172e+03,
+                        reduction_by_rain = 1.000000000000000000e+00)                
+                        
+# recorders = run_disease()

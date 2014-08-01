@@ -1,8 +1,0 @@
-sporulating_fraction 1e-5 1e-2
-degree_days_to_chlorosis 120. 320.
-Smin 1e-4 0.99e-2
-Smax 1e-2 1.
-growth_rate 0.5e-2 0.5e-4
-age_physio_switch_senescence 0.01 1.
-density_dus_emitted 1e3 3e3
-reduction_by_rain 0. 1.

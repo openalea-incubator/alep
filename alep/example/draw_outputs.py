@@ -1,6 +1,9 @@
 """ Generate figures of simulation outputs """
 
-import pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 import pandas
 import numpy
 from collections import OrderedDict

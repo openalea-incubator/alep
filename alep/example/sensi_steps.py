@@ -11,8 +11,6 @@ def sensi_step(num_step, nb_cpu):
     return
     
 if __name__ == '__main__':
-    import pdb
-    pdb.set_trace()
     nb_cpu = multiprocessing.cpu_count()
     for i in range(nb_cpu):
         p = multiprocessing.Process(target=sensi_step, args=(i+1, nb_cpu))

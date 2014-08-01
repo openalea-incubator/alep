@@ -4,7 +4,10 @@ Run annual loop for the model of septoria in alep on the basis of 'annual_loop_d
 
 """
 import pandas
-import pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 import sys
 
 # Imports for wheat and rain/light interception
@@ -130,10 +133,27 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         # if septo_iter:
             # it_septo += 1
             # ids = get_leaf_ids(g, nsect=nsect)
-            # save_ids(ids, it_septo, dir=dir)
-
+            # save_ids(ids, it_septo, dir=dir)          
+            
 ######### TEMP #####################
 
+# def test_pickle_dump_canopy(adel, g):
+    # for ind in range(10):
+        # filename = './test_pickle'
+        # adel.save(g, ind, dir=filename)
+
+# @profile
+# def test_pickle_load_canopy(adel):
+    # for ind in range(10):
+        # filename = './test_pickle'
+        # adel.load(ind, dir=filename)
+        
+# adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing = setup(
+    # start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", nplants = 3, nsect = 5, disc_level = 30)
+# g = adel.setup_canopy(age=1500.)
+# test_pickle_dump_canopy(adel, g)
+# test_pickle_load_canopy(adel)
+    
 def get_leaf_ids(g):
     nsect = 5
     labels = g.property('label')
@@ -285,7 +305,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
     return g, recorders
 
 ######### TEMP #####################
-run_disease()    
+# run_disease()    
 ######### TEMP #####################
 
 def run_and_save():
