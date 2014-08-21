@@ -1,3 +1,4 @@
+""" Example of multiprocessing for repetitions of the same simulation of septoria."""
 from openalea.multiprocessing.parallel import pymap
 from multiprocessing import cpu_count
 from septo_decomposed import run_disease

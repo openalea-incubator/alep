@@ -227,7 +227,7 @@ def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:
             save_ids(ids, it_septo, dir=dir)
 
 def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", nplants = 3, nsect = 5,
-                disc_level = 20, dir = './adel/adel_saved', sporulating_fraction = 1e-4, adel = None, 
+                disc_level = 20, dir = './adel/adel_saved', sporulating_fraction = 1e-3, adel = None, 
                 domain = None, domain_area = None, convUnit = None, weather = None, seq = None, 
                 rain_timing = None, canopy_timing = None, septo_timing = None, **kwds):
 
@@ -251,7 +251,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         # Grow wheat canopy
         if canopy_iter:
             it_wheat += 1
-            # print it_wheat
+            # print canopy_iter.value.index[-1]
             newg,TT = adel.load(it_wheat, dir=dir)
             move_properties(g, newg)
             g = newg

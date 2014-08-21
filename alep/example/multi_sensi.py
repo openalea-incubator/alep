@@ -78,7 +78,7 @@ def annual_loop(X):
             pickle.dump(recorder, f_rec)
             f_rec.close()
             del recorder
-        print 'evaluation succesful'
+        print 'evaluation successful'
     except:
         print 'evaluation failed'
 
