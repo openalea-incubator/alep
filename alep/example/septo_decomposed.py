@@ -300,7 +300,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
     for plant in recorders:
         for recorder in recorders[plant].itervalues():
             recorder.get_complete_dataframe()
-            recorder.get_audpc()
+            recorder.get_audpc(variable='necrosis_percentage')
             
     return g, recorders
 
