@@ -251,7 +251,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         # Grow wheat canopy
         if canopy_iter:
             it_wheat += 1
-            print it_wheat
+            # print it_wheat
             newg,TT = adel.load(it_wheat, dir=dir)
             move_properties(g, newg)
             g = newg
