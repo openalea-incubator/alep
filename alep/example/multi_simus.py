@@ -1,7 +1,10 @@
 from openalea.multiprocessing.parallel import pymap
 from multiprocessing import cpu_count
 from septo_decomposed import run_disease
-import pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 num_simus = range(200)
 adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing = setup(
