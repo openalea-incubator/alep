@@ -6,6 +6,7 @@ except:
     import pickle
 import pandas
 import numpy
+from alinea.alep.septoria import is_iterable
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -26,9 +27,51 @@ def load_out(param_short_name='', params=['1e-3', '1e-2', '1e-1'], nb_rep=15):
             f_rec.close()
     return out
 
+def load_out_stability(first_rep=0, nb_rep=200):
+    out = {}
+    for i_rep in range(nb_rep):
+        print i_rep
+        stored_rec = '.\mercia\\recorder_'+str(first_rep+i_rep)+'.pckl'
+        f_rec = open(stored_rec)
+        out[i_rep] = pickle.load(f_rec)
+        f_rec.close()
+    return out
+    
+def plot_stability(leaf='F1'):
+    fig, ax = plt.subplots(1, 1)
+    groups = [5, 10, 15, 20, 50, 100]
+    # groups = [5]
+    for ind in range(len(groups)):
+        out = load_out_stability(first_rep=int(sum(groups[:ind])), nb_rep=groups[ind])
+        plot_by_plant({'':out}, param_name='', variable = 'necrosis_percentage', group_by='plant',
+                plants = ['P%d' % p for p in range(1, 4)], leaves = [leaf], ylabel='% Septoria necrotic', axs=ax)
+        del out
+        
+    # Custom
+    cmap=cm.jet
+    indcolors = numpy.linspace(0, 300, len(groups))
+    lines = ax.get_lines()
+    i_line = -1
+    for line in lines:
+        i_line += 1
+        line.set_color(cmap(int(indcolors[i_line])))
+
+    ax.legend(['%d rep' % g for g in groups], bbox_to_anchor=(1.0, 0.5), loc=6, borderaxespad=0.5)
+    ax.set_title('Mean of repetitions', fontsize = 18)
+    
+def plot_distribution(out, leaf='F1', variable='necrosis_percentage', ylabel='% Septoria necrotic'):
+    fig, ax = plt.subplots(1,1)
+    for i_rep, out_rep in out.iteritems():
+        data = pandas.DataFrame({pl:v[leaf].data[variable].values for pl,v in out_rep.iteritems()},
+                                 index=out_rep['P1'][leaf].data.degree_days)
+        ax.plot(data.index, data.mean(axis=1), 'b')
+    ax.set_ylabel(ylabel, fontsize=18)
+    ax.set_xlabel('Degree days', fontsize=18)
+    ax.set_title('Distribution of %d repetitions' % len(out), fontsize=18)
+        
 def plot_by_plant(out, param_name='Fraction spo', variable = 'leaf_disease_area', group_by=None,
                 plants = ['P%d' % p for p in range(1, 4)], leaves = ['F%d' % lf for lf in range(1, 13)], 
-                cmap=cm.jet, ylabel='Disease area (cm2)', xlims=None, ylims=None, notations=pandas.DataFrame()):
+                cmap=cm.jet, ylabel='Disease area (cm2)', axs=None, xlims=None, ylims=None, notations=pandas.DataFrame()):
     
     def customize_ax(ax, param, title):
         if od.keys().index(param)==len(od.keys())-1:
@@ -42,7 +85,8 @@ def plot_by_plant(out, param_name='Fraction spo', variable = 'leaf_disease_area'
     od = OrderedDict(sorted(out.items(), key=lambda x: x[0]))
     h={}
     if group_by!='plant':
-        fig, axs = plt.subplots(len(od.keys()),len(plants))
+        if axs==None:
+            fig, axs = plt.subplots(len(od.keys()),len(plants))
         if group_by==None:
             for param, out_par in od.iteritems():
                 for i_rep, out_par_rep in out_par.iteritems():
@@ -81,7 +125,10 @@ def plot_by_plant(out, param_name='Fraction spo', variable = 'leaf_disease_area'
                     xmax = max(data.mean(axis=1).index)
                     customize_ax(ax, param, pl)
     else:
-        fig, axs = plt.subplots(1, len(od.keys()))
+        if axs == None:
+            fig, axs = plt.subplots(1, len(od.keys()))
+        if not is_iterable(axs):
+            axs = numpy.array([axs])
         for param, out_par in od.iteritems():
             ax = axs[od.keys().index(param)]
             for lf in leaves:
