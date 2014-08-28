@@ -98,6 +98,9 @@ class SeptoriaDU(DispersalUnit):
             if self.cumul_wetness >= self.fungus.wd_min :
                 # TODO : create a function of the number of spores            
                 proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
+                # Intrinsec proba of infection
+                proba_infection *= self.proba_inf
+                # Fongicide effect
                 if 'global_efficacy' in leaf.properties():
                     proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
                 if proba(proba_infection):
@@ -150,8 +153,9 @@ septoria_parameters = dict(INCUBATING = 0,
                  delta_age_ring = 20.,
                  basis_for_dday = -2.,
                  temp_min = 10.,
-                 temp_max = 30.,
+                 temp_max = 25.,
                  wd_min = 10.,
+                 proba_inf = 1.,
                  loss_delay = 120.,
                  loss_rate = 1./120,
                  degree_days_to_chlorosis = 220.,
