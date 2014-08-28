@@ -179,7 +179,7 @@ class SeptoriaAgePhysio(Lesion):
             f = self.fungus
             # Calculation
             if dt != 0.:
-                ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) for temp in leaf.temperature_sequence])
+                ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in leaf.temperature_sequence])
                 if 'global_efficacy' in leaf.properties():
                     ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
             else:
