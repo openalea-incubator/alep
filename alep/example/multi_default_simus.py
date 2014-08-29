@@ -38,7 +38,7 @@ scenarios = scen_default + scen_yr + scen_pl + scen_ns + scen_fr
 
 def annual_loop((yr, nplants, nsect, frac)):
     try:
-        for i_rep in range(5):
+        for i_rep in range(nrep):
             g, recorder = run_disease(start_date = str(yr)+"-10-15 12:00:00", 
                              end_date = str(yr+1)+"-08-01 00:00:00",
                              nplants = nplants,
@@ -264,7 +264,6 @@ def plot_comparisons(factor='year',
     for ax in axs.flat:
         ax.set_ylim([ymin, ymax])
         
-    
 def plot_max_necrosis(factor='year', num_leaves=range(1,5)):
     scen, labels = get_scenarios_and_labels(factor=factor)
     xs = range(1, len(labels)+1)
@@ -283,7 +282,7 @@ def plot_all_max_necrosis(num_leaves=range(1,5)):
     factors = ['year', 'nb_plants', 'nb_sects', 'fraction_spo']
     for fc in factors:
         plot_max_necrosis(fc, num_leaves)
-    
+   
 # if __name__ == '__main__':
     # nb_cpu = cpu_count()
     # pymap(annual_loop, scenarios, nb_cpu-1)
