@@ -6,6 +6,8 @@ from pylab import *
 import pandas
 from alinea.weather.global_weather import *
 from alinea.weather.mini_models import leaf_wetness_rapilly
+from matplotlib.ticker import FuncFormatter
+from datetime import timedelta, date
 
 def is_raining(rain_eval):
     """ Check if it is raining or not
@@ -119,6 +121,25 @@ def add_septoria_infection_risk(data, temp_min=10, temp_max=25):
             septo_infection_risk[i_line] = False
     return septo_infection_risk
     
+def plot_septo_infection_risk(weather, axis = 'degree_days'):
+    def form_tick(x, pos):
+        t = date.fromordinal(int(x))
+        return t.strftime('%b')+'\n'+str(int(weather.get_variable('degree_days', t)))
+    
+    fig, ax = plt.subplots(figsize=(8,1.8))
+    
+    if axis == 'degree_days':
+        index = weather.data.degree_days
+    elif axis == 'date':
+        index = weather.data.index
+    ax.vlines(index, [0], weather.data.septo_infection_risk, 'k', alpha=0.1)
+    ax.set_yticks([])
+    ax.set_title(str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year))
+    ax.set_xlabel('Degree days', fontsize=16)
+    if axis == 'date':
+        formatter = FuncFormatter(form_tick)
+        ax.xaxis.set_major_formatter(FuncFormatter(formatter))
+    plt.tight_layout()  
     
 def add_rain_dispersal_events(weather):
     """ Add a column to indicate the dispersal events at hours with max rain for each dispersal event,

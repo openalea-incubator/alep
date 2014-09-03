@@ -99,7 +99,7 @@ class SeptoriaDU(DispersalUnit):
                 # TODO : create a function of the number of spores            
                 proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
                 # Intrinsec proba of infection
-                proba_infection *= self.proba_inf
+                proba_infection *= self.fungus.proba_inf
                 # Fongicide effect
                 if 'global_efficacy' in leaf.properties():
                     proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
