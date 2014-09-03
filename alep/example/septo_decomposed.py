@@ -17,7 +17,7 @@ from alinea.alep.architecture import set_properties, update_healthy_area, get_le
 from alinea.caribu.caribu_star import rain_and_light_star
 
 # Imports for weather
-from alinea.alep.alep_weather import wetness_rapilly, basic_degree_days
+from alinea.alep.alep_weather import wetness_rapilly, linear_degree_days
 from alinea.alep.alep_time_control import *
 from alinea.astk.TimeControl import *
 from alinea.echap.weather_data import *
@@ -32,14 +32,18 @@ from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DSoilC
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
-from alinea.alep.disease_outputs import initiate_all_adel_septo_recorders, plot_severity_by_leaf
+from alinea.alep.disease_outputs import initiate_all_adel_septo_recorders, plot_severity_by_leaf, save_image
 
 def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"):
-    start_yr = start_date[2:4]
-    end_yr = end_date[2:4]
-    weather_file = 'meteo'+ start_yr + '-' + end_yr + '.txt'
-    meteo_path = shared_data(alinea.septo3d, weather_file)
-    return Weather(data_file=meteo_path)
+    # TODO : one only function Cf weather_reader.ipynb in septo_data
+    if start_date[:4]=='2010':
+        return Boigneville_2010_2011()
+    else:
+        start_yr = start_date[2:4]
+        end_yr = end_date[2:4]
+        weather_file = 'meteo'+ start_yr + '-' + end_yr + '.txt'
+        meteo_path = shared_data(alinea.septo3d, weather_file)
+        return Weather(data_file=meteo_path)
 
 def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", nplants = 3, nsect = 5, disc_level = 20):
     # Initialize wheat plant
@@ -47,13 +51,10 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", npla
     pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = nplants, nsect = nsect, disc_level = disc_level)
 
     # Manage weather
-    if start_date[:4]=='2010':
-        weather = Boigneville_2010_2011()
-    else:
-        weather = get_weather(start_date, end_date)
+    weather = get_weather(start_date = start_date, end_date = end_date)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
-    weather.check(varnames=['degree_days'], models={'degree_days':basic_degree_days}, start_date=start_date)
-    weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':basic_degree_days}, start_date=start_date, base_temp=-2.)
+    weather.check(varnames=['degree_days'], models={'degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=30.)
+    weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=-2., max_temp=25.)
 
     # Define the schedule of calls for each model
     seq = pandas.date_range(start = start_date, end = end_date, freq='H')
@@ -284,8 +285,19 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             if rain_iter.value.rain.mean()>0.:
                 g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_iter.value)
         
-        # if canopy_iter:
-            # scene = plot_severity_by_leaf(g)
+        if canopy_iter:
+            scene = plot_severity_by_leaf(g)
+            if it_wheat < 10 :
+                image_name='./images_septo_mercia/image0000%d.png' % it_wheat
+            elif it_wheat < 100 :
+                image_name='./images_septo_mercia/image000%d.png' % it_wheat
+            elif it_wheat < 1000 :
+                image_name='./images_septo_mercia/image00%d.png' % it_wheat
+            elif it_wheat < 10000 :
+                image_name='./images_septo_mercia/image0%d.png' % it_wheat
+            else :
+                image_name='./images_septo_mercia/image%d.png' % it_wheat
+            save_image(scene, image_name=image_name)
 
         # Save outputs
         if septo_iter:
