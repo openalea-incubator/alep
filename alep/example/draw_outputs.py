@@ -31,15 +31,18 @@ def load_out_stability(first_rep=0, nb_rep=200):
     out = {}
     for i_rep in range(nb_rep):
         print i_rep
-        stored_rec = '.\mercia\\recorder_'+str(first_rep+i_rep)+'.pckl'
+        # stored_rec = '.\mercia\\recorder_'+str(first_rep+i_rep)+'.pckl'
+        stored_rec = '.\mercia\\stability\\recorder_2004_6pl_5sect_frac3_rep'+str(i_rep)+'.pckl'
         f_rec = open(stored_rec)
         out[i_rep] = pickle.load(f_rec)
         f_rec.close()
+        del f_rec
     return out
     
 def plot_stability(leaf='F1'):
     fig, ax = plt.subplots(1, 1)
-    groups = [5, 10, 15, 20, 50, 100]
+    # groups = [5, 10, 15, 20, 50, 100]
+    groups = [1, 5, 10, 50, 100, 300, 500]
     # groups = [5]
     for ind in range(len(groups)):
         out = load_out_stability(first_rep=int(sum(groups[:ind])), nb_rep=groups[ind])
