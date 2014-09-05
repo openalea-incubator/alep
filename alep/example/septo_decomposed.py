@@ -285,19 +285,19 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             if rain_iter.value.rain.mean()>0.:
                 g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_iter.value)
         
-        if canopy_iter:
-            scene = plot_severity_by_leaf(g)
-            if it_wheat < 10 :
-                image_name='./images_septo_mercia/image0000%d.png' % it_wheat
-            elif it_wheat < 100 :
-                image_name='./images_septo_mercia/image000%d.png' % it_wheat
-            elif it_wheat < 1000 :
-                image_name='./images_septo_mercia/image00%d.png' % it_wheat
-            elif it_wheat < 10000 :
-                image_name='./images_septo_mercia/image0%d.png' % it_wheat
-            else :
-                image_name='./images_septo_mercia/image%d.png' % it_wheat
-            save_image(scene, image_name=image_name)
+        # if canopy_iter:
+            # scene = plot_severity_by_leaf(g)
+            # if it_wheat < 10 :
+                # image_name='./images_septo_mercia/image0000%d.png' % it_wheat
+            # elif it_wheat < 100 :
+                # image_name='./images_septo_mercia/image000%d.png' % it_wheat
+            # elif it_wheat < 1000 :
+                # image_name='./images_septo_mercia/image00%d.png' % it_wheat
+            # elif it_wheat < 10000 :
+                # image_name='./images_septo_mercia/image0%d.png' % it_wheat
+            # else :
+                # image_name='./images_septo_mercia/image%d.png' % it_wheat
+            # save_image(scene, image_name=image_name)
 
         # Save outputs
         if septo_iter:
