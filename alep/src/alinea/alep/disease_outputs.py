@@ -1323,7 +1323,7 @@ class AdelSeptoRecorder:
             self.necrosis()
         self.data['necrosis_percentage'] = [self.data['necrosis'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
                 
-    def get_audpc(self, variable='severity'):
+    def get_audpc(self, variable='necrosis_percentage', max_ddays=None):
         """ Variable can be 'severity' or 'necrosis'. """
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
@@ -1331,11 +1331,13 @@ class AdelSeptoRecorder:
             exec('self.'+variable+'()')
         if self.data['leaf_green_area'][-1]==0.:
             ind = self.data.index[self.data['leaf_green_area']>0]
-            # self.audpc = trapz(self.data[variable][ind], dx=1)
+            if max_ddays != None:
+                ind = ind[self.data['degree_days']<max_ddays]
             data = self.data[variable][ind]
             self.audpc = sum([trapz(data[i:j], dx=(j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
         else:
             self.audpc = 'audpc not available: leaf has not reached senescence'
+        return self.audpc
                 
     def get_complete_dataframe(self):
         self.create_dataframe()
