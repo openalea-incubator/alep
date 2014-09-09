@@ -99,6 +99,11 @@ def linear_degree_days(data, start_date, base_temp=0, max_temp=25.):
     dd[:len(seq)]=-np.cumsum((df.ix[seq].values[::-1]-base_temp)/24.)[::-1]
     return dd
 
+def add_julian_days(data, sowing_date="2010-10-15"):
+    indexes = np.array([ind.strftime('%Y-%m-%d') for ind in data.index])
+    ind_sowing = np.where(indexes==sowing_date)[0][0]
+    return [(data.index[t]-data.index[ind_sowing]).days for t in range(len(data.index))]
+        
 def add_septoria_infection_risk(data, temp_min=10, temp_max=25):
     """ Add True or False if there is a risk of infection for septoria.
     
@@ -121,25 +126,36 @@ def add_septoria_infection_risk(data, temp_min=10, temp_max=25):
             septo_infection_risk[i_line] = False
     return septo_infection_risk
     
-def plot_septo_infection_risk(weather, axis = 'degree_days'):
+def plot_septo_infection_risk(weather, start_date="2010-10-15 12:00:00", axis = 'degree_days', ax = None, xlims=None):
     def form_tick(x, pos):
         t = date.fromordinal(int(x))
         return t.strftime('%b')+'\n'+str(int(weather.get_variable('degree_days', t)))
     
-    fig, ax = plt.subplots(figsize=(8,1.8))
+    if ax == None:
+        fig, ax = plt.subplots(figsize=(8,1.8))
     
+    if not 'degree_days' in weather.data.columns:
+        weather.check(varnames=['degree_days'], models={'degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=30.)
+    if not 'wetness' in weather.data.columns:
+        weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+    if not 'septo_infection_risk' in weather.data.columns:
+        weather.check(varnames=['septo_infection_risk'], models={'septo_infection_risk':add_septoria_infection_risk})
+        
     if axis == 'degree_days':
         index = weather.data.degree_days
     elif axis == 'date':
         index = weather.data.index
     ax.vlines(index, [0], weather.data.septo_infection_risk, 'k', alpha=0.1)
     ax.set_yticks([])
+    ax.set_ylim([0,1])
     ax.set_title(str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year))
     ax.set_xlabel('Degree days', fontsize=16)
     if axis == 'date':
         formatter = FuncFormatter(form_tick)
         ax.xaxis.set_major_formatter(FuncFormatter(formatter))
-    plt.tight_layout()  
+    if xlims!=None:
+        ax.set_xlim(xlims)
+    plt.tight_layout()
     
 def add_rain_dispersal_events(weather):
     """ Add a column to indicate the dispersal events at hours with max rain for each dispersal event,

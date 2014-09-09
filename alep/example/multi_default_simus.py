@@ -5,13 +5,14 @@
 
 from openalea.multiprocessing.parallel import pymap
 from multiprocessing import cpu_count
-from septo_decomposed import run_disease
+from septo_decomposed import run_disease, get_weather
 from itertools import product
 import numpy
 import pandas
 import random
 import matplotlib.pyplot as plt
 from matplotlib import colors, cm
+from alinea.alep.alep_weather import plot_septo_infection_risk
 plt.ion()
 try:
     import cPickle as pickle
@@ -281,15 +282,16 @@ def customize_ax(ax, factor, xs, labels, ylims=[0,350]):
     ax.set_xlabel(xlabel, fontsize=18)
     ax.yaxis.grid(True)
        
-def plot_audpc(factor='year', max_ddays=500., num_leaves=range(1,9,2), nb_rep=5, ylims=[0,150], cmap=cm.jet):
+def plot_audpc(factor='year', max_ddays=500., num_leaves=range(1,9,2), nb_rep=5, ylims=[0,120], cmap=cm.jet, ax = None):
     scen, labels = get_scenarios_and_labels(factor=factor)
     xs = range(1, len(labels)+1)
-    fig, ax = plt.subplots(1, 1)
+    if ax == None:
+        fig, ax = plt.subplots(1, 1)
     indcolors = numpy.linspace(0, 300, len(num_leaves))
     df_audpcs = pandas.concat([get_audpc_by_leaf(sc, max_ddays = max_ddays, num_leaves = num_leaves, nb_rep = nb_rep) for sc in scen], axis=1, keys=xs)
     h = []
     for i, lf in enumerate(df_audpcs.index.tolist()):
-        h+=ax.plot(df_audpcs.columns, df_audpcs.ix[lf], color=cmap(int(indcolors[i])), linestyle='-', marker = 'o', markersize=10)
+        h+=ax.plot(df_audpcs.columns, df_audpcs.ix[lf], color=cmap(int(indcolors[i])), linestyle='-', marker = 'o', markersize=10, linewidth=2)
     customize_ax(ax, factor, xs, labels, ylims=ylims)
     ax.set_ylabel('AUDPC', fontsize=18)
     ax.legend(h, df_audpcs.index.tolist(), bbox_to_anchor=(1.01, 0.5), loc=6, borderaxespad=0.)
@@ -331,13 +333,22 @@ def plot_comparisons(factor='year',
 
 def plot_all_audpcs(num_leaves=range(1,5)):
     factors = ['year', 'nb_plants', 'nb_sects', 'fraction_spo']
-    for fc in factors:
-        plot_audpc(fc, num_leaves)
+    fig, axs = plt.subplots(int(numpy.ceil(len(factors)/2.)), 2)
+    for i, fc in enumerate(factors):
+        plot_audpc(fc, num_leaves, ax = axs[i])
         
 def plot_all_max_necrosis(num_leaves=range(1,5)):
     factors = ['year', 'nb_plants', 'nb_sects', 'fraction_spo']
     for fc in factors:
         plot_max_necrosis(fc, num_leaves)
+   
+def plot_infection_risk(years=[1998, 2003, 2004, 2010]):
+    fig, axs = plt.subplots(len(years), 1)
+    for i, ax in enumerate(axs.flat):
+        start_date = str(years[i])+"-10-15 12:00:00"
+        end_date = str(years[i]+1)+"-08-01 00:00:00"
+        weather = get_weather(start_date = start_date, end_date = end_date)
+        plot_septo_infection_risk(weather = weather, start_date = start_date, ax = ax, xlims = [0, 3000])
    
 # if __name__ == '__main__':
     # nb_cpu = cpu_count()
