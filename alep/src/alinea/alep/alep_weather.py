@@ -4,6 +4,7 @@ Gather methods concerning weather management specific to alep functioning.
 """
 from pylab import *
 import pandas
+import numpy
 from alinea.weather.global_weather import *
 from alinea.weather.mini_models import leaf_wetness_rapilly
 from matplotlib.ticker import FuncFormatter
@@ -123,10 +124,10 @@ def add_septoria_infection_risk(data, temp_min=10, temp_max=25):
                 septo_infection_risk[i_line] = False
         else:
             counter = 0.
-            septo_infection_risk[i_line] = False
+            septo_infection_risk[i_line] = False   
     return septo_infection_risk
     
-def plot_septo_infection_risk(weather, start_date="2010-10-15 12:00:00", axis = 'degree_days', ax = None, xlims=None):
+def plot_septo_infection_risk(weather, start_date="2010-10-15 12:00:00", adel=None, axis = 'degree_days', ax = None, xlims=None, only_with_event=True):
     def form_tick(x, pos):
         t = date.fromordinal(int(x))
         return t.strftime('%b')+'\n'+str(int(weather.get_variable('degree_days', t)))
@@ -144,8 +145,21 @@ def plot_septo_infection_risk(weather, start_date="2010-10-15 12:00:00", axis = 
     if axis == 'degree_days':
         index = weather.data.degree_days
     elif axis == 'date':
-        index = weather.data.index
-    ax.vlines(index, [0], weather.data.septo_infection_risk, 'k', alpha=0.1)
+        index = weather.data.index  
+    if only_with_event==True:
+        if not 'septo_risk_with_event' in weather.data.columns:
+            weather.check(varnames=['septo_risk_with_event'], models={'septo_risk_with_event':add_septoria_risk_with_event})
+        ax.vlines(index, [0], weather.data.septo_risk_with_event, 'k', alpha=0.1)
+    else:
+        ax.vlines(index, [0], weather.data.septo_infection_risk, 'k', alpha=0.1)
+        
+    if adel!=None:
+        df = adel.phenT()
+        emergence_dates = [numpy.mean(df[df['n']==lf]['tip']) for lf in range(int(max(df['n'])))]
+        for lf in range(int(max(df['n']))):
+            ax.annotate('', xy=(numpy.mean(df[df['n']==lf]['tip']), 0.7), xycoords='data',
+                        xytext=(numpy.mean(df[df['n']==lf]['tip']), 1.), arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='g'))
+    
     ax.set_yticks([])
     ax.set_ylim([0,1])
     ax.set_title(str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year))
@@ -154,8 +168,29 @@ def plot_septo_infection_risk(weather, start_date="2010-10-15 12:00:00", axis = 
         formatter = FuncFormatter(form_tick)
         ax.xaxis.set_major_formatter(FuncFormatter(formatter))
     if xlims!=None:
-        ax.set_xlim(xlims)
+        ax.set_xlim(xlims)       
     plt.tight_layout()
+    return ax
+    
+def add_septoria_efficient_rain(data, viability = 5):
+    """ viability (in days) is the period after which inoculum is dead if no infection. """
+    df = data.ix[:, ['rain', 'septo_infection_risk']]
+    df['first_risk'] = np.append(np.zeros(1), data['septo_infection_risk'].values[1:]-data['septo_infection_risk'].values[:-1])
+    df['efficient_rain'] = np.zeros(len(df))
+    for date, row in df.iterrows():
+        if row['rain']>0 and sum(df.ix[date:date+timedelta(viability,0), 'first_risk'])>0:
+            df.set_value(date, 'efficient_rain', 1)
+    return df['efficient_rain']
+    
+def add_septoria_risk_with_event(data, viability = 5):
+    """ viability (in days) is the period after which inoculum is dead if no infection. """
+    df = data.ix[:, ['rain', 'septo_infection_risk']]
+    df['bool_rain'] = (df['rain']>0)*1
+    df['septo_risk_with_event'] = np.zeros(len(df))
+    for date, row in df.iterrows():
+        if row['septo_infection_risk']>0 and sum(df.ix[date-timedelta(days=viability-1, hours=23):date+timedelta(hours=1), 'bool_rain'])>0:
+            df.set_value(date, 'septo_risk_with_event', 1)   
+    return df['septo_risk_with_event']
     
 def add_rain_dispersal_events(weather):
     """ Add a column to indicate the dispersal events at hours with max rain for each dispersal event,
