@@ -1133,6 +1133,8 @@ class AdelSeptoRecorder:
         self.surface_spo = []
         self.surface_empty = []
         self.surface_dead = []
+        # Initialize the index spotting the death of the leaf_element
+        self.date_death = None
 
     def update_vids_with_labels(self, adel_ids):
         self.vids = [adel_ids[lb] for lb in self.adel_labels]
@@ -1141,82 +1143,88 @@ class AdelSeptoRecorder:
         self.vids = vids
     
     def record(self, g, date, degree_days=None):
-        vids = [id for id in self.vids if g.node(id).geometry is not None and g.node(id).area is not None]
-    
-        self.date_sequence.append(date)
-        self.degree_days.append(degree_days)
-    
-        # Update leaf properties
-        self.leaf_area.append(sum([g.node(id).area for id in vids]))
-        self.leaf_green_area.append(sum([g.node(id).green_area for id in vids]))
-        self.leaf_length.append(sum([g.node(id).length for id in vids]))
-        self.leaf_senesced_length.append(sum([g.node(id).senesced_length for id in vids]))
-            
-        # Update properties of dispersal units and lesions
-        nb_dus = 0
-        nb_dus_on_green = 0
-        nb_lesions = 0
-        nb_lesions_on_green = 0
-        surface_inc = 0.
-        surface_chlo = 0.
-        surface_nec = 0.
-        surface_spo = 0.
-        surface_empty = 0.
-        surface_dead = 0.
+        if self.date_death == None:
+            vids = [id for id in self.vids if g.node(id).geometry is not None and g.node(id).area is not None]
         
-        for id in vids:
-            leaf = g.node(id)
-            if 'dispersal_units' in leaf.properties():
+            # Spot disappearing of leaf_element to stop recording
+            if sum(self.leaf_area)>0 and len(vids)==0.:
+                self.date_death = date_death
+                return
+        
+            self.date_sequence.append(date)
+            self.degree_days.append(degree_days)
+        
+            # Update leaf properties
+            self.leaf_area.append(sum([g.node(id).area for id in vids]))
+            self.leaf_green_area.append(sum([g.node(id).green_area for id in vids]))
+            self.leaf_length.append(sum([g.node(id).length for id in vids]))
+            self.leaf_senesced_length.append(sum([g.node(id).senesced_length for id in vids]))
+                
+            # Update properties of dispersal units and lesions
+            nb_dus = 0
+            nb_dus_on_green = 0
+            nb_lesions = 0
+            nb_lesions_on_green = 0
+            surface_inc = 0.
+            surface_chlo = 0.
+            surface_nec = 0.
+            surface_spo = 0.
+            surface_empty = 0.
+            surface_dead = 0.
+            
+            for id in vids:
                 leaf = g.node(id)
-                if self.group_dus:
-                    for du in leaf.dispersal_units:
-                        nb_dus += len(du.position)
-                        nb_dus_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, du.position))
-                else:
-                    nb_dus += len(leaf.dispersal_units)
-                    try:
-                        nb_dus_on_green += len([du for du in leaf.dispersal_units if du.position[0]>leaf.senesced_length])
-                    except:
-                        nb_dus_on_green += len([du for du in leaf.dispersal_units if du.position[0][0]>leaf.senesced_length])
-            
-            if 'lesions' in leaf.properties():
-                if self.group_dus:
-                    for les in leaf.lesions:
-                        nb_lesions += len(les.position)
-                        nb_lesions_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, les.position))
-                        surface_inc += les.surface_inc
-                        surface_chlo += les.surface_chlo
-                        surface_nec += les.surface_nec
-                        surface_spo += les.surface_spo
-                        surface_empty += les.surface_empty
-                        surface_dead += les.surface_dead
-                else:
-                    nb_lesions += len(leaf.lesions)
-                    for les in leaf.lesions:
+                if 'dispersal_units' in leaf.properties():
+                    leaf = g.node(id)
+                    if self.group_dus:
+                        for du in leaf.dispersal_units:
+                            nb_dus += len(du.position)
+                            nb_dus_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, du.position))
+                    else:
+                        nb_dus += len(leaf.dispersal_units)
                         try:
-                            if les.position[0]>leaf.senesced_length:
-                                nb_lesions_on_green += 1
+                            nb_dus_on_green += len([du for du in leaf.dispersal_units if du.position[0]>leaf.senesced_length])
                         except:
-                            if les.position[0][0]>leaf.senesced_length:
-                                nb_lesions_on_green += 1
-                          
-                        surface_inc += les.surface_inc
-                        surface_chlo += les.surface_chlo
-                        surface_nec += les.surface_nec
-                        surface_spo += les.surface_spo
-                        surface_empty += les.surface_empty
-                        surface_dead += les.surface_dead
-        
-        self.nb_dispersal_units.append(nb_dus)
-        self.nb_dus_on_green.append(nb_dus_on_green)                
-        self.nb_lesions.append(nb_lesions)
-        self.nb_lesions_on_green.append(nb_lesions_on_green)
-        self.surface_inc.append(surface_inc)
-        self.surface_chlo.append(surface_chlo)
-        self.surface_nec.append(surface_nec)
-        self.surface_spo.append(surface_spo)
-        self.surface_empty.append(surface_empty)
-        self.surface_dead.append(surface_dead)
+                            nb_dus_on_green += len([du for du in leaf.dispersal_units if du.position[0][0]>leaf.senesced_length])
+                
+                if 'lesions' in leaf.properties():
+                    if self.group_dus:
+                        for les in leaf.lesions:
+                            nb_lesions += len(les.position)
+                            nb_lesions_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, les.position))
+                            surface_inc += les.surface_inc
+                            surface_chlo += les.surface_chlo
+                            surface_nec += les.surface_nec
+                            surface_spo += les.surface_spo
+                            surface_empty += les.surface_empty
+                            surface_dead += les.surface_dead
+                    else:
+                        nb_lesions += len(leaf.lesions)
+                        for les in leaf.lesions:
+                            try:
+                                if les.position[0]>leaf.senesced_length:
+                                    nb_lesions_on_green += 1
+                            except:
+                                if les.position[0][0]>leaf.senesced_length:
+                                    nb_lesions_on_green += 1
+                              
+                            surface_inc += les.surface_inc
+                            surface_chlo += les.surface_chlo
+                            surface_nec += les.surface_nec
+                            surface_spo += les.surface_spo
+                            surface_empty += les.surface_empty
+                            surface_dead += les.surface_dead
+            
+            self.nb_dispersal_units.append(nb_dus)
+            self.nb_dus_on_green.append(nb_dus_on_green)                
+            self.nb_lesions.append(nb_lesions)
+            self.nb_lesions_on_green.append(nb_lesions_on_green)
+            self.surface_inc.append(surface_inc)
+            self.surface_chlo.append(surface_chlo)
+            self.surface_nec.append(surface_nec)
+            self.surface_spo.append(surface_spo)
+            self.surface_empty.append(surface_empty)
+            self.surface_dead.append(surface_dead)
         
     def create_dataframe(self):
         exclude = ['vids', 'init_vids', 'adel_labels', 'group_dus']
