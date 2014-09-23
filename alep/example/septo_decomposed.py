@@ -68,7 +68,7 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", npla
     septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
     return adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing
 
-def septo_disease(domain, domain_area, sporulating_fraction, height_layer, **kwds):
+def septo_disease(domain, domain_area, sporulating_fraction, layer_thickness, **kwds):
     fungus = plugin_septoria()
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
     inoculum = SoilInoculum(fungus, sporulating_fraction=sporulating_fraction, domain_area=domain_area)
@@ -76,7 +76,7 @@ def septo_disease(domain, domain_area, sporulating_fraction, height_layer, **kwd
     growth_controler = PriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     emitter = PopDropsEmission(domain=domain)
-    transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = height_layer)
+    transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
 def save_ids(ids, it, dir = './adel/adel_saved'):
