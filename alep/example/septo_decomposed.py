@@ -36,8 +36,8 @@ from alinea.alep.disease_outputs import initiate_all_adel_septo_recorders, plot_
 
 def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"):
     # TODO : one only function Cf weather_reader.ipynb in septo_data
-    if start_date[:4]=='2010':
-        return Boigneville_2010_2011()
+    if int(start_date[:4])>=2010:
+        return eval('Boigneville_'+start_date[:4]+'_'+end_date[:4]+'()')
     else:
         start_yr = start_date[2:4]
         end_yr = end_date[2:4]
@@ -68,7 +68,7 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", npla
     septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
     return adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing
 
-def septo_disease(domain, domain_area, sporulating_fraction, **kwds):
+def septo_disease(domain, domain_area, sporulating_fraction, height_layer, **kwds):
     fungus = plugin_septoria()
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
     inoculum = SoilInoculum(fungus, sporulating_fraction=sporulating_fraction, domain_area=domain_area)
@@ -76,7 +76,7 @@ def septo_disease(domain, domain_area, sporulating_fraction, **kwds):
     growth_controler = PriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     emitter = PopDropsEmission(domain=domain)
-    transporter = PopDropsTransport(domain=domain, domain_area=domain_area)
+    transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = height_layer)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
 def save_ids(ids, it, dir = './adel/adel_saved'):
@@ -228,8 +228,8 @@ def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:
             save_ids(ids, it_septo, dir=dir)
 
 def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", nplants = 3, nsect = 5,
-                disc_level = 20, dir = './adel/adel_saved', sporulating_fraction = 1e-3, adel = None, 
-                domain = None, domain_area = None, convUnit = None, weather = None, seq = None, 
+                disc_level = 20, dir = './adel/adel_saved', sporulating_fraction = 1e-3, height_layer = 0.1, 
+                adel = None, domain = None, domain_area = None, convUnit = None, weather = None, seq = None, 
                 rain_timing = None, canopy_timing = None, septo_timing = None, **kwds):
 
     if any(x==None for x in [adel, domain, domain_area, convUnit, weather, seq, rain_timing, canopy_timing, septo_timing]):
@@ -238,7 +238,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
-    inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(domain, domain_area, sporulating_fraction, **kwds)
+    inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(domain, domain_area, sporulating_fraction, height_layer, **kwds)
     it_wheat = 0
     it_septo = 0
     g,TT = adel.load(it_wheat, dir=dir)
