@@ -1340,12 +1340,29 @@ class AdelSeptoRecorder:
         if self.data['leaf_green_area'][-1]==0.:
             ind = self.data.index[self.data['leaf_green_area']>0]
             if max_ddays != None:
-                ind = ind[self.data['degree_days']<max_ddays]
+                df = self.data['degree_days'][ind]-self.data['degree_days'][ind][0]<max_ddays
+                ind = df.index
             data = self.data[variable][ind]
-            self.audpc = sum([trapz(data[i:j], dx=(j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
+            self.audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
         else:
             self.audpc = 'audpc not available: leaf has not reached senescence'
         return self.audpc
+        
+    def get_normalized_audpc(self, variable='necrosis_percentage'):
+        """ Variable can be 'severity' or 'necrosis'. """
+        if not 'data' in self.__dict__.keys():
+            self.create_dataframe()
+        if not variable in self.data:
+            exec('self.'+variable+'()')
+        if self.data['leaf_green_area'][-1]==0.:
+            ind = self.data.index[self.data['leaf_green_area']>0]
+            # green_period = (ind[-1]-ind[0]).days*24 + (ind[-1]-ind[0]).seconds/3600
+            data = self.data[variable][ind]
+            df_ref = pandas.DataFrame(data=numpy.ones(len(ind)), index=ind)
+            self.normalized_audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])/sum([trapz(df_ref[i:j].values.flatten(), dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(df_ref.index[:-1], df_ref.index[1:])])
+        else:
+            self.normalized_audpc = 'audpc not available: leaf has not reached senescence'
+        return self.normalized_audpc
                 
     def get_complete_dataframe(self):
         self.create_dataframe()

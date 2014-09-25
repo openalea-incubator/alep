@@ -231,18 +231,28 @@ def group_recorders(scenario = (default_yr, default_nplants, default_nsect, defa
         recorders.append([recorder[p][f] for p,f in product(Ps,Fs)])
     return recorders
 
-def get_audpc_by_leaf(scenario = (default_yr, default_nplants, default_nsect, default_frac), max_ddays=500., num_leaves = range(1,9,2), nb_rep = 5):
+def get_audpc_by_leaf(recorder_getter=get_recorder, scenario = (default_yr, default_nplants, default_nsect, default_frac), max_ddays=500., num_leaves = range(1,9,2), nb_rep = 5):
     df_audpc_by_leaf = pandas.DataFrame(index = num_leaf_to_str(num_leaves), columns=range(nb_rep))
     for i_rep in range(nb_rep):
-        recorder = get_recorder(*scenario+(i_rep,))
+        recorder = recorder_getter(*scenario+(i_rep,))
         df_audpc_by_leaf[i_rep] = [numpy.mean([r[lf].get_audpc(max_ddays=max_ddays) for r in recorder.values()]) for lf in num_leaf_to_str(num_leaves)]
+        del recorder
     return df_audpc_by_leaf.mean(axis=1)
     
-def get_max_necrosis_by_leaf(scenario = (default_yr, default_nplants, default_nsect, default_frac), num_leaves = range(1,9,2), nb_rep = 5):
+def get_norm_audpc_by_leaf(recorder_getter=get_recorder, scenario = (default_yr, default_nplants, default_nsect, default_frac), num_leaves = range(1,9,2), nb_rep = 5):
+    df_norm_audpc_by_leaf = pandas.DataFrame(index = num_leaf_to_str(num_leaves), columns=range(nb_rep))
+    for i_rep in range(nb_rep):
+        recorder = recorder_getter(*scenario+(i_rep,))
+        df_norm_audpc_by_leaf[i_rep] = [numpy.mean([r[lf].get_normalized_audpc() for r in recorder.values()]) for lf in num_leaf_to_str(num_leaves)] 
+        del recorder
+    return df_norm_audpc_by_leaf.mean(axis=1)
+    
+def get_max_necrosis_by_leaf(recorder_getter=get_recorder, scenario = (default_yr, default_nplants, default_nsect, default_frac), num_leaves = range(1,9,2), nb_rep = 5):
     df_max_nec_by_leaf = pandas.DataFrame(index = num_leaf_to_str(num_leaves), columns=range(nb_rep))
     for i_rep in range(nb_rep):
-        recorder = get_recorder(*scenario+(i_rep,))
+        recorder = recorder_getter(*scenario+(i_rep,))
         df_max_nec_by_leaf[i_rep] = [numpy.mean([max(r[lf].data.necrosis_percentage) for r in recorder.values()]) for lf in num_leaf_to_str(num_leaves)]
+        del recorder
     return df_max_nec_by_leaf.mean(axis=1)
 
 def get_scenarios_and_labels(factor='year'):
@@ -282,7 +292,8 @@ def customize_ax(ax, factor, xs, labels, ylims=[0,350]):
     ax.set_xlabel(xlabel, fontsize=18)
     ax.yaxis.grid(True)
        
-def plot_audpc(factor='year', max_ddays=500., num_leaves=range(1,9,2), nb_rep=5, ylims=[0,120], cmap=cm.jet, ax = None):
+def plot_audpc(factor='year', max_ddays=500., num_leaves=range(1,9,2), nb_rep=5, ylims=[0,120], cmap=cm.jet, 
+               ax = None, legend = True):
     scen, labels = get_scenarios_and_labels(factor=factor)
     xs = range(1, len(labels)+1)
     if ax == None:
@@ -294,7 +305,8 @@ def plot_audpc(factor='year', max_ddays=500., num_leaves=range(1,9,2), nb_rep=5,
         h+=ax.plot(df_audpcs.columns, df_audpcs.ix[lf], color=cmap(int(indcolors[i])), linestyle='-', marker = 'o', markersize=10, linewidth=2)
     customize_ax(ax, factor, xs, labels, ylims=ylims)
     ax.set_ylabel('AUDPC', fontsize=18)
-    ax.legend(h, df_audpcs.index.tolist(), bbox_to_anchor=(1.01, 0.5), loc=6, borderaxespad=0.)
+    if legend==True:
+        ax.legend(h, df_audpcs.index.tolist(), bbox_to_anchor=(1.01, 0.5), loc=6, borderaxespad=0.)
     return h
     
 def plot_max_necrosis(factor='year', num_leaves=range(1,9,2), nb_rep=5, ylims=[0,1], cmap=cm.jet):
@@ -331,11 +343,13 @@ def plot_comparisons(factor='year',
     for ax in axs.flat:
         ax.set_ylim([ymin, ymax])
 
-def plot_all_audpcs(num_leaves=range(1,5)):
+def plot_all_audpcs(num_leaves=range(1,9,2)):
     factors = ['year', 'nb_plants', 'nb_sects', 'fraction_spo']
     fig, axs = plt.subplots(int(numpy.ceil(len(factors)/2.)), 2)
     for i, fc in enumerate(factors):
-        plot_audpc(fc, num_leaves, ax = axs[i])
+        ax = axs.flat[i]
+        plot_audpc(fc, max_ddays=500., num_leaves=num_leaves, ylims=[0,500], ax = ax,
+                    legend = True if ax==axs[0][-1] else False)
         
 def plot_all_max_necrosis(num_leaves=range(1,5)):
     factors = ['year', 'nb_plants', 'nb_sects', 'fraction_spo']

@@ -117,9 +117,9 @@ class PriorityGrowthControl:
                 green_lesion_area = les_surf * ratio_green
                 leaf_healthy_area += lf.area - (lf.senesced_area + green_lesion_area)
             leaf_healthy_area = max(0., round(leaf_healthy_area, 10))   
-            if leaf_healthy_area>round(sum([g.node(lf).area for lf in leaf]), 10):
-                import pdb
-                pdb.set_trace()
+            # if leaf_healthy_area>round(sum([g.node(lf).area for lf in leaf]), 10):
+                # import pdb
+                # pdb.set_trace()
                 
             # try:
                 # leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]

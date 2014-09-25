@@ -9,29 +9,24 @@ except:
 
 # years = [1998, 2003, 2004, 2010]
 years = [2004]
-# nb_plants = [3, 6, 10]
-nb_plants = [20, 30, 50]
-# nb_sects = [1, 3, 5, 7]
-nb_sects = [5]
+# nb_plants = [3, 6, 10, 20, 25, 30]
+nb_plants = [25]
+# nb_plants = [15]
+nb_sects = [7]
+# nb_sects = [7]
 combinations = list(itertools.product(*[years, nb_plants, nb_sects]))
-# combinations = [{'yr':i[0], 'nplants':i[1], 'nsect':i[2]} for i in combinations]
+# combinations = [(2010,6,1)]
 
-def make_canopies((yr, nplants, nsect)):
-# def make_canopies(**kwds):
-    # import pdb
-    # pdb.set_trace()
-    # if len(kwds)>0:
-        # if 'yr' in kwds.keys:
-            # yr = kwds.yr
-        # if 'nplants' in kwds.keys:
-            # nplants = kwds.nplants
-        # if 'nsect' in kwds.keys:
-            # nsect = kwds.nsect
+for yr, nplants, nsect in combinations:
+    make_canopy(start_date = str(yr)+"-10-15 12:00:00", end_date = str(yr+1)+"-08-01 00:00:00",
+            nplants = nplants, nsect = nsect, disc_level = 5, 
+            dir = './adel/adel_'+str(yr)+'_'+str(nplants)+'pl_'+str(nsect)+'sect')
         
-        make_canopy(start_date = str(yr)+"-10-15 12:00:00", end_date = str(yr+1)+"-08-01 00:00:00",
-                nplants = nplants, nsect = nsect, disc_level = 30, 
-                dir = './adel/adel_'+str(yr)+'_'+str(nplants)+'pl_'+str(nsect)+'sect')
+# def make_canopies((yr, nplants, nsect)):
+    # make_canopy(start_date = str(yr)+"-10-15 12:00:00", end_date = str(yr+1)+"-08-01 00:00:00",
+            # nplants = nplants, nsect = nsect, disc_level = 5, 
+            # dir = './adel/adel_'+str(yr)+'_'+str(nplants)+'pl_'+str(nsect)+'sect')
         
-if __name__ == '__main__':
-    nb_cpu = cpu_count()
-    pymap(make_canopies, combinations, nb_cpu-1)
+# if __name__ == '__main__':
+    # nb_cpu = cpu_count()
+    # pymap(make_canopies, combinations, nb_cpu-1)

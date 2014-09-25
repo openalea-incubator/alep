@@ -45,10 +45,10 @@ def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"
         meteo_path = shared_data(alinea.septo3d, weather_file)
         return Weather(data_file=meteo_path)
 
-def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", nplants = 3, nsect = 5, disc_level = 20):
+def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", nplants = 3, nsect = 5, disc_level = 5):
     # Initialize wheat plant
     Mercia = reconst_db['Mercia']
-    pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = nplants, nsect = nsect, disc_level = disc_level)
+    pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = nplants, nsect = nsect, disc_level = disc_level, aspect = 'line')
 
     # Manage weather
     weather = get_weather(start_date = start_date, end_date = end_date)
@@ -177,7 +177,7 @@ def get_leaf_ids(g):
 def run_canopy(start_date = "2011-03-01 12:00:00", end_date = "2011-04-01 01:00:00",
                 nplants = 3, nsect = 5, disc_level = 20, get_ids = 0):
     Mercia = reconst_db['Mercia']
-    pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = nplants, nsect = nsect, disc_level = disc_level)
+    pgen, adel, domain, domain_area, convUnit, nplants = Mercia(nplants = nplants, nsect = nsect, disc_level = disc_level, aspect = 'line')
 
     # Manage weather
     weather = Boigneville_2010_2011()
@@ -228,7 +228,7 @@ def save_leaf_ids(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:
             save_ids(ids, it_septo, dir=dir)
 
 def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", nplants = 3, nsect = 5,
-                disc_level = 20, dir = './adel/adel_saved', sporulating_fraction = 1e-3, height_layer = 0.1, 
+                disc_level = 20, dir = './adel/adel_saved', sporulating_fraction = 1e-3, layer_thickness = 0.1, 
                 adel = None, domain = None, domain_area = None, convUnit = None, weather = None, seq = None, 
                 rain_timing = None, canopy_timing = None, septo_timing = None, **kwds):
 
@@ -238,7 +238,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
-    inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(domain, domain_area, sporulating_fraction, height_layer, **kwds)
+    inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(domain, domain_area, sporulating_fraction, layer_thickness, **kwds)
     it_wheat = 0
     it_septo = 0
     g,TT = adel.load(it_wheat, dir=dir)
