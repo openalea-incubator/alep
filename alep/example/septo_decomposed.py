@@ -54,7 +54,7 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", npla
     weather = get_weather(start_date = start_date, end_date = end_date)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
     weather.check(varnames=['degree_days'], models={'degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=30.)
-    weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=-2., max_temp=25.)
+    weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=25.)
 
     # Define the schedule of calls for each model
     seq = pandas.date_range(start = start_date, end = end_date, freq='H')
