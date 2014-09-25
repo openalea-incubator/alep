@@ -86,7 +86,7 @@ def add_wetness(weather):
     weather.data = weather.data.join(wetness)
     return weather
     
-def linear_degree_days(data, start_date, base_temp=0, max_temp=25.):
+def linear_degree_days(data, start_date, base_temp=0., max_temp=25.):
     df = data['temperature_air'].copy()
     df[df<base_temp]=0.
     df[df>max_temp]=0.

@@ -184,6 +184,10 @@ class SeptoriaAgePhysio(Lesion):
                     ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
             else:
                 ddday = 0.
+            
+            if ddday > f.degree_days_to_chlorosis or ddday > f.degree_days_to_necrosis or ddday > f.degree_days_to_sporulation:
+                raise SeptoError('Can not handle a dt > minimum stage duration')
+            
             # Save variable
             self.ddday = ddday
         else:
@@ -888,3 +892,9 @@ import collections
 def is_iterable(obj):
     """ Test if object is iterable """
     return isinstance(obj, collections.Iterable)
+    
+class SeptoError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
