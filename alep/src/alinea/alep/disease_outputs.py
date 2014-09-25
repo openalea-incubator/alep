@@ -1148,7 +1148,7 @@ class AdelSeptoRecorder:
         
             # Spot disappearing of leaf_element to stop recording
             if sum(self.leaf_area)>0 and len(vids)==0.:
-                self.date_death = date_death
+                self.date_death = date
                 return
         
             self.date_sequence.append(date)
