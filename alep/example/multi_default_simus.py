@@ -67,20 +67,29 @@ def get_recorder(yr, nplants, nsect, frac, i_rep):
     f_rec.close()
     return recorder
 
-def get_recorder_list(scenario = (default_yr, default_nplants, default_nsect, default_frac), nb_rep = 5):
-    return [get_recorder(*scenario+(i_rep,)) for i_rep in range(nb_rep)]
+def get_recorder_list(recorder_getter = get_recorder, scenario = (default_yr, default_nplants, default_nsect, default_frac), nb_rep = 5):
+    return [recorder_getter(*scenario+(i_rep,)) for i_rep in range(nb_rep)]
 
 def mean_by_leaf(recorder, variable='necrosis_percentage'):
-    df_mean_by_leaf = pandas.DataFrame(index = recorder.values()[0].values()[0].degree_days)
-    for leaf in range(1, max(len(v) for v in recorder.itervalues())+1):
-        lf = 'F%d' % leaf
-        df_mean_by_leaf[lf] = numpy.mean([v[lf].data[variable] for v in recorder.itervalues() if lf in v], axis=0)
+    ddays = recorder.values()[0].values()[0].degree_days
+    leaves = ['F%d' % leaf for leaf in range(1, max(len(v) for v in recorder.itervalues())+1)]    
+    df_mean_by_leaf = pandas.DataFrame(data={lf:[numpy.nan for i in range(len(ddays))] for lf in leaves}, 
+                                        index = ddays, columns = leaves)
+    for lf in leaves:
+        df_leaf = pandas.concat([v[lf].data[variable] for v in recorder.itervalues() if lf in v], axis=1)
+        df_mean_by_leaf.ix[:ddays[len(df_leaf)-1], lf] = df_leaf.mean(axis=1, skipna=False).values
+        # mean_val = numpy.mean([v[lf].data[variable] for v in recorder.itervalues() if lf in v], axis=0)
+        # if lf == 'F1':
+            # df_mean_by_leaf = pandas.concat([df_mean_by_leaf, df_leaf.mean(axis = 1)], axis=1)
+        # else:
+            # df_mean_by_leaf = pandas.concat([df_mean_by_leaf, df_leaf.mean(axis = 1)], axis=1, join_axes=[df_mean_by_leaf.index])
     return df_mean_by_leaf
 
-def get_mean_by_leaf(scenario = (default_yr, default_nplants, default_nsect, default_frac),
+def get_mean_by_leaf(recorder_getter = get_recorder,
+                     scenario = (default_yr, default_nplants, default_nsect, default_frac),
                      nb_rep = 5, 
                      variable='necrosis_percentage'):
-    df_means = [mean_by_leaf(reco, variable=variable) for reco in get_recorder_list(scenario=scenario, nb_rep=nb_rep)]
+    df_means = [mean_by_leaf(reco, variable=variable) for reco in get_recorder_list(recorder_getter=recorder_getter, scenario=scenario, nb_rep=nb_rep)]
     return glue_df_means(df_means, nb_rep)
     
 def glue_df_means(df_means, nb_rep=5):
