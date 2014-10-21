@@ -156,7 +156,7 @@ class Lesion(object):
         """
         nb_dus = int(emission_rate * self.fungus.length_unit**2)
         
-        return create_dispersal_units(nb_dus)
+        return self.create_dispersal_units(nb_dus)
     
     def senescence_response(self, **kwds):
         pass

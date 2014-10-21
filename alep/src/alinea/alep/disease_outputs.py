@@ -1106,6 +1106,11 @@ import pandas
 from scipy.integrate import trapz
 from alinea.astk.plantgl_utils import get_height
 from alinea.adel.newmtg import adel_ids
+from collections import Iterable
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 class AdelSeptoRecorder:
     def __init__(self, vids=None, adel_labels=None, group_dus=True):
@@ -1332,7 +1337,7 @@ class AdelSeptoRecorder:
         self.data['necrosis_percentage'] = [self.data['necrosis'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
                 
     def get_audpc(self, variable='necrosis_percentage', max_ddays=None):
-        """ Variable can be 'severity' or 'necrosis'. """
+        """ Variable can be 'severity' or 'necrosis_percentage'. """
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
         if not variable in self.data:
@@ -1349,7 +1354,7 @@ class AdelSeptoRecorder:
         return self.audpc
         
     def get_normalized_audpc(self, variable='necrosis_percentage'):
-        """ Variable can be 'severity' or 'necrosis'. """
+        """ Variable can be 'severity' or 'necrosis_percentage'. """
         if not 'data' in self.__dict__.keys():
             self.create_dataframe()
         if not variable in self.data:
@@ -1410,7 +1415,6 @@ class AdelSeptoRecorder:
         dico = {k:v for k,v in self.__dict__.iteritems() if k not in exclude}
         self.data = pandas.DataFrame(data=dico, index=self.date_sequence)
         
-
 def initiate_all_adel_septo_recorders(g, nsect=5):
     """ Used in the case of recording all blades of the main stem of each plant.
     
@@ -1442,3 +1446,59 @@ def initiate_all_adel_septo_recorders(g, nsect=5):
             recorders['P%d' % ind_plant]['F%d' % ind_lf].update_vids_with_labels(vids)
     return recorders
         
+def num_leaf_to_str(num_leaves=range(1,5)):
+    return ['F%d' % lf for lf in num_leaves]
+    
+def get_recorder(*filenames):
+    recorder = []
+    for file in filenames:
+        f_rec = open(file)
+        recorder.append(pickle.load(f_rec))
+        f_rec.close()
+    return recorder if len(recorder)>1 else recorder[0]
+    
+def mean_by_leaf(recorder, variable='necrosis_percentage'):
+    ddays = recorder.values()[0].values()[0].degree_days
+    leaves = ['F%d' % leaf for leaf in range(1, max(len(v) for v in recorder.itervalues())+1)]    
+    df_mean_by_leaf = pandas.DataFrame(data={lf:[numpy.nan for i in range(len(ddays))] for lf in leaves}, 
+                                        index = ddays, columns = leaves)
+    for lf in leaves:
+        df_leaf = pandas.concat([v[lf].data[variable] for v in recorder.itervalues() if lf in v], axis=1)
+        df_mean_by_leaf[:ddays[len(df_leaf)-1]][lf] = df_leaf.mean(axis=1, skipna=False).values
+    return df_mean_by_leaf
+
+def mean_audpc_by_leaf(recorder, variable = 'necrosis_percentage', normalized=True):
+    def try_get(x, lf):
+        try:
+            if normalized==True:
+                try:
+                    return recorder[x][lf].normalized_audpc
+                except:
+                    return recorder[x][lf].get_normalized_audpc(variable = variable)
+            else:
+                try:
+                    return recorder[x][lf].audpc
+                except:
+                    return recorder[x][lf].get_audpc(variable = variable)
+        except:
+            return np.nan
+            
+    df_mean_by_leaf = pandas.DataFrame()
+    plants = recorder.keys()
+    for leaf in range(1, max(len(v) for v in recorder.itervalues())+1):
+        lf = 'F%d' % leaf
+        df_mean_by_leaf[lf] = map(lambda x: try_get(x, lf), plants)
+    return df_mean_by_leaf.mean()
+    
+def glue_df_means(df_means, nb_rep=5):
+    glued = pandas.concat(df_means, axis=1, keys=range(nb_rep))
+    glued.swaplevel(0, 1, axis=1).sortlevel(axis=1)
+    return glued.groupby(level=1, axis=1).mean()
+    
+def get_mean_by_leaf(variable='necrosis_percentage', *recorders):
+    if len(recorders)==1:
+        return mean_by_leaf(recorders[0], variable=variable)
+    else:
+        df_means = [mean_by_leaf(reco, variable=variable) for reco in recorders]
+        return glue_df_means(df_means, len(recorders))
+    
