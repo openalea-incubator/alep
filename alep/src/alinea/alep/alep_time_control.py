@@ -1,5 +1,7 @@
 """ Strategies of time control used in alep projects. """
 import numpy
+import pandas
+from datetime import datetime
 from alinea.astk.TimeControl import *
 
 def evaluation_sequence(delays, eval_time='start'):
@@ -36,19 +38,33 @@ class CustomIterWithDelays(IterWithDelays):
             self.dt = None
         return EvalValue(self.ev, self.val, self.dt)
 
-def septo_infection_filter(seq, weather, rain_filter, degree_days=20., base_temp = 0., start_date=None):
+def add_notation_dates(data, notation_dates_file):
+    df = pandas.read_csv(notation_dates_file)
+    dates = [datetime.strptime(df['notation_dates'][d], '%d/%m/%Y %H:%M') for d in df.index]
+    df2 = pandas.DataFrame(numpy.zeros(len(data)), index = data.index)
+    df2.ix[dates, :] = 1
+    return df2.values == 1
+    
+        
+def septo_infection_filter(seq, weather, rain_filter, degree_days=20., base_temp = 0., start_date=None, notation_dates_file = None):
     if not 'septo_infection_risk' in weather.data.columns:
         from alinea.alep.alep_weather import add_septoria_infection_risk
         weather.check(varnames=['septo_infection_risk'], models={'septo_infection_risk':add_septoria_infection_risk})
     if not 'septo_degree_days' in weather.data.columns:
         from alinea.alep.alep_weather import basic_degree_days
         weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':basic_degree_days}, start_date=start_date, base_temp=base_temp)
+    if notation_dates_file != None:
+        import re
+        if weather.data.index[-1].year != int(re.findall(r'\d+', notation_dates_file)[0]):
+            raise NameError("Year of notation_dates_file does not correspond to weather data")
+        weather.check(varnames=['notation_dates'], models={'notation_dates':add_notation_dates}, notation_dates_file = notation_dates_file)
+        
     cond_inf = weather.data['septo_infection_risk'][seq].values
     ddays = weather.data['septo_degree_days'][seq].values
     ind = []
     count=0
     for i in range(len(cond_inf)):
-        if rain_filter[i]==True and round(weather.data['rain'][seq][i], 14)>0:
+        if (rain_filter[i]==True and round(weather.data['rain'][seq][i], 14)>0) or ('notation_dates' in weather.data.columns and weather.data['notation_dates'][seq][i] == True):
             cond_inf[i] = True
             count = ddays[i]
         else:
