@@ -44,6 +44,8 @@ def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"
         weather = Weather(meteo_path, reader = arvalis_reader)
         weather.check(['temperature_air', 'PPFD', 'relative_humidity',
                        'wind_speed', 'rain', 'global_radiation', 'vapor_pressure'])
+        notation_dates_file = './notation_dates/notation_dates_'+str(end.year)+'.csv'
+        weather.check(varnames=['notation_dates'], models={'notation_dates':add_notation_dates}, notation_dates_file = notation_dates_file)
     else:
         start_yr = str(start.year)[2:4]
         end_yr = str(end.year)[2:4]
