@@ -1342,15 +1342,18 @@ class AdelSeptoRecorder:
             self.create_dataframe()
         if not variable in self.data:
             exec('self.'+variable+'()')
-        if self.data['leaf_green_area'][-1]==0.:
-            ind = self.data.index[self.data['leaf_green_area']>0]
-            if max_ddays != None:
-                df = self.data['degree_days'][ind]-self.data['degree_days'][ind][0]<max_ddays
-                ind = df.index
-            data = self.data[variable][ind]
-            self.audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
+        if self.date_death != None and len(self.leaf_green_area)>0:
+            if self.data['leaf_green_area'][-1]==0.:
+                ind = self.data.index[self.data['leaf_green_area']>0]
+                if max_ddays != None:
+                    df = self.data['degree_days'][ind]-self.data['degree_days'][ind][0]<max_ddays
+                    ind = df.index
+                data = self.data[variable][ind]
+                self.audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
+            else:
+                self.audpc = 'audpc not available: leaf has not reached senescence'
         else:
-            self.audpc = 'audpc not available: leaf has not reached senescence'
+            self.audpc = 'audpc not available: premature leaf death'
         return self.audpc
         
     def get_normalized_audpc(self, variable='necrosis_percentage'):
@@ -1359,14 +1362,17 @@ class AdelSeptoRecorder:
             self.create_dataframe()
         if not variable in self.data:
             exec('self.'+variable+'()')
-        if self.data['leaf_green_area'][-1]==0.:
-            ind = self.data.index[self.data['leaf_green_area']>0]
-            # green_period = (ind[-1]-ind[0]).days*24 + (ind[-1]-ind[0]).seconds/3600
-            data = self.data[variable][ind]
-            df_ref = pandas.DataFrame(data=numpy.ones(len(ind)), index=ind)
-            self.normalized_audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])/sum([trapz(df_ref[i:j].values.flatten(), dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(df_ref.index[:-1], df_ref.index[1:])])
+        if self.date_death != None and len(self.leaf_green_area)>0:
+            if self.data['leaf_green_area'][-1]==0.:
+                ind = self.data.index[self.data['leaf_green_area']>0]
+                data = self.data[variable][ind]
+                df_ref = pandas.DataFrame(data=numpy.ones(len(ind)), index=ind)
+                ref_audpc = sum([trapz(df_ref[i:j].values.flatten(), dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(df_ref.index[:-1], df_ref.index[1:])])
+                self.normalized_audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])/ref_audpc if ref_audpc>0. else 0.
+            else:
+                self.normalized_audpc = 'audpc not available: leaf has not reached senescence'
         else:
-            self.normalized_audpc = 'audpc not available: leaf has not reached senescence'
+            self.normalized_audpc = 'audpc not available: premature leaf death'
         return self.normalized_audpc
                 
     def get_complete_dataframe(self):
@@ -1415,6 +1421,13 @@ class AdelSeptoRecorder:
         dico = {k:v for k,v in self.__dict__.iteritems() if k not in exclude}
         self.data = pandas.DataFrame(data=dico, index=self.date_sequence)
         
+    def inactivate(self, date=None):
+        labels = self.adel_labels
+        if sum(self.leaf_green_area)==0:
+            self.__init__()
+        self.adel_labels = labels
+        self.date_death = date
+        
 def initiate_all_adel_septo_recorders(g, nsect=5):
     """ Used in the case of recording all blades of the main stem of each plant.
     
@@ -1457,14 +1470,16 @@ def get_recorder(*filenames):
         f_rec.close()
     return recorder if len(recorder)>1 else recorder[0]
     
-def mean_by_leaf(recorder, variable='necrosis_percentage'):
+def mean_by_leaf(recorder, variable='necrosis_percentage', skipna = False):
     ddays = recorder.values()[0].values()[0].degree_days
     leaves = ['F%d' % leaf for leaf in range(1, max(len(v) for v in recorder.itervalues())+1)]    
     df_mean_by_leaf = pandas.DataFrame(data={lf:[numpy.nan for i in range(len(ddays))] for lf in leaves}, 
                                         index = ddays, columns = leaves)
+    dfs = []
     for lf in leaves:
         df_leaf = pandas.concat([v[lf].data[variable] for v in recorder.itervalues() if lf in v], axis=1)
-        df_mean_by_leaf[:ddays[len(df_leaf)-1]][lf] = df_leaf.mean(axis=1, skipna=False).values
+        dfs.append(df_leaf)
+        df_mean_by_leaf[:ddays[len(df_leaf)-1]][lf] = df_leaf.mean(axis=1, skipna = skipna).values
     return df_mean_by_leaf
 
 def mean_audpc_by_leaf(recorder, variable = 'necrosis_percentage', normalized=True):
@@ -1472,14 +1487,14 @@ def mean_audpc_by_leaf(recorder, variable = 'necrosis_percentage', normalized=Tr
         try:
             if normalized==True:
                 try:
-                    return recorder[x][lf].normalized_audpc
+                    return float(recorder[x][lf].normalized_audpc)
                 except:
-                    return recorder[x][lf].get_normalized_audpc(variable = variable)
+                    return float(recorder[x][lf].get_normalized_audpc(variable = variable))
             else:
                 try:
-                    return recorder[x][lf].audpc
+                    return float(recorder[x][lf].audpc)
                 except:
-                    return recorder[x][lf].get_audpc(variable = variable)
+                    return float(recorder[x][lf].get_audpc(variable = variable))
         except:
             return np.nan
             

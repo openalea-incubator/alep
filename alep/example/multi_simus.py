@@ -8,12 +8,12 @@ try:
 except:
     import pickle
 
-num_simus = range(1,5)
-yr = 2004
-nplants = 30
-nsect = 7
-frac = 1e-3
-dh = 0.1
+# num_simus = range(1,5)
+# yr = 2004
+# nplants = 30
+# nsect = 7
+# frac = 1e-3
+# dh = 0.1
 
 # for i_rep in num_simus:
     # g, recorder = run_disease(start_date = str(yr)+"-10-15 12:00:00", 
@@ -33,7 +33,7 @@ dh = 0.1
 # scenarios = list(product([1e-3], [7], [5], range(5)))
 # scenarios = list(product([1e-3], [7], [15], [0]))
 # scenarios = list(product([1e-3], [7], [25], [0]))
-# dates = [10, 15, 20, 25, 30]
+dates = [10, 15, 20, 25, 30]
 # scenarios = list(product(dates, [1998, 2003, 2004, 2010], [1e-3], [7], [6], range(5)))
 # scenarios = list(product([15, 20, 25, 30], [2004], [1e-3], [7], [6], [0]))
 # years = [1998, 2003, 2004]

@@ -22,6 +22,7 @@ from alinea.alep.alep_time_control import *
 from alinea.astk.TimeControl import *
 from alinea.echap.weather_data import *
 import alinea.septo3d
+import alinea.alep
 from openalea.deploy.shared_data import shared_data
 from alinea.astk.Weather import Weather
 
@@ -36,15 +37,15 @@ from alinea.alep.disease_outputs import initiate_all_adel_septo_recorders, plot_
 
 def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"):
     """ Get weather data for simulation. """
-    start = datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    end = datetime.datetime.strptime(end_date, '%Y-%m-%d %H:%M:%S')
+    start = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    end = datetime.strptime(end_date, '%Y-%m-%d %H:%M:%S')
     if start.year >= 2010:
         filename = 'Boigneville_0109'+str(start.year)+'_3108'+str(end.year)+'_h.csv'
         meteo_path = shared_data(alinea.echap, filename)
         weather = Weather(meteo_path, reader = arvalis_reader)
         weather.check(['temperature_air', 'PPFD', 'relative_humidity',
                        'wind_speed', 'rain', 'global_radiation', 'vapor_pressure'])
-        notation_dates_file = './notation_dates/notation_dates_'+str(end.year)+'.csv'
+        notation_dates_file = shared_data(alinea.alep, 'notation_dates/notation_dates_'+str(end.year)+'.csv')
         weather.check(varnames=['notation_dates'], models={'notation_dates':add_notation_dates}, notation_dates_file = notation_dates_file)
     else:
         start_yr = str(start.year)[2:4]
@@ -73,11 +74,7 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     every_rain = rain_filter(seq, weather)
     every_dd_or_rain = filter_or([every_dd, every_rain])
     canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data))
-    if int(start_date[:4])>=2010:
-        notation_dates_file = './notation_dates/notation_dates_'+end_date[:4]+'.csv'
-    else:
-        notation_dates_file = None
-    septo_filter = septo_infection_filter(seq, weather, every_rain, notation_dates_file = notation_dates_file)
+    septo_filter = septo_infection_filter(seq, weather, every_rain)
     rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
     septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
     return adel, weather, seq, rain_timing, canopy_timing, septo_timing
@@ -190,9 +187,14 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         if septo_iter:
             date = septo_iter.value.index[-1]
             for plant in recorders:
+                deads = []
                 for lf, recorder in recorders[plant].iteritems():
                     recorder.update_vids_with_labels(adel_ids = leaf_ids)
                     recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
+                    if recorder.date_death != None:
+                        deads.append(lf) 
+                if len(deads) > 0:
+                    map(lambda x: recorders[plant][x].inactivate(date), list(set(recorders[plant].keys())-set(deads)))
                     
     for plant in recorders:
         for recorder in recorders[plant].itervalues():
@@ -206,4 +208,4 @@ def stat_profiler(call='run_disease()'):
     import cProfile
     import pstats
     cProfile.run(call, 'restats')
-    return pstats.Stats('restats')   
+    return pstats.Stats('restats')
