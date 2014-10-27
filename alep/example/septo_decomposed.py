@@ -191,10 +191,10 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
                 for lf, recorder in recorders[plant].iteritems():
                     recorder.update_vids_with_labels(adel_ids = leaf_ids)
                     recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
-                    if recorder.date_death != None:
-                        deads.append(lf) 
+                    if recorder.date_death != None and recorder.leaf_green_area[-1]!=0:
+                        deads += [s for s in lf.split() if s.isdigit()]
                 if len(deads) > 0:
-                    map(lambda x: recorders[plant][x].inactivate(date), list(set(recorders[plant].keys())-set(deads)))
+                    map(lambda x: recorders[plant][x].inactivate(date), map(lambda x: 'F%d' % x, range(1, min(deads)+1)))
                     
     for plant in recorders:
         for recorder in recorders[plant].itervalues():

@@ -1342,18 +1342,18 @@ class AdelSeptoRecorder:
             self.create_dataframe()
         if not variable in self.data:
             exec('self.'+variable+'()')
-        if self.date_death != None and len(self.leaf_green_area)>0:
-            if self.data['leaf_green_area'][-1]==0.:
-                ind = self.data.index[self.data['leaf_green_area']>0]
-                if max_ddays != None:
-                    df = self.data['degree_days'][ind]-self.data['degree_days'][ind][0]<max_ddays
-                    ind = df.index
-                data = self.data[variable][ind]
-                self.audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
-            else:
-                self.audpc = 'audpc not available: leaf has not reached senescence'
-        else:
+        if self.date_death != None and len(self.leaf_green_area)==0:
             self.audpc = 'audpc not available: premature leaf death'
+        elif self.data['leaf_green_area'][-1]==0.:
+            ind = self.data.index[self.data['leaf_green_area']>0]
+            if max_ddays != None:
+                df = self.data['degree_days'][ind]-self.data['degree_days'][ind][0]<max_ddays
+                ind = df.index
+            data = self.data[variable][ind]
+            self.audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])
+        else:
+            self.audpc = 'audpc not available: leaf has not reached senescence'
+            
         return self.audpc
         
     def get_normalized_audpc(self, variable='necrosis_percentage'):
@@ -1362,17 +1362,16 @@ class AdelSeptoRecorder:
             self.create_dataframe()
         if not variable in self.data:
             exec('self.'+variable+'()')
-        if self.date_death != None and len(self.leaf_green_area)>0:
-            if self.data['leaf_green_area'][-1]==0.:
-                ind = self.data.index[self.data['leaf_green_area']>0]
-                data = self.data[variable][ind]
-                df_ref = pandas.DataFrame(data=numpy.ones(len(ind)), index=ind)
-                ref_audpc = sum([trapz(df_ref[i:j].values.flatten(), dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(df_ref.index[:-1], df_ref.index[1:])])
-                self.normalized_audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])/ref_audpc if ref_audpc>0. else 0.
-            else:
-                self.normalized_audpc = 'audpc not available: leaf has not reached senescence'
-        else:
+        if self.date_death != None and len(self.leaf_green_area)==0:
             self.normalized_audpc = 'audpc not available: premature leaf death'
+        elif self.data['leaf_green_area'][-1]==0.:
+            ind = self.data.index[self.data['leaf_green_area']>0]
+            data = self.data[variable][ind]
+            df_ref = pandas.DataFrame(data=numpy.ones(len(ind)), index=ind)
+            ref_audpc = sum([trapz(df_ref[i:j].values.flatten(), dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(df_ref.index[:-1], df_ref.index[1:])])
+            self.normalized_audpc = sum([trapz(data[i:j], dx=(j-i).days*24 + (j-i).seconds/3600) for i,j in zip(data.index[:-1], data.index[1:])])/ref_audpc if ref_audpc>0. else 0.
+        else:
+            self.normalized_audpc = 'audpc not available: leaf has not reached senescence'
         return self.normalized_audpc
                 
     def get_complete_dataframe(self):
