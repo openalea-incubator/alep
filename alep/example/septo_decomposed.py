@@ -155,8 +155,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
 
         # External contamination
         geom = g.property('geometry')
-        if rain_iter and len(geom)>0:
-            if rain_iter.value.rain.mean()>0.:
+        if rain_iter and len(geom)>0 and rain_iter.value.rain.mean()>0.:
                 g = external_contamination(g, inoculum, contaminator, rain_iter.value)
 
         # Develop disease (infect for dispersal units and update for lesions)
