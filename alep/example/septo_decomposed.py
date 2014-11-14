@@ -89,7 +89,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, **kwds):
     contaminator = Septo3DSoilContamination(domain=domain, domain_area=domain_area)
     growth_controler = PriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
-    emitter = PopDropsEmission(domain=domain)
+    emitter = PopDropsEmission(domain=domain, compute_star = False)
     transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
    
@@ -114,7 +114,7 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             adel.save(g, it_wheat, dir=dir)
 
 def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", variety = 'Mercia', nplants = 30, nsect = 7,
-                disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', sporulating_fraction = 1e-3, layer_thickness = 0.1, 
+                disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', sporulating_fraction = 1e-3, layer_thickness = 0.1, save_images = False,
                 adel = None, weather = None, seq = None, rain_timing = None, canopy_timing = None, septo_timing = None, **kwds):
     """ Simulate epidemics. """
     if any(x==None for x in [adel, weather, seq, rain_timing, canopy_timing, septo_timing]):
@@ -156,7 +156,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         # External contamination
         geom = g.property('geometry')
         if rain_iter and len(geom)>0 and rain_iter.value.rain.mean()>0.:
-                g = external_contamination(g, inoculum, contaminator, rain_iter.value)
+            g = external_contamination(g, inoculum, contaminator, rain_iter.value)
 
         # Develop disease (infect for dispersal units and update for lesions)
         if septo_iter:
@@ -166,21 +166,25 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         # Disperse and wash
         if rain_iter and len(geom)>0:
             if rain_iter.value.rain.mean()>0.:
+                # if it_wheat > 600:
+                    # import pdb
+                    # pdb.set_trace()
                 g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_iter.value)
         
-        # if canopy_iter:
-            # scene = plot_severity_by_leaf(g)
-            # if it_wheat < 10 :
-                # image_name='./images_septo_mercia/image0000%d.png' % it_wheat
-            # elif it_wheat < 100 :
-                # image_name='./images_septo_mercia/image000%d.png' % it_wheat
-            # elif it_wheat < 1000 :
-                # image_name='./images_septo_mercia/image00%d.png' % it_wheat
-            # elif it_wheat < 10000 :
-                # image_name='./images_septo_mercia/image0%d.png' % it_wheat
-            # else :
-                # image_name='./images_septo_mercia/image%d.png' % it_wheat
-            # save_image(scene, image_name=image_name)
+        # if save_images == True:
+            # if canopy_iter:
+                # scene = plot_severity_by_leaf(g)
+                # if it_wheat < 10 :
+                    # image_name='./images_septo/image0000%d.png' % it_wheat
+                # elif it_wheat < 100 :
+                    # image_name='./images_septo/image000%d.png' % it_wheat
+                # elif it_wheat < 1000 :
+                    # image_name='./images_septo/image00%d.png' % it_wheat
+                # elif it_wheat < 10000 :
+                    # image_name='./images_septo/image0%d.png' % it_wheat
+                # else :
+                    # image_name='./images_septo/image%d.png' % it_wheat
+                # save_image(scene, image_name=image_name)
 
         # Save outputs
         if septo_iter:

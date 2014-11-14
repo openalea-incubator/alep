@@ -35,14 +35,15 @@ def external_contamination(g,
         # Allocation of stock of inoculum
         deposits = contamination_model.contaminate(g, stock, weather_data)
         stock = [] # stock has been used (avoid uncontrolled future re-use)
+
         # Allocation of new dispersal units
         for vid,dlist in deposits.iteritems():
-            if g.label(vid).startswith(label):
+            if len(dlist)>0 and g.label(vid).startswith(label):
                 leaf = g.node(vid)
-                for d in dlist:
-                    if not 'dispersal_units' in leaf.properties():
-                        leaf.dispersal_units=[]  
-                    leaf.dispersal_units.append(d)
+                try:
+                    leaf.dispersal_units += dlist
+                except:
+                    leaf.dispersal_units = dlist
     return g
 
 
@@ -139,8 +140,8 @@ def infect(g, dt,
 
         for vid, du in dispersal_units.iteritems():
             # By leaf element, keep only those which are deposited and active
-            dispersal_units[vid] = [d for d in du if d.is_active]
             leaf = g.node(vid)
+            dispersal_units[vid] = [d for d in du if d.is_active]
             for du in dispersal_units[vid]:
                 du.infect(dt, leaf)
     return g
@@ -297,23 +298,25 @@ def disperse(g,
     if weather_data is None:
         DU = emission_model.get_dispersal_units(g, fungus_name, label)
     else: 
-        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
-    
+        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)       
+        
+    labels = g.property('label')
     # Transport of dispersal units
-    if sum([len(v) for v in DU.itervalues()])>0:
+    if len(sum(DU.values(), []))>0:
         # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
         if weather_data is not None:
             deposits = transport_model.disperse(g, DU, weather_data)
         else:
             deposits = transport_model.disperse(g, DU) # update DU in g , change position, status 
+
         # Allocation of new dispersal units
-        for vid,dlist in deposits.iteritems():
-            if g.label(vid).startswith(label):
+        for vid, dlist in deposits.iteritems():
+            if len(dlist)>0 and labels[vid].startswith(label):
                 leaf = g.node(vid)
-                for d in dlist:
-                    if not 'dispersal_units' in leaf.properties():
-                        leaf.dispersal_units=[]  
-                    leaf.dispersal_units.append(d)
+                try:
+                    leaf.dispersal_units += dlist
+                except:
+                    leaf.dispersal_units = dlist
     return g
 
 def wash(g, 

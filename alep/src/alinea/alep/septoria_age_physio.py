@@ -71,17 +71,17 @@ class SeptoriaAgePhysio(Lesion):
     
         # Temporary
         # self.previous_surface = 0.
-        self.hist_age = []
+        # self.hist_age = []
         # self.hist_inc = []
-        self.hist_chlo = []
+        # self.hist_chlo = []
         # self.hist_nec = []
-        self.hist_spo = []
+        # self.hist_spo = []
         # self.hist_empty = []
         # self.hist_can_compute_rings = []
-        self.hist_nb_rings_chlo = []
-        self.hist_progress = []
-        self.hist_age_physio = []
-        self.hist_nb_les = []
+        # self.hist_nb_rings_chlo = []
+        # self.hist_progress = []
+        # self.hist_age_physio = []
+        # self.hist_nb_les = []
     
     def is_incubating(self):
         """ Check if lesion status is incubation. """
@@ -109,7 +109,7 @@ class SeptoriaAgePhysio(Lesion):
         leaf: Leaf sector node of an MTG 
             A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions, etc.)
-        """
+        """       
         # Manage senescence
         # if self.is_senescent and self.can_compute_senescence==True:
             # dt = self.compute_time_before_senescence(dt, leaf=leaf)
@@ -148,16 +148,16 @@ class SeptoriaAgePhysio(Lesion):
                 # pdb.set_trace()
             
             # Temporary
-            self.hist_age.append(self.age_dday)
+            # self.hist_age.append(self.age_dday)
             # self.hist_inc.append(self.surface_inc)
-            self.hist_chlo.append(self.surface_chlo)
+            # self.hist_chlo.append(self.surface_chlo)
             # self.hist_nec.append(self.surface_nec)
-            self.hist_spo.append(self.surface_spo)
+            # self.hist_spo.append(self.surface_spo)
             # self.hist_empty.append(self.surface_empty)
             # self.hist_can_compute_rings.append(self.can_compute_rings())
-            self.hist_nb_rings_chlo.append(len(self.surfaces_chlo))
-            self.hist_age_physio.append(self.age_physio)
-            self.hist_nb_les.append(self.nb_lesions)
+            # self.hist_nb_rings_chlo.append(len(self.surfaces_chlo))
+            # self.hist_age_physio.append(self.age_physio)
+            # self.hist_nb_les.append(self.nb_lesions)
             
             # Temporary      
             # if self.surface_chlo>0. and len(self.surfaces_nec>1.) and self.surfaces_nec[0]==0.:
@@ -319,7 +319,7 @@ class SeptoriaAgePhysio(Lesion):
         progress = self.progress(age_threshold=time_to_nec)
         
         # Temp debug
-        self.hist_progress.append(progress)
+        # self.hist_progress.append(progress)
         # self.hist_can_compute_rings.append(self.can_compute_rings())
                 
         # Compute growth demand
@@ -541,14 +541,18 @@ class SeptoriaAgePhysio(Lesion):
         if density_DU_emitted>0:
             f = self.fungus
             # print 'density DU popDrops %f' % density_DU_emitted
-            du_factor = [min(1., float(density_DU_emitted)/dmax) if dmax>0. else 0. for dmax in f.density_dus_emitted_max]
+            density = map(lambda x: min(float(density_DU_emitted),x), f.density_dus_emitted_max)
+            du_factor = density / f.density_dus_emitted_max
+            emissions = map(lambda x: int(x), self.surfaces_spo * density)
+            
+            #du_factor = [min(1., float(density_DU_emitted)/dmax) if dmax>0. else 0. for dmax in f.density_dus_emitted_max]
             delta_spo = self.surfaces_spo*du_factor
             self.surfaces_spo -= delta_spo
             self.surfaces_spo[1:]+=delta_spo[:-1]
             if delta_spo[-1]>0.:
                 self.surface_empty += delta_spo[-1]
             
-            # if any([x<0 for x in self.surfaces_spo]):
+            # if density_DU_emitted>1000:
                 # import pdb
                 # pdb.set_trace()
                 
@@ -558,7 +562,8 @@ class SeptoriaAgePhysio(Lesion):
                 self.surfaces_spo = np.zeros(len(self.surfaces_spo))
                 self.change_status()
                 self.disable()
-            return [f.dispersal_unit() for i in range(int(sum(delta_spo*[min(x,density_DU_emitted) for x in f.density_dus_emitted_max])))]
+            # return [f.dispersal_unit() for i in range(int(sum(delta_spo*[min(x,density_DU_emitted) for x in f.density_dus_emitted_max])))]
+            return [f.dispersal_unit() for i in range(sum(emissions))]
         else:
             return []
         

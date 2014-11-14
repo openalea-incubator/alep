@@ -187,7 +187,7 @@ class InoculationLowerLeaves(object):
                     except:
                         leaf.lesions = [i]            
                 elif isinstance(i, DispersalUnit):
-                    i.deposited()
+                    #i.deposited()
                     try:
                         leaf.dispersal_units.append(i)
                     except:

@@ -1471,7 +1471,7 @@ def get_recorder(*filenames):
     
 def mean_by_leaf(recorder, variable='necrosis_percentage', skipna = False):
     ddays = recorder.values()[0].values()[0].degree_days
-    leaves = ['F%d' % leaf for leaf in range(1, max(len(v) for v in recorder.itervalues())+1)]    
+    leaves = ['F%d' % leaf for leaf in range(1, max(len(v) for v in recorder.itervalues())+1)]
     df_mean_by_leaf = pandas.DataFrame(data={lf:[numpy.nan for i in range(len(ddays))] for lf in leaves}, 
                                         index = ddays, columns = leaves)
     dfs = []
