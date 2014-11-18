@@ -48,7 +48,6 @@ def add_notation_dates(data, notation_dates_file):
     df2.ix[dates, :] = 1
     return df2.values == 1
     
-        
 def septo_infection_filter(seq, weather, rain_filter, degree_days=20., base_temp = 0., start_date=None):
     if not 'septo_infection_risk' in weather.data.columns:
         from alinea.alep.alep_weather import add_septoria_infection_risk

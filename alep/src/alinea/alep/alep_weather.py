@@ -127,7 +127,7 @@ def add_septoria_infection_risk(data, temp_min=10, temp_max=25):
             septo_infection_risk[i_line] = False   
     return septo_infection_risk
     
-def plot_septo_infection_risk(weather, start_date="2010-10-15 12:00:00", adel=None, axis = 'degree_days', ax = None, xlims=None, only_with_event=True):
+def plot_septo_infection_risk(weather, start_date="2010-10-15 12:00:00", adel=None, axis = 'degree_days', ax = None, xlims=None, only_with_event=True, title = None, xlabel = True):
     def form_tick(x, pos):
         t = date.fromordinal(int(x))
         return t.strftime('%b')+'\n'+str(int(weather.get_variable('degree_days', t)))
@@ -162,8 +162,11 @@ def plot_septo_infection_risk(weather, start_date="2010-10-15 12:00:00", adel=No
     
     ax.set_yticks([])
     ax.set_ylim([0,1])
-    ax.set_title(str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year))
-    ax.set_xlabel('Degree days', fontsize=16)
+    if title == None:
+        title = str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year)
+    ax.set_title(title)
+    if xlabel == True:
+        ax.set_xlabel('Degree days', fontsize=16)
     if axis == 'date':
         formatter = FuncFormatter(form_tick)
         ax.xaxis.set_major_formatter(FuncFormatter(formatter))

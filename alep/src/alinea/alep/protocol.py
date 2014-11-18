@@ -298,7 +298,7 @@ def disperse(g,
     if weather_data is None:
         DU = emission_model.get_dispersal_units(g, fungus_name, label)
     else: 
-        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)       
+        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
         
     labels = g.property('label')
     # Transport of dispersal units
