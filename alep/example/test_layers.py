@@ -3,6 +3,7 @@ from alinea.alep.fungal_objects import Fungus
 from alinea.alep.architecture import get_leaves
 from alinea.alep.protocol import disperse
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
+from alinea.septo3d.dispersion.alep_interfaces import Septo3DTransport
 from alinea.astk.Weather import sample_weather
 from alinea.astk.TimeControl import *
 import matplotlib.pyplot as plt
@@ -34,22 +35,27 @@ class DummyEmission():
         return DU
 
         
-def test_transport(interleaf=1, layer_thickness=0.1):
+def test_transport(interleaf=40., layer_thickness=0.1):
     seq, weather = sample_weather()
     every_rain = rain_filter(seq, weather)  
     rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
     evalvalue = rain_timing.next()
     
-    g, domain_area, domain, convunit = adel_two_metamers_stand(density = 500, interleaf = interleaf, Einc = 0)
+    g, domain_area, domain, convunit = adel_two_metamers_stand(density = (1./0.7)*1e4, interleaf = interleaf, Einc = 0)
     leaves = get_leaves(g)
     lf = g.node(leaves[0])
     fungus = Fungus(name='dummy')
     lf.lesions = [fungus.lesion()]
     emitter = DummyEmission(domain=domain)
-    transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness)
+    # transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness, convUnit = convunit)
+    transporter = Septo3DTransport(domain = domain, domain_area = domain_area, dh = layer_thickness, convUnit = convunit, wash = False)
     g = disperse(g, emitter, transporter, fungus_name="dummy", label='LeafElement', weather_data=evalvalue.value)
 
-    return len(g.node(19).dispersal_units)
+    dus = g.property('dispersal_units')
+    if 19 in dus:
+        return len(g.node(19).dispersal_units)
+    else:
+        return 0.
     
 def plot_test():
     interleaf = numpy.arange(1, 52, 10)

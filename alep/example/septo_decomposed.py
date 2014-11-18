@@ -83,6 +83,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, **kwds):
     """ Choose models to assemble the disease model. """
     domain = adel.domain
     domain_area = adel.domain_area
+    convUnit = adel.convUnit
     fungus = plugin_septoria()
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
     inoculum = SoilInoculum(fungus, sporulating_fraction=sporulating_fraction, domain_area=domain_area)
@@ -90,7 +91,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, **kwds):
     growth_controler = PriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     emitter = PopDropsEmission(domain=domain, compute_star = False)
-    transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness)
+    transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness, convUnit = convUnit)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
    
 def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", variety = 'Mercia',
