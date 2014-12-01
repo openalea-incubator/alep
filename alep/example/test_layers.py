@@ -35,13 +35,14 @@ class DummyEmission():
         return DU
 
         
-def test_transport(interleaf=40., layer_thickness=0.1):
+def test_transport(interleaf=10., density = 350., layer_thickness=0.01):
     seq, weather = sample_weather()
     every_rain = rain_filter(seq, weather)  
     rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
     evalvalue = rain_timing.next()
     
-    g, domain_area, domain, convunit = adel_two_metamers_stand(density = (1./0.7)*1e4, interleaf = interleaf, Einc = 0)
+    g, domain_area, domain, convunit = adel_two_metamers_stand(density = density, 
+    interleaf = interleaf, leaf_length = 20, leaf_width = 1, Einc = 0)
     leaves = get_leaves(g)
     lf = g.node(leaves[0])
     fungus = Fungus(name='dummy')
@@ -58,8 +59,8 @@ def test_transport(interleaf=40., layer_thickness=0.1):
         return 0.
     
 def plot_test():
-    interleaf = numpy.arange(1, 52, 10)
-    layer_thickness = numpy.arange(1, 52, 10)
+    interleaf = numpy.arange(1, 51, 1)
+    layer_thickness = numpy.arange(0.1, 5.1, 0.1)
     df = pandas.DataFrame(index = interleaf, columns = layer_thickness)
     for int_lf in df.index:
         for dh in df.columns:
@@ -74,3 +75,8 @@ def plot_test():
     ax.set_ylabel('inter leaf (cm)')
     ax.set_zlabel('normalised number of deposits on leaf 2')
     ax.set_zlim([0,1])
+    
+# Faire des feuilles de 20 cm
+# les écarter plus
+# faire test pour dh jusqu'à 5
+# faire test pour distance jusqu'à 50 cm
