@@ -112,7 +112,7 @@ def add_septoria_infection_risk(data, temp_min=10, temp_max=25):
     """
     temp1 = data.temperature_air>=temp_min
     temp2 = data.temperature_air<=temp_max
-    infect_cond = data.wetness * temp1 * temp2
+    infect_cond = data.wetness & temp1 & temp2
     septo_infection_risk = np.zeros(len(data))
     counter = 0.
     for i_line in range(len(data)):

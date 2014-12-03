@@ -121,7 +121,10 @@ class BiotrophDUPositionModel:
                 les_surf = 0.
             
             ratio_les_surface = min(1, les_surf/leaf.area) if leaf.area>0. else 0.
-            total_nb_dus = len(sum([du.position for du in dus],[]))
+            if len(dus)>0 and dus[0].fungus.group_dus == True:
+                total_nb_dus = len(sum([du.position for du in dus],[]))
+            else:
+                total_nb_dus = len(dus)
             nb_on_lesions = int(total_nb_dus*ratio_les_surface)
             for du in range(nb_on_lesions):
                 random.shuffle(dus)

@@ -1141,6 +1141,11 @@ class AdelSeptoRecorder:
         # Initialize the index spotting the death of the leaf_element
         self.date_death = None
         
+        # Temp
+        if adel_labels[0] == 'plant1_MS_metamer3_blade_LeafElement1':
+            self.df_les_surf = pandas.DataFrame(columns = adel_labels)
+            self.df_areas = pandas.DataFrame(columns = adel_labels)
+        
     def update_vids_with_labels(self, adel_ids):
         self.vids = [adel_ids[lb] for lb in self.adel_labels]
         
@@ -1230,7 +1235,24 @@ class AdelSeptoRecorder:
             self.surface_spo.append(surface_spo)
             self.surface_empty.append(surface_empty)
             self.surface_dead.append(surface_dead)
-        
+            
+            # Temp
+            if self.adel_labels[0] == 'plant1_MS_metamer3_blade_LeafElement1':
+                for it, id in enumerate(self.vids):
+                    if g.node(id).geometry is not None and g.node(id).area is not None:
+                        if 'lesions' in g.node(id).properties():
+                            self.df_les_surf.loc[date, self.adel_labels[it]] = sum([les.surface for les in g.node(id).lesions])
+                        self.df_areas.loc[date, self.adel_labels[it]] = g.node(id).area
+                        self.df_length.loc[date, self.adel_labels[it]] = g.node(id).length
+                        self.df_green_length.loc[date, self.adel_labels[it]] = g.node(id).green_length
+                        self.df_senesced_length.loc[date, self.adel_labels[it]] = g.node(id).senesced_length
+                    else:
+                        self.df_les_surf.loc[date, self.adel_labels[it]] = 0.
+                        self.df_areas.loc[date, self.adel_labels[it]] = 0.
+                        self.df_length.loc[date, self.adel_labels[it]] = 0.
+                        self.df_green_length.loc[date, self.adel_labels[it]] = 0.
+                        self.df_senesced_length.loc[date, self.adel_labels[it]] = 0.
+                
     def create_dataframe(self):
         # exclude = ['vids', 'init_vids', 'adel_labels', 'group_dus']
         exclude = ['vids', 'init_vids', 'adel_labels', 'group_dus', 'df_areas', 'df_green_areas', 'df_senesced_length']
@@ -1469,9 +1491,27 @@ def get_recorder(*filenames):
         recorder.append(pickle.load(f_rec))
         f_rec.close()
     return recorder if len(recorder)>1 else recorder[0]
+
+def split_recorder_by_fnl(recorder):
+    fnls = set(len(v) for v in recorder.itervalues())
+    recorders = {}
+    for fnl in fnls:
+        recorders[fnl] = {k:v for k,v in recorder.iteritems() if len(v)==fnl}
+    return recorders
+    
+def renumber_recorder_from_bottom(recorder):
+    bottomed_reco = {}
+    for k, v in recorder.iteritems():
+        fnl = len(v)
+        bottomed_reco[k] = {}
+        for kk, vv in v.iteritems():
+            num_lf_top = int(''.join(x for x in kk if x.isdigit()))
+            num_lf_bottom = fnl - num_lf_top + 1
+            bottomed_reco[k]['F%d' % num_lf_bottom] = vv
+    return bottomed_reco
     
 def mean_by_leaf(recorder, variable='necrosis_percentage', skipna = False):
-    ddays = recorder.values()[0].values()[0].degree_days
+    ddays = max(recorder.values()[0].values(), key= lambda x: len(x.degree_days)).degree_days
     leaves = ['F%d' % leaf for leaf in range(1, max(len(v) for v in recorder.itervalues())+1)]
     df_mean_by_leaf = pandas.DataFrame(data={lf:[numpy.nan for i in range(len(ddays))] for lf in leaves}, 
                                         index = ddays, columns = leaves)

@@ -82,14 +82,20 @@ class SeptoriaDU(DispersalUnit):
         Returns
         -------
             None
-        """       
-        self.position = filter(lambda x: x[0]>leaf.senesced_length, self.position)
+        """
+        if self.fungus.group_dus == True:
+            self.position = filter(lambda x: x[0]>leaf.senesced_length, self.position)
+        elif self.position < leaf.senesced_length:
+            self.disable()
+            return
+
         if self.nb_dispersal_units == 0. or self.nb_spores == 0.:
             self.disable()
+            return
         else:
             leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
             temp = leaf.temperature_sequence.mean() # (float) : mean temperature on the leaf sector during the time step (in degree).  
-            # TODO: design a new equation : see Magarey (2005)
+            # TODO: design a new equation : see Magarey (2005)           
             if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and leaf_wet:
                 self.cumul_wetness += dt
             else:                 
@@ -117,9 +123,11 @@ class SeptoriaDU(DispersalUnit):
                     self.position = self.position[nb_disabled:]
                     if self.nb_dispersal_units == 0.:
                         self.disable()
+                        return
                 else:
                     if proba(loss_rate):
                         self.disable()
+                        return
     
     def set_nb_spores(self, nb_spores=0.):
         """ Set the number of spores in the DU.
@@ -141,8 +149,10 @@ class SeptoriaDU(DispersalUnit):
     def nb_dispersal_units(self):
         if self.position is None:
             return None
-        else:
+        elif self.fungus.group_dus == True:
             return len(self.position)
+        else:
+            return 1.
         
 # Fungus parameters (e.g. .ini): config of the fungus #############################
 septoria_parameters = dict(INCUBATING = 0,

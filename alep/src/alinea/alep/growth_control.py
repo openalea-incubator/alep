@@ -101,14 +101,11 @@ class PriorityGrowthControl:
         """
         lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
         labels = g.property('label')
-        # healthy_areas = g.property('healthy_area')
 
         # Select all the leaves
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
-            # TODO see if following works
-            # leaf_healthy_area = max(0., sum(healthy_areas[lf] for lf in leaf))
             leaf_healthy_area = 0.
             for vid in leaf:
                 lf = g.node(vid)
@@ -117,24 +114,10 @@ class PriorityGrowthControl:
                 green_lesion_area = les_surf * ratio_green
                 leaf_healthy_area += lf.area - (lf.senesced_area + green_lesion_area)
             leaf_healthy_area = max(0., round(leaf_healthy_area, 10))   
-            # if leaf_healthy_area>round(sum([g.node(lf).area for lf in leaf]), 10):
-                # import pdb
-                # pdb.set_trace()
-                
-            # try:
-                # leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
-                # # if round(sum(healthy_areas[lf] for lf in leaf), 14)<0:
-                    # # import pdb
-                    # # pdb.set_trace()
-                # leaf_healthy_area = max(0., sum(healthy_areas[lf] for lf in leaf))
-            # except:
-                # raise NameError('Set healthy area on the MTG before simulation' '\n' 
-                                # 'See alinea.alep.architecture > set_healthy_area')
-                
-            # leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.growth_is_active]
+
             leaf_lesions = [l for lf in leaf if lf in lesions for l in lesions[lf] if l.growth_is_active]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
-                       
+
             if total_demand > leaf_healthy_area:
                 prior_lesions = [l for l in leaf_lesions if l.status>=l.fungus.CHLOROTIC]
                 non_prior_lesions = [l for l in leaf_lesions if l.status<l.fungus.CHLOROTIC]
