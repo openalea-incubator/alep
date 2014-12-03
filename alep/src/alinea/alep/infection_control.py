@@ -82,30 +82,51 @@ class BiotrophDUPositionModel:
         """
         dispersal_units = {k:v for k,v in g.property('dispersal_units').iteritems() if len(v)>0.}
         for vid in dispersal_units.iterkeys():
-            dispersal_units[vid] = [du for du in dispersal_units[vid] if du.is_active]
-            controlled_dus = [dispersal_units[vid].pop(ind) for ind, du in enumerate(dispersal_units[vid])
-                               if du.can_infect_at_position is None]
+            # dispersal_units[vid] = [du for du in dispersal_units[vid] if du.is_active]
+            # controlled_dus = [dispersal_units[vid].pop(ind) for ind, du in enumerate(dispersal_units[vid])
+                               # if du.can_infect_at_position is None]
+            # leaf = g.node(vid)
+            # # Compare to lesions
+            # if 'lesions' in leaf.properties():
+                # les_surf = sum([les.surface for les in leaf.lesions])
+            # else:
+                # les_surf = 0.
+            
+            # ratio_les_surface = min(1, les_surf/leaf.area) if leaf.area>0. else 0.
+            # total_nb_dus = len(sum([du.position for du in controlled_dus],[]))
+            # nb_on_lesions = int(total_nb_dus*ratio_les_surface)
+            # for du in range(nb_on_lesions):
+                # random.shuffle(controlled_dus)
+                # controlled_dus[0].position = controlled_dus[0].position[1:]
+                # if controlled_dus[0].nb_dispersal_units==0.:
+                    # controlled_dus[0].disable()
+                    # controlled_dus=controlled_dus[1:]
+            # dispersal_units[vid]+=controlled_dus
+                
+            # Compare to senescence
+            # for DU in dispersal_units[vid]:
+                # DU.position = filter(lambda x: x[0]>leaf.senesced_length, DU.position)
+                # if DU.nb_dispersal_units == 0.:
+                    # DU.disable()
+                # else:
+                    # DU.set_can_infect(True)
+                    
+            # SIMPLIFICATION /!\
+            dus = [du for du in dispersal_units[vid] if du.is_active]
             leaf = g.node(vid)
             # Compare to lesions
             if 'lesions' in leaf.properties():
                 les_surf = sum([les.surface for les in leaf.lesions])
             else:
                 les_surf = 0.
+            
             ratio_les_surface = min(1, les_surf/leaf.area) if leaf.area>0. else 0.
-            total_nb_dus = len(sum([du.position for du in controlled_dus],[]))
+            total_nb_dus = len(sum([du.position for du in dus],[]))
             nb_on_lesions = int(total_nb_dus*ratio_les_surface)
             for du in range(nb_on_lesions):
-                random.shuffle(controlled_dus)
-                controlled_dus[0].position = controlled_dus[0].position[1:]
-                if controlled_dus[0].nb_dispersal_units==0.:
-                    controlled_dus[0].disable()
-                    controlled_dus=controlled_dus[1:]
-            dispersal_units[vid]+=controlled_dus
-                
-            # Compare to senescence
-            for DU in dispersal_units[vid]:
-                DU.position = filter(lambda x: x[0]>leaf.senesced_length, DU.position)
-                if DU.nb_dispersal_units == 0.:
-                    DU.disable()
-                else:
-                    DU.set_can_infect(True)
+                random.shuffle(dus)
+                dus[0].position = dus[0].position[1:]
+                if dus[0].nb_dispersal_units==0.:
+                    dus[0].disable()
+                    dus = dus[1:]
+            dispersal_units[vid] = dus

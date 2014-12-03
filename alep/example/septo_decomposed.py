@@ -115,7 +115,7 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             adel.save(g, it_wheat, dir=dir)
 
 def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", variety = 'Mercia', nplants = 30, nsect = 7,
-                disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', sporulating_fraction = 1e-3, layer_thickness = 0.1, save_images = False,
+                disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', sporulating_fraction = 1e-3, layer_thickness = 0.01, save_images = False,
                 adel = None, weather = None, seq = None, rain_timing = None, canopy_timing = None, septo_timing = None, **kwds):
     """ Simulate epidemics. """
     if any(x==None for x in [adel, weather, seq, rain_timing, canopy_timing, septo_timing]):

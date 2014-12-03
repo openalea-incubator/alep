@@ -82,12 +82,13 @@ class SeptoriaDU(DispersalUnit):
         Returns
         -------
             None
-        """
-        leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
-        temp = leaf.temperature_sequence.mean() # (float) : mean temperature on the leaf sector during the time step (in degree).  
-        if self.nb_spores == 0.:
+        """       
+        self.position = filter(lambda x: x[0]>leaf.senesced_length, self.position)
+        if self.nb_dispersal_units == 0. or self.nb_spores == 0.:
             self.disable()
         else:
+            leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
+            temp = leaf.temperature_sequence.mean() # (float) : mean temperature on the leaf sector during the time step (in degree).  
             # TODO: design a new equation : see Magarey (2005)
             if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and leaf_wet:
                 self.cumul_wetness += dt
@@ -101,13 +102,13 @@ class SeptoriaDU(DispersalUnit):
                 # Intrinsec proba of infection
                 proba_infection *= self.fungus.proba_inf
                 # Fongicide effect
-                if 'global_efficacy' in leaf.properties():
-                    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
+                #if 'global_efficacy' in leaf.properties():
+                #    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
                 if proba(proba_infection):
                     self.create_lesion(leaf)
-                else:
+                #else:
                     # Todo: discuss this point
-                    self.disable()
+                    # self.disable()
             elif self.cumul_wetness == 0 :
                 loss_rate = 1./(self.fungus.loss_delay - self.dry_dt)
                 # Proba conditionnelle doit se cumuler.

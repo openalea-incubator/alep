@@ -114,6 +114,7 @@ class SeptoriaAgePhysio(Lesion):
         # if self.is_senescent and self.can_compute_senescence==True:
             # dt = self.compute_time_before_senescence(dt, leaf=leaf)
         # self.old_position_senescence = leaf.position_senescence
+               
         if any([x[0]<leaf.senesced_length for x in self.position]):
             self.senescence_response(leaf.senesced_length)
         
@@ -297,14 +298,14 @@ class SeptoriaAgePhysio(Lesion):
         else:
             if self.growth_is_active:
                 Smin = self._surface_min
-                self.growth_demand = round(Smin - self.surface_alive,14)
+                self.growth_demand = round(Smin - self.surface, 14)
                     
             # if self.growth_demand < 0:
                 # import pdb
                 # pdb.set_trace()
             
             # Change status
-            self.ratio_left = round((self.age_physio - 1.)/progress,14)
+            self.ratio_left = round((self.age_physio - 1.)/progress, 14)
             self.change_status()
             self.change_status_edge()
             self.reset_age_physio()

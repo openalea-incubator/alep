@@ -1140,7 +1140,7 @@ class AdelSeptoRecorder:
         self.surface_dead = []
         # Initialize the index spotting the death of the leaf_element
         self.date_death = None
-
+        
     def update_vids_with_labels(self, adel_ids):
         self.vids = [adel_ids[lb] for lb in self.adel_labels]
         
@@ -1232,7 +1232,8 @@ class AdelSeptoRecorder:
             self.surface_dead.append(surface_dead)
         
     def create_dataframe(self):
-        exclude = ['vids', 'init_vids', 'adel_labels', 'group_dus']
+        # exclude = ['vids', 'init_vids', 'adel_labels', 'group_dus']
+        exclude = ['vids', 'init_vids', 'adel_labels', 'group_dus', 'df_areas', 'df_green_areas', 'df_senesced_length']
         dico = {k:v for k,v in self.__dict__.iteritems() if k not in exclude}
         self.data = pandas.DataFrame(data=dico, index=self.date_sequence)
     
