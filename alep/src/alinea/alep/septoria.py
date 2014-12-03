@@ -85,7 +85,7 @@ class SeptoriaDU(DispersalUnit):
         """
         if self.fungus.group_dus == True:
             self.position = filter(lambda x: x[0]>leaf.senesced_length, self.position)
-        elif self.position < leaf.senesced_length:
+        elif self.position <= leaf.senesced_length:
             self.disable()
             return
 

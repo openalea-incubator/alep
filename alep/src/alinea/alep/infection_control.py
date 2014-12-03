@@ -23,7 +23,7 @@ class BiotrophDUProbaModel:
     The probability for it to be on a healthy tissue is computed with 
     the ratio between leaf healthy and total areas.
     """   
-    def control_position(self, g, label='LeafElement'):
+    def control(self, g, label='LeafElement'):
         """ Control if the dispersal units can infect at their current position.
         
         Call the method 'can_not_infect_at_position' of DU interface eventually
@@ -66,7 +66,7 @@ class BiotrophDUPositionModel:
     In this example, a dispersal unit can only infect an healthy tissue. 
     Its property 'position' in its interface is required.
     """   
-    def control_position(self, g, label='LeafElement'):
+    def control(self, g, label='LeafElement'):
         """ Control if the lesion can infect at its current position. If not, disable the dispersal unit.
         
         Parameters
@@ -80,8 +80,7 @@ class BiotrophDUPositionModel:
         g: MTG
             Updated MTG representing the canopy
         """
-        dispersal_units = {k:v for k,v in g.property('dispersal_units').iteritems() if len(v)>0.}
-        for vid in dispersal_units.iterkeys():
+        # for vid in dispersal_units.iterkeys():
             # dispersal_units[vid] = [du for du in dispersal_units[vid] if du.is_active]
             # controlled_dus = [dispersal_units[vid].pop(ind) for ind, du in enumerate(dispersal_units[vid])
                                # if du.can_infect_at_position is None]
@@ -111,25 +110,30 @@ class BiotrophDUPositionModel:
                 # else:
                     # DU.set_can_infect(True)
                     
-            # SIMPLIFICATION /!\
-            dus = [du for du in dispersal_units[vid] if du.is_active]
-            leaf = g.node(vid)
-            # Compare to lesions
-            if 'lesions' in leaf.properties():
-                les_surf = sum([les.surface for les in leaf.lesions])
-            else:
-                les_surf = 0.
+        # CALCULATION BY BLADE /!\
+        labels = g.property('label')
+        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        dispersal_units = {k:v for k,v in g.property('dispersal_units').iteritems() if len(v)>0.}
+        areas = g.property('area')
+        lesions = g.property('lesions')
+        for blade in bids:
+            leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
+            leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], []) 
+            les_surf = sum([les.surface for les in leaf_lesions])
+            leaf_area = sum([areas[lf] for lf in leaf])
+            ratio_les_surface = min(1, les_surf/leaf_area) if leaf_area>0. else 0.
             
-            ratio_les_surface = min(1, les_surf/leaf.area) if leaf.area>0. else 0.
-            if len(dus)>0 and dus[0].fungus.group_dus == True:
-                total_nb_dus = len(sum([du.position for du in dus],[]))
-            else:
-                total_nb_dus = len(dus)
-            nb_on_lesions = int(total_nb_dus*ratio_les_surface)
-            for du in range(nb_on_lesions):
-                random.shuffle(dus)
-                dus[0].position = dus[0].position[1:]
-                if dus[0].nb_dispersal_units==0.:
-                    dus[0].disable()
-                    dus = dus[1:]
-            dispersal_units[vid] = dus
+            for vid in set(leaf) & set(dispersal_units):
+                    dus = [du for du in dispersal_units[vid] if du.is_active ]
+                    if len(dus)>0 and dus[0].fungus.group_dus == True:
+                        total_nb_dus = len(sum([du.position for du in dus],[]))
+                    else:
+                        total_nb_dus = len(dus)
+                    nb_on_lesions = int(total_nb_dus*ratio_les_surface)
+                    for du in range(nb_on_lesions):
+                        random.shuffle(dus)
+                        dus[0].position = dus[0].position[1:]
+                        if dus[0].nb_dispersal_units==0.:
+                            dus[0].disable()
+                            dus = dus[1:]
+                    dispersal_units[vid] = dus

@@ -115,7 +115,7 @@ class SeptoriaAgePhysio(Lesion):
             # dt = self.compute_time_before_senescence(dt, leaf=leaf)
         # self.old_position_senescence = leaf.position_senescence
                
-        if any([x[0]<leaf.senesced_length for x in self.position]):
+        if any([x[0]<=leaf.senesced_length for x in self.position]):
             self.senescence_response(leaf.senesced_length)
         
         if self.is_active:
@@ -619,7 +619,7 @@ class SeptoriaAgePhysio(Lesion):
             
         if not self.senescence_response_completed:
         
-            nb_sen = len(filter(lambda x: x[0]<senesced_length, self.position))
+            nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
             ratio_sen = float(nb_sen)/self.nb_lesions
             
             # Temp

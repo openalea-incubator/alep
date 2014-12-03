@@ -133,7 +133,7 @@ def infect(g, dt,
     if activate:
         # Check if its position prevent it from infecting (optional)
         if infection_control_model:
-            infection_control_model.control_position(g, label)
+            infection_control_model.control(g, label)
        
         # Find dispersal units on MTG
         dispersal_units = g.property('dispersal_units')
