@@ -1142,9 +1142,9 @@ class AdelSeptoRecorder:
         self.date_death = None
         
         # Temp
-        if adel_labels[0] == 'plant1_MS_metamer3_blade_LeafElement1':
-            self.df_les_surf = pandas.DataFrame(columns = adel_labels)
-            self.df_areas = pandas.DataFrame(columns = adel_labels)
+        # if adel_labels[0] == 'plant1_MS_metamer3_blade_LeafElement1':
+            # self.df_les_surf = pandas.DataFrame(columns = adel_labels)
+            # self.df_areas = pandas.DataFrame(columns = adel_labels)
         
     def update_vids_with_labels(self, adel_ids):
         self.vids = [adel_ids[lb] for lb in self.adel_labels]
@@ -1154,7 +1154,9 @@ class AdelSeptoRecorder:
     
     def record(self, g, date, degree_days=None):
         if self.date_death == None:
-            vids = [id for id in self.vids if g.node(id).geometry is not None and g.node(id).area is not None]
+            geometries = g.property('geometry')
+            areas = g.property('geometry')
+            vids = [id for id in self.vids if geometries.get(id) is not None and areas.get(id) is not None]
         
             # Spot disappearing of leaf_element to stop recording
             if sum(self.leaf_area)>0 and len(vids)==0.:
@@ -1237,21 +1239,21 @@ class AdelSeptoRecorder:
             self.surface_dead.append(surface_dead)
             
             # Temp
-            if self.adel_labels[0] == 'plant1_MS_metamer3_blade_LeafElement1':
-                for it, id in enumerate(self.vids):
-                    if g.node(id).geometry is not None and g.node(id).area is not None:
-                        if 'lesions' in g.node(id).properties():
-                            self.df_les_surf.loc[date, self.adel_labels[it]] = sum([les.surface for les in g.node(id).lesions])
-                        self.df_areas.loc[date, self.adel_labels[it]] = g.node(id).area
-                        self.df_length.loc[date, self.adel_labels[it]] = g.node(id).length
-                        self.df_green_length.loc[date, self.adel_labels[it]] = g.node(id).green_length
-                        self.df_senesced_length.loc[date, self.adel_labels[it]] = g.node(id).senesced_length
-                    else:
-                        self.df_les_surf.loc[date, self.adel_labels[it]] = 0.
-                        self.df_areas.loc[date, self.adel_labels[it]] = 0.
-                        self.df_length.loc[date, self.adel_labels[it]] = 0.
-                        self.df_green_length.loc[date, self.adel_labels[it]] = 0.
-                        self.df_senesced_length.loc[date, self.adel_labels[it]] = 0.
+            # if self.adel_labels[0] == 'plant1_MS_metamer3_blade_LeafElement1':
+                # for it, id in enumerate(self.vids):
+                    # if g.node(id).geometry is not None and g.node(id).area is not None:
+                        # if 'lesions' in g.node(id).properties():
+                            # self.df_les_surf.loc[date, self.adel_labels[it]] = sum([les.surface for les in g.node(id).lesions])
+                        # self.df_areas.loc[date, self.adel_labels[it]] = g.node(id).area
+                        # self.df_length.loc[date, self.adel_labels[it]] = g.node(id).length
+                        # self.df_green_length.loc[date, self.adel_labels[it]] = g.node(id).green_length
+                        # self.df_senesced_length.loc[date, self.adel_labels[it]] = g.node(id).senesced_length
+                    # else:
+                        # self.df_les_surf.loc[date, self.adel_labels[it]] = 0.
+                        # self.df_areas.loc[date, self.adel_labels[it]] = 0.
+                        # self.df_length.loc[date, self.adel_labels[it]] = 0.
+                        # self.df_green_length.loc[date, self.adel_labels[it]] = 0.
+                        # self.df_senesced_length.loc[date, self.adel_labels[it]] = 0.
                 
     def create_dataframe(self):
         # exclude = ['vids', 'init_vids', 'adel_labels', 'group_dus']
@@ -1412,26 +1414,34 @@ class AdelSeptoRecorder:
         self.necrosis_percentage()
 
     def record_only_leaf_data(self, g, date, degree_days=None):
-        vids = [id for id in self.vids if g.node(id).geometry is not None and g.node(id).area is not None]
-    
-        self.date_sequence.append(date)
-        self.degree_days.append(degree_days)
-    
-        # Update leaf properties
-        self.leaf_area.append(sum([g.node(id).area for id in vids]))
-        self.leaf_green_area.append(sum([g.node(id).green_area for id in vids]))
-        self.leaf_length.append(sum([g.node(id).length for id in vids]))
-        self.leaf_senesced_length.append(sum([g.node(id).senesced_length for id in vids]))
-        heights = [numpy.mean(get_height({vid:g.node(vid).geometry}).values()) for vid in vids]
-        try:
-            self.senesced_area.append(sum([g.node(id).senesced_area for id in vids]))
-            self.leaf_green_length.append(sum([g.node(id).green_length for id in vids]))
-            self.leaf_heights.append(heights if len(heights)>0. else [0.])
-        except:
-            self.senesced_area = [sum([g.node(id).senesced_area for id in vids])]
-            self.leaf_green_length = [sum([g.node(id).green_length for id in vids])]
-            self.leaf_heights = [heights if len(heights)>0. else [0.]]
+        if self.date_death == None:
+            geometries = g.property('geometry')
+            areas = g.property('geometry')
+            vids = [id for id in self.vids if geometries.get(id) is not None and areas.get(id) is not None]
+        
+            # Spot disappearing of leaf_element to stop recording
+            if sum(self.leaf_area)>0 and len(vids)==0.:
+                self.date_death = date
+                return
                 
+            self.date_sequence.append(date)
+            self.degree_days.append(degree_days)
+        
+            # Update leaf properties
+            self.leaf_area.append(sum([g.node(id).area for id in vids]))
+            self.leaf_green_area.append(sum([g.node(id).green_area for id in vids]))
+            self.leaf_length.append(sum([g.node(id).length for id in vids]))
+            self.leaf_senesced_length.append(sum([g.node(id).senesced_length for id in vids]))
+            heights = [numpy.mean(get_height({vid:g.node(vid).geometry}).values()) for vid in vids]
+            try:
+                self.senesced_area.append(sum([g.node(id).senesced_area for id in vids]))
+                self.leaf_green_length.append(sum([g.node(id).green_length for id in vids]))
+                self.leaf_heights.append(heights if len(heights)>0. else [0.])
+            except:
+                self.senesced_area = [sum([g.node(id).senesced_area for id in vids])]
+                self.leaf_green_length = [sum([g.node(id).green_length for id in vids])]
+                self.leaf_heights = [heights if len(heights)>0. else [0.]]
+                    
     def create_dataframe_only_leaf_data(self):
         exclude = ['group_dus', 'vids', 'adel_labels', 'init_vids', 'surface_inc', 'surface_chlo', 
                    'surface_nec', 'surface_spo', 'surface_dead', 'surface_empty', 

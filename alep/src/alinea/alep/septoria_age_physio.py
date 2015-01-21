@@ -55,9 +55,6 @@ class SeptoriaAgePhysio(Lesion):
         self.incubation_completed = False
         # Surface of disabled rings
         self.surface_dead = 0.
-        # Stock of spores
-        self.stock_spores = None
-        self.nb_spores_emitted = None
         # Is first hour of rain
         # self.first_rain_hour = False
         # Counter of calculation for senescence
@@ -227,7 +224,7 @@ class SeptoriaAgePhysio(Lesion):
             if round(growth_offer,14) < round(self.growth_demand,14):
                 self.disable_growth()
                 # TEMPORARY
-                self.age_competition = self.age_dday
+                # self.age_competition = self.age_dday
 
             f = self.fungus
             # Growth offer is added to surface according to state
@@ -262,8 +259,8 @@ class SeptoriaAgePhysio(Lesion):
                 if len(surf)<=len(self.surfaces_chlo):
                     self.surfaces_chlo[:len(surf)]+=surf
                 else:
-                    nb_existing = len(self.surfaces_chlo)
-                    nb_to_create = len(surf) - len(self.surfaces_chlo)
+                    # nb_existing = len(self.surfaces_chlo)
+                    # nb_to_create = len(surf) - len(self.surfaces_chlo)
                     self.surfaces_chlo += surf[:len(self.surfaces_chlo)]
                     self.surfaces_chlo = np.append(self.surfaces_chlo, surf[len(self.surfaces_chlo):])
                 
@@ -496,18 +493,8 @@ class SeptoriaAgePhysio(Lesion):
     def sporulation(self):
         """ Compute production of spores. """
         f = self.fungus
-        # First time first ring sporulates
-        # if self.stock_spores==None:
-            # self.stock_spores = self.surface_first_ring * f.production_rate
-            # self.surface_spo += self.surface_first_ring
-        # self.stock_spores += self.to_sporulation * f.production_rate
-        # self.surface_spo += self.to_sporulation
-        # self.to_sporulation = 0.
-        
-        if self.stock_spores==None:
-            self.stock_spores = self.surface_first_ring * f.production_rate
+        if sum(self.surfaces_spo) == 0:
             self.surfaces_spo[0] += self.surface_first_ring
-        self.stock_spores += self.to_sporulation * f.production_rate
         self.surfaces_spo[0] += self.to_sporulation
         self.to_sporulation = 0.
     
@@ -541,7 +528,6 @@ class SeptoriaAgePhysio(Lesion):
         """ Return number of DUs emitted by the lesion. """
         if density_DU_emitted>0:
             f = self.fungus
-            # print 'density DU popDrops %f' % density_DU_emitted
             density = map(lambda x: min(float(density_DU_emitted),x), f.density_dus_emitted_max)
             du_factor = density / f.density_dus_emitted_max
             emissions = map(lambda x: int(x), self.surfaces_spo * density)
@@ -618,9 +604,9 @@ class SeptoriaAgePhysio(Lesion):
             self.become_senescent()
             
         if not self.senescence_response_completed:
-        
+            
             nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
-            ratio_sen = float(nb_sen)/self.nb_lesions
+            ratio_sen = float(nb_sen)/(self.nb_lesions+nb_sen)
             
             # Temp
             # try:
@@ -657,16 +643,17 @@ class SeptoriaAgePhysio(Lesion):
                 if age_switch>rings[0]:
                     
                     # Temp
-                    # if self.nb_lesions == 5:
+                    # if self.nb_lesions > 3:
                         # import pdb
                         # pdb.set_trace()
                 
-                    self.surface_dead += sum(np.extract(rings<age_switch-width, self.surfaces_chlo * ratio_sen))
                     ind_cut = np.where(rings<age_switch)[0][-1]
                     ratio_to_dead = round((age_switch - rings[ind_cut])/(rings[ind_cut+1]-rings[ind_cut]), 14)
-                    self.surface_dead += self.surfaces_chlo[ind_cut]*ratio_sen*ratio_to_dead
+                    to_dead_on_cut_ring = self.surfaces_chlo[ind_cut]*ratio_sen*ratio_to_dead
+                    self.surface_dead += to_dead_on_cut_ring # In the ring which is cut
+                    self.surface_dead += sum(self.surfaces_chlo[:ind_cut]*ratio_sen) # In older rings
                     self.surfaces_chlo[:ind_cut] *= (1 - ratio_sen)
-                    self.surfaces_chlo[ind_cut] *= (1 - ratio_sen)*(1-ratio_to_dead)
+                    self.surfaces_chlo[ind_cut] -= to_dead_on_cut_ring
                     # self.surface_dead += self.surfaces_chlo[np.where(rings<age_switch)[0][-1]]*ratio_sen*(round(age_switch%width, 14)/width if 
                                                                             # (round(age_switch%width, 14)/width)>0. else 1.)                    
                     # self.surfaces_chlo[:np.where(rings<age_switch)[0][-1]] *= (1 - ratio_sen)
@@ -843,7 +830,7 @@ class SeptoriaAgePhysio(Lesion):
     def surface_spo(self):
         """ Calculate the surface in sporulation. """
         return sum(self.surfaces_spo)
-    
+            
     @property
     def necrotic_area(self):
         """ calculate surface necrotic + sporulating. """
