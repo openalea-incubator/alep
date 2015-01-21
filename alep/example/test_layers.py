@@ -45,6 +45,8 @@ def test_transport(interleaf=10., density = 350., layer_thickness=0.01, leaf_sec
     g, domain_area, domain, convunit = adel_two_metamers_stand(leaf_sectors = leaf_sectors, density = density, 
                                         interleaf = interleaf, leaf_length = 20, leaf_width = 1, Einc = 0)
                                         
+    domain_area *= 10
+                                        
     labels = g.property('label')
     bids = [v for v,l in labels.iteritems() if l.startswith('blade')]
     leaves = [[vid for vid in g.components(blade) if labels[vid].startswith('LeafElement')] for blade in bids]
@@ -53,8 +55,8 @@ def test_transport(interleaf=10., density = 350., layer_thickness=0.01, leaf_sec
     for lf in leaves[0]:
         g.node(lf).lesions = [fungus.lesion()]
     emitter = DummyEmission(domain=domain, to_emit = 1e7 / float(leaf_sectors))
-    # transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness, convUnit = convunit)
-    transporter = Septo3DTransport(domain = domain, domain_area = domain_area, dh = layer_thickness, convUnit = convunit, wash = False, show = True)
+    transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness, convUnit = convunit)
+    # transporter = Septo3DTransport(domain = domain, domain_area = domain_area, dh = layer_thickness, convUnit = convunit, wash = False, show = False)
     g = disperse(g, emitter, transporter, fungus_name="dummy", label='LeafElement', weather_data=evalvalue.value)
 
     dus = g.property('dispersal_units')
