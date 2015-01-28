@@ -90,7 +90,7 @@ class BiotrophDUPositionModel:
             leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], []) 
             les_surf = sum([les.surface for les in leaf_lesions])
             leaf_area = sum([areas[lf] for lf in leaf])
-            ratio_les_surface = min(1, round(les_surf,3)/round(leaf_area,3)) if leaf_area>0. else 0.
+            ratio_les_surface = min(1, round(les_surf,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
             
             for vid in set(leaf) & set(dispersal_units):
                     dus = [du for du in dispersal_units[vid] if du.is_active ]
