@@ -48,28 +48,52 @@ def add_notation_dates(data, notation_dates_file):
     df2.ix[dates, :] = 1
     return df2.values == 1
     
-def septo_infection_filter(seq, weather, rain_filter, degree_days=20., base_temp = 0., start_date=None):
+def septoria_filter(seq, weather, degree_days=10., base_temp = 0., 
+                    Tmin = 10., Tmax = 30., WDmin = 10., rain_min = 0.2, start_date=None):
     if not 'septo_infection_risk_with_event' in weather.data.columns:
         from alinea.alep.alep_weather import add_septoria_risk_with_event
         weather.check(varnames=['septo_infection_risk_with_event'], models={'septo_infection_risk_with_event':add_septoria_risk_with_event})
     if not 'septo_degree_days' in weather.data.columns:
         from alinea.alep.alep_weather import linear_degree_days
         weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=base_temp)
-        
-    cond_inf = weather.data['septo_infection_risk_with_event'][seq].values
-    ddays = weather.data['septo_degree_days'][seq].values
-    ind = []
-    count=0
-    for i in range(len(cond_inf)):
-        if (rain_filter[i]==True and round(weather.data['rain'][seq][i], 14)>0) or ('notation_dates' in weather.data.columns and weather.data['notation_dates'][seq][i] == True):
-            cond_inf[i] = True
-            count = ddays[i]
+    wetness = weather.data.wetness[seq]
+    temperature = weather.data.temperature_air[seq]
+    rain = weather.data.rain[seq]
+    rain[rain <= rain_min] = 0
+    cond_inf = weather.data.septo_infection_risk_with_event[seq]
+    ddays = weather.data.degree_days[seq].diff()
+    ddays.ix[0] = 0.
+    count_wet = 0.
+    count_rain = 0.
+    count_ddays = 0.
+    df = pandas.Series([False for i in range(len(wetness))], index = wetness.index)
+    for i, row in df.iteritems():
+        if wetness[i] and Tmin <= temperature[i] < Tmax:
+            if count_wet == 0. and i < df.index[-1]-9 and cond_inf[i+9] == True:
+                df[i] = True
+            count_ddays = 0.
+            count_wet += 1.
+            if count_wet >= WDmin and cond_inf[i] == True:
+                df[i] = True
         else:
-            if i == 0:
-                count += ddays[i]
-            else:
-                count += (ddays[i] - ddays[i-1])
-            if count >= degree_days:
-                cond_inf[i] = True
-                count = (ddays[i] - ddays[i-1])
-    return cond_inf==1
+            count_wet = 0.
+    
+    for i, row in df.iteritems():
+        if rain[i] > 0:
+            if count_rain == 0.:
+                df[i] = True
+            count_rain += 1
+        else:
+            if count_rain > 0.:
+                df[i] = True
+            count_rain = 0.
+
+    for i, row in df.iteritems():
+        if row == True:
+            count_ddays = 0.
+        count_ddays += ddays[i]
+        if count_ddays >= degree_days and i > df.index[0]:
+            df[i - 1] = True
+            count_ddays = 0.
+    df[df.index[0]] = True
+    return df

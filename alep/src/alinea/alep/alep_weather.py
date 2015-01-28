@@ -187,12 +187,14 @@ def add_septoria_efficient_rain(data, viability = 5):
     
 def add_septoria_risk_with_event(data, viability = 5):
     """ viability (in days) is the period after which inoculum is dead if no infection. """
+    if not 'septo_infection_risk' in data.columns:
+        data['septo_infection_risk'] = add_septoria_infection_risk(data)
     df = data.ix[:, ['rain', 'septo_infection_risk']]
     df['bool_rain'] = (df['rain']>0)*1
     df['septo_risk_with_event'] = np.zeros(len(df))
     for date, row in df.iterrows():
         if row['septo_infection_risk']>0 and sum(df.ix[date-timedelta(days=viability-1, hours=23):date+timedelta(hours=1), 'bool_rain'])>0:
-            df.set_value(date, 'septo_risk_with_event', 1)   
+            df.set_value(date, 'septo_risk_with_event', 1) 
     return df['septo_risk_with_event']
     
 def add_rain_dispersal_events(weather):

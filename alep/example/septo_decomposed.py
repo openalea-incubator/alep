@@ -9,6 +9,7 @@ try:
 except:
     import pickle
 import sys
+import numpy as np
 
 # Imports for wheat and rain/light interception
 from alinea.adel.newmtg import move_properties, adel_ids
@@ -29,7 +30,7 @@ from alinea.astk.Weather import Weather
 # Imports for alep septoria
 from alinea.alep.protocol import *
 from alinea.alep.septoria import plugin_septoria
-from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DSoilContamination
+from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DSoilContamination, Septo3DEmission
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
@@ -38,27 +39,28 @@ from alinea.alep.disease_outputs import initiate_all_adel_septo_recorders, plot_
 def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"):
     """ Get weather data for simulation. """
     start = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    end = datetime.strptime(end_date, '%Y-%m-%d %H:%M:%S')
     if start.year >= 2010:
-        filename = 'Boigneville_0109'+str(start.year)+'_3108'+str(end.year)+'_h.csv'
+        filename = 'Boigneville_0109'+str(start.year)+'_3108'+str(start.year+1)+'_h.csv'
         meteo_path = shared_data(alinea.echap, filename)
         weather = Weather(meteo_path, reader = arvalis_reader)
         weather.check(['temperature_air', 'PPFD', 'relative_humidity',
                        'wind_speed', 'rain', 'global_radiation', 'vapor_pressure'])
-        notation_dates_file = shared_data(alinea.alep, 'notation_dates/notation_dates_'+str(end.year)+'.csv')
+        notation_dates_file = shared_data(alinea.alep, 'notation_dates/notation_dates_'+str(start.year+1)+'.csv')
         weather.check(varnames=['notation_dates'], models={'notation_dates':add_notation_dates}, notation_dates_file = notation_dates_file)
     else:
         start_yr = str(start.year)[2:4]
-        end_yr = str(end.year)[2:4]
+        end_yr = str(start.year+1)[2:4]
         filename = 'meteo'+ start_yr + '-' + end_yr + '.txt'
         meteo_path = shared_data(alinea.septo3d, filename)
         weather = Weather(data_file=meteo_path)
     weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
     weather.check(varnames=['degree_days'], models={'degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=30.)
-    weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=25.)
+    # weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=25.)
+    weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=30.)
     return weather
 
-def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", variety='Mercia', nplants = 30, nsect = 7, disc_level = 5):
+def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", variety='Mercia',
+            nplants = 30, nsect = 7, disc_level = 5, rain_min = 0.2):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Initialize wheat plant
     reconst = EchapReconstructions()
@@ -70,11 +72,12 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     # Define the schedule of calls for each model
     seq = pandas.date_range(start = start_date, end = end_date, freq='H')
     TTmodel = DegreeDayModel(Tbase = 0)
-    every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 10)
-    every_rain = rain_filter(seq, weather)
+    every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 20.)
+    every_rain = rain_filter(seq, weather, rain_min = rain_min)
     every_dd_or_rain = filter_or([every_dd, every_rain])
     canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data))
-    septo_filter = septo_infection_filter(seq, weather, every_rain)
+    # canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
+    septo_filter = septoria_filter(seq, weather, degree_days = 10., rain_min = rain_min)
     rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
     septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
     return adel, weather, seq, rain_timing, canopy_timing, septo_timing
@@ -103,7 +106,7 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
     domain = adel.domain
     convUnit = adel.convUnit
     g = adel.setup_canopy(age=0.)
-    rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
+    rain_and_light_star(g, light_sectors = '1', domain = domain, convUnit = convUnit)
     it_wheat = 0
     adel.save(g, it_wheat, dir=dir)
     for i, controls in enumerate(zip(canopy_timing, septo_timing)):
@@ -126,9 +129,9 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         del(sys.modules['alinea.alep.septoria_age_physio'])
     inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(adel, sporulating_fraction, layer_thickness, **kwds)
     it_wheat = 0
-    it_septo = 0
     g,TT = adel.load(it_wheat, dir=dir)
-    
+    leaf_ids = adel_ids(g)
+        
     # Prepare saving of outputs
     recorders = initiate_all_adel_septo_recorders(g, nsect)
     
@@ -137,6 +140,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         
         # Grow wheat canopy
         if canopy_iter:
+            print canopy_iter.value.index[-1]
             it_wheat += 1
             newg,TT = adel.load(it_wheat, dir=dir)
             move_properties(g, newg)
@@ -147,8 +151,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         if septo_iter:
             set_properties(g,label = 'LeafElement',
                            temperature_sequence = septo_iter.value.temperature_air,
-                           wetness = septo_iter.value.wetness.mean(),
-                           relative_humidity = septo_iter.value.relative_humidity.mean())
+                           wetness_sequence = septo_iter.value.wetness)
         if rain_iter:
             set_properties(g,label = 'LeafElement',
                            rain_intensity = rain_iter.value.rain.mean(),
@@ -165,12 +168,8 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             update(g, septo_iter.dt, growth_controler, senescence_model=None, label='LeafElement')
             
         # Disperse and wash
-        if rain_iter and len(geom)>0:
-            if rain_iter.value.rain.mean()>0.:
-                # if it_wheat > 600:
-                    # import pdb
-                    # pdb.set_trace()
-                g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_iter.value)
+        if rain_iter and len(geom)>0 and rain_iter.value.rain.mean()>0.:
+            g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_iter.value)
         
         # if save_images == True:
             # if canopy_iter:
@@ -188,7 +187,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
                 # save_image(scene, image_name=image_name)
 
         # Save outputs
-        if septo_iter:
+        if septo_iter:       
             date = septo_iter.value.index[-1]
             for plant in recorders:
                 deads = []

@@ -31,6 +31,11 @@ def external_contamination(g,
     """
     
     stock = contamination_source.emission(g, weather_data, **kwds)
+    
+    # print ''
+    # print '------------------------------'
+    # print 'CONTA I: %d' % len(stock)
+    
     if len(stock) > 0:
         # Allocation of stock of inoculum
         deposits = contamination_model.contaminate(g, stock, weather_data)
@@ -194,9 +199,6 @@ def update(g, dt,
     
     """
     if activate:
-        # Get lesions with inactive lesions removed
-        # les = {k:[l for l in v if l.is_active] 
-                    # for k, v in g.property('lesions').iteritems()}
         lesions = g.property('lesions')
         
         # 1. Compute growth demand
@@ -212,37 +214,7 @@ def update(g, dt,
         
         # 2. Allocate or not growth demand, and compute corresponding production of spores 
         if growth_control_model:
-            growth_control_model.control(g, label=label)
-            
-            # if senescence_model:
-                # # 4. Call a specific response if lesions are on senescent tissue
-                # l = [l for v in les.values() for l in v if l.is_senescent]
-                # for lesion in l:             
-                    # lesion.senescence_response()
-        
-        
-            # # 1. Determine which lesions will be affected by senescence (optional)
-            # if senescence_model:
-                # senescence_model.find_senescent_lesions(g)
-            
-            # # 2. Compute growth demand
-            # for vid, l in les.iteritems():
-                # # Update active lesions
-                # for lesion in l:
-                    # leaf=g.node(vid)
-                    # if weather_data is None:
-                        # lesion.update(dt, leaf)
-                    # else:
-                        # lesion.update(dt, leaf, weather_data)
-            
-            # # 3. Allocate or not growth demand, and compute corresponding production of spores 
-            # growth_control_model.control(g, label=label)
-            
-            # if senescence_model:
-                # # 4. Call a specific response if lesions are on senescent tissue
-                # l = [l for v in les.values() for l in v if l.is_senescent]
-                # for lesion in l:             
-                    # lesion.senescence_response()     
+            growth_control_model.control(g, label=label)  
     return g
 
 def disperse(g,
@@ -299,8 +271,10 @@ def disperse(g,
         DU = emission_model.get_dispersal_units(g, fungus_name, label)
     else: 
         DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
-        
     labels = g.property('label')
+    
+    # print 'CONTA II: %d' % len(sum(DU.values(), []))
+    
     # Transport of dispersal units
     if len(sum(DU.values(), []))>0:
         # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)

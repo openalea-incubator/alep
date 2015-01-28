@@ -93,14 +93,15 @@ class SeptoriaDU(DispersalUnit):
             self.disable()
             return
         else:
-            leaf_wet = leaf.wetness # (boolean): True if the leaf sector is wet during this time step.
+            leaf_wet = leaf.wetness_sequence # (boolean): True if the leaf sector is wet during this time step.
             temp = leaf.temperature_sequence.mean() # (float) : mean temperature on the leaf sector during the time step (in degree).  
-            # TODO: design a new equation : see Magarey (2005)           
-            if (self.fungus.temp_min <= temp <= self.fungus.temp_max) and leaf_wet:
-                self.cumul_wetness += dt
-            else:                 
+            
+            if leaf_wet.sum() == len(leaf_wet):
+                self.cumul_wetness += len(leaf_wet)
+            else:
                 self.cumul_wetness = 0.
-                self.dry_dt = min(self.fungus.loss_delay-1, self.dry_dt + dt)
+                self.dry_dt = min(self.fungus.loss_delay-1, 
+                                    self.dry_dt + len(leaf_wet[leaf_wet==False]))
                 
             if self.cumul_wetness >= self.fungus.wd_min :
                 # TODO : create a function of the number of spores            

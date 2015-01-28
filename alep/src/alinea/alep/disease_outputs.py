@@ -1165,7 +1165,7 @@ class AdelSeptoRecorder:
         
             self.date_sequence.append(date)
             self.degree_days.append(degree_days)
-        
+
             # Update leaf properties
             self.leaf_area.append(sum([g.node(id).area for id in vids]))
             self.leaf_green_area.append(sum([g.node(id).green_area for id in vids]))
@@ -1228,7 +1228,7 @@ class AdelSeptoRecorder:
                             surface_dead += les.surface_dead
             
             self.nb_dispersal_units.append(nb_dus)
-            self.nb_dus_on_green.append(nb_dus_on_green)                
+            self.nb_dus_on_green.append(nb_dus_on_green)
             self.nb_lesions.append(nb_lesions)
             self.nb_lesions_on_green.append(nb_lesions_on_green)
             self.surface_inc.append(surface_inc)

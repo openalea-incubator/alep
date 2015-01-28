@@ -100,24 +100,25 @@ class PriorityGrowthControl:
         """ 
         """
         lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
+        areas = g.property('area')
+        green_areas = g.property('green_area')
+        senesced_areas = g.property('senesced_area')
         labels = g.property('label')
 
         # Select all the leaves
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
-            leaf_healthy_area = 0.
-            for vid in leaf:
-                lf = g.node(vid)
-                les_surf = sum(l.surface_alive for l in lesions[vid]) if vid in lesions else 0.
-                ratio_green = min(1., lf.green_area/lf.area) if lf.area>0. else 0.
-                green_lesion_area = les_surf * ratio_green
-                leaf_healthy_area += lf.area - (lf.senesced_area + green_lesion_area)
+            leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], []) 
+            les_surf = sum([les.surface for les in leaf_lesions])
+            leaf_area = sum([areas[lf] for lf in leaf])
+            leaf_green_area = sum([green_areas[lf] for lf in leaf])
+            leaf_senesced_area = sum([senesced_areas[lf] for lf in leaf])
+            ratio_green = min(1., leaf_green_area/leaf_area) if leaf_area>0. else 0.
+            green_lesion_area = les_surf * ratio_green if leaf_senesced_area > les_surf else les_surf - leaf_senesced_area
+            leaf_healthy_area = leaf_area - (leaf_senesced_area + green_lesion_area)
             leaf_healthy_area = max(0., round(leaf_healthy_area, 10))   
-
-            leaf_lesions = [l for lf in leaf if lf in lesions for l in lesions[lf] if l.growth_is_active]
             total_demand = sum(l.growth_demand for l in leaf_lesions)
-
             if total_demand > leaf_healthy_area:
                 prior_lesions = [l for l in leaf_lesions if l.status>=l.fungus.CHLOROTIC]
                 non_prior_lesions = [l for l in leaf_lesions if l.status<l.fungus.CHLOROTIC]
