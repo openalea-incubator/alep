@@ -32,10 +32,6 @@ def external_contamination(g,
     
     stock = contamination_source.emission(g, weather_data, **kwds)
     
-    # print ''
-    # print '------------------------------'
-    # print 'CONTA I: %d' % len(stock)
-    
     if len(stock) > 0:
         # Allocation of stock of inoculum
         deposits = contamination_model.contaminate(g, stock, weather_data)
@@ -272,9 +268,7 @@ def disperse(g,
     else: 
         DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
     labels = g.property('label')
-    
-    # print 'CONTA II: %d' % len(sum(DU.values(), []))
-    
+
     # Transport of dispersal units
     if len(sum(DU.values(), []))>0:
         # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)

@@ -37,7 +37,7 @@ class SeptoriaAgePhysio(Lesion):
         self.status_edge = self.fungus.INCUBATING
         # Age of the periphery of the lesion
         self.age_physio_edge = 0.
-        # Ratio left to progress in new status when center of the lesion changes status during time step
+        # Ratio left to progress in new status when centre of the lesion changes status during time step
         self.ratio_left = 0.
         self.ratio_left_edge = 0.
         # Surfaces exchanged
@@ -54,31 +54,8 @@ class SeptoriaAgePhysio(Lesion):
         self.surface_senesced = 0.
         # Surface of disabled rings
         self.surface_dead = 0.
-        # Is first hour of rain
-        # self.first_rain_hour = False
-        # Counter of calculation for senescence
-        # self.can_compute_senescence = True
+        # Marker of senescence completion
         self.senescence_response_completed = False
-        # Old position senescence
-        # self.old_position_senescence = None
-        # dt left after senescence
-        # self.dt_before_senescence = None
-        # self.dt_left_after_senescence = None
-    
-        # Temporary
-        # self.previous_surface = 0.
-        # self.hist_age = []
-        # self.hist_inc = []
-        # self.hist_chlo = []
-        # self.hist_nec = []
-        # self.hist_spo = []
-        # self.hist_empty = []
-        # self.hist_can_compute_rings = []
-        # self.hist_nb_rings_chlo = []
-        # self.hist_progress = []
-        # self.hist_age_physio = []
-        # self.hist_nb_les = []
-        # self.hist_surf = []
     
     def is_incubating(self):
         """ Check if lesion status is incubation. """
@@ -107,16 +84,11 @@ class SeptoriaAgePhysio(Lesion):
             A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions, etc.)
         """       
-        # Manage senescence
-        # if self.is_senescent and self.can_compute_senescence==True:
-            # dt = self.compute_time_before_senescence(dt, leaf=leaf)
-        # self.old_position_senescence = leaf.position_senescence
-               
+        # Manage senescence              
         if any([x[0]<=leaf.senesced_length for x in self.position]):
             self.senescence_response(leaf.senesced_length)
         
         if self.is_active:
-            
             # Compute delta degree days in dt
             self.compute_delta_ddays(dt, leaf)
             
@@ -125,44 +97,21 @@ class SeptoriaAgePhysio(Lesion):
                 self.age_dday += self.ddday        
                 # Update growth demand and status
                 self.update_status()
+                # Disable growth if edge is necrotic
+                self.check_edge()
             else:
                 self.growth_demand = 0.
-                
-            # Temp
-            # if self.growth_demand < 0.:
-                # import pdb
-                # pdb.set_trace()
-            
-            # if any([x<0. for x in self.surfaces_chlo]):
-                # import pdb
-                # pdb.set_trace()
-            
-            # if any([x<0. for x in self.surfaces_nec]):
-                # import pdb
-                # pdb.set_trace()
-                
-            # if any([x<0. for x in self.surfaces_spo]):
-                # import pdb
-                # pdb.set_trace()
-            
-            # Temporary
-            # self.hist_age.append(self.age_dday)
-            # self.hist_inc.append(self.surface_inc)
-            # self.hist_chlo.append(self.surface_chlo)
-            # self.hist_nec.append(self.surface_nec)
-            # self.hist_spo.append(self.surface_spo)
-            # self.hist_empty.append(self.surface_empty)
-            # self.hist_can_compute_rings.append(self.can_compute_rings())
-            # self.hist_nb_rings_chlo.append(len(self.surfaces_chlo))
-            # self.hist_age_physio.append(self.age_physio)
-            # self.hist_nb_les.append(self.nb_lesions)
-            # self.hist_surf.append(self.surface)
-            
-            # Temporary      
-            # if self.surface_chlo>0. and len(self.surfaces_nec>1.) and self.surfaces_nec[0]==0.:
-                # import pdb
-                # pdb.set_trace()
 
+    def check_edge(self):
+        if (self.status > self.fungus.CHLOROTIC and 
+            round(self.surface_chlo, 14) == 0. and 
+            round(self.surface_inc, 14) == 0.):
+            print 'COUCOU1'
+            if (self.status >= self.fungus.SPORULATING and 
+                round(self.surface_nec, 14) == 0. and
+                round(self.surface_spo, 14) == 0.):
+                    self.disable()
+                
     def compute_delta_ddays(self, dt=1., leaf=None):
         """ Compute delta degree days in dt.
         
@@ -216,16 +165,6 @@ class SeptoriaAgePhysio(Lesion):
             Surface available on the leaf for the ring to grow (cm2)
         """        
         if self.growth_is_active:
-            
-            # Disable growth in case of competition 
-            # TEMPORARY COMMENT /!\
-            # if round(growth_offer,14) < round(self.growth_demand,14):
-                # self.disable_growth()
-                
-                
-                # TEMPORARY
-                # self.age_competition = self.age_dday
-
             f = self.fungus
             # Growth offer is added to surface according to state
             if self.is_incubating():
@@ -252,15 +191,9 @@ class SeptoriaAgePhysio(Lesion):
                 if len(surf)<=len(self.surfaces_chlo):
                     self.surfaces_chlo[:len(surf)]+=surf
                 else:
-                    # nb_existing = len(self.surfaces_chlo)
-                    # nb_to_create = len(surf) - len(self.surfaces_chlo)
                     self.surfaces_chlo += surf[:len(self.surfaces_chlo)]
                     self.surfaces_chlo = np.append(self.surfaces_chlo, surf[len(self.surfaces_chlo):])
-                
-                # if self.is_sporulating() and self.status_edge==f.CHLOROTIC and self.age_physio_edge==0. and len(self.surfaces_chlo)<f.nb_rings_by_state:
-                    # import pdb
-                    # pdb.set_trace()
-
+                    
             # Reset distribution in new rings and growth demand
             self.distribution_new_ring = 0.         
 
@@ -280,20 +213,13 @@ class SeptoriaAgePhysio(Lesion):
         self.age_physio += progress
         # Compute growth demand
         if self.age_physio<1.:
-            # if self.surface_first_ring<0:
-                # import pdb
-                # pdb.set_trace()
             if self.growth_is_active:
                 self.growth_demand = progress * f.Smin * self.nb_lesions
         else:
             if self.growth_is_active:
                 Smin = self._surface_min
                 self.growth_demand = round(Smin - self.surface_first_ring, 14)
-                    
-            if self.growth_demand < 0:
-                import pdb
-                pdb.set_trace()
-            
+
             # Change status
             self.ratio_left = round((self.age_physio - 1.)/progress, 14)
             self.change_status()
@@ -308,11 +234,7 @@ class SeptoriaAgePhysio(Lesion):
         # Compute progress in chlorosis
         time_to_nec = f.degree_days_to_necrosis
         progress = self.progress(age_threshold=time_to_nec)
-        
-        # Temp debug
-        # self.hist_progress.append(progress)
-        # self.hist_can_compute_rings.append(self.can_compute_rings())
-                
+
         # Compute growth demand
         if self.growth_is_active:
             # Note : '+=' because might be added to growth demand in incubation 
@@ -322,11 +244,7 @@ class SeptoriaAgePhysio(Lesion):
             Smax = self._surface_max
             if self.surface + self.growth_demand >= Smax:
                 self.growth_demand = Smax - self.surface
-            
-            if self.growth_demand<0:
-                import pdb
-                pdb.set_trace()
-                
+
         # Compute exchanges of surfaces
         if self.incubation_completed:
             age_physio = self.age_physio
@@ -425,10 +343,6 @@ class SeptoriaAgePhysio(Lesion):
                 ends = rings[1:]
                 begs_prog = begs + progress
                 ends_prog = ends + progress          
-                # new_classes = np.arange(width*ceil(begs_prog[0]/width),
-                                        # width*(ceil(ends_prog[-1]/width)+1),
-                                        # width)
-                # new_classes = np.round(new_classes, 14)
                 new_ends = np.arange(max(0.1, width*ceil(begs_prog[0]/width)), width*(ceil(ends_prog[-1]/width)+1), width)
                 new_ends = np.round(new_ends, 14)
                 
@@ -495,32 +409,6 @@ class SeptoriaAgePhysio(Lesion):
             self.surface_first_ring = 0.
         self.surfaces_spo[0] += self.to_sporulation
         self.to_sporulation = 0.
-    
-    def is_stock_available(self, leaf):
-        """ Check if the stock of DU can be emitted.
-        
-        DU is free for liberation if :
-            - there are DUs in stock_du
-            - ring is sporulating
-            - relative humidity is above a treshold
-            - it is the first hour of rain
-            
-        Parameters
-        ----------
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. area, green area, healthy area,
-            senescence, rain intensity, wetness, temperature, lesions)
-       
-        Returns
-        -------
-        True or False :
-            Availability of the stock
-        
-        """
-        # f = self.fungus
-        # return (self.stock_spores>0. and self.is_sporulating() and 
-                # leaf.relative_humidity >= f.rh_min and self.first_rain_hour)
-        return self.is_sporulating()
 
     def emission(self, density_DU_emitted):
         """ Return number of DUs emitted by the lesion. """
@@ -600,14 +488,6 @@ class SeptoriaAgePhysio(Lesion):
             
             nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
             ratio_sen = float(nb_sen)/(self.nb_lesions)
-            
-            # Temp
-            # try:
-                # self.count_sen += 1
-                # self.hist_nb_sen.append(nb_sen)
-            # except:
-                # self.count_sen = 1
-                # self.hist_nb_sen = [nb_sen]
             
             # Save surface of senesced lesions in cohort
             self.surface_senesced += (self.surface-self.surface_senesced) * ratio_sen
@@ -704,13 +584,6 @@ class SeptoriaAgePhysio(Lesion):
         """ Turn age physio to 0. """
         self.age_physio_edge = 0.
     
-    # def can_compute_rings(self):
-        # """ Allow ring formation only if particular first ring has reached Smin. """
-        # if self.status_edge<=self.fungus.CHLOROTIC:
-            # return (len(self.surfaces_chlo)>0. and round(self.surface_first_ring, 14) == round(self._surface_min, 14))
-        # elif self.status_edge<=self.fungus.NECROTIC:
-            # return (len(self.surfaces_nec)>0. and round(self.surface_first_ring, 14) == round(self._surface_min, 14))
-            
     def compute_all_surfaces(self):
         """ Not needed in this model.
         ..TODO: Remove """
@@ -802,20 +675,6 @@ class SeptoriaFungus(Fungus):
     def __init__(self, name='septoria', Lesion=SeptoriaAgePhysio, DispersalUnit=SeptoriaDU, parameters=septoria_parameters):
         super(SeptoriaFungus, self).__init__(name=name, Lesion=Lesion, DispersalUnit=DispersalUnit, parameters=parameters)
         
-# class Parameters(_SeptoriaParameters):
-    # def __init__(self,**kwds):
-        # _SeptoriaParameters.__init__(self, model=SeptoriaAgePhysio, **kwds)
-        
-# class Disease(_Disease):
-    # @classmethod
-    # def parameters(cls, **kwds):
-        # return Parameters(**kwds)
-    
-    # @classmethod
-    # def lesion(cls, **kwds):
-        # SeptoriaAgePhysio.fungus=cls.parameters(**kwds)
-        # return SeptoriaAgePhysio
-
 import collections        
 def is_iterable(obj):
     """ Test if object is iterable """

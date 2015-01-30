@@ -31,7 +31,7 @@ from alinea.astk.Weather import Weather
 from alinea.alep.protocol import *
 from alinea.alep.septoria import plugin_septoria
 from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DSoilContamination, Septo3DEmission
-from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
+from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
 from alinea.alep.disease_outputs import initiate_all_adel_septo_recorders, plot_severity_by_leaf, save_image
@@ -74,9 +74,9 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     TTmodel = DegreeDayModel(Tbase = 0)
     every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 20.)
     every_rain = rain_filter(seq, weather, rain_min = rain_min)
-    every_dd_or_rain = filter_or([every_dd, every_rain])
-    canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data))
-    # canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
+    # every_dd_or_rain = filter_or([every_dd, every_rain])
+    # canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data))
+    canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
     septo_filter = septoria_filter(seq, weather, degree_days = 10., rain_min = rain_min)
     rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
     septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
@@ -90,7 +90,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, **kwds):
     fungus = plugin_septoria()
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
     inoculum = SoilInoculum(fungus, sporulating_fraction=sporulating_fraction, domain_area=domain_area)
-    contaminator = Septo3DSoilContamination(domain=domain, domain_area=domain_area)
+    contaminator = PopDropsSoilContamination(domain=domain, domain_area=domain_area)
     growth_controler = PriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     emitter = PopDropsEmission(domain=domain, compute_star = False)
