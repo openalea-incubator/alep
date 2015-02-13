@@ -124,6 +124,7 @@ class SeptoriaRainDispersal:
             from random import shuffle
             import numpy as np
             from copy import copy
+            
             dmax = self.distance_max
             tesselator = pgl.Tesselator()
             bbc = pgl.BBoxComputer(tesselator)
@@ -131,7 +132,7 @@ class SeptoriaRainDispersal:
             centroids = g.property('centroid')
             geometries = g.property('geometry')
             _, norm = get_area_and_normal(geometries)
-            areas = g.property('area')
+            areas = g.property('area')          
             
             def centroid(vid):
                 if is_iterable(geometries[vid]):
@@ -144,6 +145,7 @@ class SeptoriaRainDispersal:
             for source, dus in dispersal_units.iteritems():
                 nb_tri = len(norm[source])
                 borders = np.linspace(0,1,num=nb_tri)
+                
                 dus_by_tri = {k:filter(lambda x: borders[k]<x.position[0]<=borders[k+1], dus) 
                                 for k in range(nb_tri-1)
                                 if len(filter(lambda x: borders[k]<x.position[0]<=borders[k+1], dus))>0.}
@@ -367,10 +369,7 @@ class PowderyMildewWindDispersal:
                 for vid in targets:
                     centroid(vid)
                     # surface(vid)
-                
-                import pdb
-                pdb.set_trace()
-                
+
                 # Sort the vids based on the direction 
                 Origin = centroids[source]
                 vects = {vid:(centroids[vid]-Origin) for vid in targets 

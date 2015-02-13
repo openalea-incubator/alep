@@ -54,9 +54,11 @@ class SeptoriaAgePhysio(Lesion):
         self.surface_senesced = 0.
         # Surface of disabled rings
         self.surface_dead = 0.
+        # Marker of incubation completion
+        self.incubation_completed = False
         # Marker of senescence completion
         self.senescence_response_completed = False
-    
+
     def is_incubating(self):
         """ Check if lesion status is incubation. """
         return self.status == self.fungus.INCUBATING
@@ -83,11 +85,11 @@ class SeptoriaAgePhysio(Lesion):
         leaf: Leaf sector node of an MTG 
             A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions, etc.)
-        """       
+        """
         # Manage senescence              
         if any([x[0]<=leaf.senesced_length for x in self.position]):
             self.senescence_response(leaf.senesced_length)
-        
+
         if self.is_active:
             # Compute delta degree days in dt
             self.compute_delta_ddays(dt, leaf)
@@ -101,12 +103,16 @@ class SeptoriaAgePhysio(Lesion):
                 self.check_edge()
             else:
                 self.growth_demand = 0.
+        
+        if (self.incubation_completed == False and
+            round(self.surface_first_ring,14) >= round(self.fungus.Smin * self.nb_lesions, 14)):
+            self.incubation_completed = True
 
     def check_edge(self):
         if (self.status > self.fungus.CHLOROTIC and 
             round(self.surface_chlo, 14) == 0. and 
             round(self.surface_inc, 14) == 0.):
-            print 'COUCOU1'
+            self.disable_growth()
             if (self.status >= self.fungus.SPORULATING and 
                 round(self.surface_nec, 14) == 0. and
                 round(self.surface_spo, 14) == 0.):
@@ -355,12 +361,16 @@ class SeptoriaAgePhysio(Lesion):
                     for ind in indexes:
                         new_surf[j] += round((min(ends_prog[ind], new_ends[j])-
                                               max(begs_prog[ind],new_ends[j]-width))*
-                                              self.surfaces_nec[ind]/(ends[ind]-begs[ind]), 14)
+                                              self.surfaces_nec[ind]/(ends[ind]-begs[ind]), 14) if round(ends[ind]-begs[ind], 14) > 0. else 0.
                                     
                 # Get what passes to next status
                 self.surfaces_nec = np.extract(new_ends<=1, new_surf)
                 self.to_sporulation = sum(np.extract(new_ends>1, new_surf))
-            
+                        
+                if not self.to_sporulation>=0:
+                    import pdb
+                    pdb.set_trace()
+
             # Filling of new rings
             nb_full_rings = int(floor(progress/width))
             surf = np.array([])
@@ -415,13 +425,24 @@ class SeptoriaAgePhysio(Lesion):
         if density_DU_emitted>0:       
             f = self.fungus
             density = map(lambda x: min(float(density_DU_emitted),x), f.density_dus_emitted_max)
-            du_factor = density / f.density_dus_emitted_max
+            
+            cond = np.array(density)>=0
+            if any(~cond):
+                import pdb
+                pdb.set_trace()
+            du_factor = map(lambda (x,y): x / y if y>0. else 0., zip(density, f.density_dus_emitted_max))
             emissions = map(lambda x: int(x), self.surfaces_spo * density)
             # emissions = map(lambda x: int(x), self.surfaces_spo * density_DU_emitted)
             
             delta_spo = self.surfaces_spo*du_factor
             self.surfaces_spo -= delta_spo
             self.surfaces_spo[1:]+=delta_spo[:-1]
+            
+            cond = self.surfaces_spo>=0
+            if any(~cond):
+                import pdb
+                pdb.set_trace()
+            
             if delta_spo[-1]>0.:
                 self.surface_empty += delta_spo[-1]
                 
@@ -663,13 +684,6 @@ class SeptoriaAgePhysio(Lesion):
             return None
         else:
             return len(self.position)
-    
-    @property
-    def incubation_completed(self):
-        if round(self.surface_first_ring,14) >= round(self.fungus.Smin * self.nb_lesions, 14):
-            return True
-        else:
-            return False
 
 class SeptoriaFungus(Fungus):
     def __init__(self, name='septoria', Lesion=SeptoriaAgePhysio, DispersalUnit=SeptoriaDU, parameters=septoria_parameters):

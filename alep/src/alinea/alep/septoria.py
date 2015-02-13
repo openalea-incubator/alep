@@ -102,8 +102,8 @@ class SeptoriaDU(DispersalUnit):
                 self.cumul_wetness = 0.
                 self.dry_dt = min(self.fungus.loss_delay-1, 
                                     self.dry_dt + len(leaf_wet[leaf_wet==False]))
-                
-            if self.cumul_wetness >= self.fungus.wd_min :
+                    
+            if self.cumul_wetness >= self.fungus.wd_min :                
                 # TODO : create a function of the number of spores            
                 proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
                 # Intrinsec proba of infection

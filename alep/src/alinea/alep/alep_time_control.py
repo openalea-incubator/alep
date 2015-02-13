@@ -52,7 +52,9 @@ def septoria_filter(seq, weather, degree_days=10., base_temp = 0.,
                     Tmin = 10., Tmax = 30., WDmin = 10., rain_min = 0.2, start_date=None):
     if not 'septo_infection_risk_with_event' in weather.data.columns:
         from alinea.alep.alep_weather import add_septoria_risk_with_event
-        weather.check(varnames=['septo_infection_risk_with_event'], models={'septo_infection_risk_with_event':add_septoria_risk_with_event})
+        weather.check(varnames=['septo_infection_risk_with_event'], 
+                      models={'septo_infection_risk_with_event':add_septoria_risk_with_event}, 
+                      wetness_duration_min = WDmin, temp_min = Tmin, temp_max = Tmax)
     if not 'septo_degree_days' in weather.data.columns:
         from alinea.alep.alep_weather import linear_degree_days
         weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=base_temp)
@@ -68,14 +70,22 @@ def septoria_filter(seq, weather, degree_days=10., base_temp = 0.,
     count_ddays = 0.
     df = pandas.Series([False for i in range(len(wetness))], index = wetness.index)
     for i, row in df.iteritems():
+        # if wetness[i] and Tmin <= temperature[i] < Tmax:
+            # if count_wet == 0. and i < df.index[-1]-9 and cond_inf[i+9] == True:
+                # df[i] = True
+            # count_ddays = 0.
+            # count_wet += 1.
+            # if count_wet >= WDmin and cond_inf[i] == True:
+                # df[i] = True
+        # else:
+            # count_wet = 0.
         if wetness[i] and Tmin <= temperature[i] < Tmax:
             if count_wet == 0. and i < df.index[-1]-9 and cond_inf[i+9] == True:
                 df[i] = True
-            count_ddays = 0.
             count_wet += 1.
-            if count_wet >= WDmin and cond_inf[i] == True:
-                df[i] = True
         else:
+            if i > df.index[0] and count_wet >= WDmin and cond_inf[i-1] == True:
+                df[i - 1] = True
             count_wet = 0.
     
     for i, row in df.iteritems():

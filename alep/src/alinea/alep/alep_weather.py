@@ -105,7 +105,7 @@ def add_julian_days(data, sowing_date="2010-10-15"):
     ind_sowing = np.where(indexes==sowing_date)[0][0]
     return [(data.index[t]-data.index[ind_sowing]).days for t in range(len(data.index))]
         
-def add_septoria_infection_risk(data, temp_min=10, temp_max=25):
+def add_septoria_infection_risk(data, wetness_duration_min = 10., temp_min=10, temp_max=25):
     """ Add True or False if there is a risk of infection for septoria.
     
     Infection is possible if wetness duration > 10h and 10<temp<30 deg C. 
@@ -118,7 +118,7 @@ def add_septoria_infection_risk(data, temp_min=10, temp_max=25):
     for i_line in range(len(data)):
         if infect_cond[i_line]==True:
             counter += 1.
-            if counter >= 10.:
+            if counter >= wetness_duration_min:
                 septo_infection_risk[i_line] = True
             else:
                 septo_infection_risk[i_line] = False
@@ -185,10 +185,12 @@ def add_septoria_efficient_rain(data, viability = 5):
             df.set_value(date, 'efficient_rain', 1)
     return df['efficient_rain']
     
-def add_septoria_risk_with_event(data, viability = 5):
+def add_septoria_risk_with_event(data, viability = 5, wetness_duration_min = 10., temp_min=10, temp_max=25):
     """ viability (in days) is the period after which inoculum is dead if no infection. """
     if not 'septo_infection_risk' in data.columns:
-        data['septo_infection_risk'] = add_septoria_infection_risk(data)
+        data['septo_infection_risk'] = add_septoria_infection_risk(data, 
+                                                                   wetness_duration_min = wetness_duration_min, 
+                                                                   temp_min=temp_min, temp_max=temp_max)
     df = data.ix[:, ['rain', 'septo_infection_risk']]
     df['bool_rain'] = (df['rain']>0)*1
     df['septo_risk_with_event'] = np.zeros(len(df))
