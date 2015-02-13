@@ -16,10 +16,11 @@ from alinea.alep.wheat import initialize_stand
 from alinea.astk.plantgl_utils import get_lai
 from alinea.alep.architecture import set_properties,set_property_on_each_id, get_leaves
 
+from alinea.echap.architectural_reconstructions import EchapReconstructions
+
 # Imports for disease
-from alinea.alep.fungal_objects import DispersalUnit, Lesion
+from alinea.alep.fungal_objects import DispersalUnit, Lesion, Fungus
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
-from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.dispersal_transport import PowderyMildewWindDispersal, SeptoriaRainDispersal
 from alinea.alep.disease_outputs import count_dispersal_units_by_leaf, count_dispersal_units
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
@@ -104,8 +105,10 @@ def update_plot(g, leaf_source):
     # pos_sen = g.property('position_senescence')
     for id in g:
         if not id in nb_dus_by_leaf:
-            g.node(id).color = (255,255,255)
-            g.node(id).transparency = 0.9
+            # g.node(id).color = (255,255,255)
+            # g.node(id).color = (113,113,113)
+            # g.node(id).transparency = 0.9
+            g.node(id).transparency = 0.
         else:
             g.node(id).transparency = 0.
 
@@ -151,31 +154,41 @@ def get_source_leaf_and_max_height(g, position='center', relative_height=2./3):
         return max(distances.items(), key=lambda x:x[1])[0], zmax
 
 # Dummy lesion with dummy emission ############################################                                               
-# Create a undetermined lesion emmitting a stock of dispersal units
+# Create a undetermined lesion emitting a stock of dispersal units
+
 class DummyLesion(Lesion):
     """ Undetermined lesion with only a method emission."""
-    def __init__(self, nb_spores=None, position=None):
-        super(DummyLesion, self).__init__(nb_spores=nb_spores, position=position)
-        class params():
-            def __init__(self, name="dummy"):
-                self.name = name
-        self.fungus = params()
-        # Stock of spores needs to be positive
-        # TODO : change this condition to a method 'can_emit'
-        self.stock_spores = 1
+    def __init__(self, mutable = False):
+        super(DummyLesion, self).__init__(mutable=mutable)
+        self.position = self.fungus.position
         
-    def is_sporulating(self):
-        return True
+    def emission(self, to_emit):
+        du = self.fungus.dispersal_unit()
+        du.set_position(position = self.position)
+        return [du for i in range(int(to_emit))]
+        
+class DummyDispersalUnit(DispersalUnit):
+    def __init__(self, mutable = False):
+        super(DummyDispersalUnit, self).__init__(mutable=mutable)
+        
+    def set_position(self, position = None):
+        self.position = position
+        
+class DummyFungus(Fungus):
+    def __init__(self, name='dummy', Lesion=DummyLesion, DispersalUnit = DummyDispersalUnit, parameters = {}):
+        super(DummyFungus, self).__init__(name=name, Lesion=Lesion, DispersalUnit=DispersalUnit, parameters=parameters)
 
-class DummyEmission():        
-    def get_dispersal_units(self, g, fungus_name="dummy", label='LeafElement'):
+class DummyEmission():
+    def __init__(self, domain, to_emit = 1e4):
+        self.domain = domain
+        self.to_emit = to_emit
+        
+    def get_dispersal_units(self, g, fungus_name="dummy", label='LeafElement', weather_data=None):
         DU={}
-        lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, les in g.property('lesions').iteritems()} 
+        lesions = {k:[l for l in les if l.fungus.name is fungus_name] for k, les in g.property('lesions').iteritems()} 
         for vid, l in lesions.iteritems():
             for lesion in l:
-                emissions = [DispersalUnit(nb_spores=lesion.nb_spores, status='emitted',
-                             position=lesion.position) for i in range(int(1e4))]
+                emissions = lesion.emission(self.to_emit)
                 try:
                     DU[vid] += emissions
                 except:
@@ -185,10 +198,15 @@ class DummyEmission():
 # Dispersal ################################################################### 
 def run_dispersal(model=3, position_in_canopy='center', relative_height=2./3, position_on_leaf=0.5, age=1500., seed=3):
     # Initialize a wheat canopy
-    g, wheat, domain_area, domain = initialize_stand(age=age, length=1,
-                                                width=1, sowing_density=250,
-                                                plant_density=250, inter_row=0.12,
-                                                seed=seed)
+    reconst = EchapReconstructions()
+    adel = reconst.get_reconstruction(name='Tremie13', nplants = 500, nsect = 1)
+    g = adel.setup_canopy(age=age)
+    domain_area = adel.domain_area
+    domain = adel.domain
+    # g, wheat, domain_area, domain = initialize_stand(age=age, length=1,
+                                                # width=1, sowing_density=250,
+                                                # plant_density=250, inter_row=0.12,
+                                                # seed=seed)
     lai = get_lai(g.property('geometry'), domain_area)/float(1e4)
 
     # Define the wind direction
@@ -198,8 +216,9 @@ def run_dispersal(model=3, position_in_canopy='center', relative_height=2./3, po
     # Get source leaf and make it emit DUs
     leaf_id, zmax = get_source_leaf_and_max_height(g, position=position_in_canopy, relative_height=relative_height)
     leaf = g.node(leaf_id)
-    leaf.lesions = [DummyLesion(position=[position_on_leaf,0])]
-    emitter = DummyEmission()
+    Fg = DummyFungus(parameters = {'position':[position_on_leaf,0]})
+    leaf.lesions = [Fg.lesion()]
+    emitter = DummyEmission(domain)
 
     if model==1:
         transporter = Septo3DSplash(reference_surface=domain_area)

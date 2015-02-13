@@ -60,7 +60,7 @@ def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"
     return weather
 
 def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", variety='Mercia',
-            nplants = 30, nsect = 7, disc_level = 5, rain_min = 0.2):
+            nplants = 30, nsect = 7, disc_level = 5, Tmin = 10., Tmax = 25., WDmin = 10., rain_min = 0.2):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Initialize wheat plant
     reconst = EchapReconstructions()
@@ -77,7 +77,7 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     # every_dd_or_rain = filter_or([every_dd, every_rain])
     # canopy_timing = IterWithDelays(*time_control(seq, every_dd_or_rain, weather.data))
     canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
-    septo_filter = septoria_filter(seq, weather, degree_days = 10., rain_min = rain_min)
+    septo_filter = septoria_filter(seq, weather, degree_days = 10., Tmin = Tmin, Tmax = Tmax, WDmin = WDmin, rain_min = rain_min)
     rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
     septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
     return adel, weather, seq, rain_timing, canopy_timing, septo_timing
@@ -122,8 +122,12 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
                 adel = None, weather = None, seq = None, rain_timing = None, canopy_timing = None, septo_timing = None, **kwds):
     """ Simulate epidemics. """
     if any(x==None for x in [adel, weather, seq, rain_timing, canopy_timing, septo_timing]):
+        if 'temp_min' in kwds:
+            Tmin = kwds['temp_min']
+        else:
+            Tmin = 10.
         adel, weather, seq, rain_timing, canopy_timing, septo_timing = setup(start_date = start_date,
-            end_date = end_date, variety = variety, nplants = nplants, nsect = nsect, disc_level = disc_level)
+            end_date = end_date, variety = variety, nplants = nplants, nsect = nsect, disc_level = disc_level, Tmin = Tmin)
             
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
@@ -140,7 +144,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         
         # Grow wheat canopy
         if canopy_iter:
-            print canopy_iter.value.index[-1]
+            # print canopy_iter.value.index[-1]
             it_wheat += 1
             newg,TT = adel.load(it_wheat, dir=dir)
             move_properties(g, newg)
@@ -151,7 +155,8 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         if septo_iter:
             set_properties(g,label = 'LeafElement',
                            temperature_sequence = septo_iter.value.temperature_air,
-                           wetness_sequence = septo_iter.value.wetness)
+                           wetness_sequence = septo_iter.value.wetness,
+                           dd_sequence = septo_iter.value.degree_days)
         if rain_iter:
             set_properties(g,label = 'LeafElement',
                            rain_intensity = rain_iter.value.rain.mean(),
