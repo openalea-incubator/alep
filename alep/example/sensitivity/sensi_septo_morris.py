@@ -3,7 +3,7 @@
 
 ## Procedure of sensitivity analysis for the septoria model: Method of Morris
 
-# In[ ]:
+# In[1]:
 
 import sys
 sys.path.append("..")
@@ -17,7 +17,7 @@ from SALib.util import scale_samples, read_param_file
 from SALib.analyze import morris
 from openalea.multiprocessing.parallel import pymap
 from septo_decomposed import run_disease, make_canopy
-from alinea.alep.disease_outputs import *
+from alinea.alep.disease_outputs import get_recorder, mean_by_leaf, mean_audpc_by_leaf
 try:
     import cPickle as pickle
 except:
@@ -26,7 +26,7 @@ except:
 
 ### Generation of parameter set
 
-# In[ ]:
+# In[2]:
 
 def add_parameter(parameter_name = 'sporulating_fraction', interval = [1e-6, 1e-2], filename = 'param_range_SA.txt'):
     """ Add a new line with parameter name and interval of variation in parameter range file.
@@ -37,7 +37,7 @@ def add_parameter(parameter_name = 'sporulating_fraction', interval = [1e-6, 1e-
     f.close()
 
 
-# In[ ]:
+# In[3]:
 
 def generate_parameter_range_file(filename = 'param_range_SA.txt'):
     """ Generate the file with range of variation for all tested parameters.
@@ -46,7 +46,7 @@ def generate_parameter_range_file(filename = 'param_range_SA.txt'):
         add_parameter(parameter_name = parameter_name, interval = interval, filename = filename)
 
 
-# In[ ]:
+# In[4]:
 
 def generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
                            sample_file = 'septo_morris_input.txt',
@@ -92,33 +92,32 @@ def generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
 #     - qualitative_parameters: {parameter_name:{'default':float, 'values':[floats]}}
 #         Samples are repeated for each value of qualitative parameter (new analysis of Morris)
 
-# In[ ]:
+# In[6]:
 
-quantitative_parameters = OrderedDict([('sporulating_fraction', [1e-3, 1e-1]),
-                                       ('degree_days_to_chlorosis', [120., 420.]),
-                                       ('degree_days_to_necrosis', [20., 320.]),
-                                       ('Smin', [1e-4, 0.99e-2]),
-                                       ('Smax', [1e-2, 1.]),
-                                       ('growth_rate', [0.5e-4, 0.5e-2]),
-                                       ('age_physio_switch_senescence', [0.01, 1.]),
-                                       ('density_dus_emitted', [1e3, 3e3]),
-                                       ('reduction_by_rain', [0., 1.]), 
-                                       ('temp_min', [0., 10.])])
+# quantitative_parameters = OrderedDict([('sporulating_fraction', [1e-4, 1e-3]),
+                                       # ('degree_days_to_chlorosis', [120., 250.]),
+                                       # ('degree_days_to_necrosis', [11., 100.]),
+                                       # ('Smin', [1e-4, 0.99e-2]),
+                                       # ('Smax', [1e-2, 1.]),
+                                       # ('growth_rate', [0.5e-4, 0.5e-2]),
+                                       # ('age_physio_switch_senescence', [0.01, 1.]),
+                                       # ('density_dus_emitted', [1e3, 3e3]),
+                                       # ('reduction_by_rain', [0., 1.]), 
+                                       # ('temp_min', [0., 10.])])
 
-#qualitative_parameters = OrderedDict([('year', {'default':2004., 'values':[1998., 2003., 2004.]}),
-#                                      ('variety', {'default':1, 'values':[1, 2, 3, 4]})])
+# #qualitative_parameters = OrderedDict([('year', {'default':2004., 'values':[1998., 2003., 2004.]}),
+# #                                      ('variety', {'default':1, 'values':[1, 2, 3, 4]})])
 
-qualitative_parameters = OrderedDict([('year', {'default':2012, 'values':[2012]}),
-                                      ('variety', {'default':3, 'values':[3]})])
+# qualitative_parameters = OrderedDict([('year', {'default':2012, 'values':[2012, 2013]})])
 
-variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
+# variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
 
-list_param_names = qualitative_parameters.keys() + quantitative_parameters.keys()
+# list_param_names = qualitative_parameters.keys() + quantitative_parameters.keys()
 
-generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
-                       sample_file = 'septo_morris_input.txt',
-                       num_trajectories = 10,
-                       num_levels = 10)
+# generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
+                       # sample_file = 'septo_morris_input.txt',
+                       # num_trajectories = 10,
+                       # num_levels = 10)
 
 
 ### Run and save simulation
@@ -128,7 +127,7 @@ generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
 # In[ ]:
 
 def wheat_path((year, variety, nplants, nsect)):
-    if variety.startswith('Tremie'):
+    if variety.lower().startswith('tremie'):
         variety = 'tremie'
     return '../adel/'+variety.lower()+'_'+str(int(year))+'_'+str(nplants)+'pl_'+str(nsect)+'sect'
 
@@ -171,9 +170,11 @@ def annual_loop(sample):
             elif year == 2012:
                 start_date = "2011-10-21"
                 end_date = "2012-07-18"
+                variety = 'Tremie12'
             elif year == 2013:
                 start_date = "2012-10-29"
                 end_date = "2013-08-01"
+                variety = 'Tremie13'
             else:
                 start_date = str(year-1)+"-10-15"
                 end_date = str(year)+"-08-01"
@@ -187,12 +188,12 @@ def annual_loop(sample):
         # Get variety
         if 'variety' in sample:
             variety = variety_code[sample.pop('variety')]
-        else:
-            variety = 'Mercia'
+        #else:
+         #   variety = 'Mercia'
 
         # Get wheat path
-        # nplants = 30
-        nplants = 1
+        nplants = 30
+        #nplants = 1
         nsect = 7
         w_path = wheat_path((year, variety, nplants, nsect))
 
@@ -208,55 +209,6 @@ def annual_loop(sample):
         del recorder
     except:
         print 'evaluation failed'
-        
-# def annual_loop(sample):
-    # # Get indice of simulation
-    # i_sample = sample.pop('i_sample')
-
-    # # Get year of simulation
-    # if 'year' in sample:
-        # year = int(sample.pop('year'))
-        # if year == 2011:
-            # start_date = "2010-10-15"
-            # end_date = "2011-06-20"
-        # elif year == 2012:
-            # start_date = "2011-10-21"
-            # end_date = "2012-07-18"
-        # elif year == 2013:
-            # start_date = "2012-10-29"
-            # end_date = "2013-08-01"
-        # else:
-            # start_date = str(year-1)+"-10-15"
-            # end_date = str(year)+"-08-01"
-    # else:
-        # year = 2005
-        # start_date = str(year-1)+"-10-15"
-        # end_date = str(year)+"-08-01"
-    # start_date += " 12:00:00"
-    # end_date += " 00:00:00"
-        
-    # # Get variety
-    # if 'variety' in sample:
-        # variety = variety_code[sample.pop('variety')]
-    # else:
-        # variety = 'Mercia'
-
-    # # Get wheat path
-    # #nplants = 30
-    # nplants = 1
-    # nsect = 7
-    # w_path = wheat_path((year, variety, nplants, nsect))
-
-    # # Run and save simulation
-    # g, recorder = run_disease(start_date = start_date, 
-                     # end_date = end_date, 
-                     # variety = variety, nplants = nplants, nsect = nsect,
-                     # dir = w_path, **sample)
-    # stored_rec = './'+variety.lower()+'/recorder_'+str(int(i_sample))+'.pckl'
-    # f_rec = open(stored_rec, 'w')
-    # pickle.dump(recorder, f_rec)
-    # f_rec.close()
-    # del recorder
 
 
 # In[ ]:
@@ -290,28 +242,21 @@ def get_results_audpc(input_file = 'septo_morris_input_full.txt',
     if qualitative_parameter == 'variety':
         variety = variety_code[value]
     else:
-        # variety = 'Mercia'
-        variety = 'Tremie12'
+        variety = 'Mercia'
         
     # Get outputs of simulation for i_samples
-    # audpcs = []
-    outs = []
+    audpcs = []
     for i_sample in i_samples:
         stored_rec = './'+variety.lower()+'/recorder_'+str(int(i_sample))+'.pckl'
         recorder = get_recorder(stored_rec)
         # Output variable: mean audpc on all plants and for leaves 1 to 3
         mean_audpc_f1_to_f3 = mean_audpc_by_leaf(recorder, normalized=True)[['F%d' % lf for lf in range(1, 4)]].mean()
-        # audpcs.append(mean_audpc_f1_to_f3)
-        
-        df_mean = mean_by_leaf(recorder, variable='severity')
-        outs.append(mean(df_mean.max()))
-        
+        audpcs.append(mean_audpc_f1_to_f3)
         del recorder
         
     # Save output
     output_file = 'septo_morris_output_'+qualitative_parameter+'_'+str(value)+'.txt'
-    # np.savetxt(output_file, audpcs, delimiter=' ')
-    np.savetxt(output_file, outs, delimiter=' ')
+    np.savetxt(output_file, audpcs, delimiter=' ')
 
 
 # In[ ]:
@@ -321,11 +266,8 @@ def morris_analysis(parameter_range_file = 'param_range_SA.txt',
                     output_file = 'septo_morris_output_year_2004.txt'):
     # Perform the sensitivity analysis using the model output
     # Specify which column of the output file to analyze (zero-indexed)
-    problem = read_param_file(parameter_range_file)
-    param_values = np.loadtxt(input_file, delimiter=' ')
-    Y = np.loadtxt(output_file, delimiter=' ')
-    Si = morris.analyze(problem, param_values, Y, conf_level=0.95, print_to_console=False,
-                    num_levels=10, grid_jump=5)
+    Si = morris.analyze(parameter_range_file, input_file, output_file,
+                        column=0, conf_level=0.95, print_to_console=False)
     # Returns a dictionary with keys 'mu', 'mu_star', 'sigma', and 'mu_star_conf'
     # e.g. Si['mu_star'] contains the mu* value for each parameter, in the
     # same order as the parameter file
@@ -339,7 +281,4 @@ def morris_analysis(parameter_range_file = 'param_range_SA.txt',
 # get_results_audpc()
 # Si = morris_analysis()
 # plot(Si['mu_star'], Si['sigma'], 'b*')
-import matplotlib.pyplot as plt
-plt.plot(Si['mu_star'], Si['sigma'], 'b*')
-for label, x, y in zip(Si['names'], Si['mu_star'], Si['sigma']):
-    plt.annotate(label, xy = (x, y))
+
