@@ -1,18 +1,22 @@
 """ Classes of dispersal unit, lesion and ring specific of wheat septoria.
 
 """
-# Imports #########################################################################
+# Imports #####################################################################
 from alinea.alep.fungal_objects import *
-# from alinea.alep import septoria_continuous, septoria_with_rings, septoria_exchanging_rings
-#from alinea.alep.septoria_continuous import *
-#from alinea.alep.septoria_with_rings import *
-#from alinea.alep.septoria_exchanging_rings import *
-from openalea.vpltk import plugin
-from random import random, randint
-from math import floor, ceil
-import numpy as np
+# from alinea.alep import septoria_continuous, septoria_with_rings,
+# septoria_exchanging_rings
+# from alinea.alep.septoria_continuous import *
+# from alinea.alep.septoria_with_rings import *
+# from alinea.alep.septoria_exchanging_rings import *
+try:
+    from openalea.vpltk import plugin
+except ImportError:
+    from openalea.core import plugin
 
-# Dispersal unit ##################################################################
+from random import random
+# import numpy as np
+
+# Dispersal unit #############################################################
 class SeptoriaDU(DispersalUnit):
     """ Define a dispersal unit specific of septoria.
     

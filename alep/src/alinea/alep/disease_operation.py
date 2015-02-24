@@ -11,7 +11,10 @@ from openalea.plantgl.all import *
 
 from alinea.alep.protocol import *
 from alinea.alep.inoculation import RandomInoculation
-from openalea.vpltk import plugin
+try:
+    from openalea.vpltk import plugin
+except ImportError:
+    from openalea.core import plugin
 
 def generate_stock_du(nb_dus, disease, **kwds):
     """ Generate a stock of dispersal units.

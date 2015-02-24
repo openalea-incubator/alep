@@ -56,22 +56,23 @@ def initiate(g,
     """ Allocates fungal objects (dispersal units OR lesions) on elements of the MTG
         according to initiation_model.
 
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy (and the soil)
-    fungal_objects_stock: list of fungal objects (dispersal units OR lesions)
-        Source of fungal objects to distribute in the scene
-    initiation_model: model
-        Model that sets the position of each DU/lesion in stock on g
-        Requires a method named 'allocate' (see doc)
-    label: str
-        Label of the part of the MTG concerned by the calculation
-    activate: bool
-        True if computation is achieved, False otherwise
+    :Parameters:
+
+      g: MTG
+          MTG representing the canopy (and the soil)
+      fungal_objects_stock: list of fungal objects (dispersal units OR lesions)
+          Source of fungal objects to distribute in the scene
+      initiation_model: model
+          Model that sets the position of each DU/lesion in stock on g
+          Requires a method named 'allocate' (see doc)
+      label: str
+          Label of the part of the MTG concerned by the calculation
+      activate: bool
+          True if computation is achieved, False otherwise
     
     Returns
-    -------
+    =======
+
     g: MTG
         Updated MTG representing the canopy (and the soil)
     
@@ -81,7 +82,6 @@ def initiate(g,
       >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
       >>> inoculator = RandomInoculation()
       >>> initiate(g, stock, inoculator)
-      >>> return g
     """
     if activate:
         vids = [n for n in g if g.label(n).startswith(label)]
@@ -128,7 +128,6 @@ def infect(g, dt,
       >>> for i in range(nb_steps):
       >>>     update_climate(g)
       >>>     infect(g, dt)
-      >>> return g
       
     """
     if activate:
@@ -191,7 +190,6 @@ def update(g, dt,
       >>>     update_climate(g)
       >>>     infect(g, dt)
       >>>     update(g, dt, controler, senescence_model)
-      >>> return g
     
     """
     if activate:
@@ -258,7 +256,6 @@ def disperse(g,
       >>>     if dispersal_event():
       >>>       scene = plot3d(g)
       >>>       disperse(g, dispersor, "septoria")
-      >>> return g
     
     """
 
@@ -325,7 +322,6 @@ def wash(g,
       >>>     update_climate(g)
       >>>     if global_rain_intensity > 0.:
       >>>       wash(g, washor, global_rain_intensity)
-      >>> return g
     """
     if activate:
         # compute washing rate on each leaf
