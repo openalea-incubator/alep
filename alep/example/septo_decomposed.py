@@ -93,6 +93,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, distri_chlorosis 
         mutable = True
     else:
         fungus = plugin_septoria()
+        mutable = False
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
     inoculum = SoilInoculum(fungus, sporulating_fraction=sporulating_fraction,
                             domain_area=domain_area, mutable = mutable)
