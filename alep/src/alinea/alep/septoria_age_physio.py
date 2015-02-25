@@ -23,7 +23,7 @@ class SeptoriaAgePhysio(Lesion):
         position: non defined
             Position of the dispersal unit on the phyto-element
         """
-        super(SeptoriaAgePhysio, self).__init__(mutable=False)
+        super(SeptoriaAgePhysio, self).__init__(mutable=mutable)
         # Calculate parameter for emission from other parameters
         self.fungus.density_dus_emitted_max = np.array([self.fungus.density_dus_emitted_ref*(self.fungus.reduction_by_rain**ind) for ind in range(self.fungus.rain_events_to_empty)])
         # Status of the center of the lesion
@@ -689,7 +689,7 @@ class SeptoriaFungus(Fungus):
     def __init__(self, name='septoria', Lesion=SeptoriaAgePhysio, DispersalUnit=SeptoriaDU, parameters=septoria_parameters):
         super(SeptoriaFungus, self).__init__(name=name, Lesion=Lesion, DispersalUnit=DispersalUnit, parameters=parameters)
         
-import collections        
+import collections
 def is_iterable(obj):
     """ Test if object is iterable """
     return isinstance(obj, collections.Iterable)

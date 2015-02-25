@@ -29,6 +29,7 @@ class DispersalUnit(object):
         -------
             None
         """
+        self.mutable = mutable
         self.nb_spores = nb_spores
         self.position = position
         self.is_active = True
@@ -75,7 +76,7 @@ class DispersalUnit(object):
             None
         
         """
-        les = self.fungus.lesion()
+        les = self.fungus.lesion(mutable = self.mutable)
         les.__dict__.update(kwds)
         if leaf is None:
             self.disable()
@@ -129,6 +130,7 @@ class Lesion(object):
             Number of spores aggregated in the dispersal unit
         
         """
+        self.mutable = mutable
         # Total activity of the lesion (growth and ageing)
         self.is_active = True
         # Growth activity of the lesion
@@ -172,7 +174,7 @@ class Lesion(object):
     def create_dispersal_units(self, nb_dus=1):
         """ Generic method to create new dispersal units.
         """
-        return [self.fungus.dispersal_unit() for i in range(int(nb_dus))]
+        return [self.fungus.dispersal_unit(mutable = self.mutable) for i in range(int(nb_dus))]
         
     def disable_growth(self):
         """ Shut down lesion growth activity (turn it to False)
