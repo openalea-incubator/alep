@@ -92,39 +92,39 @@ def generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
 #     - qualitative_parameters: {parameter_name:{'default':float, 'values':[floats]}}
 #         Samples are repeated for each value of qualitative parameter (new analysis of Morris)
 
-# In[6]:
+# In[5]:
 
-# quantitative_parameters = OrderedDict([('sporulating_fraction', [1e-4, 1e-3]),
-                                       # ('degree_days_to_chlorosis', [120., 250.]),
-                                       # ('degree_days_to_necrosis', [11., 100.]),
-                                       # ('Smin', [1e-4, 0.99e-2]),
-                                       # ('Smax', [1e-2, 1.]),
-                                       # ('growth_rate', [0.5e-4, 0.5e-2]),
-                                       # ('age_physio_switch_senescence', [0.01, 1.]),
-                                       # ('density_dus_emitted', [1e3, 3e3]),
-                                       # ('reduction_by_rain', [0., 1.]), 
-                                       # ('temp_min', [0., 10.])])
+quantitative_parameters = OrderedDict([('sporulating_fraction', [1e-4, 1e-3]),
+                                       ('degree_days_to_chlorosis', [120., 250.]),
+                                       ('degree_days_to_necrosis', [11., 100.]),
+                                       ('Smin', [1e-4, 0.99e-2]),
+                                       ('Smax', [1e-2, 1.]),
+                                       ('growth_rate', [0.5e-4, 0.5e-2]),
+                                       ('age_physio_switch_senescence', [0.01, 1.]),
+                                       ('density_dus_emitted', [1e3, 3e3]),
+                                       ('reduction_by_rain', [0., 1.]), 
+                                       ('temp_min', [0., 10.])])
 
-# #qualitative_parameters = OrderedDict([('year', {'default':2004., 'values':[1998., 2003., 2004.]}),
-# #                                      ('variety', {'default':1, 'values':[1, 2, 3, 4]})])
+#qualitative_parameters = OrderedDict([('year', {'default':2004., 'values':[1998., 2003., 2004.]}),
+#                                      ('variety', {'default':1, 'values':[1, 2, 3, 4]})])
 
-# qualitative_parameters = OrderedDict([('year', {'default':2012, 'values':[2012, 2013]})])
+qualitative_parameters = OrderedDict([('year', {'default':2013, 'values':[2013]})])
 
-# variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
+variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
 
-# list_param_names = qualitative_parameters.keys() + quantitative_parameters.keys()
+list_param_names = qualitative_parameters.keys() + quantitative_parameters.keys()
 
-# generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
-                       # sample_file = 'septo_morris_input.txt',
-                       # num_trajectories = 10,
-                       # num_levels = 10)
+generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
+                       sample_file = 'septo_morris_input.txt',
+                       num_trajectories = 10,
+                       num_levels = 10)
 
 
 ### Run and save simulation
 
 # /!\ Wheat reconstructions must be generated prior to simulations of disease /!\
 
-# In[ ]:
+# In[6]:
 
 def wheat_path((year, variety, nplants, nsect)):
     if variety.lower().startswith('tremie'):
@@ -132,7 +132,7 @@ def wheat_path((year, variety, nplants, nsect)):
     return '../adel/'+variety.lower()+'_'+str(int(year))+'_'+str(nplants)+'pl_'+str(nsect)+'sect'
 
 
-# In[ ]:
+# In[7]:
 
 # Generate wheat reconstruction
 def make_canopies((yr, day, variety, nplants, nsect, wheat_path)):
@@ -147,14 +147,14 @@ def reconstruct_wheat(nb_plants = 6, nb_sects = 5):
 #reconstruct_wheat()
 
 
-# In[ ]:
+# In[8]:
 
 def param_values_to_dict(values):
     keys = ['i_sample'] + list_param_names
     return dict(zip(keys, values))
 
 
-# In[ ]:
+# In[9]:
 
 def annual_loop(sample):
     try:
@@ -211,12 +211,12 @@ def annual_loop(sample):
         print 'evaluation failed'
 
 
-# In[ ]:
+# In[10]:
 
-# get_ipython().run_cell_magic(u'file', u'mp.py', u"from multiprocessing import cpu_count\nfrom sensi_septo_morris import *\nfilename = 'septo_morris_input_full.txt'\nnb_cpu = cpu_count()\nparam_values = np.loadtxt(filename, delimiter=' ').tolist()\nsamples = map(param_values_to_dict, param_values)\n\n# Run disease simulation\nif __name__ == '__main__':\n    pymap(annual_loop, samples, nb_cpu)")
+# get_ipython().run_cell_magic(u'file', u'mp.py', u"from multiprocessing import cpu_count\nfrom sensi_septo_morris import *\nfilename = 'septo_morris_input_full.txt'\nnb_cpu = cpu_count()\nparam_values = np.loadtxt(filename, delimiter=' ').tolist()\nsamples = map(param_values_to_dict, param_values)\n\n# Run disease simulation\nif __name__ == '__main__':\n    pymap(annual_loop, samples, nb_cpu-1)")
 
 
-# In[ ]:
+# In[11]:
 
 #%run mp
 
