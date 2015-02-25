@@ -42,7 +42,6 @@ def variable_septoria(mu=None, sigma=None):
     class VariableSeptoria(SeptoriaAgePhysio):
         def __init__(self, nb_spores=None, position=None, **kwds):
             super(VariableSeptoria, self).__init__(nb_spores=nb_spores, position=position)
-            #self.fungus = copy.copy(super(VariableSeptoria, self).fungus)
             self.fungus = _SeptoriaParameters(model=self.fungus.model,**self.fungus.__dict__)
             self.fungus.degree_days_to_chlorosis = rnd.gauss(mu=mu, sigma=sigma)
 

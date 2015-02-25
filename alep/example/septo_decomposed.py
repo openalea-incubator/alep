@@ -35,6 +35,7 @@ from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEm
 from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
 from alinea.alep.disease_outputs import initiate_all_adel_septo_recorders, plot_severity_by_leaf, save_image
+from variable_septoria import *
 
 def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"):
     """ Get weather data for simulation. """
@@ -82,14 +83,19 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
     return adel, weather, seq, rain_timing, canopy_timing, septo_timing
 
-def septo_disease(adel, sporulating_fraction, layer_thickness, **kwds):
+def septo_disease(adel, sporulating_fraction, layer_thickness, distri_chlorosis = None, **kwds):
     """ Choose models to assemble the disease model. """
     domain = adel.domain
     domain_area = adel.domain_area
     convUnit = adel.convUnit
-    fungus = plugin_septoria()
+    if distri_chlorosis is not None:
+        fungus = variable_septoria(distri_chlorosis = distri_chlorosis)
+        mutable = True
+    else:
+        fungus = plugin_septoria()
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
-    inoculum = SoilInoculum(fungus, sporulating_fraction=sporulating_fraction, domain_area=domain_area)
+    inoculum = SoilInoculum(fungus, sporulating_fraction=sporulating_fraction,
+                            domain_area=domain_area, mutable = mutable)
     contaminator = PopDropsSoilContamination(domain=domain, domain_area=domain_area)
     growth_controler = PriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
@@ -117,9 +123,12 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
             adel.save(g, it_wheat, dir=dir)
 
-def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", variety = 'Mercia', nplants = 30, nsect = 7,
-                disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', sporulating_fraction = 1e-3, layer_thickness = 0.01, save_images = False,
-                adel = None, weather = None, seq = None, rain_timing = None, canopy_timing = None, septo_timing = None, **kwds):
+def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", 
+                variety = 'Mercia', nplants = 30, nsect = 7,
+                disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', 
+                sporulating_fraction = 1e-3, layer_thickness = 0.01, save_images = False,
+                adel = None, weather = None, seq = None, rain_timing = None, 
+                canopy_timing = None, septo_timing = None, distri_chlorosis = None, **kwds):
     """ Simulate epidemics. """
     if any(x==None for x in [adel, weather, seq, rain_timing, canopy_timing, septo_timing]):
         if 'temp_min' in kwds:
@@ -127,11 +136,14 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
         else:
             Tmin = 10.
         adel, weather, seq, rain_timing, canopy_timing, septo_timing = setup(start_date = start_date,
-            end_date = end_date, variety = variety, nplants = nplants, nsect = nsect, disc_level = disc_level, Tmin = Tmin)
+                            end_date = end_date, variety = variety, nplants = nplants, nsect = nsect, 
+                            disc_level = disc_level, Tmin = Tmin)
             
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
-    inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(adel, sporulating_fraction, layer_thickness, **kwds)
+        
+    inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(adel, 
+                                    sporulating_fraction, layer_thickness, distri_chlorosis, **kwds)
     it_wheat = 0
     g,TT = adel.load(it_wheat, dir=dir)
     leaf_ids = adel_ids(g)
