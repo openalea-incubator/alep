@@ -59,7 +59,7 @@ class SeptoriaDU(DispersalUnit):
             None
         
         """
-        les = self.fungus.lesion()
+        les = self.fungus.lesion(mutable = self.mutable)
         les.set_position(self.position)
         les.set_nb_spores(self.nb_spores)
         if leaf is None:
