@@ -15,5 +15,5 @@ def simu(nb_plants):
     del recorder
     del g
     
-for nb_pl in [1, 5, 10, 20, 50, 100]:
+for nb_pl in [1, 5, 10, 15, 20, 30, 50, 100]:
     simu(nb_pl)
