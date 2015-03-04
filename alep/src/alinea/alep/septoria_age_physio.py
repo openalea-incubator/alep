@@ -25,7 +25,7 @@ class SeptoriaAgePhysio(Lesion):
         """
         super(SeptoriaAgePhysio, self).__init__(mutable=mutable)
         # Calculate parameter for emission from other parameters
-        self.fungus.density_dus_emitted_max = np.array([self.fungus.density_dus_emitted_ref*(self.fungus.reduction_by_rain**ind) for ind in range(self.fungus.rain_events_to_empty)])
+        self.density_dus_emitted_max = np.array([self.fungus.density_dus_emitted_ref*(self.fungus.reduction_by_rain**ind) for ind in range(self.fungus.rain_events_to_empty)])
         # Status of the center of the lesion
         self.status = self.fungus.INCUBATING
         # Age of the center of the lesion
@@ -424,13 +424,13 @@ class SeptoriaAgePhysio(Lesion):
         """ Return number of DUs emitted by the lesion. """
         if density_DU_emitted>0:       
             f = self.fungus
-            density = map(lambda x: min(float(density_DU_emitted),x), f.density_dus_emitted_max)
+            density = map(lambda x: min(float(density_DU_emitted),x), self.density_dus_emitted_max)
             
             cond = np.array(density)>=0
             if any(~cond):
                 import pdb
                 pdb.set_trace()
-            du_factor = map(lambda (x,y): x / y if y>0. else 0., zip(density, f.density_dus_emitted_max))
+            du_factor = map(lambda (x,y): x / y if y>0. else 0., zip(density, self.density_dus_emitted_max))
             emissions = map(lambda x: int(x), self.surfaces_spo * density)
             # emissions = map(lambda x: int(x), self.surfaces_spo * density_DU_emitted)
             
