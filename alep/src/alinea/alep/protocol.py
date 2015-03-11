@@ -265,7 +265,7 @@ def disperse(g,
     else: 
         DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
     labels = g.property('label')
-
+   
     # Transport of dispersal units
     if len(sum(DU.values(), []))>0:
         # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
@@ -273,7 +273,7 @@ def disperse(g,
             deposits = transport_model.disperse(g, DU, weather_data)
         else:
             deposits = transport_model.disperse(g, DU) # update DU in g , change position, status 
-
+            
         # Allocation of new dispersal units
         for vid, dlist in deposits.iteritems():
             if len(dlist)>0 and labels[vid].startswith(label):

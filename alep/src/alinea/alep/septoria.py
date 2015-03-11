@@ -42,8 +42,10 @@ class SeptoriaDU(DispersalUnit):
         self.cumul_wetness = 0.
         self.cumul_loss_rate = 0.
         self.dry_dt = -1.
+        self.status = 'emitted'
         # Temp
         self.nb_spores = 10.
+        
     
     def create_lesion(self, leaf=None):
         """ Create a new lesion of fungus, set position, set number of spores and disable dispersal unit.
@@ -149,6 +151,9 @@ class SeptoriaDU(DispersalUnit):
             self.position = [position]
         else:
             self.position = position
+    
+    def set_status(self, status = 'deposited'):
+        self.status = status
     
     @property
     def nb_dispersal_units(self):

@@ -93,16 +93,26 @@ class BiotrophDUPositionModel:
             ratio_les_surface = min(1, round(les_surf,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
             
             for vid in set(leaf) & set(dispersal_units):
-                    dus = [du for du in dispersal_units[vid] if du.is_active ]
-                    if len(dus)>0 and dus[0].fungus.group_dus == True:
-                        total_nb_dus = len(sum([du.position for du in dus],[]))
-                    else:
-                        total_nb_dus = len(dus)
-                    nb_on_lesions = int(total_nb_dus*ratio_les_surface)
-                    for du in range(nb_on_lesions):
-                        random.shuffle(dus)
-                        dus[0].position = dus[0].position[1:]
-                        if dus[0].nb_dispersal_units==0.:
-                            dus[0].disable()
-                            dus = dus[1:]
-                    dispersal_units[vid] = dus
+                dus_to_keep = []
+                dus = []
+                for du in dispersal_units[vid]:
+                    if du.is_active:
+                        if du.status == 'deposited':
+                            dus_to_keep.append(du)
+                        elif du.status == 'emitted':
+                            dus.append(du)
+                            
+                if len(dus)>0 and dus[0].fungus.group_dus == True:
+                    total_nb_dus = len(sum([du.position for du in dus],[]))
+                else:
+                    total_nb_dus = len(dus)
+                nb_on_lesions = int(total_nb_dus*ratio_les_surface)
+                for du in range(nb_on_lesions):
+                    random.shuffle(dus)
+                    dus[0].position = dus[0].position[1:]
+                    if dus[0].nb_dispersal_units==0.:
+                        dus[0].disable()
+                        dus = dus[1:]
+                for du in dus:
+                    du.set_status(status = 'deposited')
+                dispersal_units[vid] = dus_to_keep + dus

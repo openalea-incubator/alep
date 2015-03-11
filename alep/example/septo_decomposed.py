@@ -127,7 +127,8 @@ def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
 def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", 
                 variety = 'Mercia', nplants = 30, nsect = 7,
                 disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', 
-                sporulating_fraction = 1e-3, layer_thickness = 0.01, save_images = False,
+                sporulating_fraction = 1e-4, layer_thickness = 0.01, record = True, 
+                save_images = False,
                 adel = None, weather = None, seq = None, rain_timing = None, 
                 canopy_timing = None, septo_timing = None, distri_chlorosis = None, **kwds):
     """ Simulate epidemics. """
@@ -150,7 +151,11 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
     leaf_ids = adel_ids(g)
         
     # Prepare saving of outputs
-    recorders = initiate_all_adel_septo_recorders(g, nsect)
+    if record == True:
+        recorders = initiate_all_adel_septo_recorders(g, nsect, 
+                            date_sequence = [v.index[-1] for v in septo_timing.values])
+    else:
+        recorders = None
     
     for i, controls in enumerate(zip(canopy_timing, rain_timing, septo_timing)):
         canopy_iter, rain_iter, septo_iter = controls
@@ -205,24 +210,26 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
                 # save_image(scene, image_name=image_name)
 
         # Save outputs
-        if septo_iter:       
+        if septo_iter and record == True:     
             date = septo_iter.value.index[-1]
             for plant in recorders:
                 deads = []
                 for lf, recorder in recorders[plant].iteritems():
                     recorder.update_vids_with_labels(adel_ids = leaf_ids)
                     recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
-                    if recorder.date_death != None and recorder.leaf_green_area[-1]!=0:
+                    if recorder.date_death != None and recorder.data.leaf_green_area.sum()>0.:
+                    # if recorder.date_death != None and sum(recorder.leaf_green_area)>0.:
                         deads += [s for s in lf.split() if s.isdigit()]
                 if len(deads) > 0:
                     map(lambda x: recorders[plant][x].inactivate(date), map(lambda x: 'F%d' % x, range(1, min(deads)+1)))
                     
-    for plant in recorders:
-        for recorder in recorders[plant].itervalues():
-            recorder.get_complete_dataframe()
-            recorder.get_normalized_audpc(variable='necrosis_percentage')
-            recorder.get_audpc(variable='necrosis_percentage')
-            
+    if record == True:
+        for plant in recorders:
+            for recorder in recorders[plant].itervalues():
+                recorder.get_complete_dataframe()
+                recorder.get_normalized_audpc(variable='necrosis_percentage')
+                recorder.get_audpc(variable='necrosis_percentage')
+    
     return g, recorders
 
 def stat_profiler(call='run_disease()'):
