@@ -1037,6 +1037,8 @@ class AdelSeptoRecorder:
         self.severity_on_green()
         self.necrosis()
         self.necrosis_percentage()
+        self.pycnidia_coverage()
+        self.pycnidia_coverage_on_green()
 
     def record_only_leaf_data(self, g, date, degree_days=None):
         if self.date_death == None:
