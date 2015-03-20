@@ -39,7 +39,7 @@ from variable_septoria import *
 
 def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"):
     """ Get weather data for simulation. """
-    start = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    start = datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     if start.year >= 2010:
         filename = 'Boigneville_0109'+str(start.year)+'_3108'+str(start.year+1)+'_h.csv'
         meteo_path = shared_data(alinea.echap, filename)
@@ -65,8 +65,14 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     """ Get plant model, weather data and set scheduler for simulation. """
     # Initialize wheat plant
     reconst = EchapReconstructions()
-    adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = nsect, disc_level = disc_level, aspect = 'line')
-
+    # ULTRA TEMP ET MOCHE 
+    adel = None
+    while adel is None:
+        try:
+            adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = nsect, disc_level = disc_level, aspect = 'line')
+        except:
+            pass
+            
     # Manage weather
     weather = get_weather(start_date = start_date, end_date = end_date)
     

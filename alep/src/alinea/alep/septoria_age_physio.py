@@ -365,7 +365,9 @@ class SeptoriaAgePhysio(Lesion):
                                     
                 # Get what passes to next status
                 self.surfaces_nec = np.extract(new_ends<=1, new_surf)
-                self.to_sporulation = sum(np.extract(new_ends>1, new_surf))
+                surface_to_next_phase = sum(np.extract(new_ends>1, new_surf))
+                self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
+                self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
                         
                 if not self.to_sporulation>=0:
                     import pdb

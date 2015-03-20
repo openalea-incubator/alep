@@ -70,15 +70,6 @@ def septoria_filter(seq, weather, degree_days=10., base_temp = 0.,
     count_ddays = 0.
     df = pandas.Series([False for i in range(len(wetness))], index = wetness.index)
     for i, row in df.iteritems():
-        # if wetness[i] and Tmin <= temperature[i] < Tmax:
-            # if count_wet == 0. and i < df.index[-1]-9 and cond_inf[i+9] == True:
-                # df[i] = True
-            # count_ddays = 0.
-            # count_wet += 1.
-            # if count_wet >= WDmin and cond_inf[i] == True:
-                # df[i] = True
-        # else:
-            # count_wet = 0.
         if wetness[i] and Tmin <= temperature[i] < Tmax:
             if count_wet == 0. and i < df.index[-1]-9 and cond_inf[i+9] == True:
                 df[i] = True
