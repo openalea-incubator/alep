@@ -19,7 +19,8 @@ try:
     import cPickle as pickle
 except:
     import pickle
-
+    
+variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
 
 ### Generation of parameter set
 def add_parameter(parameter_name = 'sporulating_fraction', interval = [1e-6, 1e-2], filename = 'param_range_SA.txt'):
@@ -30,13 +31,15 @@ def add_parameter(parameter_name = 'sporulating_fraction', interval = [1e-6, 1e-
     f.writelines(s + '\n')
     f.close()
 
-def generate_parameter_range_file(filename = 'param_range_SA.txt'):
+def generate_parameter_range_file(quantitative_parameters, filename = 'param_range_SA.txt'):
     """ Generate the file with range of variation for all tested parameters.
     """
     for parameter_name, interval in quantitative_parameters.iteritems():
         add_parameter(parameter_name = parameter_name, interval = interval, filename = filename)
 
-def generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
+def generate_parameter_set(quantitative_parameters,
+                           qualitative_parameters,
+                           parameter_range_file = 'param_range_SA.txt',
                            sample_file = 'septo_morris_input.txt',
                            num_trajectories = 10,
                            num_levels = 10):
@@ -44,7 +47,8 @@ def generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
     """   
     # Reset parameter range file
     open(parameter_range_file, 'w').close()
-    generate_parameter_range_file(filename = parameter_range_file)
+    generate_parameter_range_file(quantitative_parameters = quantitative_parameters, 
+                                    filename = parameter_range_file)
     
     # Generate samples
     problem = read_param_file(parameter_range_file)
@@ -83,12 +87,12 @@ def make_canopies((yr, day, variety, nplants, nsect, wheat_path)):
     make_canopy(start_date = str(int(yr-1))+"-10-"+str(int(day))+" 12:00:00", end_date = str(int(yr))+"-08-01 00:00:00",
             variety = variety, nplants = nplants, nsect = nsect, disc_level = 5, dir = wheat_path)
     
-def reconstruct_wheat(nb_plants = 6, nb_sects = 5):   
+def reconstruct_wheat(qualitative_parameters, nb_plants = 6, nb_sects = 5):   
     combinations = list(itertools.product(*[qualitative_parameters['year']['values'], variety_code.values(), [nb_plants], [nb_sects]]))
     combinations = map(lambda x: x + (wheat_path(x),), combinations)
     make_canopies(combinations)
 
-def param_values_to_dict(values):
+def param_values_to_dict(values, list_param_names):
     keys = ['i_sample'] + list_param_names
     return dict(zip(keys, values))
 
