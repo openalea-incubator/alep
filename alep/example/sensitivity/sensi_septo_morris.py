@@ -1,10 +1,7 @@
 
 # coding: utf-8
 
-## Procedure of sensitivity analysis for the septoria model: Method of Morris
-
-# In[1]:
-
+""" Procedure of sensitivity analysis for the septoria model: Method of Morris"""
 import sys
 sys.path.append("..")
 import numpy as np
@@ -25,9 +22,6 @@ except:
 
 
 ### Generation of parameter set
-
-# In[2]:
-
 def add_parameter(parameter_name = 'sporulating_fraction', interval = [1e-6, 1e-2], filename = 'param_range_SA.txt'):
     """ Add a new line with parameter name and interval of variation in parameter range file.
     """
@@ -36,17 +30,11 @@ def add_parameter(parameter_name = 'sporulating_fraction', interval = [1e-6, 1e-
     f.writelines(s + '\n')
     f.close()
 
-
-# In[3]:
-
 def generate_parameter_range_file(filename = 'param_range_SA.txt'):
     """ Generate the file with range of variation for all tested parameters.
     """
     for parameter_name, interval in quantitative_parameters.iteritems():
         add_parameter(parameter_name = parameter_name, interval = interval, filename = filename)
-
-
-# In[4]:
 
 def generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
                            sample_file = 'septo_morris_input.txt',
@@ -85,56 +73,12 @@ def generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
     # Save full parameter values
     np.savetxt(sample_file[:-4]+'_full'+sample_file[-4:], full_params, delimiter=' ')
 
-
-# Here define:
-#     - quantitative_parameters: {parameter_name:[min_value, max_value]}
-#         Parameters sampled for analysis of Morris
-#     - qualitative_parameters: {parameter_name:{'default':float, 'values':[floats]}}
-#         Samples are repeated for each value of qualitative parameter (new analysis of Morris)
-
-# In[5]:
-
-quantitative_parameters = OrderedDict([('sporulating_fraction', [1e-4, 1e-3]),
-                                       ('degree_days_to_chlorosis', [120., 250.]),
-                                       ('degree_days_to_necrosis', [11., 100.]),
-                                       ('Smin', [1e-4, 0.99e-2]),
-                                       ('Smax', [1e-2, 1.]),
-                                       ('growth_rate', [0.5e-4, 0.5e-2]),
-                                       ('age_physio_switch_senescence', [0.01, 1.]),
-                                       ('density_dus_emitted', [1e3, 3e3]),
-                                       ('reduction_by_rain', [0., 1.]), 
-                                       ('temp_min', [0., 10.])])
-
-#qualitative_parameters = OrderedDict([('year', {'default':2004., 'values':[1998., 2003., 2004.]}),
-#                                      ('variety', {'default':1, 'values':[1, 2, 3, 4]})])
-
-qualitative_parameters = OrderedDict([('year', {'default':2013, 'values':[2013]})])
-
-variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
-
-list_param_names = qualitative_parameters.keys() + quantitative_parameters.keys()
-
-generate_parameter_set(parameter_range_file = 'param_range_SA.txt',
-                       sample_file = 'septo_morris_input.txt',
-                       num_trajectories = 10,
-                       num_levels = 10)
-
-
 ### Run and save simulation
-
-# /!\ Wheat reconstructions must be generated prior to simulations of disease /!\
-
-# In[6]:
-
 def wheat_path((year, variety, nplants, nsect)):
     if variety.lower().startswith('tremie'):
         variety = 'tremie'
     return '../adel/'+variety.lower()+'_'+str(int(year))+'_'+str(nplants)+'pl_'+str(nsect)+'sect'
 
-
-# In[7]:
-
-# Generate wheat reconstruction
 def make_canopies((yr, day, variety, nplants, nsect, wheat_path)):
     make_canopy(start_date = str(int(yr-1))+"-10-"+str(int(day))+" 12:00:00", end_date = str(int(yr))+"-08-01 00:00:00",
             variety = variety, nplants = nplants, nsect = nsect, disc_level = 5, dir = wheat_path)
@@ -144,17 +88,9 @@ def reconstruct_wheat(nb_plants = 6, nb_sects = 5):
     combinations = map(lambda x: x + (wheat_path(x),), combinations)
     make_canopies(combinations)
 
-#reconstruct_wheat()
-
-
-# In[8]:
-
 def param_values_to_dict(values):
     keys = ['i_sample'] + list_param_names
     return dict(zip(keys, values))
-
-
-# In[9]:
 
 def annual_loop(sample):
     try:
@@ -187,6 +123,7 @@ def annual_loop(sample):
             
         # Get variety
         if 'variety' in sample:
+            variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
             variety = variety_code[sample.pop('variety')]
         #else:
          #   variety = 'Mercia'
@@ -209,23 +146,6 @@ def annual_loop(sample):
         del recorder
     except:
         print 'evaluation failed'
-
-
-# In[10]:
-
-# get_ipython().run_cell_magic(u'file', u'mp.py', u"from multiprocessing import cpu_count\nfrom sensi_septo_morris import *\nfilename = 'septo_morris_input_full.txt'\nnb_cpu = cpu_count()\nparam_values = np.loadtxt(filename, delimiter=' ').tolist()\nsamples = map(param_values_to_dict, param_values)\n\n# Run disease simulation\nif __name__ == '__main__':\n    pymap(annual_loop, samples, nb_cpu-1)")
-
-
-# In[11]:
-
-#%run mp
-
-
-# /!\ TODO : manage if interruption of simulations --> Start where it stopped
-
-### Read results and make analysis of Morris
-
-# In[ ]:
 
 def get_results_audpc(input_file = 'septo_morris_input_full.txt',
                       qualitative_parameter = 'year',
@@ -258,9 +178,6 @@ def get_results_audpc(input_file = 'septo_morris_input_full.txt',
     output_file = 'septo_morris_output_'+qualitative_parameter+'_'+str(value)+'.txt'
     np.savetxt(output_file, audpcs, delimiter=' ')
 
-
-# In[ ]:
-
 def morris_analysis(parameter_range_file = 'param_range_SA.txt',
                     input_file = 'septo_morris_input.txt', 
                     output_file = 'septo_morris_output_year_2004.txt'):
@@ -272,13 +189,3 @@ def morris_analysis(parameter_range_file = 'param_range_SA.txt',
     # e.g. Si['mu_star'] contains the mu* value for each parameter, in the
     # same order as the parameter file
     return Si
-
-
-# In[ ]:
-
-# get_ipython().magic(u'pylab')
-# get_ipython().magic(u'matplotlib inline')
-# get_results_audpc()
-# Si = morris_analysis()
-# plot(Si['mu_star'], Si['sigma'], 'b*')
-
