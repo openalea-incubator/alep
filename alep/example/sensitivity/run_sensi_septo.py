@@ -26,15 +26,15 @@ variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
 
 list_param_names = qualitative_parameters.keys() + quantitative_parameters.keys()
 
-filename = 'septo_morris_input_full.txt'
 generate_parameter_set(quantitative_parameters,
                        qualitative_parameters,
                        parameter_range_file = 'param_range_SA.txt',
-                       sample_file = filename,
+                       sample_file = 'septo_morris_input.txt',
                        num_trajectories = 10,
                        num_levels = 10)
 
 nb_cpu = cpu_count()
+filename = 'septo_morris_input_full.txt'
 param_values = np.loadtxt(filename, delimiter=' ').tolist()
 samples = map(lambda x: param_values_to_dict(x, list_param_names), param_values)
 

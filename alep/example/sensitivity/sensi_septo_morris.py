@@ -73,7 +73,7 @@ def generate_parameter_set(quantitative_parameters,
     
     # Add indices of sample
     full_params = [np.insert(param_set, 0, i_sample).tolist() for i_sample, param_set in enumerate(full_params)]
-    
+
     # Save full parameter values
     np.savetxt(sample_file[:-4]+'_full'+sample_file[-4:], full_params, delimiter=' ')
 
