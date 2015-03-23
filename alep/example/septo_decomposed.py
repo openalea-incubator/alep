@@ -69,7 +69,9 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     adel = None
     while adel is None:
         try:
-            adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = nsect, disc_level = disc_level, aspect = 'line')
+            adel = reconst.get_reconstruction(name=variety, nplants = nplants,
+                nsect = nsect, disc_level = disc_level, aspect = 'line', 
+                seed = np.random.random_integers(100))
         except:
             pass
             
