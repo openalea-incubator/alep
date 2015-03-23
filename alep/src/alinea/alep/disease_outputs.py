@@ -984,12 +984,12 @@ class AdelSeptoRecorder:
     def pycnidia_coverage(self):
         if not 'ratio_spo' in self.data and not 'ratio_empty' in self.data:
             self.ratios()
-        self.pycnidia_coverage = self.data['ratio_spo'] + self.data['ratio_empty']
+        self.data['pycnidia_coverage'] = self.data['ratio_spo'] + self.data['ratio_empty']
         
     def pycnidia_coverage_on_green(self):
         if not 'ratio_spo_on_green' in self.data and not 'ratio_empty_on_green' in self.data:
             self.ratios()
-        self.pycnidia_coverage_on_green = self.data['ratio_spo_on_green'] + self.data['ratio_empty_on_green']
+        self.data['pycnidia_coverage_on_green'] = self.data['ratio_spo_on_green'] + self.data['ratio_empty_on_green']
     
     def get_audpc(self, variable='necrosis_percentage'):
         """ Variable can be 'severity' or 'necrosis_percentage'. """

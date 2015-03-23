@@ -67,17 +67,9 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     reconst = EchapReconstructions()
     # ULTRA TEMP ET MOCHE 
     adel = None
-    tries = 0.
     while adel is None:
-        tries += 1
-        print '='*80
-        print tries
-        print '='*80
         try:
             adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = nsect, disc_level = disc_level, aspect = 'line')
-            print '='*80
-            print "C EST BON "
-            print '='*80
         except:
             pass
             
@@ -145,7 +137,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
                 save_images = False,
                 adel = None, weather = None, seq = None, rain_timing = None, 
                 canopy_timing = None, septo_timing = None, distri_chlorosis = None, **kwds):
-    """ Simulate epidemics. """
+    """ Simulate epidemics with canopy saved before simulation """
     if any(x==None for x in [adel, weather, seq, rain_timing, canopy_timing, septo_timing]):
         if 'temp_min' in kwds:
             Tmin = kwds['temp_min']
@@ -246,6 +238,98 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
     
     return g, recorders
 
+def run_disease_and_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", 
+                            variety = 'Mercia', nplants = 30, nsect = 7, disc_level = 5, 
+                            sporulating_fraction = 1e-4, layer_thickness = 0.01, record = True, 
+                            save_images = False, adel = None, weather = None, seq = None, 
+                            rain_timing = None, canopy_timing = None, septo_timing = None, 
+                            distri_chlorosis = None, **kwds):
+    """ Simulate epidemics with canopy simulated during simulation """
+    if any(x==None for x in [adel, weather, seq, rain_timing, canopy_timing, septo_timing]):
+        if 'temp_min' in kwds:
+            Tmin = kwds['temp_min']
+        else:
+            Tmin = 10.
+        adel, weather, seq, rain_timing, canopy_timing, septo_timing = setup(start_date = start_date,
+                            end_date = end_date, variety = variety, nplants = nplants, nsect = nsect, 
+                            disc_level = disc_level, Tmin = Tmin)
+    
+    if 'alinea.alep.septoria_age_physio' in sys.modules:
+        del(sys.modules['alinea.alep.septoria_age_physio'])
+        
+    inoculum, contaminator, infection_controler, growth_controler, emitter, transporter = septo_disease(adel, 
+                                    sporulating_fraction, layer_thickness, distri_chlorosis, **kwds)
+    domain = adel.domain
+    convUnit = adel.convUnit
+    g = adel.setup_canopy(age=0.)
+    rain_and_light_star(g, light_sectors = '1', domain = domain, convUnit = convUnit)
+    leaf_ids = adel_ids(g)
+        
+    # Prepare saving of outputs
+    if record == True:
+        recorders = initiate_all_adel_septo_recorders(g, nsect, 
+                            date_sequence = [v.index[-1] for v in septo_timing.values])
+    else:
+        recorders = None
+    
+    for i, controls in enumerate(zip(canopy_timing, rain_timing, septo_timing)):
+        canopy_iter, rain_iter, septo_iter = controls
+        
+        # Grow wheat canopy
+        if canopy_iter:
+            # print canopy_iter.value.index[-1]
+            g = adel.grow(g, canopy_iter.value)
+            rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
+            leaf_ids = adel_ids(g)
+        
+        # Get weather for date and add it as properties on leaves
+        if septo_iter:
+            set_properties(g,label = 'LeafElement',
+                           temperature_sequence = septo_iter.value.temperature_air,
+                           wetness_sequence = septo_iter.value.wetness,
+                           dd_sequence = septo_iter.value.degree_days)
+        if rain_iter:
+            set_properties(g,label = 'LeafElement',
+                           rain_intensity = rain_iter.value.rain.mean(),
+                           rain_duration = len(rain_iter.value.rain) if rain_iter.value.rain.sum() > 0 else 0.)
+
+        # External contamination
+        geom = g.property('geometry')
+        if rain_iter and len(geom)>0 and rain_iter.value.rain.mean()>0.:
+            g = external_contamination(g, inoculum, contaminator, rain_iter.value)
+
+        # Develop disease (infect for dispersal units and update for lesions)
+        if septo_iter:
+            infect(g, septo_iter.dt, infection_controler, label='LeafElement')
+            update(g, septo_iter.dt, growth_controler, senescence_model=None, label='LeafElement')
+            
+        # Disperse and wash
+        if rain_iter and len(geom)>0 and rain_iter.value.rain.mean()>0.:
+            g = disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=rain_iter.value)
+        
+        # Save outputs
+        if septo_iter and record == True:     
+            date = septo_iter.value.index[-1]
+            for plant in recorders:
+                deads = []
+                for lf, recorder in recorders[plant].iteritems():
+                    recorder.update_vids_with_labels(adel_ids = leaf_ids)
+                    recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
+                    if recorder.date_death != None and recorder.data.leaf_green_area.sum()>0.:
+                    # if recorder.date_death != None and sum(recorder.leaf_green_area)>0.:
+                        deads += [s for s in lf.split() if s.isdigit()]
+                if len(deads) > 0:
+                    map(lambda x: recorders[plant][x].inactivate(date), map(lambda x: 'F%d' % x, range(1, min(deads)+1)))
+                    
+    if record == True:
+        for plant in recorders:
+            for recorder in recorders[plant].itervalues():
+                recorder.get_complete_dataframe()
+                recorder.get_normalized_audpc(variable='necrosis_percentage')
+                recorder.get_audpc(variable='necrosis_percentage')
+    
+    return g, recorders
+    
 def stat_profiler(call='run_disease()'):
     import cProfile
     import pstats
