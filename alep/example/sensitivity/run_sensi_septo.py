@@ -20,7 +20,7 @@ quantitative_parameters = OrderedDict([('sporulating_fraction', [0.e-4, 2.e-4]),
 #qualitative_parameters = OrderedDict([('year', {'default':2004., 'values':[1998., 2003., 2004.]}),
 #                                      ('variety', {'default':1, 'values':[1, 2, 3, 4]})])
 
-qualitative_parameters = OrderedDict([('year', {'default':2012, 'values':[2012, 2013]})])
+qualitative_parameters = OrderedDict([('year', {'default':2012, 'values':[2012]})])
 
 variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
 

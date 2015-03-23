@@ -133,7 +133,7 @@ def annual_loop(sample):
          #   variety = 'Mercia'
 
         # Get wheat path
-        nplants = 30
+        nplants = 10
         #nplants = 1
         nsect = 7
         w_path = wheat_path((year, variety, nplants, nsect))

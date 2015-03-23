@@ -67,7 +67,12 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     reconst = EchapReconstructions()
     # ULTRA TEMP ET MOCHE 
     adel = None
+    tries = 0.
     while adel is None:
+        tries += 1
+        print '='*80
+        print tries
+        print '='*80
         try:
             adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = nsect, disc_level = disc_level, aspect = 'line')
         except:
