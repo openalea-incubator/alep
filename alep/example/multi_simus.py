@@ -28,4 +28,4 @@ def annual_loop((nb_plants, i_rep)):
         
 if __name__ == '__main__':
     nb_cpu = cpu_count()
-    pymap(annual_loop, num_simus, nb_cpu)
+    pymap(annual_loop, samples, nb_cpu)
