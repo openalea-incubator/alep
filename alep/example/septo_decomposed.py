@@ -236,7 +236,7 @@ def run_disease_and_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-
                             rain_timing = None, canopy_timing = None, septo_timing = None, 
                             distri_chlorosis = None, **kwds):
     """ Simulate epidemics with canopy simulated during simulation """
-        if any(x==None for x in [adel, weather, seq, rain_timing, canopy_timing, septo_timing]):
+    if any(x==None for x in [adel, weather, seq, rain_timing, canopy_timing, septo_timing]):
         if 'temp_min' in kwds:
             Tmin = kwds['temp_min']
         else:
