@@ -773,124 +773,149 @@ try:
     import cPickle as pickle
 except:
     import pickle
+from alinea.adel.newmtg import adel_labels
 
 class AdelSeptoRecorder:
-    def __init__(self, vids=None, adel_labels = None, 
-                 group_dus=True, date_sequence = None, fungus_name = 'septoria'):
-        """ vids are ids of leaf sectors on the same blade. """
+    """ Record simulation output on every leaf of main stems in a dataframe during simulation """
+    def __init__(self, group_dus = True, fungus_name = 'septoria'):
         self.fungus_name = fungus_name
-        self.vids = vids
-        self.adel_labels = adel_labels
         self.group_dus = group_dus
-        self.data = pandas.DataFrame(index = date_sequence, columns = ['degree_days',
-                                                                       'leaf_area', 
-                                                                       'leaf_green_area',
-                                                                       'leaf_length',
-                                                                       'leaf_senesced_length',
-                                                                       'nb_dispersal_units',
-                                                                       'nb_dus_on_green',
-                                                                       'nb_lesions',
-                                                                       'nb_lesions_on_green',
-                                                                       'surface_inc',
-                                                                       'surface_chlo',
-                                                                       'surface_nec',
-                                                                       'surface_spo',
-                                                                       'surface_spo_on_green',
-                                                                       'surface_empty',
-                                                                       'surface_empty_on_green',
-                                                                       'surface_dead'])
-        self.date_death = None
-
-    def update_vids_with_labels(self, adel_ids):
-        self.vids = [adel_ids[lb] for lb in self.adel_labels]
-        
-    def update_vids(self, vids=[]):
-        self.vids = vids
+        self.data = pandas.DataFrame(columns = ['date',
+                                                'degree_days',
+                                                'num_plant',
+                                                'axis',
+                                                'num_leaf_bottom',
+                                                'leaf_area', 
+                                                'leaf_green_area',
+                                                'leaf_length',
+                                                'leaf_senesced_length',
+                                                'nb_dispersal_units',
+                                                'nb_dus_on_green',
+                                                'nb_lesions',
+                                                'nb_lesions_on_green',
+                                                'surface_inc',
+                                                'surface_chlo',
+                                                'surface_nec',
+                                                'surface_spo',
+                                                'surface_spo_on_green',
+                                                'surface_empty',
+                                                'surface_empty_on_green',
+                                                'surface_dead'])
     
-    def record(self, g, date, degree_days=None):
-        if self.date_death == None:
-            geometries = g.property('geometry')
-            areas = g.property('geometry')
-            vids = [id for id in self.vids if geometries.get(id) is not None and areas.get(id) is not None]
+    def get_values_single_leaf(self, g, date, degree_days, id_list):
+        dict_lf = {}
+        dict_lf['date'] = date
+        dict_lf['degree_days'] = degree_days
         
-            # Spot disappearing of leaf_element to stop recording               
-            if 'leaf_area' in self.data and self.data.leaf_area.sum()>0 and len(vids)==0.:
-                self.date_death = date
-                return
-        
-            self.data['degree_days'][date] = degree_days
+        # Update leaf properties
+        areas = g.property('area')
+        green_areas = g.property('green_area')
+        lengths = g.property('length')
+        senesced_lengths = g.property('senesced_length')
+        fnls = g.property('nff')
+        a_label_splitted = self.a_labels[id_list[0]].split('_')
+        dict_lf['num_plant'] = int(a_label_splitted[0].split('plant')[1])
+        dict_lf['num_leaf_bottom'] = int(a_label_splitted[2].split('metamer')[1])
+        dict_lf['leaf_area'] = sum([areas[id] for id in id_list])
+        dict_lf['leaf_green_area'] = sum([green_areas[id] for id in id_list])
+        dict_lf['leaf_length'] = sum([lengths[id] for id in id_list])
+        dict_lf['leaf_senesced_length'] = sum([senesced_lengths[id] for id in id_list])
+        dict_lf['fnl'] =  fnls[g.complex_at_scale(id_list[0], 2)]
 
-            # Update leaf properties
-            self.data['leaf_area'][date] = sum([g.node(id).area for id in vids])
-            self.data['leaf_green_area'][date] = sum([g.node(id).green_area for id in vids])
-            self.data['leaf_length'][date] = sum([g.node(id).length for id in vids])
-            self.data['leaf_senesced_length'][date] = sum([g.node(id).senesced_length for id in vids])
+        # Update properties of dispersal units and lesions
+        nb_dus = 0
+        nb_dus_on_green = 0
+        nb_lesions = 0
+        nb_lesions_on_green = 0
+        surface_inc = 0.
+        surface_chlo = 0.
+        surface_nec = 0.
+        surface_spo = 0.
+        surface_spo_on_green = 0.
+        surface_empty = 0.
+        surface_empty_on_green = 0.
+        surface_dead = 0.
+        
+        for id in id_list:
+            leaf = g.node(id)
+            if 'dispersal_units' in leaf.properties():
+                for du in leaf.dispersal_units:
+                    if du.fungus.name == self.fungus_name:
+                        if self.group_dus:
+                            nb_dus += len(du.position)
+                            nb_dus_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, du.position))
+                        else:
+                            nb_dus += 1
+                            if du.position[0][0]>leaf.senesced_length:
+                                nb_dus_on_green += 1
+                                
+            if 'lesions' in leaf.properties():
+                for les in leaf.lesions:
+                    if les.fungus.name == self.fungus_name:
+                        if self.group_dus:
+                            nb_les = len(les.position)
+                            nb_les_on_green = len(filter(lambda x: x[0]>leaf.senesced_length, les.position))
+                            nb_lesions += nb_les
+                            nb_lesions_on_green += nb_les_on_green
+                            surface_spo_on_green = les.surface_spo * nb_les_on_green/nb_les if nb_les>0. else 0.
+                            surface_empty_on_green = les.surface_empty * nb_les_on_green/nb_les if nb_les>0. else 0.
+                        else:
+                            nb_lesions += 1
+                            if les.position[0][0]>leaf.senesced_length:
+                                nb_lesions_on_green += 1
+                                surface_spo_on_green = les.surface_spo
+                                surface_empty_on_green = les.surface_empty
+                        surface_inc += les.surface_inc
+                        surface_chlo += les.surface_chlo
+                        surface_nec += les.surface_nec
+                        surface_spo += les.surface_spo
+                        surface_empty += les.surface_empty
+                        surface_dead += les.surface_dead
+        
+        dict_lf['nb_dispersal_units'] = nb_dus
+        dict_lf['nb_dus_on_green'] = nb_dus_on_green
+        dict_lf['nb_lesions'] = nb_lesions
+        dict_lf['nb_lesions_on_green'] = nb_lesions_on_green
+        dict_lf['surface_inc'] = surface_inc
+        dict_lf['surface_chlo'] = surface_chlo
+        dict_lf['surface_nec'] = surface_nec
+        dict_lf['surface_spo'] = surface_spo
+        dict_lf['surface_empty'] = surface_empty
+        dict_lf['surface_dead'] = surface_dead
+        dict_lf['surface_spo_on_green'] = surface_spo_on_green
+        dict_lf['surface_empty_on_green'] = surface_empty_on_green
+        return dict_lf
+        
+    def record(self, g, date = None, degree_days = None):
+        self.a_labels = {vid:lab for vid, lab in adel_labels(g, scale = 5).iteritems() 
+                            if 'LeafElement' in lab}
+        v_length = g.property('visible_length')
+        labels = g.property('label')
+        geometries = g.property('geometry')
+        areas = g.property('area')
+        blades = [id for id,lb in labels.iteritems() if lb.startswith('blade') and v_length[id]>0]
+        for blade in blades:
+            id_list = [id for id in g.components(blade) if geometries.get(id) is not None 
+                                                        and areas.get(id) is not None
+                                                        and labels[id].startswith('LeafElement')]
+            if len(id_list)>0 and 'MS' in self.a_labels[id_list[0]]:
+                dict_lf = self.get_values_single_leaf(g = g, date = date, 
+                                                      degree_days = degree_days, 
+                                                      id_list = id_list)
+                self.data = self.data.append(dict_lf, ignore_index = True)
                 
-            # Update properties of dispersal units and lesions
-            nb_dus = 0
-            nb_dus_on_green = 0
-            nb_lesions = 0
-            nb_lesions_on_green = 0
-            surface_inc = 0.
-            surface_chlo = 0.
-            surface_nec = 0.
-            surface_spo = 0.
-            surface_spo_on_green = 0.
-            surface_empty = 0.
-            surface_empty_on_green = 0.
-            surface_dead = 0.
-            
-            for id in vids:
-                leaf = g.node(id)
-                if 'dispersal_units' in leaf.properties():
-                    for du in leaf.dispersal_units:
-                        if du.fungus.name == self.fungus_name:
-                            if self.group_dus:
-                                nb_dus += len(du.position)
-                                nb_dus_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, du.position))
-                            else:
-                                nb_dus += 1
-                                if du.position[0][0]>leaf.senesced_length:
-                                    nb_dus_on_green += 1
-                                    
-                if 'lesions' in leaf.properties():
-                    for les in leaf.lesions:
-                        if les.fungus.name == self.fungus_name:
-                            if self.group_dus:
-                                nb_les = len(les.position)
-                                nb_les_on_green = len(filter(lambda x: x[0]>leaf.senesced_length, les.position))
-                                nb_lesions += nb_les
-                                nb_lesions_on_green += nb_les_on_green
-                                surface_spo_on_green = les.surface_spo * nb_les_on_green/nb_les if nb_les>0. else 0.
-                                surface_empty_on_green = les.surface_empty * nb_les_on_green/nb_les if nb_les>0. else 0.
-                            else:
-                                nb_lesions += 1
-                                if les.position[0][0]>leaf.senesced_length:
-                                    nb_lesions_on_green += 1
-                                    surface_spo_on_green = les.surface_spo
-                                    surface_empty_on_green = les.surface_empty
-                            surface_inc += les.surface_inc
-                            surface_chlo += les.surface_chlo
-                            surface_nec += les.surface_nec
-                            surface_spo += les.surface_spo
-                            surface_empty += les.surface_empty
-                            surface_dead += les.surface_dead
-
-            self.data['nb_dispersal_units'][date] = nb_dus
-            self.data['nb_dus_on_green'][date] = nb_dus_on_green
-            self.data['nb_lesions'][date] = nb_lesions
-            self.data['nb_lesions_on_green'][date] = nb_lesions_on_green
-            self.data['surface_inc'][date] = surface_inc
-            self.data['surface_chlo'][date] = surface_chlo
-            self.data['surface_nec'][date] = surface_nec
-            self.data['surface_spo'][date] = surface_spo
-            self.data['surface_empty'][date] = surface_empty
-            self.data['surface_dead'][date] = surface_dead
-            self.data['surface_spo_on_green'][date] = surface_spo_on_green
-            self.data['surface_empty_on_green'][date] = surface_empty_on_green
-    
-    def get_nan_index(self):
-        return self.data.index[np.isnan(self.data.ix[:,'leaf_area'].astype(float))]
+    def add_leaf_numbers(self):
+        for pl in set(self.data['num_plant']):
+            df_ax = self.data[self.data['num_plant'] == pl]
+            fnl = df_ax['fnl'].max()
+            df_ax.loc[:, 'num_leaf_top'] = fnl - df_ax['num_leaf_bottom'] + 1
+            self.data.loc[df_ax.index, 'num_leaf_top'] = fnl - df_ax['num_leaf_bottom'] + 1
+            for date in set(df_ax['degree_days']):
+                df_date = df_ax[df_ax['degree_days'] == date]
+                current_max_bottom = df_date['num_leaf_bottom'].max()
+                cur_max_leaf_top = df_date['fnl'] - current_max_bottom + 1
+                self.data.loc[df_date.index, 'cur_max_leaf_top'] = cur_max_leaf_top
+                self.data.loc[df_date.index, 'cur_num_leaf_top'] = cur_max_leaf_top - df_date['num_leaf_top'] + 1
     
     def leaf_senesced_area(self):
         self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
@@ -904,7 +929,6 @@ class AdelSeptoRecorder:
         if not 'leaf_senesced_area' in self.data:
             self.leaf_senesced_area()
         self.data['leaf_lesion_area_on_green'] = [self.data['leaf_disease_area'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['leaf_lesion_area_on_green'][self.get_nan_index()] = np.nan
     
     def leaf_necrotic_area_on_green(self):
         if not 'necrosis' in self.data:
@@ -912,7 +936,6 @@ class AdelSeptoRecorder:
         if not 'leaf_senesced_area' in self.data:
             self.leaf_senesced_area()
         self.data['leaf_necrotic_area_on_green'] = [self.data['necrosis'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['leaf_necrotic_area_on_green'][self.get_nan_index()] = np.nan
     
     def leaf_necrotic_senescent(self):
         if not 'leaf_necrotic_area_on_green' in self.data:
@@ -925,7 +948,6 @@ class AdelSeptoRecorder:
         if not 'leaf_necrotic_senescent' in self.data:
             self.leaf_necrotic_senescent()
         self.data['leaf_necrotic_senescent'] = [self.data['leaf_necrotic_senescent'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['leaf_necrotic_senescent'][self.get_nan_index()] = np.nan
         
     def leaf_healthy_area(self):
         if not 'leaf_lesion_area_on_green' in self.data:
@@ -949,20 +971,10 @@ class AdelSeptoRecorder:
         self.data['ratio_spo_on_green'] = [self.data['surface_spo_on_green'][ind]/self.data['leaf_green_area'][ind] if self.data['leaf_green_area'][ind]>0. else 0. for ind in self.data.index]
         self.data['ratio_empty_on_green'] = [self.data['surface_empty_on_green'][ind]/self.data['leaf_green_area'][ind] if self.data['leaf_green_area'][ind]>0. else 0. for ind in self.data.index]
 
-        nan_ind = self.get_nan_index()
-        self.data['ratio_inc'][nan_ind] = np.nan        
-        self.data['ratio_chlo'][nan_ind] = np.nan        
-        self.data['ratio_nec'][nan_ind] = np.nan        
-        self.data['ratio_spo'][nan_ind] = np.nan        
-        self.data['ratio_empty'][nan_ind] = np.nan        
-        self.data['ratio_spo_on_green'][nan_ind] = np.nan        
-        self.data['ratio_empty_on_green'][nan_ind] = np.nan        
-        
     def severity(self):
         if not 'leaf_disease_area' in self.data:
             self.leaf_disease_area()
         self.data['severity'] = [self.data['leaf_disease_area'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['severity'][self.get_nan_index()] = np.nan
     
     def severity_on_green(self):
         if not 'severity' in self.data:
@@ -970,7 +982,6 @@ class AdelSeptoRecorder:
         if not 'leaf_lesion_area_on_green' in self.data:
             self.leaf_lesion_area_on_green()
         self.data['severity_on_green'] = [self.data['leaf_lesion_area_on_green'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['severity_on_green'][self.get_nan_index()] = np.nan
 
     def necrosis(self):
         self.data['necrosis'] = self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
@@ -979,7 +990,6 @@ class AdelSeptoRecorder:
         if not 'necrosis' in self.data:
             self.necrosis()
         self.data['necrosis_percentage'] = [self.data['necrosis'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['necrosis_percentage'][self.get_nan_index()] = np.nan
         
     def pycnidia_coverage(self):
         if not 'ratio_spo' in self.data and not 'ratio_empty' in self.data:
@@ -990,42 +1000,32 @@ class AdelSeptoRecorder:
         if not 'ratio_spo_on_green' in self.data and not 'ratio_empty_on_green' in self.data:
             self.ratios()
         self.data['pycnidia_coverage_on_green'] = self.data['ratio_spo_on_green'] + self.data['ratio_empty_on_green']
+
+    def get_audpc(self, variable='pycnidia_coverage'):
+        if not variable in self.data:
+            exec('self.'+variable+'()')
+        for pl in set(self.data['num_plant']):
+            df_pl =  self.data[self.data['num_plant'] == pl]
+            for lf in set(df_pl['num_leaf_top']):
+                ind_data_lf = (self.data['num_plant'] == pl) & (self.data['num_leaf_top'] == lf)
+                df_lf = self.data[ind_data_lf]
+                if df_lf['leaf_green_area'][pandas.notnull(df_lf['leaf_green_area'])].iloc[-1]==0.:
+                    data = df_lf[variable][df_lf['leaf_green_area']>0]
+                    ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
+                    data_ref = numpy.ones(len(data))
+                    audpc = simps(data, ddays)
+                    self.data.loc[ind_data_lf, 'audpc'] = audpc
+                    audpc_ref = simps(data_ref, ddays)
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
+                else:
+                    self.data.loc[ind_data_lf, 'audpc'] = 'audpc not available: leaf has not reached senescence or premature leaf death'
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = 'audpc not available: leaf has not reached senescence or premature leaf death'
     
-    def get_audpc(self, variable='necrosis_percentage'):
-        """ Variable can be 'severity' or 'necrosis_percentage'. """
-        if not variable in self.data:
-            exec('self.'+variable+'()')
-        if self.date_death != None and len(self.data.leaf_green_area)==0:
-            self.audpc = 'audpc not available: premature leaf death'
-        elif self.data['leaf_green_area'][-1]==0.:
-            ind = self.data.index[self.data['leaf_green_area']>0]
-            data = self.data[variable][ind]
-            ddays = self.data['degree_days'][ind]
-            self.audpc = simps(data, ddays)
-        else:
-            self.audpc = 'audpc not available: leaf has not reached senescence'
-            
-        return self.audpc
-        
-    def get_normalized_audpc(self, variable='necrosis_percentage'):
-        """ Variable can be 'severity' or 'necrosis_percentage'. """
-        if not variable in self.data:
-            exec('self.'+variable+'()')
-        if self.date_death != None and len(self.data.leaf_green_area)==0:
-            self.normalized_audpc = 'audpc not available: premature leaf death'
-        elif self.data['leaf_green_area'][-1]==0.:
-            ind = self.data.index[self.data['leaf_green_area']>0]
-            data = self.data[variable][ind]
-            ddays = self.data['degree_days'][ind]
-            data_ref = numpy.ones(len(ind))
-            audpc = simps(data, ddays)
-            audpc_ref = simps(data_ref, ddays)
-            self.normalized_audpc = audpc/audpc_ref if audpc_ref>0. else 0.
-        else:
-            self.normalized_audpc = 'audpc not available: leaf has not reached senescence'
-        return self.normalized_audpc
-                
-    def get_complete_dataframe(self):
+    def add_variety(variety = None):
+        self.data['variety'] = variety
+    
+    def post_treatment(self, variety = None):
+        self.add_leaf_numbers()
         self.leaf_senesced_area()
         self.leaf_disease_area()
         self.leaf_lesion_area_on_green()
@@ -1039,38 +1039,14 @@ class AdelSeptoRecorder:
         self.necrosis_percentage()
         self.pycnidia_coverage()
         self.pycnidia_coverage_on_green()
-
-    def record_only_leaf_data(self, g, date, degree_days=None):
-        if self.date_death == None:
-            geometries = g.property('geometry')
-            areas = g.property('geometry')
-            vids = [id for id in self.vids if geometries.get(id) is not None and areas.get(id) is not None]
-        
-            # Spot disappearing of leaf_element to stop recording
-            if sum(self.leaf_area)>0 and len(vids)==0.:
-                self.date_death = date
-                return
-                
-            self.data['degree_days'][date] = degree_days
-        
-            # Update leaf properties
-            self.data['leaf_area'][date] = sum([g.node(id).area for id in vids])
-            self.data['leaf_green_area'][date] = sum([g.node(id).green_area for id in vids])
-            self.data['leaf_length'][date] = sum([g.node(id).length for id in vids])
-            self.data['leaf_senesced_length'][date] = sum([g.node(id).senesced_length for id in vids])
-            heights = [numpy.mean(get_height({vid:g.node(vid).geometry}).values()) for vid in vids]
-            
-            self.data['senesced_area'][date] = sum([g.node(id).senesced_area for id in vids])
-            self.data['leaf_green_length'][date] = sum([g.node(id).green_length for id in vids])
-            self.data['leaf_min_height'][date] = min(heights) if len(heights)>0. else 0.
-            self.data['leaf_max_height'][date] = max(heights) if len(heights)>0. else 0.
-        
-    def inactivate(self, date=None):
-        labels = self.adel_labels
-        if sum(self.leaf_green_area)==0:
-            self.__init__()
-        self.adel_labels = labels
-        self.date_death = date
+        self.get_audpc()
+        if variety is not None:
+            self.add_variety()
+        self.data['axis'] = 'MS'
+           
+    def save(self, filename):
+        self.post_treatment()
+        self.data.to_csv(filename, index = False)
         
 def initiate_all_adel_septo_recorders(g, nsect=5, date_sequence = None, fungus_name = 'septoria'):
     """ Used in the case of recording all blades of the main stem of each plant.
@@ -1116,6 +1092,55 @@ def get_recorder(*filenames):
         f_rec.close()
     return recorder if len(recorder)>1 else recorder[0]
 
+def recorder_to_dataframe(recorder, weather = None, adel = None, skipna = True):
+    """ Translate recorder object in DataFrame with the same format as disease notations """
+    from alinea.astk.Weather import Weather
+    from alinea.echap.disease.septo_data_reader import table_count_notations
+    recos = []
+    for pl, rec_pl in recorder.iteritems():
+        for lf, rec_lf in rec_pl.iteritems():
+            rec_lf.data['plant'] = int(pl[1:])
+            rec_lf.data['num_leaf_top'] = int(lf[1:])
+            rec_lf.data['num_leaf_bottom'] = len(rec_pl) - int(lf[1:]) + 1
+            rec_lf.data['variety'] = 'tremie'
+            rec_lf.data = rec_lf.data.rename(columns = {'date_sequence':'datetime'})
+            # Temp : to move in disease outputs
+            rec_lf.data['pycnidia_coverage'] = (rec_lf.data['ratio_spo'] + rec_lf.data['ratio_empty'])*100
+            rec_lf.data['pycnidia_coverage_on_green'] = (rec_lf.data['ratio_spo'] + rec_lf.data['ratio_empty'])*100
+            # rec_lf.get_normalized_audpc()
+            # rec_lf.data['audpc'] = rec_lf.normalized_audpc
+            recos.append(rec_lf.data)
+    data_sim = pandas.concat(recos)
+    data_sim.index.name = 'datetime'
+    
+    # Convert ratios in percentage
+    list_of_ratios = [var for var in data_sim.columns if var.startswith('ratio')]+['severity', 'necrosis_percentage']
+    data_sim[list_of_ratios] = data_sim[list_of_ratios].apply(lambda x: x*100.)
+    
+    # Add leaf dates
+    if weather is not None:
+        filename = find_dates_filename(weather)
+        data_sim = add_leaf_dates_to_data(data_sim, adel, filename = filename)
+    else:
+        weather = Weather()
+        weather.data = pandas.DataFrame(data = recorder['P1']['F1'].data.degree_days,
+                                        index = recorder['P1']['F1'].data.index)
+    
+    # Ignore data from dates with dead leaves in each layer
+    if skipna == True:
+        df_count = table_count_notations(data_sim, weather, variable = 'severity', add_ddays = True)
+        for lf in df_count.columns:
+            df_lf = df_count[lf][map(lambda x: isinstance(x, (numpy.int64, int, float)), 
+                                    df_count[lf])]
+            nan_dates = df_lf[df_lf<df_lf.max()].reset_index().loc[:,'Date']
+            if len(nan_dates)>0:
+                for variable in data_sim.columns:
+                    if variable not in ['datetime', 'degree_days', 'date_death',
+                                        'variety', 'plant', 'num_leaf_top', 'num_leaf_bottom']:
+                        data_sim[variable][(data_sim['num_leaf_top']==lf) & 
+                                (data_sim.index.isin([d for d in nan_dates]))] = np.nan
+    return data_sim
+    
 def split_recorder_by_fnl(recorder):
     fnls = set(len(v) for v in recorder.itervalues())
     recorders = {}
