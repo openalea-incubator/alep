@@ -142,7 +142,7 @@ def annual_loop(sample):
         g, recorder = run_disease(start_date = start_date, 
                          end_date = end_date, 
                          variety = variety, nplants = nplants, nsect = nsect,
-                         dir = w_path, degree_days_to_necrosis = 70.,
+                         dir = w_path, reset_reconst = False, degree_days_to_necrosis = 70.,
                          degree_days_to_sporulation = 70., **sample)
         stored_rec = './'+variety.lower()+'/recorder_'+str(int(i_sample))+'.pckl'
         f_rec = open(stored_rec, 'w')
