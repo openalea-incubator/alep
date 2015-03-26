@@ -1021,7 +1021,7 @@ class AdelSeptoRecorder:
                     self.data.loc[ind_data_lf, 'audpc'] = 'audpc not available: leaf has not reached senescence or premature leaf death'
                     self.data.loc[ind_data_lf, 'normalized_audpc'] = 'audpc not available: leaf has not reached senescence or premature leaf death'
     
-    def add_variety(variety = None):
+    def add_variety(self, variety = None):
         self.data['variety'] = variety
     
     def post_treatment(self, variety = None):
