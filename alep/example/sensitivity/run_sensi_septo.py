@@ -2,10 +2,8 @@ from collections import OrderedDict
 from multiprocessing import cpu_count
 from sensi_septo_morris import *
 
-quantitative_parameters = OrderedDict([('sporulating_fraction', [0.e-4, 2.e-4]),
-                                       ('degree_days_to_chlorosis', [130., 230.]), [130, 300]
-                                       ('degree_days_to_necrosis', [70., 130.]), 70
-                                       ('degree_days_to_sporulation', [12., 50.]), 70
+quantitative_parameters = OrderedDict([('sporulating_fraction', [0., 2.e-4]),
+                                       ('degree_days_to_chlorosis', [130., 300.]),
                                        ('Smin', [0.01, 0.09]),
                                        ('Smax', [0.1, 1.0]),
                                        ('growth_rate', [0.0001, 0.001]),
