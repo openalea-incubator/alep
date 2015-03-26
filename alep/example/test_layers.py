@@ -45,7 +45,7 @@ def test_transport(interleaf=10., density = 350., layer_thickness=0.01, leaf_sec
     g, domain_area, domain, convunit = adel_two_metamers_stand(leaf_sectors = leaf_sectors, density = density, 
                                         interleaf = interleaf, leaf_length = 20, leaf_width = 1, Einc = 0)
                                         
-    domain_area *= 10
+    #domain_area *= 10
                                         
     labels = g.property('label')
     bids = [v for v,l in labels.iteritems() if l.startswith('blade')]
@@ -68,7 +68,29 @@ def test_transport(interleaf=10., density = 350., layer_thickness=0.01, leaf_sec
         nb_dus_on_source = {lf:len(dus[lf]) if lf in dus else 0. for lf in leaves[0]}
         nb_dus_on_target = {lf:len(dus[lf]) if lf in dus else 0. for lf in leaves[1]}
         return nb_dus_on_source, nb_dus_on_target
-    
+
+def plot_interleaf(density = 350., layer_thickness=0.01, leaf_sectors = 1, 
+                    linestyle = '-', ax = None, return_ax = True):
+    dus_s = []
+    dus_t = []
+    nb_steps = 30
+    for i in range(nb_steps):
+        dus_s.append(test_transport(interleaf = i, density = density, 
+                                    layer_thickness = layer_thickness, 
+                                    leaf_sectors = leaf_sectors)[0])
+        dus_t.append(test_transport(interleaf = i, density = density, 
+                                    layer_thickness = layer_thickness, 
+                                    leaf_sectors = leaf_sectors)[1])
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.plot(range(nb_steps), dus_s, 'b', linestyle = linestyle)
+    ax.plot(range(nb_steps), dus_t, 'r', linestyle = linestyle)
+    ax.legend(['source leaf', 'target leaf'], loc = 'best')
+    ax.set_ylabel('Number of DUs intercepted', fontsize = 14)
+    ax.set_ylabel('Distance between leaves (cm)', fontsize = 14)
+    if return_ax == True:
+        return ax
+        
 def plot_layer_thickness_x_interleaf():
     interleaf = numpy.arange(1, 51, 1)
     layer_thickness = numpy.arange(0.1, 5.1, 0.1)

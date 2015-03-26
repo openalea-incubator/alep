@@ -139,7 +139,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
                 variety = 'Mercia', nplants = 30, nsect = 7,
                 disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', 
                 sporulating_fraction = 1e-4, layer_thickness = 0.01, record = True, 
-                save_images = False,
+                save_images = False, reset_reconst = False,
                 adel = None, weather = None, seq = None, rain_timing = None, 
                 canopy_timing = None, septo_timing = None, distri_chlorosis = None, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
@@ -150,7 +150,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
             Tmin = 0.
         adel, weather, seq, rain_timing, canopy_timing, septo_timing = setup(start_date = start_date,
                             end_date = end_date, variety = variety, nplants = nplants, nsect = nsect, 
-                            disc_level = disc_level, Tmin = Tmin)
+                            disc_level = disc_level, Tmin = Tmin, reset_reconst = reset_reconst)
             
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
