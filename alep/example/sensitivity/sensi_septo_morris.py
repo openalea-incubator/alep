@@ -153,6 +153,65 @@ def annual_loop(sample):
     except:
         print 'evaluation failed'
 
+def annual_loop_smin(sample):
+    try:
+        # Get indice of simulation
+        i_sample = sample.pop('i_sample')
+
+        # Get year of simulation
+        if 'year' in sample:
+            year = int(sample.pop('year'))
+            if year == 2011:
+                start_date = "2010-10-15"
+                end_date = "2011-06-20"
+            elif year == 2012:
+                start_date = "2011-10-21"
+                end_date = "2012-07-18"
+                variety = 'Tremie12'
+            elif year == 2013:
+                start_date = "2012-10-29"
+                end_date = "2013-08-01"
+                variety = 'Tremie13'
+            else:
+                start_date = str(year-1)+"-10-15"
+                end_date = str(year)+"-08-01"
+        else:
+            year = 2005
+            start_date = str(year-1)+"-10-15"
+            end_date = str(year)+"-08-01"
+        start_date += " 12:00:00"
+        end_date += " 00:00:00"
+            
+        # Get variety
+        if 'variety' in sample:
+            variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
+            variety = variety_code[sample.pop('variety')]
+        #else:
+         #   variety = 'Mercia'
+
+        # Get wheat path
+        nplants = 10
+        #nplants = 1
+        nsect = 7
+        w_path = wheat_path((year, variety, nplants, nsect))
+
+        # Run and save simulation
+        g, recorder = run_disease(start_date = start_date, 
+                         end_date = end_date, 
+                         variety = variety, nplants = nplants, nsect = nsect,
+                         dir = w_path, reset_reconst = True, 
+                         degree_days_to_necrosis = 70.,
+                         degree_days_to_sporulation = 70.,
+                         Smin = 0.03,
+                         **sample)
+        stored_rec = './'+variety.lower()+'/smin_cst/recorder_'+str(int(i_sample))+'.pckl'
+        f_rec = open(stored_rec, 'w')
+        pickle.dump(recorder, f_rec)
+        f_rec.close()
+        del recorder
+    except:
+        print 'evaluation failed'
+        
 def get_results_audpc(input_file = 'septo_morris_input_full.txt',
                       qualitative_parameter = 'year',
                       value = 2004):   
