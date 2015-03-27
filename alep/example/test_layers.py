@@ -92,21 +92,63 @@ def plot_interleaf(density = 350., layer_thickness=0.01, leaf_sectors = 1,
         return ax
         
 def plot_layer_thickness_x_interleaf():
-    interleaf = numpy.arange(1, 51, 1)
-    layer_thickness = numpy.arange(0.1, 5.1, 0.1)
-    df = pandas.DataFrame(index = interleaf, columns = layer_thickness)
-    for int_lf in df.index:
-        for dh in df.columns:
+    interleaf = numpy.arange(1, 31, 1)
+    layer_thickness = numpy.arange(0.01, 0.31, 0.01)
+    df_source = pandas.DataFrame(index = interleaf, columns = layer_thickness)
+    df_target = pandas.DataFrame(index = interleaf, columns = layer_thickness)
+    for int_lf in df_source.index:
+        for dh in df_source.columns:
             print int_lf, dh
-            _, df.ix[int_lf, dh] = test_transport(interleaf=float(int_lf), layer_thickness=dh*0.01)
+            df_source.loc[int_lf, dh], df_target.loc[int_lf, dh] = test_transport(interleaf=float(int_lf), layer_thickness=dh)
             
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1, projection='3d')
-    X, Y = numpy.meshgrid(df.columns, df.index)
-    ax.plot_surface(X,Y, df.values/max(df.max()), rstride=1, cstride=1, color='b', alpha=0.5)
-    ax.set_xlabel('layer thickness (cm)')
+    X, Y = numpy.meshgrid(df_source.columns, df_source.index)
+    ax.plot_surface(X,Y, df_source.values, 
+                    rstride=1, cstride=1, color='b', alpha=0.5)
+    ax.set_xlabel('Layer thickness (m)')
     ax.set_ylabel('inter leaf (cm)')
-    ax.set_zlabel('normalised number of deposits on leaf 2')
+    ax.set_zlabel('normalised number of deposits on source leaf')
+    # ax.set_zlim([0,1])
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    X, Y = numpy.meshgrid(df_target.index, df_target.columns)
+    ax.plot_surface(X,Y, df_target.values, 
+                    rstride=1, cstride=1, color='b', alpha=0.5)
+    ax.set_xlabel('Layer thickness (m)')
+    ax.set_ylabel('Inter leaf (cm)')
+    ax.set_zlabel('normalised number of deposits on target leaf')
+    # ax.set_zlim([0,1])
+    
+def plot_nb_sectors_x_interleaf():
+    interleaf = numpy.arange(1, 31, 1)
+    nb_sectors = numpy.arange(1, 11, 1)
+    df_source = pandas.DataFrame(index = interleaf, columns = nb_sectors)
+    df_target = pandas.DataFrame(index = interleaf, columns = nb_sectors)
+    for int_lf in df_source.index:
+        for nb_sect in df_source.columns:
+            print int_lf, nb_sect
+            df_source.loc[int_lf, nb_sect], df_target.loc[int_lf, nb_sect] = test_transport(interleaf=float(int_lf), leaf_sectors = nb_sect)
+            
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    X, Y = numpy.meshgrid(df_source.columns, df_source.index)
+    ax.plot_surface(X,Y, df_source.values/max(df_source.max()), 
+                    rstride=1, cstride=1, color='b', alpha=0.5)
+    ax.set_xlabel('Number of sectors by leaf')
+    ax.set_ylabel('inter leaf (cm)')
+    ax.set_zlabel('normalised number of deposits on source leaf')
+    ax.set_zlim([0,1])
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    X, Y = numpy.meshgrid(df_target.columns, df_target.index)
+    ax.plot_surface(X,Y, df_target.values/max(df_target.max()), 
+                    rstride=1, cstride=1, color='b', alpha=0.5)
+    ax.set_xlabel('Number of sectors by leaf')
+    ax.set_ylabel('inter leaf (cm)')
+    ax.set_zlabel('normalised number of deposits on target leaf')
     ax.set_zlim([0,1])
     
 def plot_sectors(by_sector = False):

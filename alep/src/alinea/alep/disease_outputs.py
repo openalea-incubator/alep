@@ -1014,12 +1014,12 @@ class AdelSeptoRecorder:
                     ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
                     data_ref = numpy.ones(len(data))
                     audpc = simps(data, ddays)
-                    self.data.loc[ind_data_lf, 'audpc'] = audpc
+                    self.data.loc[ind_data_lf, 'audpc_'+variable] = audpc
                     audpc_ref = simps(data_ref, ddays)
-                    self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
+                    self.data.loc[ind_data_lf, 'normalized_audpc_'+variable] = audpc/audpc_ref if audpc_ref>0. else 0.
                 else:
-                    self.data.loc[ind_data_lf, 'audpc'] = 'audpc not available: leaf has not reached senescence or premature leaf death'
-                    self.data.loc[ind_data_lf, 'normalized_audpc'] = 'audpc not available: leaf has not reached senescence or premature leaf death'
+                    self.data.loc[ind_data_lf, 'audpc_'+variable] = 'audpc not available: leaf has not reached senescence or premature leaf death'
+                    self.data.loc[ind_data_lf, 'normalized_audpc_'+variable] = 'audpc not available: leaf has not reached senescence or premature leaf death'
     
     def add_variety(self, variety = None):
         self.data['variety'] = variety
@@ -1039,7 +1039,8 @@ class AdelSeptoRecorder:
         self.necrosis_percentage()
         self.pycnidia_coverage()
         self.pycnidia_coverage_on_green()
-        self.get_audpc()
+        self.get_audpc('necrosis_percentage')
+        self.get_audpc('pycnidia_coverage')
         if variety is not None:
             self.add_variety()
         self.data['axis'] = 'MS'
