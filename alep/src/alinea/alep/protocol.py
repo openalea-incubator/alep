@@ -197,14 +197,15 @@ def update(g, dt,
         
         # 1. Compute growth demand
         for vid, les in lesions.iteritems():
-            les = [lesion for lesion in les if lesion.is_active]
+            lesions[vid] = [lesion for lesion in les if (lesion.surface>0. or lesion.growth_is_active)]
             # Update active lesions
-            for lesion in les:
-                leaf=g.node(vid)
-                if weather_data is None:
-                    lesion.update(dt, leaf)
-                else:
-                    lesion.update(dt, leaf, weather_data)
+            for lesion in lesions[vid]:
+                if lesion.is_active:
+                    leaf=g.node(vid)
+                    if weather_data is None:
+                        lesion.update(dt, leaf)
+                    else:
+                        lesion.update(dt, leaf, weather_data)
         
         # 2. Allocate or not growth demand, and compute corresponding production of spores 
         if growth_control_model:
