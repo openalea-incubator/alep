@@ -18,10 +18,8 @@ class SeptoriaAgePhysio(Lesion):
         
         Parameters
         ----------
-        nb_spores: int
-            Number of spores aggregated in the dispersal unit
-        position: non defined
-            Position of the dispersal unit on the phyto-element
+        mutable: bool
+            False if all instances of the class share the same parameters
         """
         super(SeptoriaAgePhysio, self).__init__(mutable=mutable)
         # Calculate parameter for emission from other parameters
@@ -30,7 +28,6 @@ class SeptoriaAgePhysio(Lesion):
         self.status = self.fungus.INCUBATING
         # Age of the center of the lesion
         self.ddday=None
-        self.age_t = 0.
         self.age_dday = 0.
         self.age_physio = 0.
         # Status of the periphery of the lesion
@@ -156,14 +153,13 @@ class SeptoriaAgePhysio(Lesion):
             progress = self.ddday/age_threshold if age_threshold>0. else 0.
         elif left>0.:
             # Passing from one state to another in same time step
-            assert left<1.
             progress = left*self.ddday/age_threshold if age_threshold>0. else 0.
             # Reset ratio left and age physio
             self.ratio_left = 0.
         return progress
     
     def control_growth(self, growth_offer=0.):
-        """ Reduce surface of the rings up to available surface on leaf.
+        """ Reduce surface of the lesion up to available surface on leaf.
         
         Parameters
         ----------
@@ -368,11 +364,7 @@ class SeptoriaAgePhysio(Lesion):
                 surface_to_next_phase = sum(np.extract(new_ends>1, new_surf))
                 self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
                 self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
-                        
-                if not self.to_sporulation>=0:
-                    import pdb
-                    pdb.set_trace()
-
+                
             # Filling of new rings
             nb_full_rings = int(floor(progress/width))
             surf = np.array([])
@@ -427,24 +419,13 @@ class SeptoriaAgePhysio(Lesion):
         if density_DU_emitted>0:       
             f = self.fungus
             density = map(lambda x: min(float(density_DU_emitted),x), self.density_dus_emitted_max)
-            
-            cond = np.array(density)>=0
-            if any(~cond):
-                import pdb
-                pdb.set_trace()
             du_factor = map(lambda (x,y): x / y if y>0. else 0., zip(density, self.density_dus_emitted_max))
             emissions = map(lambda x: int(x), self.surfaces_spo * density)
-            # emissions = map(lambda x: int(x), self.surfaces_spo * density_DU_emitted)
             
             delta_spo = self.surfaces_spo*du_factor
             self.surfaces_spo -= delta_spo
-            self.surfaces_spo[1:]+=delta_spo[:-1]
-            
-            cond = self.surfaces_spo>=0
-            if any(~cond):
-                import pdb
-                pdb.set_trace()
-            
+            self.surfaces_spo[1:] += delta_spo[:-1]
+                       
             if delta_spo[-1]>0.:
                 self.surface_empty += delta_spo[-1]
                 
@@ -457,50 +438,6 @@ class SeptoriaAgePhysio(Lesion):
             return [f.dispersal_unit() for i in range(sum(emissions))]
         else:
             return []
-        
-    def reduce_stock(self, nb_spores_emitted):
-        """ Reduce the stock of spores after emission.
-        
-        Parameters
-        ----------
-        nb_spores_emitted: int
-            Number of spores emitted
-        """
-        self.stock_spores -= nb_spores_emitted
-        if self.stock_spores < self.fungus.threshold_spores:
-            self.stock_spores = 0.
-    
-    def update_empty_surface(self, nb_spores_emitted, initial_stock):  
-        """ Update empty surface after emission. 
-        
-        In this case, the surface is emptied proportionally  to the number of spores emitted.
-        
-        Parameters
-        ----------
-        nb_spores_emitted: int
-            Number of spores emitted
-        initial_stock: int
-            Number of spores on the lesion before emission
-        """
-        assert initial_stock>0.
-        f = self.fungus
-        new_surface_empty = (nb_spores_emitted/initial_stock) * self.surface_spo
-        self.surface_empty += new_surface_empty
-        self.surface_spo = max(0., self.surface_spo-new_surface_empty)
-        self.nb_spores_emitted += nb_spores_emitted
-        if self.status_edge == f.SPORULATING and self.surface_spo == 0.:
-            self.change_status()
-            self.disable()
-    
-    def compute_time_before_senescence(self, dt=1., leaf=None):
-        """ Compute portion of time step before senescence. """
-        old_pos = self.old_position_senescence
-        new_pos = leaf.position_senescence
-        speed = (old_pos - new_pos)/dt if dt > 0. else 0.
-        new_dt = (old_pos-self.position[0])/speed if speed >0. else 0.
-        self.dt_before_senescence = dt
-        self.dt_left_after_senescence = dt - new_dt
-        return new_dt
     
     def senescence_response(self, senesced_length):
         """ Compute surface alive and surface dead after senescence. """
@@ -573,7 +510,6 @@ class SeptoriaAgePhysio(Lesion):
 
     def update_status(self):
         """ Update growth demand and status. """        
-        # A REORDONNER
         f = self.fungus
         status = self.status
         if status <= f.INCUBATING:
@@ -606,12 +542,7 @@ class SeptoriaAgePhysio(Lesion):
     def reset_age_physio_edge(self):
         """ Turn age physio to 0. """
         self.age_physio_edge = 0.
-    
-    def compute_all_surfaces(self):
-        """ Not needed in this model.
-        ..TODO: Remove """
-        pass
-    
+        
     def set_position(self, position=None):
         """ Set the position of the DU to position given in argument.
         
@@ -624,17 +555,7 @@ class SeptoriaAgePhysio(Lesion):
             self.position = [position]
         else:
             self.position = position
-        
-    def set_nb_spores(self, nb_spores=0.):
-        """ Set the position of the DU to position given in argument.
-        
-        Parameters
-        ----------
-        nb_spores: int
-            Number of spores in the DU forming the lesion
-        """
-        self.nb_spores = nb_spores
-    
+
     @property
     def surface_inc(self):
         """ Calculate the surface in incubation. """
@@ -679,14 +600,18 @@ class SeptoriaAgePhysio(Lesion):
     def surface(self):
         """ Calculate the total surface of the lesion. """
         return self.surface_alive + self.surface_dead
-        
+
     @property
     def nb_lesions(self):
+        """ Get number of lesions in cohort if group_dus == True.
+            Each lesion in cohort has its own position. """
         if self.position is None:
             return None
-        else:
+        elif self.fungus.group_dus == True:
             return len(self.position)
-
+        else:
+            return 1.
+            
 class SeptoriaFungus(Fungus):
     def __init__(self, name='septoria', Lesion=SeptoriaAgePhysio, DispersalUnit=SeptoriaDU, parameters=septoria_parameters):
         super(SeptoriaFungus, self).__init__(name=name, Lesion=Lesion, DispersalUnit=DispersalUnit, parameters=parameters)

@@ -52,7 +52,7 @@ class BiotrophDUProbaModel:
                 nb_not_on_green = int(ratio*len(du))
                 for dispersal_unit in random.sample(du, nb_not_on_green):
                     # Is not on green tissue
-                    dispersal_unit.can_not_infect_at_position()
+                    dispersal_unit.disable()
 
 class BiotrophDUPositionModel:
     """ Template class for checking position of dispersal units on a MTG that 

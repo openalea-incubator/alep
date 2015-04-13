@@ -59,22 +59,17 @@ def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"
 
 def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", variety='Mercia',
             nplants = 30, nsect = 7, disc_level = 5, Tmin = 10., Tmax = 25., WDmin = 10., 
-            rain_min = 0.2, reset_reconst = False):
+            rain_min = 0.2, reset_reconst = True):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Initialize wheat plant
-    if reset_reconst == False:
-        reconst = get_EchapReconstructions()
-    else:
+    if reset_reconst == True:
         reconst = EchapReconstructions()
-    # ULTRA TEMP ET MOCHE 
+    else:
+        reconst = get_EchapReconstructions()
     adel = None
-    while adel is None:
-        try:
-            adel = reconst.get_reconstruction(name=variety, nplants = nplants,
-                nsect = nsect, disc_level = disc_level, aspect = 'line', 
-                seed = np.random.random_integers(100))
-        except:
-            pass
+    adel = reconst.get_reconstruction(name=variety, nplants = nplants,
+        nsect = nsect, disc_level = disc_level, aspect = 'line', 
+        seed = np.random.random_integers(100))
             
     # Manage weather
     weather = get_weather(start_date = start_date, end_date = end_date)
@@ -106,16 +101,19 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, distri_chlorosis 
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
     inoculum = SoilInoculum(fungus, sporulating_fraction=sporulating_fraction,
                             domain_area=domain_area, mutable = mutable)
-    contaminator = PopDropsSoilContamination(domain=domain, domain_area=domain_area)
+    contaminator = PopDropsSoilContamination(domain=domain, domain_area=domain_area, 
+                                             compute_star = False)
     growth_controler = PriorityGrowthControl()
     infection_controler = BiotrophDUPositionModel()
     emitter = PopDropsEmission(domain=domain, compute_star = False)
-    transporter = PopDropsTransport(domain = domain, domain_area = domain_area, dh = layer_thickness, convUnit = convUnit)
+    transporter = PopDropsTransport(domain = domain, domain_area = domain_area,
+                                    dh = layer_thickness, convUnit = convUnit,
+                                    compute_star = False)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
    
 def make_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", variety = 'Mercia',
                 nplants = 30, nsect = 7, disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', 
-                reset_reconst = False):
+                reset_reconst = True):
     """ Simulate and save canopy (prior to simulation). """
     adel, weather, seq, rain_timing, canopy_timing, septo_timing = setup(start_date = start_date,
         end_date = end_date, variety = variety, nplants = nplants, nsect = nsect, disc_level = disc_level,
@@ -139,7 +137,7 @@ def run_disease(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00
                 variety = 'Mercia', nplants = 30, nsect = 7,
                 disc_level = 5, dir = './adel/mercia_2011_30pl_7sect', 
                 sporulating_fraction = 1e-4, layer_thickness = 0.01, record = True, 
-                save_images = False, reset_reconst = False,
+                save_images = False, reset_reconst = True,
                 adel = None, weather = None, seq = None, rain_timing = None, 
                 canopy_timing = None, septo_timing = None, distri_chlorosis = None, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
@@ -325,5 +323,5 @@ def run_disease_and_canopy(start_date = "2010-10-15 12:00:00", end_date = "2011-
 def stat_profiler(call='run_disease()'):
     import cProfile
     import pstats
-    cProfile.run(call, 'restats')
-    return pstats.Stats('restats')
+    cProfile.run(call, 'septo_stats')
+    return pstats.Stats('septo_stats')

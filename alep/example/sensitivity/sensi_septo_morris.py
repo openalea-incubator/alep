@@ -7,6 +7,7 @@ sys.path.append("..")
 import numpy as np
 import random as rd
 import pandas as pd
+import matplotlib.pyplot as plt
 import itertools
 from collections import OrderedDict
 from SALib.sample.morris import sample
@@ -19,6 +20,11 @@ try:
     import cPickle as pickle
 except:
     import pickle
+
+from alinea.alep.disease_outputs import *
+from alinea.echap.disease.septo_data_reader import *
+from alinea.echap.disease.septo_data_treatment import *
+from alinea.echap.disease.alep_septo_evaluation import *
     
 variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
 
@@ -212,36 +218,45 @@ def annual_loop_smin(sample):
     except:
         print 'evaluation failed'
         
-def get_results_audpc(input_file = 'septo_morris_input_full.txt',
-                      qualitative_parameter = 'year',
-                      value = 2004):   
-    # Get i_sample numbers corresponding to qualitative_parameter==value in parameters set
-    df = pd.read_csv('septo_morris_input_full.txt', sep=' ', index_col=0, names=list_param_names)
-    df = df[df[qualitative_parameter]==value]
+def save_sensitivity_outputs(quantitative_parameters, qualitative_parameters, weather,
+                             scenario = {'year':2012},
+                             variety = 'Tremie12',
+                             filename = 'output_morris_tremie_12.csv'):
+    list_param_names = ['i_sample'] + qualitative_parameters.keys() + quantitative_parameters.keys()
+    df_in = pd.read_csv('septo_morris_input_full.txt', sep=' ', index_col=0, names=list_param_names)
+    df_in = df_in[df_in[scenario.keys()[0]]==scenario.values()[0]]
     for k,v in qualitative_parameters.iteritems():
-        if k!=qualitative_parameter:
-            df = df[df[k]==v['default']]
-    i_samples = df.index
-        
-    # Get variety
-    if qualitative_parameter == 'variety':
-        variety = variety_code[value]
-    else:
-        variety = 'Mercia'
-        
-    # Get outputs of simulation for i_samples
-    audpcs = []
+        if k!=scenario.values()[0]:
+            df_in = df_in[df_in[k]==v['default']]
+    i_samples = df_in.index
+
+    df_out = pd.DataFrame(columns = ['num_leaf_top'] + list(df_in.columns) + ['normalized_audpc_pycnidia_coverage', 
+                                                                              'normalized_audpc_necrosis_percentage',
+                                                                              'max_pycnidia_coverage', 
+                                                                              'max_necrosis_percentage',
+                                                                              'speed', 'date_thr'])
     for i_sample in i_samples:
         stored_rec = './'+variety.lower()+'/recorder_'+str(int(i_sample))+'.pckl'
         recorder = get_recorder(stored_rec)
-        # Output variable: mean audpc on all plants and for leaves 1 to 3
-        mean_audpc_f1_to_f3 = mean_audpc_by_leaf(recorder, normalized=True)[['F%d' % lf for lf in range(1, 4)]].mean()
-        audpcs.append(mean_audpc_f1_to_f3)
+        df_reco = recorder.data
+        df_reco = df_reco.rename(columns = {'num_plant':'plant', 'date':'datetime'})
+        df_dates = get_date_threshold(df_reco, weather, variable = 'necrosis_percentage', threshold = 0.2).mean()
+        df_speed = get_speed(df_reco, weather, variable = 'necrosis_percentage').mean()
+        for lf in np.unique(df_reco['num_leaf_top']):
+            df_reco_lf = df_reco[(df_reco['num_leaf_top']==lf)]
+            output = {}
+            output['num_leaf_top'] = lf
+            for col in df_in.columns:
+                output[col] = df_in.loc[i_sample, col]
+            output['normalized_audpc_pycnidia_coverage'] = df_reco_lf.normalized_audpc_pycnidia_coverage[df_reco_lf['normalized_audpc_pycnidia_coverage'].apply(np.isreal)].mean()
+            output['normalized_audpc_necrosis_percentage'] = df_reco_lf.normalized_audpc_necrosis_percentage[df_reco_lf['normalized_audpc_necrosis_percentage'].apply(np.isreal)].mean()
+            output['max_pycnidia_coverage'] = min(df_reco_lf.groupby('plant').max()['pycnidia_coverage'].mean(), 100.)
+            output['max_necrosis_percentage'] = min(df_reco_lf.groupby('plant').max()['necrosis_percentage'].mean(), 100.)
+            output['speed'] = df_speed[lf] if lf in df_speed.index else np.nan
+            output['date_thr'] = df_dates[lf] if lf in df_dates.index else np.nan
+            df_out = df_out.append(output, ignore_index = True)
         del recorder
-        
-    # Save output
-    output_file = 'septo_morris_output_'+qualitative_parameter+'_'+str(value)+'.txt'
-    np.savetxt(output_file, audpcs, delimiter=' ')
+    df_out.to_csv(filename)
 
 def morris_analysis(parameter_range_file = 'param_range_SA.txt',
                     input_file = 'septo_morris_input.txt', 
@@ -254,3 +269,31 @@ def morris_analysis(parameter_range_file = 'param_range_SA.txt',
     # e.g. Si['mu_star'] contains the mu* value for each parameter, in the
     # same order as the parameter file
     return Si
+
+def read_sensitivity_outputs(filename = 'output_morris_tremie_12.csv'):
+     return pd.read_csv(filename)
+    
+def plot_morris_by_leaf(df_out, variable = 'normalized_audpc_pycnidia_coverage'):
+    problem = read_param_file('param_range_SA.txt')
+    param_values = np.loadtxt('septo_morris_input.txt')
+    fig, axs = plt.subplots(6,2, figsize=(15,30))
+    for i, ax in enumerate(axs.flat):
+        lf = i+1
+        df = df_out[df_out['num_leaf_top']==lf]
+        Y = df[variable]
+        Si = morris.analyze(problem, param_values, Y, grid_jump = 5, num_levels = 10, conf_level=0.95, print_to_console=False)
+        ax.plot(Si['mu_star'], Si['sigma'], 'b*')
+        tags = iter(Si['names'])
+        for x,y in zip(Si['mu_star'], Si['sigma']):
+            ax.annotate(tags.next(), (x,y))
+        ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)
+
+def scatter_plot_by_leaf(df_out, variable = 'max_sev', parameter = 'degree_days_to_chlorosis'):
+    fig, axs = plt.subplots(6,2, figsize=(15,30))
+    for i, ax in enumerate(axs.flat):
+        lf = i+1
+        df = df_out[df_out['num_leaf_top']==lf]
+        X = df[parameter]
+        Y = df[variable]
+        ax.plot(X, Y, 'o ')
+        ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), xycoords='axes fraction', fontsize=18)

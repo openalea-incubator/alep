@@ -780,27 +780,15 @@ class AdelSeptoRecorder:
     def __init__(self, group_dus = True, fungus_name = 'septoria'):
         self.fungus_name = fungus_name
         self.group_dus = group_dus
-        self.data = pandas.DataFrame(columns = ['date',
-                                                'degree_days',
-                                                'num_plant',
-                                                'axis',
-                                                'num_leaf_bottom',
-                                                'leaf_area', 
-                                                'leaf_green_area',
-                                                'leaf_length',
-                                                'leaf_senesced_length',
-                                                'nb_dispersal_units',
-                                                'nb_dus_on_green',
-                                                'nb_lesions',
-                                                'nb_lesions_on_green',
-                                                'surface_inc',
-                                                'surface_chlo',
-                                                'surface_nec',
-                                                'surface_spo',
-                                                'surface_spo_on_green',
-                                                'surface_empty',
-                                                'surface_empty_on_green',
-                                                'surface_dead'])
+        columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 'leaf_area', 
+                   'leaf_green_area', 'leaf_length', 'leaf_senesced_length', 'fnl', 
+                   'nb_dispersal_units', 'nb_dus_on_green', 'nb_lesions', 'nb_lesions_on_green', 
+                   'surface_inc', 'surface_chlo', 'surface_nec', 'surface_spo', 
+                   'surface_spo_on_green', 'surface_empty', 'surface_empty_on_green', 
+                   'surface_dead']
+        self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(20000)], 
+                                     columns = columns)
+        # self.data = pandas.DataFrame(columns = columns)
     
     def get_values_single_leaf(self, g, date, degree_days, id_list):
         dict_lf = {}
@@ -902,9 +890,16 @@ class AdelSeptoRecorder:
                 dict_lf = self.get_values_single_leaf(g = g, date = date, 
                                                       degree_days = degree_days, 
                                                       id_list = id_list)
-                self.data = self.data.append(dict_lf, ignore_index = True)
+                indx = self.data[self.data['date'].isnull()].index[0]
+                self.data.loc[indx, :] = pandas.Series(dict_lf)
+                if len(self.data[self.data['date'].isnull()]) == 0.:
+                    df = pandas.DataFrame(data = [[np.nan for col in self.data.columns] 
+                                            for i in range(20000)], columns = self.data.columns)
+                    self.data = pandas.concat([self.data, df])
+                    self.data = self.data.reset_index(drop = True)
                 
     def add_leaf_numbers(self):
+        self.data['axis'] = 'MS'
         for pl in set(self.data['num_plant']):
             df_ax = self.data[self.data['num_plant'] == pl]
             fnl = df_ax['fnl'].max()

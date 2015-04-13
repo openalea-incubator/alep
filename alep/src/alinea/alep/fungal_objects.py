@@ -13,14 +13,12 @@ class DispersalUnit(object):
     """ Generic class for a dispersal unit.
     
     """
-    fungus = None
-    def __init__(self, nb_spores=None, position=None, mutable=False):
+    # fungus = None
+    def __init__(self, position=None, mutable=False):
         """ Initialize the dispersal unit.
         
         Parameters
         ----------
-        nb_spores: int
-            Number of spores aggregated in the dispersal unit
         position: non defined
             Position of the dispersal unit on the phyto-element
 
@@ -30,10 +28,9 @@ class DispersalUnit(object):
             None
         """
         self.mutable = mutable
-        self.nb_spores = nb_spores
         self.position = position
         self.is_active = True
-        self.can_infect_at_position = None
+        self.status = 'emitted'
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
     
@@ -49,15 +46,10 @@ class DispersalUnit(object):
         
         Parameters
         ----------
-        position: Non defined
+        position: list
             Position of the DU.
         """
         self.position = position
-    
-    def set_can_infect(self, can_infect=True):
-        """ Turn the property 'can_infect_at_position' to True.
-        """
-        self.can_infect_at_position = can_infect
     
     def infect(self, leaf=None):
         self.create_lesion(leaf)
@@ -78,6 +70,7 @@ class DispersalUnit(object):
         """
         les = self.fungus.lesion(mutable = self.mutable)
         les.__dict__.update(kwds)
+        les.set_position(self.position)
         if leaf is None:
             self.disable()
             return les
@@ -87,13 +80,6 @@ class DispersalUnit(object):
             except:
                 leaf.lesions = [les]
             self.disable()
-    
-    @property
-    def nb_dispersal_units(self):
-        if self.position is None:
-            return None
-        else:
-            return len(self.position)
              
 # Lesions #################################################################################
 # /!\ TODO : Dans le cas ou on veut des parametres variables par lesion, il faut ecraser la variable

@@ -35,63 +35,32 @@ class NoPriorityGrowthControl:
         - Assert that leaf surface is not negative
         
         """       
-        lesions = g.property('lesions')
+        lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
+        areas = g.property('area')
+        green_areas = g.property('green_area')
+        senesced_areas = g.property('senesced_area')
         labels = g.property('label')
-        healthy_areas = g.property('healthy_area')
-
-        # Select all the leaves
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
-            # TODO see if following works
-            # leaf_healthy_area = max(0., sum(healthy_areas[lf] for lf in leaf))
-            leaf_healthy_area = 0.
-            for vid in leaf:
-                lf = g.node(vid)
-                les_surf = sum(l.surface_alive for l in lesions[vid]) if vid in lesions else 0.
-                ratio_green = min(1., lf.green_area/lf.area) if lf.area>0. else 0.
-                green_lesion_area = les_surf * ratio_green
-                leaf_healthy_area += lf.area - (lf.senesced_area + green_lesion_area)
-            leaf_healthy_area = max(0., round(leaf_healthy_area, 10))
-
-            leaf_lesions = [l for lf in leaf for l in lesions.get(lf,[]) if l.growth_is_active]
+            leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], [])
+            les_surf = sum([les.surface for les in leaf_lesions])
+            leaf_area = sum([areas[lf] for lf in leaf])
+            leaf_green_area = sum([green_areas[lf] for lf in leaf])
+            leaf_senesced_area = sum([senesced_areas[lf] for lf in leaf])
+            ratio_green = min(1., leaf_green_area/leaf_area) if leaf_area>0. else 0.
+            green_lesion_area = les_surf * ratio_green if leaf_senesced_area > les_surf else les_surf - leaf_senesced_area
+            leaf_healthy_area = leaf_area - (leaf_senesced_area + green_lesion_area)
+            leaf_healthy_area = max(0., round(leaf_healthy_area, 10))   
             total_demand = sum(l.growth_demand for l in leaf_lesions)
-            
             if total_demand > leaf_healthy_area:
-                # import pdb
-                # pdb.set_trace()
                 for l in leaf_lesions:
                     growth_offer = round(leaf_healthy_area * l.growth_demand / total_demand, 14)
-                    if growth_offer<0:
-                        import pdb
-                        pdb.set_trace()
                     l.control_growth(growth_offer=growth_offer)
-                # for lf in leaf:
-                    # # Update healthy area
-                    # healthy_areas[lf] = 0.
             else:
                 for l in leaf_lesions:
                     growth_offer = l.growth_demand
-                    if growth_offer < 0:
-                        import pdb
-                        pdb.set_trace()
-                    l.control_growth(growth_offer=growth_offer)
-                # for lf in leaf:
-                    # gd = sum(l.growth_demand for l in lesions.get(lf,[]) if l.is_active)
-                    # # Update healthy area
-                    # healthy_areas[lf] -= gd
-                    # /!\ WARNING /!\
-                    # This method leads to local healthy surfaces < 0 for leaf elements.
-                    # But the global healthy area on the entire leaf stays >= 0.
-                    # TODO : if the surface of a phyto-element is < 0, report the loss
-                    # to its neighbour ?
-        
-            # total_surf = sum([l.surface for lf in leaf for l in lesions.get(lf,[])])
-            # areas = g.property('area')
-            # total_area = sum(areas[lf] for lf in leaf)
-            # if round(total_surf,6) > round(total_area,6):
-                # import pdb
-                # pdb.set_trace()
+                    l.control_growth(growth_offer = l.growth_demand)
 
 class PriorityGrowthControl:
     """ 

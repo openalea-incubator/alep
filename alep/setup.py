@@ -87,7 +87,6 @@ setup(
     install_requires = install_requires,
     dependency_links = dependency_links,
 
-
     # Binary installation (if necessary)
     # Define what to execute with scons	
     scons_scripts=scons_scripts,
@@ -112,7 +111,8 @@ setup(
                            'septoria_exchanging_rings = alinea.alep.septoria_exchanging_rings:SeptoriaFungus',
                            'septoria_continuous = alinea.alep.septoria_continuous:SeptoriaFungus',
                            'septoria_with_rings = alinea.alep.septoria_with_rings:SeptoriaFungus',
-                           'powdery_mildew = alinea.alep.powdery_mildew:PowderyMildewFungus',],
+                           'powdery_mildew = alinea.alep.powdery_mildew:PowderyMildewFungus',
+                           'brown_rust = alinea.alep.brown_rust:BrownRustFungus',],
         #'console_scripts': [
         #       'fake_script = openalea.fakepackage.amodule:console_script', ],
         # 'gui_scripts': [

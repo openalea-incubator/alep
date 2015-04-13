@@ -27,12 +27,8 @@ class SeptoriaDU(DispersalUnit):
         
         Parameters
         ----------
-        nb_spores: int
-            Number of spores aggregated in the dispersal unit
-        position: non defined
-            Position of the dispersal unit on the phyto-element
-        status: str
-            'emitted' or 'deposited'
+        mutable: bool
+            True if each DU has its own parameters, False otherwise
         
         Returns
         -------
@@ -42,7 +38,6 @@ class SeptoriaDU(DispersalUnit):
         self.cumul_wetness = 0.
         self.cumul_loss_rate = 0.
         self.dry_dt = -1.
-        self.status = 'emitted'
         # Temp
         self.nb_spores = 10.
         
@@ -63,7 +58,6 @@ class SeptoriaDU(DispersalUnit):
         """
         les = self.fungus.lesion(mutable = self.mutable)
         les.set_position(self.position)
-        les.set_nb_spores(self.nb_spores)
         if leaf is None:
             self.disable()
             return les
@@ -74,7 +68,7 @@ class SeptoriaDU(DispersalUnit):
                 leaf.lesions = [les]
             self.disable()
                 
-    def infect(self, dt=1, leaf=None, **kwds):
+    def infect(self, dt = 1, leaf = None, **kwds):
         """ Compute infection by the dispersal unit of Septoria.
         
         Parameters
@@ -91,7 +85,7 @@ class SeptoriaDU(DispersalUnit):
         """
         if self.fungus.group_dus == True:
             self.position = filter(lambda x: x[0]>leaf.senesced_length, self.position)
-        elif self.position <= leaf.senesced_length:
+        elif self.position[0][0] <= leaf.senesced_length:
             self.disable()
             return
 
@@ -99,7 +93,7 @@ class SeptoriaDU(DispersalUnit):
             self.disable()
             return
         else:
-            leaf_wet = leaf.wetness_sequence # (boolean): True if the leaf sector is wet during this time step.
+            leaf_wet = leaf.wetness_sequence # Wetness sequence on the leaf sector during this time step.
             temp = leaf.temperature_sequence.mean() # (float) : mean temperature on the leaf sector during the time step (in degree).  
             
             if leaf_wet.sum() == len(leaf_wet):
@@ -147,6 +141,7 @@ class SeptoriaDU(DispersalUnit):
         self.nb_spores = nb_spores
         
     def set_position(self, position=[0.,0.]):
+        """ Set position of each DU (list of positions if DUs are grouped in same cohort)  """
         if not is_iterable(position[0]):
             self.position = [position]
         else:
@@ -170,7 +165,6 @@ septoria_parameters = dict(INCUBATING = 0,
                  NECROTIC = 2,
                  SPORULATING = 3,
                  EMPTY = 4,
-                 DEAD = 5,
                  delta_age_ring = 20.,
                  basis_for_dday = 0.,
                  temp_min = 0.,
@@ -178,7 +172,6 @@ septoria_parameters = dict(INCUBATING = 0,
                  wd_min = 10.,
                  proba_inf = 1.,
                  loss_delay = 120.,
-                 loss_rate = 1./120,
                  degree_days_to_chlorosis = 220.,
                  degree_days_to_necrosis = 110.,
                  degree_days_to_sporulation = 20.,
