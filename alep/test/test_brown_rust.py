@@ -120,7 +120,15 @@ def test_infection_impossible_on_senescence():
     assert du2.is_active
     du2.disable_if_senescent(leaf)
     assert du2.is_active == False
-    
+
+def test_infection_control():
+    # TODO    
+    pass
+
+def test_loss_delay():
+    # TODO
+    pass
+
 def test_infection_temperature():
     
     def infection_test_one_temp(temp = 15.):
@@ -264,13 +272,13 @@ def test_thermal_time():
     # Individual dispersal unit
     leaf = get_one_leaf()
     latency_min = brown_rust.parameters()['latency_min']
-    df_temp = pd.DataFrame([brown_rust.parameters()['temp_opt_lat'] for i in range(24)],
+    df_temp = pd.DataFrame([brown_rust.parameters()['temp_opt_chlo'] for i in range(24)],
                                 columns = ['temp'])
     leaf.temperature_sequence = df_temp['temp']
     lesion = brown_rust.lesion(mutable = True, group_dus = False)
     lesion.update(leaf = leaf)
     age1 = lesion.age_tt
-    assert age1 == brown_rust.parameters()['temp_opt_lat']
+    assert age1 == brown_rust.parameters()['temp_opt_chlo']
     lesion.update(leaf = leaf)
     age2 = lesion.age_tt
     assert age2 > age1
@@ -286,7 +294,7 @@ def test_thermal_time():
     lesion.set_position([[np.random.random(), np.random.random()] for i in range(20)])
     lesion.update(leaf = leaf)
     age1 = lesion.age_tt
-    assert age1 == brown_rust.parameters()['temp_opt_lat']
+    assert age1 == brown_rust.parameters()['temp_opt_chlo']
     lesion.update(leaf = leaf)
     age2 = lesion.age_tt
     assert age2 > age1
@@ -295,18 +303,17 @@ def test_thermal_time():
     age3 = lesion.age_tt
     assert age3 == age2
 
-def test_latent_period():
+def test_chlorosis_period():
     brown_rust = BrownRustFungus()
     # Individual dispersal unit
     leaf = get_one_leaf()
-    latency_min = brown_rust.parameters()['latency_min']
-    df_temp = pd.DataFrame([brown_rust.parameters()['temp_opt_lat'] for i in range(50)],
+    delay_to_spo = brown_rust.parameters()['delay_to_spo']
+    df_temp = pd.DataFrame([brown_rust.parameters()['temp_opt_chlo'] for i in range(50)],
                                 columns = ['temp'])
     leaf.temperature_sequence = df_temp['temp']
     lesion = brown_rust.lesion(mutable = False, group_dus = False)
     for i in range(6):
         lesion.update(leaf = leaf)
-    assert lesion.age_physio_lat >= 1.
     assert lesion.is_sporulating
     
     # Cohort
@@ -316,81 +323,21 @@ def test_latent_period():
     lesion.set_position([[np.random.random(), np.random.random()] for i in range(20)])
     for i in range(6):
         lesion.update(leaf = leaf)
-    assert lesion.age_physio_lat >= 1.
     assert lesion.is_sporulating
-    
+
+def test_logistic():
+    # test strictly growing
+    # test stable if progress = 0
+    pass
+   
 def test_surface():
-    brown_rust = BrownRustFungus()
-    # Individual dispersal unit
-    leaf = get_one_leaf()
-    latency_min = brown_rust.parameters()['latency_min']
-    df_temp = pd.DataFrame([brown_rust.parameters()['temp_opt_lat']], columns = ['temp'])
-    leaf.temperature_sequence = df_temp['temp']
-    lesion = brown_rust.lesion(mutable = False, group_dus = False, latency_min = 175.)
-    surfs = []
-    surfs_lat = []
-    surfs_spo = []
-    for i in range(1000):
-        lesion.update(leaf = leaf)
-        lesion.control_growth(growth_offer = lesion.growth_demand)
-        surfs.append(lesion.surface)
-        surfs_lat.append(lesion.surface_lat)
-        surfs_spo.append(lesion.surface_spo)
-    
-    from alinea.echap.weather_data import read_weather_year
-    weather = read_weather_year(2012)
-    df = weather.data
-    df = df.reset_index()
-    df = df[df['degree_days']>0]
-    brown_rust = BrownRustFungus()
-    # Individual dispersal unit
-    leaf = get_one_leaf()
-    latency_min = brown_rust.parameters()['latency_min']    
-    lesion = brown_rust.lesion(mutable = False, group_dus = False, latency_min = 175.)
-    surfs = []
-    surfs_lat = []
-    surfs_spo = []
-    tt = []
-    cum_tt = 0.
-    count = 0.
-    for i, row in df.iterrows():
-        if i > count < 3000:
-            count += 1
-            leaf.temperature_sequence = [row['temperature_air']]
-            lesion.update(leaf = leaf)
-            lesion.control_growth(growth_offer = lesion.growth_demand)
-            surfs.append(lesion.surface)
-            surfs_lat.append(lesion.surface_lat)
-            surfs_spo.append(lesion.surface_spo)
-            cum_tt += lesion.delta_thermal_time_growth(leaf_temperature = [row['temperature_air']])
-            tt.append(cum_tt)
-    
-    
-    brown_rust = BrownRustFungus()
-    # Individual dispersal unit
-    leaf = get_one_leaf()
-    latency_min = brown_rust.parameters()['latency_min']
-    df_temp = pd.DataFrame([20.], columns = ['temp'])
-    leaf.temperature_sequence = df_temp['temp']
-    lesion = brown_rust.lesion(mutable = False, group_dus = False, latency_min = 175.)
-    surfs = []
-    surfs_lat = []
-    surfs_spo = []
-    tt = []
-    cum_tt = 0.
-    for i in range(24):
-        lesion.update(leaf = leaf)
-        lesion.control_growth(growth_offer = lesion.growth_demand)
-        cum_tt += lesion.delta_thermal_time_growth(leaf_temperature = df_temp['temp'])
-        tt.append(cum_tt)
-    
     # Penser a faire update puis control growth avec growth offer non limitante
     # Scenario with updates long time step
     # No negative surface if temperature negative
     # No increase of surface if negative temperature
     # Surface always inferior to Smax
     # Surface tot = surface spo + surface lat
-    # Surface spo always < 0.37 * Smax
+    # Surface spo always < 0.2 * Smax
     # trouver un test : nb lesions * surface ?
     # time step < delai latence : surface spo == 0
     # time step > delai latence : fonctionne ?
@@ -406,39 +353,45 @@ def test_density():
     def test_single_density(d = 40):
         # Individual dispersal unit
         g, leaf = get_g_and_one_leaf()
-        leaf.area = 1.
-        leaf.green_area = 1.
-        latency_min = brown_rust.parameters()['latency_min']
-        df_temp = pd.DataFrame([brown_rust.parameters()['temp_opt_lat']], columns = ['temp'])
+        leaf.area = 100.
+        leaf.green_area = 100.
+        df_temp = pd.DataFrame([brown_rust.parameters()['temp_opt_chlo']], columns = ['temp'])
         leaf.temperature_sequence = df_temp['temp']
         leaf.lesions = [brown_rust.lesion(mutable = False, group_dus = False,
-                        Smax = 0.22, sporulating_capacity = 0.2) for i in range(d)]
+                        Smax = 0.22, sporulating_capacity = 0.2) for i in range(int(d*leaf.area))]
+        # df_les = pd.DataFrame(columns = ['total', 'chlo', 'spo', 'empty'])
         for i in range(1000):
             for les in leaf.lesions:
                 les.update(leaf = leaf)
+            
+            # Temp
+            # ind = len(df_les)
+            # df_les.loc[ind, 'total'] = les.surface
+            # df_les.loc[ind, 'chlo'] = les.surface_chlo
+            # df_les.loc[ind, 'spo'] = les.surface_spo
+            # df_les.loc[ind, 'empty'] = les.surface_empty
+            
             growth_controler.control(g)
         surfs = [les.surface for les in leaf.lesions]
         surfs_spo = [les.surface_spo for les in leaf.lesions]
         return np.mean(surfs), np.mean(surfs_spo)
+        # return df_les, np.mean(surfs), np.mean(surfs_spo)
     
     surf_mean = []
     surf_spo_mean = []
-    for d in np.arange(1, 41, 2):
+    df_obs = pd.read_csv('rust_density.csv', sep = ';')
+    df_sim = pd.DataFrame(columns = ['surf_mean', 'surf_spo_mean'])
+    # x = np.sort(np.concatenate([df_obs['density'], np.arange(1, 41, 2)]))
+    x = np.sort(np.concatenate([df_obs['density'], np.arange(1,1)]))
+    for d in x:
         print d
-        surf, surf_spo = test_single_density(d)
-        surf_mean.append(surf)
-        surf_spo_mean.append(surf_spo)
-        
-    import matplotlib.pyplot as plt
-    df = pd.read_csv('rust_density.csv', sep = ';')
-    fig, ax = plt.subplots()
-    ax.plot(np.arange(1, 41, 2), surf_spo_mean)
-    ax.plot(df.density, df.surface)
+        # surf, surf_spo = test_single_density(d)
+        df_sim.loc[len(df_sim)+1] = test_single_density(d)
+        # surf_mean.append(surf)
+        # surf_spo_mean.append(surf_spo)
+    df_sim['density'] = x
     
-def test_logistic():
-    # test strictly growing
-    # test stable if progress = 0
-    pass
+    # VERIF pour 3 densites assez fortes que la taille min diminue
     
 def test_senescence_response():
     # indiv tout meurt

@@ -7,12 +7,9 @@ from alinea.septo3d.dispersion.alep_interfaces import Septo3DTransport
 from alinea.astk.Weather import sample_weather
 from alinea.astk.TimeControl import *
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 plt.ion()
 import numpy
 import pandas
-from itertools import product
-
 
 from alinea.adel.mtg_interpreter import plot3d
 from openalea.plantgl.all import Viewer
@@ -183,9 +180,3 @@ def plot_sectors(by_sector = False):
         ax[1].set_xlabel('number of sectors', fontsize = 18)
         ax[1].set_ylabel('number of deposits on leaf', fontsize = 18)
         ax[1].set_title('Target leaf', fontsize = 18)
-    
-    
-# Faire des feuilles de 20 cm
-# les écarter plus
-# faire test pour dh jusqu'à 5
-# faire test pour distance jusqu'à 50 cm

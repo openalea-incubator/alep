@@ -332,11 +332,10 @@ class PowderyMildewWindDispersal:
         if dt > 0:
             from alinea.alep.architecture import get_leaves
             from openalea.plantgl import all as pgl
-            from random import seed, choice, shuffle
+            from random import shuffle
             from math import degrees, exp, tan, pi, radians
             from collections import OrderedDict
             geometries = g.property('geometry')
-            lengths = g.property('length')
             centroids = g.property('centroid')
             areas = g.property('area')
             wind_directions = g.property('wind_direction')
@@ -415,3 +414,175 @@ class PowderyMildewWindDispersal:
                             break
                         
         return deposits
+        
+# Brown Rust wind dispersal (horizontal layers) ###############################
+from alinea.adel.mtg_interpreter import plot3d
+from openalea.plantgl import all as pgl
+from alinea.alep.architecture import get_leaves
+from alinea.astk.plantgl_utils import get_lai
+import numpy as np
+from scipy.integrate import simps
+        
+class BrownRustDispersal:
+    """ Calculate distribution of dispersal units in horizontal layers """
+    def __init__(self, fungus = None,
+                 domain_area = 100.,
+                 convUnit = 0.01,
+                 layer_thickness = 1.,
+                 b_dispersal = 1.85,
+                 k_beer = 0.5):
+        self.fungus = fungus
+        self.domain_area = domain_area
+        self.layer_thickness = layer_thickness
+        self.b_dispersal = b_dispersal
+        self.k_beer = k_beer
+
+    def leaves_in_grid(self, g, label = 'LeafElement'):
+        geometries = g.property('geometry')
+        centroids = g.property('centroid')
+        tesselator = pgl.Tesselator()
+        bbc = pgl.BBoxComputer(tesselator)      
+        leaves = get_leaves(g, label=label)
+        leaves = [l for l in leaves if l in geometries]
+        
+        # Get centroids        
+        def centroid(vid):
+            if is_iterable(geometries[vid]):
+                bbc.process(pgl.Scene(geometries[vid]))
+            else:
+                bbc.process(pgl.Scene([pgl.Shape(geometries[vid])]))
+            center = bbc.result.getCenter()
+            centroids[vid] = center
+        
+        for vid in leaves:
+            centroid(vid)
+            
+        # Define grid (horizontal layers)
+        zs = [c[2] for c in centroids.itervalues()]
+        minz = min(zs)
+        maxz = max(zs) + self.layer_thickness
+        layers = {l:[] for l in np.arange(minz, maxz, self.layer_thickness)}
+        
+        # Distribute leaves in layers
+        for vid, coords in centroids.iteritems():
+            z = coords[2]
+            ls = layers.keys()
+            i_layer = np.where(map(lambda x: x<=z<x+self.layer_thickness 
+                                    if z!=maxz - self.layer_thickness
+                                    else x<=z<=x+self.layer_thickness , ls))[0]
+            if len(i_layer) > 0.:
+                layers[ls[i_layer]].append(vid)
+        
+        self.layers = layers
+        
+    def get_dispersal_units(self, g, 
+                            fungus_name = "brown_rust", 
+                            label = 'LeafElement',
+                            weather_data = None):
+        lesions = g.property('lesions')
+#        return {vid:sum([l.emission()], []) for vid, les in lesions.iteritems()
+#                for l in les if l.is_sporulating}
+        return {vid:sum([l.emission() for l in les if l.is_sporulating]) 
+                        for vid, les in lesions.iteritems()}
+
+    def disperse(self, g, dispersal_units = {}, weather_data = None,
+                 label='LeafElement'):
+        self.leaves_in_grid(g, label=label)
+        # Group DUs in layers
+#        dus_by_layer = {layer:sum([len(dispersal_units[v]) 
+#                        for v in vids if v in dispersal_units])
+#                        for layer, vids in self.layers.iteritems()}
+        dus_by_layer = {layer:sum([dispersal_units[v]
+                        for v in vids if v in dispersal_units])
+                        for layer, vids in self.layers.iteritems()}
+
+        def distribute(source, target):
+            distance = abs(target - source + 2*np.sign(target-source))
+            if abs(source - target) < self.layer_thickness:
+                xmax = np.arange(1, 30)
+                ymax = np.power(xmax, -self.b_dispersal)
+                x = np.array([self.layer_thickness, 2*self.layer_thickness])
+                y = np.power(x, -self.b_dispersal)
+                return simps(y,x)/simps(ymax,xmax)
+            else:
+                xmax = np.arange(1, 30)
+                ymax = np.power(xmax, -self.b_dispersal)
+                x = np.array([distance-self.layer_thickness, distance])
+                y = np.power(x, -self.b_dispersal)
+                return simps(y,x)/simps(ymax,xmax)
+        
+        beer_factor = 1-np.exp(-self.k_beer * \
+                        get_lai(g.property('geometry'), 
+                        self.domain_area * self.convUnit))
+        
+        distri_by_layer = {k:0. for k in self.layers}
+        for layer, nb_dus in dus_by_layer.iteritems():
+            if nb_dus > 0.:
+                for k in self.layers:
+                    distri_by_layer[k] += nb_dus * distribute(layer, k) * \
+                                          beer_factor
+                                          
+        
+        distri_by_layer = {k:int(v) for k,v in distri_by_layer.iteritems()}
+        deposits = {vid:int(distri_by_layer[layer]/len(vids))
+                    for layer, vids in self.layers.iteritems() 
+                    for vid in vids}
+        #Set position. Position = longueurs absolues depuis le haut du sectur
+#        lengths = g.property('length')
+        for vid, nb_dus in deposits.iteritems():
+#            du = self.fungus.dispersal_unit()
+#            du.set_position(position=[[np.random.random()*lengths[vid], 0]
+#                                         for d in range(nb_dus)])
+            du = self.fungus.dispersal_unit(nb_dispersal_units = nb_dus)
+            du.set_nb_dispersal_units(nb_dus)
+            deposits[vid] = [du]
+        return deposits
+
+    def plot_layers(self, g):
+        from alinea.alep.architecture import set_property_on_each_id
+        from alinea.alep.alep_color import alep_colormap
+        from alinea.alep.disease_outputs import plot3d_transparency
+        from openalea.plantgl.all import Viewer
+        # Compute severity by leaf
+        layers = self.leaves_in_grid(g)
+        layer_by_leaf = {vid:k[0] for k,v in layers.iteritems() for vid in v}
+        set_property_on_each_id(g, 'height', layer_by_leaf)
+    
+        # Visualization
+        g = alep_colormap(g, 'height', cmap='prism', 
+                          lognorm=False, zero_to_one=False)
+
+        geometries = g.property('geometry') 
+        leaves = get_leaves(g, label='LeafElement')
+        leaves = [l for l in leaves if l in geometries] 
+        transp = {vid:0. for k,v in layers.iteritems() for vid in v}
+        set_property_on_each_id(g, 'transparency', transp)                         
+        scene = plot3d_transparency(g)
+        Viewer.display(scene)
+        
+    def plot_distri_layers(self, g):
+        from alinea.alep.architecture import set_property_on_each_id
+        from alinea.alep.alep_color import alep_colormap, green_yellow_red
+        from alinea.alep.disease_outputs import plot3d_transparency
+        from openalea.plantgl.all import Viewer
+        from alinea.alep.brown_rust import BrownRustFungus
+        # Compute severity by leaf
+        self.leaves_in_grid(g)
+        f = BrownRustFungus()
+        distri_by_layer = self.disperse(g, dispersal_units = {72600 : 
+                            [f.dispersal_unit() for i in range(10000)]})
+        dus_by_leaf = {vid:distri_by_layer[layer]/len(vids) for layer, vids in
+                        self.layers.iteritems() for vid in vids}
+        set_property_on_each_id(g, 'nb_dispersal_units', dus_by_leaf)
+    
+        # Visualization
+        g = alep_colormap(g, 'nb_dispersal_units', cmap=green_yellow_red(), 
+                          lognorm=False, zero_to_one=False)
+
+        geometries = g.property('geometry') 
+        leaves = get_leaves(g, label='LeafElement')
+        leaves = [l for l in leaves if l in geometries] 
+        transp = {vid:0. for k,v in self.layers.iteritems() for vid in v}
+        set_property_on_each_id(g, 'transparency', transp)                         
+        scene = plot3d_transparency(g)
+        Viewer.display(scene)
