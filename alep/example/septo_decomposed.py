@@ -11,7 +11,7 @@ import numpy as np
 from alinea.adel.newmtg import move_properties, adel_ids
 from alinea.echap.architectural_reconstructions import (EchapReconstructions,
                                                         get_EchapReconstructions)
-from alinea.alep.architecture import set_properties, update_healthy_area, get_leaves
+from alinea.alep.architecture import set_properties
 from alinea.caribu.caribu_star import rain_and_light_star
 
 # Imports for weather
