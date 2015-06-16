@@ -19,7 +19,6 @@ class BrownRustDU(DispersalUnit):
         self.nb_dispersal_units = nb_dispersal_units
         # Status of the dispersal unit (emitted or deposited)
         self.status = status
-        # Save progress of senescence of leaves
 
     def infect(self, dt = 1, leaf = None):
         """ Compute infection success by the dispersal unit
@@ -34,9 +33,6 @@ class BrownRustDU(DispersalUnit):
         climate-based processes in models for the development of airborne fungal crop pathogens.
         Ecological Modelling 242: 92â??104.
         """
-#        if self.position is not None and leaf.senesced_length is not None:
-#            self.disable_if_senescent(leaf = leaf)
-
         f = self.fungus
         # Accumulate climatic data on the leaf sector during the time step
         self.temperature_sequence += leaf.temperature_sequence.tolist()
@@ -56,19 +52,14 @@ class BrownRustDU(DispersalUnit):
             # Response to wetness
             wet_duration = len([w for w in wets if w == True])
             wet_factor = 1 - np.exp(-(f.A_wet_infection*(wet_duration - f.wetness_min))**f.B_wet_infection)
+            dry_duration = len(wets) - wet_duration
+            loss_rate = min(1., dry_duration / f.loss_delay if f.loss_delay > 0. else 0.)
 
             # Combination
             proba_infection = temp_factor * wet_factor * f.proba_inf
-            dry_duration = len(wets) - wet_duration
-            loss_rate = min(1., dry_duration / f.loss_delay if f.loss_delay > 0. else 0.)
             if f.group_dus:
-                nb_les = 0
-                nb_dead = 0
-                for i_du in range(self.nb_dispersal_units):
-                    if np.random.random() < proba_infection:
-                        nb_les += 1
-                    elif np.random.random() < loss_rate:
-                        nb_dead += 1
+                nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
+                nb_dead = np.random.binomial(self.nb_dispersal_units - nb_les, loss_rate)
                 if nb_les > 0:
                     du = self.fungus.dispersal_unit(mutable = self.mutable)
                     if green_length > 0.:
@@ -88,35 +79,17 @@ class BrownRustDU(DispersalUnit):
                     self.disable()
                     return
 
-            dry_duration = len(wets) - wet_duration
-            loss_rate = min(1., dry_duration / f.loss_delay if f.loss_delay > 0. else 0.)
-            if f.group_dus:
-                nb_disabled = sum([np.random.random() < loss_rate
-                                   for i in range(self.nb_dispersal_units)])
-                self.nb_dispersal_units -= nb_disabled
-                if self.nb_dispersal_units == 0.:
-                    self.disable()
-                    return
-            else:
-                if np.random.random() < loss_rate:
-                    self.disable()
-                    return
-
-    def infect_single_du(self, proba_infection = 0.):
-        """ Calculate if """
-
-    def disable_if_senescent(self, leaf = None):
-        """ Compare position of DU to position of senescent
-            because the DU can only infect green tissues
-        """
-        if self.fungus.group_dus == True:
-            self.position = filter(lambda x: x[0]>leaf.senesced_length, self.position)
-            if self.nb_dispersal_units == 0.:
-                self.disable()
-                return
-        elif self.position[0][0] <= leaf.senesced_length:
-            self.disable()
-            return
+#            if f.group_dus:
+#                nb_disabled = sum([np.random.random() < loss_rate
+#                                   for i in range(self.nb_dispersal_units)])
+#                self.nb_dispersal_units -= nb_disabled
+#                if self.nb_dispersal_units == 0.:
+#                    self.disable()
+#                    return
+#            else:
+#                if np.random.random() < loss_rate:
+#                    self.disable()
+#                    return
 
     def set_position(self, position=None):
         """ Set the position of the DU to position given in argument
@@ -145,22 +118,22 @@ class BrownRustLesion(Lesion):
         self.age_tt = 0.
         # Age in sporulation
         self.age_sporulation = 0.
+        # latency
+        y = self.logistic(self.fungus.x0, np.arange(1000))
+        self.latency = np.argmax(y>self.fungus.start_spo*max(y))
         # Surfaces in each stage
         self.surface_chlo = 0.
         self.surface_spo = 0.
-        self.surface_pump = 0.
+        self.surface_sink = 0.
         self.surface_empty = 0.
         self.surface_dead = 0.
         # In case of group_dus == True, check if call of senescence_response is still needed
         self.senescence_response_completed = False
         # Stock of spores on lesion
         self.stock_spores = 0.
-
+        
     def update(self, dt = 1, leaf = None):
         """ Update the growth demand and the status of the lesion """
-#        if len(leaf.temperature_sequence) >= self.fungus.delay_to_spo:
-#            raise ValueError, "Time step is too long, it must be inferior to latency min"
-        
         # Eliminate extra lesions
         if round(self.surface, 10) == 0. and not self.growth_is_active:
             self.disable()
@@ -172,18 +145,15 @@ class BrownRustLesion(Lesion):
 
         if self.is_active:
             # Calculate progress in thermal time
-            self.dtt = self.delta_thermal_time_growth(leaf_temperature = leaf.temperature_sequence)
-
-            # Update status
+            self.update_age_and_status(leaf_temperature = leaf.temperature_sequence)
+            
+            # Calculate growth demand
+            self.update_growth()         
+            
+            # Calulate production of spores and necrosis
             if self.is_sporulating:
-                if self.surface_chlo > 0.:
-                    self.chlorosis()
-                self.sporulation(leaf_temperature = leaf.temperature_sequence)
-            else:
-                self.chlorosis()
+                self.update_sporulation()
 
-            # Update age
-            self.age_tt += self.dtt
 
     def get_effective_temp(self, T = 0.):
         """ Calculate effective temperature on a piecewise linear function of temperature.
@@ -212,86 +182,65 @@ class BrownRustLesion(Lesion):
         else:
             return 0.
 
+    def update_age_and_status(self, leaf_temperature = [0.]):
+        self.dtt = self.delta_thermal_time_growth(leaf_temperature = leaf_temperature)
+        self.age_tt += self.dtt
+        
+        if (self.is_chlorotic and self.age_tt >= self.latency):
+            self.status += 1
+            
     def logistic(self, x0, x):
         """ Calculate y for x with logistic curve """
         f = self.fungus
         return f.Smax / (1. + np.exp( -f.k * (x - x0)))
 
-    def chlorosis(self):
-        """ Calculate growth demand and surface exchanged to sporulating stage
-
-        Usage of effective temperature to cumulate thermal time (see 'self.get_effective_temp')
-
-        Growth demand = logistic function of cumulation of thermal time:
-        Audsley, E., A. Milne, and N. Paveley. A Foliar Disease Model for Use in Wheat Disease
-        Management Decision Support Systems. Annals of Applied Biology 147,
-        no. 2 (October 2005): 161â??72.
-
-        Surface entering sporulation = f(cumul effective temperatures) parallel to synthesis of
-        tissues entering chlorosis.
-        """
+    def update_growth(self):
         f = self.fungus
-        x1 = self.age_tt
-        x2 = x1 + self.dtt
-
-        # Calculate growth demand
-        if self.growth_is_active:
-            self.growth_demand = self.nb_lesions * \
-                                (self.logistic(f.x0 - f.delay_to_spo, x2) - \
-                                self.logistic(f.x0 - f.delay_to_spo, x1))
-
-        # Calculate progress to sporulation
-        to_spo = round(self.nb_lesions * (self.logistic(f.x0, x2) -
-                    self.logistic(f.x0, x1)), 6)
-        to_spo *= f.sporulating_capacity * f.chlo_to_spo_ratio
-        if self.is_senescent:
-            to_spo *= self.surface/self._surface_max #A revoir en fction du nb senescent
-        if to_spo > 0.:
-            if (self.is_chlorotic and 
-                self.surface_spo > 0.05 * self._surface_max * \
-                    f.chlo_to_spo_ratio * f.sporulating_capacity):
-                self.status += 1
-            # TDOO revoir
-            if (not self.growth_is_active and self.surface_spo + to_spo > 
-                (self.surface_chlo+self.surface_spo) * f.chlo_to_spo_ratio):
-                to_spo = max(0, (self.surface_chlo+self.surface_spo) * \
-                            f.chlo_to_spo_ratio - self.surface_spo)
-            self.surface_chlo = max(0, round(self.surface_chlo - to_spo, 8))
-            self.surface_spo += round(to_spo, 8)
-
-    def sporulation(self, leaf_temperature = [0.]):
-        """ Calculate balance of surface entering sporulation and surface empty,
-            and stock of spores
-        """
+        x1 = self.age_tt - self.dtt
+        x2 = self.age_tt
+        self.growth_demand = self.nb_lesions * (self.logistic(f.x0, x2) - \
+                        self.logistic(f.x0, x1))
+        
+    def update_sporulation(self):
         f = self.fungus
         self.age_sporulation += self.dtt
         if self.age_sporulation <= f.delay_high_spo:
-            self.stock_spores += self.surface_spo * f.production_max_hourly * \
-                                 len(leaf_temperature) * f.conversion_mg_to_nb_spo
+            self.stock_spores += self.surface_spo * f.production_max_by_tt * \
+                                 self.dtt * f.conversion_mg_to_nb_spo
         elif self.age_sporulation < f.delay_total_spo:
-            self.stock_spores += max(0, self.surface_spo * f.production_max_hourly * \
-                                len(leaf_temperature) * f.conversion_mg_to_nb_spo) * \
-                                (f.delay_total_spo - self.age_sporulation) / \
-                                (f.delay_total_spo - f.delay_high_spo)
-                                
-            # Pumping is not active anymore : becomes necrotic in EMPTY
-            if self.surface_pump > 0.:
-                if f.delay_pump_to_nec - self.age_sporulation > 0.:
-                    empty_pump = self.dtt / (f.delay_pump_to_nec - self.age_sporulation)
-                else:
-                    empty_pump = 0.
-                empty_pump = min(self.surface_pump, self.surface_pump * empty_pump)
-                self.surface_pump -= empty_pump
-                self.surface_empty += empty_pump
+            self.stock_spores += self.surface_spo * f.production_max_by_tt * \
+                                 self.dtt * f.conversion_mg_to_nb_spo
+#            self.stock_spores += max(0, self.surface_spo * f.production_max_by_tt * \
+#                                self.dtt * f.conversion_mg_to_nb_spo) * \
+#                                (f.delay_total_spo - self.age_sporulation) / \
+#                                (f.delay_total_spo - f.delay_high_spo)
+#                                
+            # Update_necrosis
+            self.update_necrosis()
         else:
             self.status += 1
             self.surface_empty += self.surface_chlo + \
                                  self.surface_spo + \
-                                 self.surface_pump
+                                 self.surface_sink
             self.surface_chlo = 0.
             self.surface_spo = 0.
-            self.surface_pump = 0.
+            self.surface_sink = 0.
             self.disable()
+        
+    def update_necrosis(self):
+        if self.surface_sink > 0.:
+            f = self.fungus
+            if f.delay_total_spo - self.age_sporulation > 0.:
+                ratio_empty = self.dtt / (f.delay_total_spo - self.age_sporulation)
+            else:
+                ratio_empty = 0.
+            empty_sink = min(self.surface_sink, self.surface_sink * ratio_empty)
+            empty_chlo = min(self.surface_chlo, self.surface_chlo * ratio_empty)
+            empty_spo = min(self.surface_spo, self.surface_spo * ratio_empty)
+            self.surface_sink -= empty_sink
+            self.surface_chlo -= empty_chlo
+            self.surface_spo -= empty_spo
+            self.surface_empty += empty_sink + empty_chlo + empty_spo
 
     def control_growth(self, growth_offer = 0.):
         """ Limit lesion growth to the surface available on the leaf ('growth_offer')"""
@@ -300,12 +249,11 @@ class BrownRustLesion(Lesion):
                 self.disable_growth()
                 return
 
-            f = self.fungus
             # Assign growth offer
-            to_chlo = f.sporulating_capacity * growth_offer
-            self.surface_chlo += to_chlo
-            to_pump = growth_offer - to_chlo
-            self.surface_pump += to_pump
+            f = self.fungus
+            self.surface_sink += (1 - f.ratio_chlo - f.ratio_spo) * growth_offer
+            self.surface_chlo += f.ratio_chlo * growth_offer
+            self.surface_spo += f.ratio_spo * growth_offer
 
             # If lesion has reached max size, disable growth
             if round(self.surface, 4) >= round(self._surface_max, 4):
@@ -317,7 +265,6 @@ class BrownRustLesion(Lesion):
         """ Generate a list of dispersal unit emitted by the lesion """
         nb_dus =  int(self.stock_spores)
         self.stock_spores = 0.
-#        return [self.fungus.dispersal_unit() for i in range(nb_dus)]
         return nb_dus
 
     def senescence_response(self, senesced_length = 0.):
@@ -329,13 +276,15 @@ class BrownRustLesion(Lesion):
             nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
             ratio_sen = float(nb_sen)/(self.nb_lesions)
             # Exchange surfaces between stages
-            pump_to_dead = self.surface_pump * ratio_sen
-            self.surface_pump -= pump_to_dead
+            sink_to_dead = self.surface_sink * ratio_sen
+            self.surface_sink -= sink_to_dead
             chlo_to_dead = self.surface_chlo * ratio_sen
             self.surface_chlo -= chlo_to_dead
             spo_to_dead = self.surface_spo * ratio_sen
             self.surface_spo -= spo_to_dead
-            self.surface_dead += pump_to_dead + chlo_to_dead + spo_to_dead
+            empty_to_dead = self.surface_empty * ratio_sen
+            self.surface_empty -= empty_to_dead
+            self.surface_dead += sink_to_dead + chlo_to_dead + spo_to_dead + empty_to_dead
             # Update number of lesions alive in cohort
             self.position = filter(lambda x: x[0]>senesced_length, self.position)
             if self.nb_lesions == 0.:
@@ -360,11 +309,23 @@ class BrownRustLesion(Lesion):
         if self.surface < 1e-5:
             self.surface_chlo = 0.
             self.surface_spo = 0.
-            self.surface_pump = 0.
+            self.surface_sink = 0.
             self.surface_empty = 0.
             self.surface_dead = 0.
             self.disable()
 
+    def disappear(self):
+        """ Kill the lesion and pass all surfaces to 0. 
+        """
+        self.growth_is_active = False
+        self.growth_demand = 0.
+        self.surface_chlo = 0.
+        self.surface_spo = 0.
+        self.surface_sink = 0.
+        self.surface_empty = 0.
+        self.surface_dead = 0.
+        self.disable()
+            
     @property
     def nb_lesions(self):
         """ Get number of lesions in cohort if group_dus == True.
@@ -388,11 +349,11 @@ class BrownRustLesion(Lesion):
     def is_empty(self):
         """ Check if lesion is empty """
         return self.status == self.fungus.EMPTY
-
+        
     @property
     def surface_alive(self):
         """ Get surface alive (non senescent) on the lesion """
-        return self.surface_pump + self.surface_chlo + self.surface_spo + self.surface_empty
+        return self.surface_sink + self.surface_chlo + self.surface_spo + self.surface_empty
 
     @property
     def surface(self):
@@ -418,20 +379,21 @@ brown_rust_parameters = dict(CHLOROTIC = 0,
                              B_wet_infection = 3.152,
                              infection_delay = 8.,
                              loss_delay = 48.,
-                             Smax = 0.22,
-                             k = 0.032,
-                             x0 = 254.,
+                             Smax = 0.09,
+                             k = 0.013,
+                             x0 = 370.,
                              temp_opt_chlo = 27.,
                              temp_max_chlo = 40.,
                              temp_min_chlo = 0.,
-                             chlo_to_spo_ratio = 0.5,
+                             ratio_chlo = 0.4,
+                             ratio_spo = 0.25,
                              delay_to_spo = 50.,
-                             sporulating_capacity = 0.4,
-                             production_max_hourly = 1./24,
-                             conversion_mg_to_nb_spo = 2e4,
-                             delay_high_spo = 270.,
-                             delay_total_spo = 810.,
-                             delay_pump_to_nec = 500.)
+                             start_spo = 0.05,
+                             sporulating_capacity = 0.7,
+                             production_max_by_tt = 0.05,
+                             conversion_mg_to_nb_spo = 7e4,
+                             delay_high_spo = 550.,
+                             delay_total_spo = 800.)
 
 # Brown rust fungus ################################################################################
 class BrownRustFungus(Fungus):

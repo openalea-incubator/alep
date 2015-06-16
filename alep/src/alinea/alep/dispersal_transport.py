@@ -419,6 +419,8 @@ class PowderyMildewWindDispersal:
 from alinea.adel.mtg_interpreter import plot3d
 from openalea.plantgl import all as pgl
 from alinea.alep.architecture import get_leaves
+from alinea.popdrops.alep_interface import compute_overlaying
+from alinea.caribu.caribu_star import caribu_rain_star
 from alinea.astk.plantgl_utils import get_lai
 import numpy as np
 from scipy.integrate import simps
@@ -426,20 +428,24 @@ from scipy.integrate import simps
 class BrownRustDispersal:
     """ Calculate distribution of dispersal units in horizontal layers """
     def __init__(self, fungus = None,
-                 domain_area = 100.,
+                 domain = None,
+                 domain_area = 1.,
                  convUnit = 0.01,
                  layer_thickness = 1.,
-                 b_dispersal = 1.85,
+                 k_dispersal = 0.07,
                  k_beer = 0.5):
         self.fungus = fungus
+        self.domain = domain
         self.domain_area = domain_area
+        self.convUnit = convUnit
         self.layer_thickness = layer_thickness
-        self.b_dispersal = b_dispersal
+        self.k_dispersal = k_dispersal
         self.k_beer = k_beer
 
     def leaves_in_grid(self, g, label = 'LeafElement'):
         geometries = g.property('geometry')
         centroids = g.property('centroid')
+        areas = g.property('area')
         tesselator = pgl.Tesselator()
         bbc = pgl.BBoxComputer(tesselator)      
         leaves = get_leaves(g, label=label)
@@ -470,7 +476,7 @@ class BrownRustDispersal:
             i_layer = np.where(map(lambda x: x<=z<x+self.layer_thickness 
                                     if z!=maxz - self.layer_thickness
                                     else x<=z<=x+self.layer_thickness , ls))[0]
-            if len(i_layer) > 0.:
+            if len(i_layer) > 0. and areas[vid]>1e-10:
                 layers[ls[i_layer]].append(vid)
         
         self.layers = layers
@@ -480,59 +486,91 @@ class BrownRustDispersal:
                             label = 'LeafElement',
                             weather_data = None):
         lesions = g.property('lesions')
-#        return {vid:sum([l.emission()], []) for vid, les in lesions.iteritems()
-#                for l in les if l.is_sporulating}
         return {vid:sum([l.emission() for l in les if l.is_sporulating]) 
                         for vid, les in lesions.iteritems()}
 
     def disperse(self, g, dispersal_units = {}, weather_data = None,
                  label='LeafElement'):
         self.leaves_in_grid(g, label=label)
-        # Group DUs in layers
-#        dus_by_layer = {layer:sum([len(dispersal_units[v]) 
-#                        for v in vids if v in dispersal_units])
-#                        for layer, vids in self.layers.iteritems()}
+        # Group DUs in layers and reduce global number according to Beer Law
+        areas = g.property('area')
+        geom = g.property('geometry')
+        areas = {k:v for k,v in areas.iteritems() if k in geom}
+        total_area = sum(areas.values())
+        lai = total_area*(self.convUnit**2)/self.domain_area
+        beer_factor = 1-np.exp(-self.k_beer * lai)
         dus_by_layer = {layer:sum([dispersal_units[v]
-                        for v in vids if v in dispersal_units])
+                        for v in vids if v in dispersal_units])*beer_factor
                         for layer, vids in self.layers.iteritems()}
-
-        def distribute(source, target):
-            distance = abs(target - source + 2*np.sign(target-source))
-            if abs(source - target) < self.layer_thickness:
-                xmax = np.arange(1, 30)
-                ymax = np.power(xmax, -self.b_dispersal)
-                x = np.array([self.layer_thickness, 2*self.layer_thickness])
-                y = np.power(x, -self.b_dispersal)
-                return simps(y,x)/simps(ymax,xmax)
+        
+#        def distribute(source, target):
+#            distance = abs(target - source + 2*np.sign(target-source))
+#            if abs(source - target) < self.layer_thickness:
+#                xmax = np.arange(1, max(self.layers.keys()))
+#                ymax = np.exp(-self.k_dispersal*xmax)
+#                x = np.array([0., self.layer_thickness])
+#                y = np.exp(-self.k_dispersal*x)
+#                return simps(y,x)/(2*simps(ymax,xmax))
+#            else:
+#                xmax = np.arange(1, max(self.layers.keys()))
+#                ymax = np.exp(-self.k_dispersal*xmax)
+#                x = np.array([distance-self.layer_thickness, distance])
+#                y = np.exp(-self.k_dispersal*x)
+#                return simps(y,x)/(2*simps(ymax,xmax))
+                
+        def sum_nb(nb_leaves, nb_du):
+            if nb_leaves == 1:
+                return [nb_du]
+            elif nb_du == 0:
+                return [0] + sum_nb(nb_leaves-1, nb_du)
             else:
-                xmax = np.arange(1, 30)
-                ymax = np.power(xmax, -self.b_dispersal)
-                x = np.array([distance-self.layer_thickness, distance])
-                y = np.power(x, -self.b_dispersal)
-                return simps(y,x)/simps(ymax,xmax)
-        
-        beer_factor = 1-np.exp(-self.k_beer * \
-                        get_lai(g.property('geometry'), 
-                        self.domain_area * self.convUnit))
-        
-        distri_by_layer = {k:0. for k in self.layers}
-        for layer, nb_dus in dus_by_layer.iteritems():
+                nb_du_avg = float(nb_du/nb_leaves)
+                nb_du_sup = 2.*nb_du_avg
+                if nb_du_sup >= 1:
+                    nb_on_vid = int(round(max(0, min(nb_du, np.random.normal(nb_du_avg, nb_du_sup)))))
+                else:
+#                    nb_on_vid = np.random.randint(nb_du)
+                    nb_on_vid = 1 if np.random.random()<nb_du_sup else 0
+                return [nb_on_vid] + sum_nb(nb_leaves-1, nb_du - nb_on_vid)
+                
+#        def sum_nb(nb_leaves, nb_du, nb_du_sup):
+#            if nb_leaves == 1:
+#                return [nb_du]
+#            elif nb_du == 0:
+#                return [0] + sum_nb(nb_leaves-1, nb_du, nb_du_sup)
+#            else:
+#                if nb_du_sup >= 1:
+#                    nb_on_vid = min(nb_du, np.random.normal(nb_du_sup))
+#                else:
+##                    nb_on_vid = np.random.randint(nb_du)
+#                    nb_on_vid = 1 if np.random.random()<nb_du_sup else 0
+#                return [nb_on_vid] + sum_nb(nb_leaves-1, nb_du - nb_on_vid, nb_du_sup)
+
+
+        deposits = {}
+        for source, nb_dus in dus_by_layer.iteritems():
             if nb_dus > 0.:
-                for k in self.layers:
-                    distri_by_layer[k] += nb_dus * distribute(layer, k) * \
-                                          beer_factor
-                                          
-        
-        distri_by_layer = {k:int(v) for k,v in distri_by_layer.iteritems()}
-        deposits = {vid:int(distri_by_layer[layer]/len(vids))
-                    for layer, vids in self.layers.iteritems() 
-                    for vid in vids}
-        #Set position. Position = longueurs absolues depuis le haut du sectur
-#        lengths = g.property('length')
+                for target, vids in self.layers.iteritems():
+                    nb_vids = len(vids)
+                    if nb_vids>0:
+                        dist = abs(source - target)
+                        area_l = sum([areas[vid] for vid in vids])
+                        proba_du_layer = area_l*np.exp(-self.k_dispersal*dist)/total_area
+#                        nb_depo_layer = int(round(nb_dus*area_l*np.exp(-self.k_dispersal*dist)/total_area))
+#                        distribution_by_leaf = sum_nb(nb_vids, nb_depo_layer, 2*nb_depo_layer/nb_vids)
+                        nb_depo_layer = np.random.binomial(nb_dus, proba_du_layer)
+                        distribution_by_leaf = sum_nb(nb_vids, nb_depo_layer)
+                        np.random.shuffle(distribution_by_leaf)
+                        for i_lf, lf in enumerate(vids):
+                            if distribution_by_leaf[i_lf] > 0.:
+                                depo = distribution_by_leaf[i_lf]
+                                depo = compute_overlaying(depo, areas[lf], np.pi*0.0015**2)
+                                try:
+                                    deposits[lf] += depo
+                                except:
+                                    deposits[lf] = depo
+
         for vid, nb_dus in deposits.iteritems():
-#            du = self.fungus.dispersal_unit()
-#            du.set_position(position=[[np.random.random()*lengths[vid], 0]
-#                                         for d in range(nb_dus)])
             du = self.fungus.dispersal_unit(nb_dispersal_units = nb_dus)
             du.set_nb_dispersal_units(nb_dus)
             deposits[vid] = [du]
@@ -560,29 +598,66 @@ class BrownRustDispersal:
         scene = plot3d_transparency(g)
         Viewer.display(scene)
         
-    def plot_distri_layers(self, g):
+    def view_distri_layers(self, g, nb_dispersal_units = 1e5, vmax = None):
         from alinea.alep.architecture import set_property_on_each_id
         from alinea.alep.alep_color import alep_colormap, green_yellow_red
         from alinea.alep.disease_outputs import plot3d_transparency
         from openalea.plantgl.all import Viewer
-        from alinea.alep.brown_rust import BrownRustFungus
+        import matplotlib.pyplot as plt
         # Compute severity by leaf
         self.leaves_in_grid(g)
-        f = BrownRustFungus()
-        distri_by_layer = self.disperse(g, dispersal_units = {72600 : 
-                            [f.dispersal_unit() for i in range(10000)]})
-        dus_by_leaf = {vid:distri_by_layer[layer]/len(vids) for layer, vids in
-                        self.layers.iteritems() for vid in vids}
-        set_property_on_each_id(g, 'nb_dispersal_units', dus_by_leaf)
+        layers = self.layers.keys()
+        layers.sort()        
+        layer = layers[int(2*len(layers)/3)]
+        leaf = self.layers[layer][0]
+        deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
+                    self.disperse(g, dispersal_units = {leaf : nb_dispersal_units}).iteritems()}  
+        print '-----------------------------'
+        print 'Nb of deposits %d' % sum(deposits.values())
+        print '-----------------------------'
+        set_property_on_each_id(g, 'nb_dispersal_units', deposits)
     
         # Visualization
+        if vmax is None:
+            vmax = 2*max(deposits.values())/3
         g = alep_colormap(g, 'nb_dispersal_units', cmap=green_yellow_red(), 
-                          lognorm=False, zero_to_one=False)
+                          lognorm=False, zero_to_one=False, 
+                          vmax = vmax)
+#        g = alep_ormap(g, 'nb_dispersal_units', cmap='jet', 
+#                  lognorm=False, zero_to_one=False, 
+#                  vmax = max(deposits.values())/2)col
 
-        geometries = g.property('geometry') 
-        leaves = get_leaves(g, label='LeafElement')
-        leaves = [l for l in leaves if l in geometries] 
+        d = [np.arange(vmax)]
+        fig, ax = plt.subplots()
+        ax.imshow(d, cmap = green_yellow_red())
+
         transp = {vid:0. for k,v in self.layers.iteritems() for vid in v}
-        set_property_on_each_id(g, 'transparency', transp)                         
+        set_property_on_each_id(g, 'transparency', transp)   
+        for id in g:
+            if not id in deposits:
+                g.node(id).color = (0,0,0)
+                g.node(id).transparency = 0.7
+            elif deposits[id]==0.:
+                g.node(id).color = (0,0,0)
+                g.node(id).transparency = 0.7
+            else:
+                g.node(id).transparency = 0.                      
         scene = plot3d_transparency(g)
         Viewer.display(scene)
+        
+    def plot_distri_layers(self, g, nb_dispersal_units = 1000):
+        import pandas as pd        
+        # Compute severity by leaf
+        self.leaves_in_grid(g)
+        layers = self.layers.keys()
+        layers.sort()        
+        layer = layers[int(2*len(layers)/3)]
+        leaf = self.layers[layer][0]
+        deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
+                    self.disperse(g, dispersal_units = {leaf : nb_dispersal_units}).iteritems()}
+        depo_layer = {k:sum([deposits[vid] for vid in v if vid in deposits])
+                        for k,v in self.layers.iteritems()}
+        df = pd.DataFrame([[k,v] for k, v in depo_layer.iteritems()])
+        df = df.sort(0)
+        df.plot(0,1)
+        return df

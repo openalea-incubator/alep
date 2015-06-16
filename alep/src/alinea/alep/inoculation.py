@@ -197,19 +197,6 @@ class InoculationLowerLeaves(object):
                     except:
                         leaf.dispersal_units = [i]
 
-class AirborneInoculum:
-    """ Represent an airborne innoculum """
-    def __init__(self, fungus, mutable = False, 
-                 density = 100, domain_area = 1.):
-        self.fungus = fungus
-        self.mutable = mutable
-        self.density = density
-        self.domain_area = domain_area
-
-    def emission(self, g):
-        return [self.fungus.dispersal_unit(mutable=self.mutable)
-                 for i in range(self.domain_area / self.density)]
-
 def is_iterable(obj):
     """ Test if object is iterable """
     return isinstance(obj, collections.Iterable)
@@ -217,7 +204,7 @@ def is_iterable(obj):
 class AirborneContamination:
     """ Model of airborne inoculation """
     def __init__(self, fungus, mutable = False, 
-                 domain_area = 1., convUnit = 100.,
+                 domain_area = 1., convUnit = 0.01,
                  layer_thickness = 1., k_beer = 0.5):
         self.fungus = fungus
         self.mutable = mutable        
@@ -263,50 +250,102 @@ class AirborneContamination:
                 layers[ls[i_layer]].append(vid)
         
         self.layers = layers
-        
-    def contaminate(self, g, 
-                    density_dispersal_units = 100., 
-                    weather_data = None,
+
+    def emission(self, g, weather_data = None, density_dispersal_units = 0.):
+        return density_dispersal_units * self.domain_area
+    
+    def contaminate(self, g, nb_dus = 0., weather_data = None,
                     label='LeafElement'):
+                        
+        def sum_nb(nb_leaves, nb_du):
+            if nb_leaves == 1:
+                return [nb_du]
+            elif nb_du == 0:
+                return [0] + sum_nb(nb_leaves-1, nb_du)
+            else:
+                nb_du_avg = float(nb_du/nb_leaves)
+                nb_du_sup = 2.*nb_du_avg
+                if nb_du_sup >= 1:
+                    nb_on_vid = int(round(max(0, min(nb_du, np.random.normal(nb_du_avg, nb_du_sup)))))
+                else:
+                    nb_on_vid = 1 if np.random.random()<nb_du_sup else 0
+                return [nb_on_vid] + sum_nb(nb_leaves-1, nb_du - nb_on_vid)
+        
         areas = g.property('area')
         self.leaves_in_grid(g, label=label)
         deposits = {}
-        nb_dus = density_dispersal_units * self.domain_area * self.convUnit
         sorted_layers = sorted(self.layers.keys(), reverse = True)
         for layer in sorted_layers:
             if nb_dus > 0.:
                 vids = self.layers[layer]
                 area_layer = sum([areas[vid] for vid in vids])
-    #            beer_factor = 1-np.exp(-self.k_beer*area_layer/(self.domain_area*self.convUnit))
-                proba_du_layer = 1-np.exp(-self.k_beer*(area_layer/self.convUnit**2)/self.domain_area)
-    #            proba_du_layer = beer_factor / nb_dus
-                distribution_by_leaf = np.random.binomial(nb_dus, 
-                                                          proba_du_layer,
-                                                          len(vids))
-#                import pdb
-#                pdb.set_trace()                
-                deposits.update({lf:distribution_by_leaf[i_lf]
-                                 for i_lf, lf in enumerate(vids)})
-                nb_dus -= sum(distribution_by_leaf)
+                proba_du_layer = 1-np.exp(-self.k_beer*(area_layer*self.convUnit**2)/self.domain_area)
+                nb_dus_in_layer = np.random.binomial(nb_dus, proba_du_layer)
+                if len(vids)>0.:
+                    distribution_by_leaf = sum_nb(len(vids), nb_dus_in_layer)
+                    np.random.shuffle(distribution_by_leaf)
+                    deposits.update({lf:distribution_by_leaf[i_lf]
+                                     for i_lf, lf in enumerate(vids)
+                                     if distribution_by_leaf[i_lf] > 0.})
+                    nb_dus -= sum(distribution_by_leaf)
+        
+        for vid, nb_dus in deposits.iteritems():
+            if nb_dus > 0.:
+                du = self.fungus.dispersal_unit(nb_dispersal_units = nb_dus)
+                du.set_nb_dispersal_units(nb_dus)
+                deposits[vid] = [du]
         return deposits
             
-    def plot_distri_layers(self, g, density_dispersal_units = 100.):
+    def view_distri_layers(self, g, density_dispersal_units = 1000., 
+                           vmax = None):
         from alinea.alep.architecture import set_property_on_each_id
         from alinea.alep.alep_color import alep_colormap, green_yellow_red
         from alinea.alep.disease_outputs import plot3d_transparency
         from openalea.plantgl.all import Viewer
+        import matplotlib.pyplot as plt
         # Compute severity by leaf
-        deposits = self.contaminate(g)
+        deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
+                    self.contaminate(g, density_dispersal_units).iteritems()}
+        print '-----------------------------'
+        print 'Nb of deposits %d' % sum(deposits.values())
+        print '-----------------------------'
         set_property_on_each_id(g, 'nb_dispersal_units', deposits)
     
         # Visualization
+        if vmax is None:
+            vmax = 2*max(deposits.values())/3
         g = alep_colormap(g, 'nb_dispersal_units', cmap=green_yellow_red(), 
                           lognorm=False, zero_to_one=False)
+
+        d = [np.arange(vmax)]
+        fig, ax = plt.subplots()
+        ax.imshow(d, cmap = green_yellow_red())
 
         geometries = g.property('geometry') 
         leaves = get_leaves(g, label='LeafElement')
         leaves = [l for l in leaves if l in geometries] 
         transp = {vid:0. for k,v in self.layers.iteritems() for vid in v}
-        set_property_on_each_id(g, 'transparency', transp)                         
+        set_property_on_each_id(g, 'transparency', transp)   
+        for id in g:
+            if not id in deposits:
+                g.node(id).color = (1,1,1)
+                g.node(id).transparency = 0.7
+            elif deposits[id]==0.:
+                g.node(id).color = (1,1,1)
+                g.node(id).transparency = 0.7
+            else:
+                g.node(id).transparency = 0.                         
         scene = plot3d_transparency(g)
         Viewer.display(scene)
+        
+    def plot_distri_layers(self, g, density_dispersal_units = 1000.):
+        import pandas as pd
+        self.leaves_in_grid(g)
+        deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
+                    self.contaminate(g, density_dispersal_units).iteritems()}
+        depo_layer = {k:sum([deposits[vid] for vid in v if vid in deposits])
+                        for k,v in self.layers.iteritems()}
+        df = pd.DataFrame([[k,v] for k, v in depo_layer.iteritems()])
+        df = df.sort(0)
+        df.plot(0,1)
+        return df

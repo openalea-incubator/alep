@@ -5,7 +5,7 @@ import random
 def external_contamination(g, 
              contamination_source, 
              contamination_model,
-             weather_data, 
+             weather_data = None, 
              label = 'LeafElement', **kwds):
     """ Innoculates fungal objects (dispersal units) on elements of the MTG
         according to contamination_model.
@@ -31,15 +31,16 @@ def external_contamination(g,
     """
     
     stock = contamination_source.emission(g, weather_data, **kwds)
+    labels = g.property('label')    
     
     if len(stock) > 0:
         # Allocation of stock of inoculum
-        deposits = contamination_model.contaminate(g, stock, weather_data)
+        deposits = contamination_model.contaminate(g, stock, weather_data, **kwds)
         stock = [] # stock has been used (avoid uncontrolled future re-use)
 
         # Allocation of new dispersal units
         for vid,dlist in deposits.iteritems():
-            if len(dlist)>0 and g.label(vid).startswith(label):
+            if len(dlist)>0 and labels[vid].startswith(label):
                 leaf = g.node(vid)
                 try:
                     leaf.dispersal_units += dlist

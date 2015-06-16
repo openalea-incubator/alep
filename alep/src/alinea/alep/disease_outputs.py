@@ -1206,7 +1206,7 @@ class BrownRustRecorder:
         columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 'leaf_area', 
                    'leaf_green_area', 'leaf_length', 'leaf_senesced_length', 'fnl', 
                    'nb_dispersal_units', 'nb_lesions',
-                   'surface_pump', 'surface_chlo', 'surface_spo', 
+                   'surface_sink', 'surface_chlo', 'surface_spo', 
                    'surface_empty', 'surface_dead']
         self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(1000)], 
                                      columns = columns)
@@ -1234,7 +1234,7 @@ class BrownRustRecorder:
         # Update properties of dispersal units and lesions
         nb_dus = 0
         nb_lesions = 0
-        surface_pump = 0.
+        surface_sink = 0.
         surface_chlo = 0.
         surface_spo = 0.
         surface_empty = 0.
@@ -1257,7 +1257,7 @@ class BrownRustRecorder:
                             nb_lesions += les.nb_lesions
                         else:
                             nb_lesions += 1
-                        surface_pump += les.surface_pump
+                        surface_sink += les.surface_sink
                         surface_chlo += les.surface_chlo
                         surface_spo += les.surface_spo
                         surface_empty += les.surface_empty
@@ -1265,7 +1265,7 @@ class BrownRustRecorder:
         
         dict_lf['nb_dispersal_units'] = nb_dus
         dict_lf['nb_lesions'] = nb_lesions
-        dict_lf['surface_pump'] = surface_pump
+        dict_lf['surface_sink'] = surface_sink
         dict_lf['surface_chlo'] = surface_chlo
         dict_lf['surface_spo'] = surface_spo
         dict_lf['surface_empty'] = surface_empty
@@ -1314,13 +1314,13 @@ class BrownRustRecorder:
         self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
     
     def leaf_disease_area(self):
-        self.data['leaf_disease_area'] = self.data['surface_pump'] + self.data['surface_chlo'] + self.data['surface_spo'] + self.data['surface_empty'] + self.data['surface_dead']
+        self.data['leaf_disease_area'] = self.data['surface_sink'] + self.data['surface_chlo'] + self.data['surface_spo'] + self.data['surface_empty'] + self.data['surface_dead']
 
     def surface_alive(self):
-        self.data['surface_alive'] = self.data['surface_pump'] + self.data['surface_chlo'] +  self.data['surface_spo'] + self.data['surface_empty']
+        self.data['surface_alive'] = self.data['surface_sink'] + self.data['surface_chlo'] +  self.data['surface_spo'] + self.data['surface_empty']
 
     def ratios(self):
-        self.data['ratio_pump'] = [self.data['surface_pump'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['ratio_sink'] = [self.data['surface_sink'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
         self.data['ratio_chlo'] = [self.data['surface_chlo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
         self.data['ratio_spo'] = [self.data['surface_spo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
         self.data['ratio_empty'] = [self.data['surface_empty'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
@@ -1334,6 +1334,7 @@ class BrownRustRecorder:
         self.data['variety'] = variety
     
     def post_treatment(self, variety = None):
+        self.data = self.data[~pandas.isnull(self.data['date'])]
         self.add_variety(variety = variety)        
         self.add_leaf_numbers()
         self.leaf_senesced_area()
@@ -1344,9 +1345,165 @@ class BrownRustRecorder:
         if variety is not None:
             self.add_variety()
         self.data['axis'] = 'MS'
-        self.data = self.data[~pandas.isnull(self.data['date'])]
 
            
     def save(self, filename):
         self.post_treatment()
         self.data.to_csv(filename, index = False)
+   
+def get_data_without_death(data, num_leaf = 'num_leaf_bottom'):
+    datas = []
+    for lf in set(data[num_leaf]):
+        df = data[data[num_leaf] == lf]
+        df_count = df.groupby('degree_days').count()
+        last_date = df_count[df_count['num_plant'] == max(df_count['num_plant'])].index[-1]
+        datas.append(df[df['degree_days']<=last_date])
+    return pandas.concat(datas)
+    
+# Plotting ####################################################################
+import matplotlib.pyplot as plt
+from math import sqrt
+
+def variance(lst):
+    """
+    Uses standard variance formula (sum of each (data point - mean) squared)
+    all divided by number of data points
+    """
+    mu = numpy.mean(lst)
+    return 1.0/(len(lst)-1) * sum([(i-mu)**2 for i in lst])
+        
+def conf_int(lst, perc_conf=95):
+    """
+    Confidence interval - given a list of values compute the square root of
+    the variance of the list (v) divided by the number of entries (n)
+    multiplied by a constant factor of (c). This means that I can
+    be confident of a result +/- this amount from the mean.
+    The constant factor can be looked up from a table, for 95pcent confidence
+    on a reasonable size sample (>=500) 1.96 is used.
+    """
+    from scipy.stats import t
+    
+    n, v = len(lst), variance(lst)
+    c = t.interval(perc_conf * 1.0 / 100, n-1)[1]
+    
+    return sqrt(v/n) * c
+
+def plot_mean(data, variable = 'severity', xaxis = 'degree_days', 
+              error_bars = False, error_method = 'confidence_interval', 
+              marker = 'd', empty_marker = False, linestyle = '-', color = 'b', 
+              title = None, xlabel = None, ylabel = None,
+              xlims = None, ylims = None, ax = None, return_ax = False):
+    if variable in data.columns:
+        if ax == None:
+            fig, ax = plt.subplots()
+        if empty_marker == False:
+            markerfacecolor = color
+        else:
+            markerfacecolor = 'none'
+            
+        df = data[pandas.notnull(data.loc[:,variable])].loc[:, [xaxis, variable]]
+        df_mean = df.groupby(xaxis).mean()
+        df['nb_rep'] = map(lambda x: df[xaxis].value_counts()[x], df[xaxis])
+        if error_bars == True and len(df['nb_rep'])>0 and min(df['nb_rep'])>1:
+            if error_method == 'confidence_interval':
+                df_err = df.groupby(xaxis).agg(conf_int)
+            elif error_method == 'std_deviation':
+                df_err = df.groupby(xaxis).std()
+            else:
+                raise ValueError("'error_method' unknown: 'try confidence_interval' or 'std_deviation'")
+            ax.errorbar(df_mean.index, df_mean[variable], yerr = df_err[variable].values,
+                        marker = marker, linestyle = linestyle, color = color,
+                        markerfacecolor = markerfacecolor,  markeredgecolor = color)
+        else:
+            ax.plot(df_mean.index, df_mean[variable],
+                    marker = marker, linestyle = linestyle, color = color,
+                    markerfacecolor = markerfacecolor,  markeredgecolor = color)
+        if title is not None:
+            ax.set_title(title, fontsize = 18)
+        if xlabel is not None:
+            ax.set_xlabel(xlabel, fontsize = 18)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel, fontsize = 18)
+        if xlims is not None:
+            ax.set_xlim(xlims)
+        if ylims is not None:
+            ax.set_ylim(ylims)
+        if return_ax == True:
+            return ax
+            
+def plot_sum(data, variable = 'severity', xaxis = 'degree_days', 
+              marker = 'd', linestyle = '-', color = 'b', 
+              title = None, xlabel = None, ylabel = None,
+              xlims = None, ylims = None, ax = None, return_ax = False):
+    
+    def get_mean_data(variable):
+        if variable in data.columns:
+            df_sum.loc[:, variable] = df_mean.loc[:, variable]
+    
+    if variable in data.columns:
+        if ax == None:
+            fig, ax = plt.subplots()
+        df = data[pandas.notnull(data.loc[:,variable])]
+        df_mean = df.groupby(xaxis).mean()
+
+        df_sum = df.groupby(xaxis).sum()
+        for var in ['HS', 'num_leaf_bottom', 'num_leaf_top', 'fnl', 
+                    'cur_max_leaf_top', 'cur_num_leaf_top']:
+            if var != 'xaxis':
+                get_mean_data(var)
+
+        ax.plot(df_sum.index, df_sum[variable], color = color, 
+                    marker = marker, linestyle = linestyle)
+        if title is not None:
+            ax.set_title(title, fontsize = 18)
+        if xlabel is not None:
+            ax.set_xlabel(xlabel, fontsize = 18)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel, fontsize = 18)
+        if xlims is not None:
+            ax.set_xlim(xlims)
+        if ylims is not None:
+            ax.set_ylim(ylims)
+        if return_ax == True:
+            return ax
+
+def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days', 
+                  leaves = range(1, 14), from_top = True, plant_axis = ['MS'],
+                  error_bars = False, error_method = 'confidence_interval', 
+                  marker = '', empty_marker = False, linestyle = '-', fixed_color = None, 
+                  title = None, legend = True, xlabel = None, ylabel = None,
+                  xlims = None, ylims = None, ax = None, return_ax = False, fig_size = (10,8)):
+    df = data.copy()
+    if ax == None:
+        fig, ax = plt.subplots(figsize = fig_size)
+    colors = ax._get_lines.set_color_cycle()
+    colors = ax._get_lines.color_cycle
+        
+    if from_top == True:
+        num_leaf = 'num_leaf_top'
+    else:
+        num_leaf = 'num_leaf_bottom'
+    
+    proxy = []
+    labels = []
+    for lf in leaves:
+        df_lf = df[(df['axis'].isin(plant_axis)) & (df[num_leaf]==lf)]
+        if fixed_color == None:
+            color = next(colors)
+        else:
+            color = fixed_color
+        plot_mean(df_lf, variable = variable, xaxis = xaxis, 
+                  error_bars = error_bars, error_method = error_method, 
+                  marker = marker, empty_marker = empty_marker, linestyle = linestyle, 
+                  color = color, title = title, xlabel = xlabel, ylabel = ylabel,
+                  xlims = xlims, ylims = ylims, ax = ax)
+        proxy += [plt.Line2D((0,1),(0,0), color = color, linestyle ='-')]
+        labels += ['L%d' %lf]
+    
+    if legend == True:
+        colors = ax._get_lines.set_color_cycle()
+        colors = ax._get_lines.color_cycle
+        ax.legend(proxy, labels, title = 'Leaf\nNumber',
+                    loc='center left', bbox_to_anchor=(1, 0.5))
+    if return_ax == True:
+        return ax

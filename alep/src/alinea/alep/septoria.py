@@ -148,7 +148,7 @@ class SeptoriaDU(DispersalUnit):
             self.position = position
     
     def set_status(self, status = 'deposited'):
-        self.status = status
+        self.status = status  
     
     @property
     def nb_dispersal_units(self):

@@ -242,3 +242,158 @@ def add_rain_dispersal_events(weather):
     dispersal_event.index = weather.data.temperature_air.index
     weather.data = weather.data.join(dispersal_event)
     return weather
+    
+def plot_rain_and_temp(weather, xaxis = 'degree_days', leaf_dates=None, 
+                       ax = None, xlims=None, ylims_rain = None, ylims_temp = None,
+                       title = None, xlabel = True, arrowstyle = '->', arrow_color = 'g'):
+    """ Plot rain intensity (mm/h) and temperature (C) """
+    if ax == None:
+        fig, ax = plt.subplots(figsize=(8,1.8))
+        
+    if xaxis == 'degree_days':
+        index = weather.data.degree_days
+    elif xaxis == 'date':
+        index = weather.data.index  
+    
+    ax.bar(index, weather.data.rain, width = 1, color = 'b')
+    ax2 = ax.twinx()
+    ax2.plot(index, weather.data.temperature_air, 'r', alpha = 0.5)
+    
+    if leaf_dates is not None:
+        col_name = leaf_dates.columns[0]
+        for lf, row in leaf_dates.iterrows():
+            ax.annotate('', xy=(row[col_name], 4.), xycoords='data',
+                        xytext=(row[col_name], 5.), 
+                        arrowprops=dict(arrowstyle=arrowstyle, 
+                                        connectionstyle="arc3", 
+                                        color=arrow_color))
+    
+    if title == None:
+        ax.set_title(str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year))
+    elif title != '':
+        ax.set_title(title)
+    if xlabel == True:
+        ax.set_xlabel('Degree days', fontsize=16)
+    if xaxis == 'date':
+        formatter = FuncFormatter(form_tick)
+        ax.xaxis.set_major_formatter(FuncFormatter(formatter))
+    if xlims!=None:
+        ax.set_xlim(xlims)
+    if ylims_rain != None:
+        ax.set_ylim(ylims_rain)
+    if ylims_temp != None:
+        ax2.set_ylim(ylims_temp)
+        
+    ax.set_ylabel('Rain (mm/h)')
+    ax2.set_ylabel('Temperature (C)')
+    return ax
+    
+def plot_relative_humidity(weather, xaxis = 'degree_days', 
+                              ax = None, xlims=None, ylims = None, linestyle = '-', color = 'b',
+                              title = None, xlabel = True):
+    """ Plot relative humidity (%) """
+    if ax == None:
+        fig, ax = plt.subplots(figsize=(8,1.8))
+        
+    if xaxis == 'degree_days':
+        index = weather.data.degree_days
+    elif xaxis == 'date':
+        index = weather.data.index  
+    
+    ax.plot(index, weather.data.relative_humidity, color = color, linestyle = linestyle)
+    
+    if title == None:
+        ax.set_title(str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year))
+    elif title != '':
+        ax.set_title(title)
+    if xlabel == True and xaxis == 'degree_days':
+        ax.set_xlabel('Degree days', fontsize=16)
+    if xaxis == 'date':
+        formatter = FuncFormatter(form_tick)
+        ax.xaxis.set_major_formatter(FuncFormatter(formatter))
+    if xlims!=None:
+        ax.set_xlim(xlims)
+    if ylims != None:
+        ax.set_ylim(ylims)
+        
+    ax.set_ylabel('Relative humidity (%)')
+    return ax
+    
+def plot_daily_relative_humidity(weather, xaxis = 'degree_days', 
+                                  ax = None, xlims=None, ylims = None, linestyle = '-', color = 'b',
+                                  title = None, xlabel = True):
+    
+    df = weather.data.resample('D', how='mean')
+
+    if ax == None:
+        fig, ax = plt.subplots(figsize=(8,1.8))
+        
+    if xaxis == 'degree_days':
+        index = df.degree_days
+    elif xaxis == 'date':
+        index = df.index  
+    
+    ax.plot(index, df.relative_humidity, color = color, linestyle = linestyle)
+    
+    if title == None:
+        ax.set_title(str(df.index[0].year)+'-'+str(df.index[-1].year))
+    elif title != '':
+        ax.set_title(title)
+    if xlabel == True and xaxis == 'degree_days':
+        ax.set_xlabel('Degree days', fontsize=16)
+    if xaxis == 'date':
+        formatter = FuncFormatter(form_tick)
+        ax.xaxis.set_major_formatter(FuncFormatter(formatter))
+    if xlims!=None:
+        ax.set_xlim(xlims)
+    if ylims != None:
+        ax.set_ylim(ylims)
+        
+    ax.set_ylabel('Relative humidity (%)')
+    return ax
+    
+
+def plot_wetness_and_temp(weather, start_date="2010-10-15 12:00:00", 
+                          xaxis = 'degree_days', ax = None, xlims=None,
+                          ylims_temp = [-5, 30], title = None, xlabel = True):
+    def form_tick(x, pos):
+        t = date.fromordinal(int(x))
+        return t.strftime('%b')+'\n'+str(int(weather.get_variable('degree_days', t)))
+    
+    if ax == None:
+        fig, ax = plt.subplots(figsize=(8,1.8))
+    
+    if not 'degree_days' in weather.data.columns:
+        weather.check(varnames=['degree_days'], models={'degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=30.)
+    if not 'wetness' in weather.data.columns:
+        weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+     
+    if xaxis == 'degree_days':
+        index = weather.data.degree_days
+    elif xaxis == 'date':
+        index = weather.data.index  
+    
+    ax.vlines(index, [0], weather.data.wetness, 'k', alpha=0.05)
+    ax.set_yticks([])
+    ax.set_ylim([0,1])
+    
+    ax2 = ax.twinx()
+    ax2.plot(index, weather.data.temperature_air, 'r')
+       
+    if title == None:
+        ax.set_title(str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year))
+    elif title != '':
+        ax.set_title(title)
+    if xlabel == True:
+        ax.set_xlabel('Degree days', fontsize=16)
+    if xaxis == 'date':
+        formatter = FuncFormatter(form_tick)
+        ax.xaxis.set_major_formatter(FuncFormatter(formatter))
+    if xlims!=None:
+        ax.set_xlim(xlims)
+    if ylims_temp != None:
+        ax2.set_ylim(ylims_temp)
+        
+    ax.set_ylabel('Wetness')
+    ax2.set_ylabel('Temperature (C)')
+    return ax

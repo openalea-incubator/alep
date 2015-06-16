@@ -555,6 +555,19 @@ class SeptoriaAgePhysio(Lesion):
             self.position = [position]
         else:
             self.position = position
+            
+    def disappear(self):
+        """ Kill the lesion and pass all surfaces to 0. 
+        """
+        self.growth_is_active = False
+        self.growth_demand = 0.
+        self.surface_inc = 0.
+        self.surface_chlo = 0.
+        self.surface_nec = 0.
+        self.surface_spo = 0.
+        self.surface_empty = 0.
+        self.surface_dead = 0.
+        self.disable() 
 
     @property
     def surface_inc(self):
