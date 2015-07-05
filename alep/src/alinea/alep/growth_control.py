@@ -192,43 +192,44 @@ class GeometricCircleCompetition:
         lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
         areas = g.property('area')
         green_areas = g.property('green_area')
-        senesced_areas = g.property('senesced_area')
         geom = g.property('geometry')
         labels = g.property('label')
+        potential_lesion_areas = g.property('potential_lesion_area')
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) 
                     if labels[vid].startswith(label) and vid in geom]
-            if len(leaf) > 0.:
+
+            # Save potential lesion area (same on all vids of leaf)            
+            pots = list(set(potential_lesion_areas.keys()) & set(leaf))
+            if len(pots)>0:
+                potential_lesion_area = potential_lesion_areas[pots[0]]
+            else:
+                potential_lesion_area = 0.
+                
+            if len(leaf) > 0:
                 leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], [])
                 nb_lesions = sum([les.nb_lesions for les in leaf_lesions])
                 if nb_lesions>0.:
                     les_surf = sum([les.surface for les in leaf_lesions])
+                    total_demand = sum(l.growth_demand for l in leaf_lesions)
                     leaf_area = sum([areas[lf] for lf in leaf])
                     leaf_green_area = sum([green_areas[lf] for lf in leaf])
-                    leaf_senesced_area = sum([senesced_areas[lf] for lf in leaf])
                     ratio_green = min(1., leaf_green_area/leaf_area) if leaf_area>0. else 0.
-                    green_lesion_area = les_surf * ratio_green
                     nb_les_on_green = float(nb_lesions) * ratio_green
-                    leaf_healthy_area = leaf_area - (leaf_senesced_area + green_lesion_area)
-                    leaf_healthy_area = max(0., round(leaf_healthy_area, 10))
-                    
-                    mean_lesion_size = green_lesion_area/nb_les_on_green
-                    geom_les_surf = self.true_area_impacted(nb_les_on_green,
-                                                            leaf_healthy_area,
-                                                            mean_lesion_size)                
-                    
-    
-                    total_demand = sum(l.growth_demand for l in leaf_lesions)
-                    demand_by_les = total_demand/nb_lesions
-                    geom_demand = self.true_area_impacted(nb_les_on_green,
-                                                            leaf_healthy_area,
-                                                            mean_lesion_size+demand_by_les)
-                    geom_demand -= geom_les_surf
-                    for l in leaf_lesions:
-                        growth_offer = l.growth_demand*geom_demand/total_demand if total_demand>0. else 0.
-                        l.control_growth(growth_offer = growth_offer)
+                   
+                    potential_lesion_area += total_demand
+                    true_area = self.true_area_impacted(nb_les_on_green, 
+                                                        leaf_green_area, 
+                                                        potential_lesion_area*ratio_green/nb_les_on_green)
 
+                    offer = true_area - les_surf
+
+                    for l in leaf_lesions:
+                        growth_offer = l.growth_demand * offer/total_demand if total_demand>0. else 0.
+                        l.control_growth(growth_offer = growth_offer)
+                
+                potential_lesion_areas.update({vid:potential_lesion_area for vid in leaf})                
 
 # Growth control between 2 diseases ###########################################
 import random as rd

@@ -12,7 +12,7 @@ from alinea.alep.inoculation import AirborneContamination
 from alinea.alep.protocol import infect, update
 from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.dispersal_transport import BrownRustDispersal
-from alinea.echap.architectural_reconstructions import EchapReconstructions
+from alinea.echap.architectural_reconstructions import echap_reconstructions
 from alinea.adel.data_samples import adel_two_metamers_stand
 from alinea.alep.architecture import get_leaves
 from alinea.alep.architecture import set_properties
@@ -48,14 +48,19 @@ def get_one_leaf():
     leaves = get_leaves(g)
     return g.node(leaves[0])
 
-def example_surface(**kwds):
+def example_surface(nb_steps = 4500, nb_lesions = 1, with_compet = False, **kwds):
     weather = read_weather_year(2012)
     df = weather.data
     df = df.reset_index()
     df = df[df['degree_days']>0]
-    leaf = get_one_leaf()
+    g, leaf = get_g_and_one_leaf()
+    leaf.area = 1.
+    leaf.green_area = 1. 
     brown_rust = BrownRustFungus()
-    lesion = brown_rust.lesion(mutable = False, group_dus = False, **kwds)
+    lesion = brown_rust.lesion(mutable = False, group_dus = True, **kwds)
+    lesion.set_position([[1] for i in range(nb_lesions)])
+    leaf.lesions = [lesion]
+    growth_controler = GeometricCircleCompetition()
     surfs = []
     surfs_chlo = []
     surfs_spo = []
@@ -65,55 +70,14 @@ def example_surface(**kwds):
     cum_tt = 0.
     count = 0.
     for i, row in df.iterrows():
-         if count < 4500:
+         if count < nb_steps:
             count += 1
             leaf.temperature_sequence = [row['temperature_air']]
             lesion.update(leaf = leaf)
-            lesion.control_growth(growth_offer = lesion.growth_demand)
-            surfs.append(lesion.surface)
-            surfs_chlo.append(lesion.surface_chlo)
-            surfs_spo.append(lesion.surface_spo)
-            surfs_sink.append(lesion.surface_sink)
-            surfs_empty.append(lesion.surface_empty)
-            cum_tt += lesion.delta_thermal_time_growth(leaf_temperature = [row['temperature_air']])
-            tt.append(cum_tt)
-
-    fig, ax = plt.subplots()
-    ax.plot(tt, surfs, 'b')
-    ax.plot(tt, surfs_sink, 'k')
-    ax.plot(tt, surfs_chlo, 'r')
-    ax.plot(tt, surfs_spo, 'g')
-    ax.plot(tt, surfs_empty, 'y')
-    ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
-    ax.set_ylabel("Surface of 1 lesion (cm2)", fontsize = 18)
-    ax.legend(['sink + Chlo + Spo + Nec', 
-               'sinking', 'Chlorotic', 'Sporulating', 'Necrotic'], loc = 'center right')
-
-def example_surface_competition(date_competition = 500, **kwds):
-    weather = read_weather_year(2012)
-    df = weather.data
-    df = df.reset_index()
-    df = df[df['degree_days']>0]
-    leaf = get_one_leaf()
-    brown_rust = BrownRustFungus()
-    lesion = brown_rust.lesion(mutable = False, group_dus = False, **kwds)
-    surfs = []
-    surfs_chlo = []
-    surfs_spo = []
-    surfs_sink = []
-    surfs_empty = []
-    tt = []
-    cum_tt = 0.
-    count = 0.
-    for i, row in df.iterrows():
-        if count < 3000:
-            count += 1
-            leaf.temperature_sequence = [row['temperature_air']]
-            lesion.update(leaf = leaf)
-            if count < date_competition:
+            if with_compet == False:
                 lesion.control_growth(growth_offer = lesion.growth_demand)
             else:
-                lesion.control_growth(growth_offer = 0.)
+                growth_controler.control(g)
             surfs.append(lesion.surface)
             surfs_chlo.append(lesion.surface_chlo)
             surfs_spo.append(lesion.surface_spo)
@@ -127,11 +91,17 @@ def example_surface_competition(date_competition = 500, **kwds):
     ax.plot(tt, surfs_sink, 'k')
     ax.plot(tt, surfs_chlo, 'r')
     ax.plot(tt, surfs_spo, 'g')
-    ax.plot(tt, surfs_empty, 'y')
     ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
-    ax.set_ylabel("Surface of 1 lesion (cm2)", fontsize = 18)
-    ax.legend(['sink + Chlo + Spo + Nec', 
-               'sinking', 'Chlorotic', 'Sporulating', 'Necrotic'], loc = 'best')
+    ax.set_ylabel("Surface d'une lesion (cm2)", fontsize = 18)
+    if sum(surfs_empty)>0:
+        ax.plot(tt, surfs_empty, 'y')
+        labels = ['Total', 'Puits', 'Chlorose', 'Sporulant', 'Necrose']
+    else:
+        labels = ['Total', 'Puits', 'Chlorose', 'Sporulant']
+        f = lesion.fungus
+        start_spo = 0.05*f.Smax*f.ratio_spo
+        ax.plot(tt, [start_spo for t in tt], 'k--')
+    ax.legend(labels, loc = 'best')
                
 def example_geom_competition(density = 30., **kwds):
     g, leaf = get_g_and_one_leaf()
@@ -298,7 +268,7 @@ def example_density_robert_2004_complete(temperature = 14., **kwds):
             leaf.temperature_sequence = [weather.loc[date, 'temperature']]
             les.update(leaf = leaf)
             growth_controler.control(g)
-            if leaf.lesions[0].age_sporulation > 0:
+            if leaf.lesions[0].status > 0:
                 if day == 0.:
                     print date
                     print les.age_tt
@@ -311,7 +281,7 @@ def example_density_robert_2004_complete(temperature = 14., **kwds):
                     df_sim.loc[indx, :] = pd.Series(spo)
                     indx +=1
                     if d == densities[0]:
-                        dates[dates_obs[i_dates]] = les.age_sporulation
+                        dates[dates_obs[i_dates]] = les.age_tt - les.fungus.latency
                     i_dates += 1
                     
 #            if i_dates < len(dates):
@@ -394,17 +364,28 @@ def example_density_robert_2004_complete(temperature = 14., **kwds):
     axs[0][0].annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
                 xycoords='axes fraction', fontsize=14)
 
-def example_density_robert_2005(temperature = 18., **kwds):
-    brown_rust = BrownRustFungus()
-    growth_controler = NoPriorityGrowthControl()
+def example_density_robert_2005(**kwds):
+    def _parse(date, hour):
+        return datetime(int(date[6:10]),int(date[3:5]),int(date[0:2]),int(hour))
 
-    filename = 'calibration_lesion_rust_2005.csv'
+    weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
+                       parse_dates={'datetime':['date', 'hour']},
+                       date_parser=_parse)
+    weather['day'] = map(lambda x : x.dayofyear -  weather['datetime'][0].dayofyear, weather['datetime'])
+    weather.set_index('datetime', inplace = True)    
+    
+    brown_rust = BrownRustFungus()
+    growth_controler = GeometricCircleCompetition()
+
+    filename = 'calibration_lesion_rust_2005_data.csv'
     df_obs = pd.read_csv(filename, sep = ';')
+    df_obs = df_obs[df_obs['complex']==0]
+    df_obs = df_obs[df_obs['date']!=9]
     natures = np.array(['spo', 'chlo', 'nec'])
-    dates = np.unique(df_obs['date'])
-    dates_tt = np.array([11, 16, 21, 28, 36])
-    dates = {date:dates_tt[i]*temperature for i, date in enumerate(dates)}
-    columns = ['nature', 'date', 'density', 'area']
+    dates_obs = np.unique(df_obs['date'])
+    dates = {}
+    
+    columns = ['nature', 'date', 'density', 'severity']
     df_sim = pd.DataFrame([[np.nan for col in columns] 
                             for i in range(3*5*len(np.arange(1, 121, 10)))],
                             columns = columns)
@@ -414,64 +395,68 @@ def example_density_robert_2005(temperature = 18., **kwds):
         g, leaf = get_g_and_one_leaf()
         leaf.area = 10.
         leaf.green_area = 10.
-        df_temp = pd.DataFrame([temperature], columns = ['temp'])
-        leaf.temperature_sequence = df_temp['temp']
         les = brown_rust.lesion(mutable = False, group_dus = True, **kwds)
         les.set_position([[1] for i in range(int(d*leaf.area))])
         leaf.lesions = [les]
-        i_dates = 1
-        for i in range(1500):
+        i_dates = 0
+        day = 0
+        for date in weather.index:
+            leaf.temperature_sequence = [weather.loc[date, 'temperature']]
             les.update(leaf = leaf)
             growth_controler.control(g)
-            if i_dates <= len(dates):
-                if leaf.lesions[0].age_sporulation >= dates[i_dates]:
-#                if leaf.lesions[0].age_tt >= dates[i_dates]:
+            if leaf.lesions[0].status > 0:
+                if day == 0.:
+                    day = weather.loc[date, 'day']
+                if (day > 0 and date.hour == 12 and i_dates < len(dates_obs) and
+                    weather.loc[date, 'day'] - day + 1 >= dates_obs[i_dates]):
                     surf_chlo = les.surface_chlo/leaf.area
                     surf_spo = les.surface_spo/leaf.area
                     surf_nec = les.surface_empty/leaf.area
-                    chlo = {'date':i_dates, 'nature':'chlo', 'density':d,
-                           'area':surf_chlo}
+                    chlo = {'date':dates_obs[i_dates], 'nature':'chlo', 'density':d,
+                           'severity':surf_chlo}
                     df_sim.loc[indx, :] =  pd.Series(chlo)
                     indx +=1
-                    spo = {'date':i_dates, 'nature':'spo', 'density':d,
-                           'area':surf_spo}
+                    spo = {'date':dates_obs[i_dates], 'nature':'spo', 'density':d,
+                           'severity':surf_spo}
                     df_sim.loc[indx, :] = pd.Series(spo)
                     indx +=1
-                    nec = {'date':i_dates, 'nature':'nec', 'density':d,
-                           'area':surf_nec}
+                    nec = {'date':dates_obs[i_dates], 'nature':'nec', 'density':d,
+                           'severity':surf_nec}
                     df_sim.loc[indx, :] = pd.Series(nec)
                     indx +=1
+                                        
+                    if d == densities[0]:
+                        dates[dates_obs[i_dates]] = les.age_tt - les.fungus.latency
                     i_dates += 1
 #    df_sim.loc[:, 'surface_visible'] = df_sim['chlo'] + df_sim['spo'] + \
 #                                        df_sim['nec']
     
-    fig, axs = plt.subplots(len(natures), len(dates))
+    fig, axs = plt.subplots(len(natures), len(dates_obs))
     states = iter(['sporulation', 'chlorosis', 'necrosis'])
-    dates_tt = iter(dates_tt)
-    dates = dates.itervalues()
     rmses = []
     for i, axs_line in enumerate(axs):
         nature = natures[i]
+        df_obs_nature = df_obs.loc[:, ['date', 'density', 'sev_'+nature]]
+        df_obs_nature = df_obs_nature.rename(columns={'sev_'+nature:'severity'})
         for j, ax in enumerate(axs_line):
-            date = j+1
-            df_o = df_obs[(df_obs['nature']==nature) &
-                            (df_obs['date']==date)]
+            date = dates_obs[j]
+            df_o = df_obs_nature[df_obs_nature['date']==date]
             df_s = df_sim[(df_sim['nature']==nature) &
                             (df_sim['date']==date)]
 
             # Plot
-            ax.plot(df_o['density'], df_o['area'], 'ro')
-            ax.plot(df_s['density'], df_s['area'], 'b')            
+            ax.plot(df_o['density'], df_o['severity'], 'bo')
+            ax.plot(df_s['density'], df_s['severity'], 'k')            
             
             # Get RMSE
             df_o = df_o.sort('density')
-            df_s.loc[0, ['density', 'area']] = [0.,0.]
+            df_s.loc[0, ['density', 'severity']] = [0.,0.]
             df_s = df_s.sort('density')
             
-            s = interpolate.interp1d(df_s['density'], df_s['area'])
+            s = interpolate.interp1d(df_s['density'], df_s['severity'])
             df_i = df_o.copy()
-            df_i.loc[:,'area'] = [s(d) for d in df_i['density']]
-            rmses.append(np.sqrt((df_i['area'].astype(float) - df_o['area'].astype(float)) ** 2).mean())
+            df_i.loc[:,'severity'] = [s(d) for d in df_i['density']]
+            rmses.append(np.sqrt((df_i['severity'].astype(float) - df_o['severity'].astype(float)) ** 2).mean())
             
 
             ax.set_xlim([0,120])
@@ -479,17 +464,19 @@ def example_density_robert_2005(temperature = 18., **kwds):
             if j == 0:
                 ax.set_ylabel('Severity in '+ next(states), fontsize = 16)
             if i == 0:
-                ax.set_title('%d days - %d Cd' %(next(dates_tt), next(dates)))
+                ax.set_title('%d days - %d Cd' %(date, dates[date]))
+            if i == len(natures)-1:
+                ax.set_xlabel('Lesion density', fontsize = 16)
     rmse = np.mean(rmses)
     axs[0][0].annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
                 xycoords='axes fraction', fontsize=14)
 
-def example_density_complete(**kwds):
+def example_density_complete(with_complex=False, **kwds):
     def _parse(date, hour):
         return datetime(int(date[6:10]),int(date[3:5]),int(date[0:2]),int(hour))
 
     def adapt_date_2005(i_date):
-        return np.array([11, 16, 21, 28, 36])[i_date-1]
+        return np.array([4, 9, 11, 16, 21, 28, 36])[i_date-1]
                 
     weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
                        parse_dates={'datetime':['date', 'hour']},
@@ -504,19 +491,18 @@ def example_density_complete(**kwds):
     filename = 'calibration_lesion_rust_2004_complete.csv'
     df_obs_2004 = pd.read_csv(filename, sep = ';')
     df_obs_2004['severity'] = df_obs_2004['density'] * df_obs_2004['area']
-    filename = 'calibration_lesion_rust_2005.csv'
+    filename = 'calibration_lesion_rust_2005_data.csv'
     df_obs_2005 = pd.read_csv(filename, sep = ';')
-    df_obs_2005 = df_obs_2005[df_obs_2005['nature']=='spo']
-    df_obs_2005 = df_obs_2005.rename(columns = {'area':'severity'})
+    if with_complex==False:
+        df_obs_2005 = df_obs_2005[df_obs_2005['complex']==0]
+    df_obs_2005 = df_obs_2005.loc[:, ['date', 'density', 'sev_spo']]
+    df_obs_2005 = df_obs_2005.rename(columns={'sev_spo':'severity'})
     df_obs_2005['area'] = df_obs_2005['severity'] / df_obs_2005['density']
-    df_obs_2005['area'][np.isnan(df_obs_2005['area'])] = 0.
-#    df_obs_2005 = df_obs_2005[df_obs_2005['density']<=45]
+
     
     dates_obs = np.unique(df_obs_2004['date'])
     dates = {}
-#    dates = {date:date*temperature for date in dates_obs}
     columns = ['date', 'density', 'area', 'severity']
-#    densities = np.arange(1, 50, 5)
     densities = np.arange(1, 112, 10)
     df_sim = pd.DataFrame([[np.nan for col in columns] 
                            for i in range(len(dates_obs)*len(densities))],
@@ -535,7 +521,7 @@ def example_density_complete(**kwds):
             leaf.temperature_sequence = [weather.loc[date, 'temperature']]
             les.update(leaf = leaf)
             growth_controler.control(g)
-            if leaf.lesions[0].age_sporulation > 0:
+            if leaf.lesions[0].status > 0:
                 if day == 0.:
                     print date
                     print les.age_tt
@@ -548,7 +534,7 @@ def example_density_complete(**kwds):
                     df_sim.loc[indx, :] = pd.Series(spo)
                     indx +=1
                     if d == densities[0]:
-                        dates[dates_obs[i_dates]] = les.age_sporulation
+                        dates[dates_obs[i_dates]] = les.age_tt - les.fungus.latency
                     i_dates += 1
                     
     fig, axs = plt.subplots(2, 4)
@@ -576,7 +562,7 @@ def example_density_complete(**kwds):
         df_i = df_o.copy()
         df_i.loc[:,'area'] = [s(d) for d in df_i['density']]
         rmses.append(np.sqrt((df_i['area'].astype(float) - df_o['area'].astype(float)) ** 2).mean())
-        
+
         if i<4:
             ax.set_ylim([0, 0.016])
         else:
@@ -630,43 +616,411 @@ def example_density_complete(**kwds):
     axs[0][0].annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
                 xycoords='axes fraction', fontsize=14)
 
+def compare_competition_models(**kwds):
+    def _parse(date, hour):
+        return datetime(int(date[6:10]),int(date[3:5]),int(date[0:2]),int(hour))
+    weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
+                       parse_dates={'datetime':['date', 'hour']},
+                       date_parser=_parse)
+    weather['day'] = map(lambda x : x.dayofyear -  weather['datetime'][0].dayofyear, weather['datetime'])
+    weather.set_index('datetime', inplace = True)
+    
+    brown_rust = BrownRustFungus()
+    growth_controler_1 = NoPriorityGrowthControl()
+    growth_controler_2 = GeometricCircleCompetition()
 
+    filename = 'calibration_lesion_rust_2004_complete.csv'
+    df_obs_2004 = pd.read_csv(filename, sep = ';')
+    df_obs_2004['severity'] = df_obs_2004['density'] * df_obs_2004['area']
+    filename = 'calibration_lesion_rust_2005_data.csv'
+    df_obs_2005 = pd.read_csv(filename, sep = ';')
+    df_obs_2005 = df_obs_2005[df_obs_2005['complex']==0]
+    df_obs_2005 = df_obs_2005.loc[:, ['date', 'density', 'sev_spo']]
+    df_obs_2005 = df_obs_2005.rename(columns={'sev_spo':'severity'})
+    df_obs_2005['area'] = df_obs_2005['severity'] / df_obs_2005['density']
+    dates_obs = np.unique(df_obs_2004['date'])
+    dates = {}
+    i_date = 5
+    
+    columns = ['date', 'density', 'area', 'severity']
+    densities = np.arange(1, 50, 5)
+    df_sim_1  = pd.DataFrame([[np.nan for col in columns] 
+                               for d in densities],
+                               columns = columns)
+    df_sim_2 = df_sim_1.copy()
+    
+    def run_sim(df_sim, growth_controler, **kwds):
+        indx = 0
+        for d in densities:
+            count = 0
+            g, leaf = get_g_and_one_leaf()
+            leaf.area = 10.
+            leaf.green_area = 10.
+            les = brown_rust.lesion(mutable = False, group_dus = True, **kwds)
+            les.set_position([[1] for i in range(int(d*leaf.area))])
+            leaf.lesions = [les]
+            day = 0
+            for date in weather.index:
+                leaf.temperature_sequence = [weather.loc[date, 'temperature']]
+                les.update(leaf = leaf)
+                growth_controler.control(g)
+                if leaf.lesions[0].status > 0:
+                    if day == 0.:
+                        day = weather.loc[date, 'day']
+                    if (day > 0 and date.hour == 12 and count == 0 and
+                        weather.loc[date, 'day'] - day + 1 >= dates_obs[i_date]):
+                        surf_spo = les.surface_spo / les.nb_lesions
+                        spo = {'date':dates_obs[i_date], 'density':d, 
+                               'area':surf_spo, 'severity':d*surf_spo}
+                        df_sim.loc[indx, :] = pd.Series(spo)
+                        indx +=1
+                        count += 1
+                        if d == densities[0]:
+                            dates[dates_obs[i_date]] = les.age_tt - les.fungus.latency
+        return df_sim
+     
+    df_sim_1 = run_sim(df_sim_1, growth_controler_1, **kwds)
+    df_sim_2 = run_sim(df_sim_2, growth_controler_2, **kwds)
+    
+    fig, axs = plt.subplots(1, 2)    
+    date = dates_obs[i_date]
+    df_sims = iter([df_sim_1, df_sim_2])
+    letters = iter(['A', 'B'])
+
+    for i, ax in enumerate(axs):
+        (df_o_2004, df_o_2005) = map(lambda df: df[df['date']==date],
+                                    (df_obs_2004, df_obs_2005))
+        df_s = next(df_sims)
+
+        # Plot
+        ax.plot(df_o_2004['density'], df_o_2004['area'], 'ro')
+        if len(df_o_2005)>0:
+            ax.plot(df_o_2005['density'], df_o_2005['area'], 'bo')
+        ax.plot(df_s['density'], df_s['area'], 'k')
+        
+        # Get RMSE
+        df_s.loc[0, ['density', 'area']] = [0.,0.]
+        df_s = df_s.sort('density')
+        
+        s = interpolate.interp1d(df_s['density'], df_s['area'])
+        df_o = pd.concat([df_o_2004, df_o_2005])
+        df_o = df_o[(df_o['density']<=max(df_s['density'])) & 
+                    (df_o['density']>0)]
+        df_o.sort('density')
+        df_i = df_o.copy()
+        df_i.loc[:,'area'] = [s(d) for d in df_i['density']]
+        rmse = np.sqrt((df_i['area'].astype(float) - df_o['area'].astype(float)) ** 2).mean()
+
+        ax.set_ylim([0, 0.03])
+        ax.set_xlabel('Lesion density', fontsize = 16)
+        ax.set_xlim([0, max(densities)])
+        if i%4 == 0:
+            ax.set_ylabel('Lesion size (in cm2)', fontsize = 16)
+        ax.annotate(next(letters), xy=(0.9, 0.9), 
+                    xycoords='axes fraction', fontsize=24)
+        ax.annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
+                    xycoords='axes fraction', fontsize=14)
+
+def plot_first_date_necrosis(threshold = 0.03):
+    from lmfit import Model
+    
+    def convert_in_ddays(x):
+        dates_days = np.array([4, 9, 11, 16, 21, 28, 36, 43])
+        dates_dd = np.array([45, 125, 164, 249, 336, 471, 619, 748])
+        dates = {k:v for k,v in zip(dates_days, dates_dd)}
+        if x in dates:
+            return dates[x]
+        elif not np.isnan(x):
+            f = interp1d(dates_days, dates_dd)
+            return f(x)[0]
+        else:
+            return x
+            
+    def randomize_first_date(x):
+        dates_days = np.array([4, 9, 11, 16, 21, 28, 36, 43])
+        dates_dd = np.array([45, 125, 164, 249, 336, 471, 619, 748])
+        dates = {k:v for k,v in zip(dates_days, dates_dd)}
+        if x in dates:
+            if x == 4:
+                return np.random.uniform(0,45)
+            else:
+                indx = dates_days.tolist().index(x)
+                return np.random.uniform(dates_dd[indx-1],dates_dd[indx])
+        else:
+            return x
+
+    def fit_func(x, a, b, c):
+        return a*np.exp(-b*x)+c
+    
+    filename = 'calibration_lesion_rust_2005_data.csv'
+    df_obs = pd.read_csv(filename, sep = ';')
+    df_obs = df_obs[df_obs['complex']==0]
+    samples = np.unique(df_obs['sample'])
+    df = pd.DataFrame([[np.nan, np.nan] for spl in samples],
+                      index = samples, columns = ['density', 'date_nec'])
+                      
+    for spl in np.unique(df_obs['sample']):
+        df_spl = df_obs[df_obs['sample']==spl]
+        df_nec = df_spl[df_spl['sev_nec']>threshold].reset_index()
+        df.loc[spl, 'density'] = df_obs['density'][(df_obs['date']==4)
+                                    & (df_obs['sample']==spl)].values[0]
+                                                   
+        if len(df_nec)>0:
+            df.loc[spl,'date_nec'] = df_nec.loc[0, 'date']
+
+    df2 = df.copy()
+    
+    df['date_nec'] = df['date_nec'].apply(convert_in_ddays)    
+    pos = np.unique(df['date_nec'])
+    pos = pos[~np.isnan(pos)]
+    pos.sort()
+    fig, ax = plt.subplots()
+    df.boxplot(column = 'density', by='date_nec', positions = pos, vert=False, ax = ax, widths = 30)
+    ax.plot(df['density'], df['date_nec'], 'ko', alpha = 0.5)
+    ax.set_ylim([200, 800])
+
+    df = df[~np.isnan(df['date_nec'])]    
+    x = np.arange(100)
+    mod = Model(fit_func)
+    mod.set_param_hint('a', min=300., max=400.)
+#    mod.set_param_hint('b', min=0.04, max=0.06)
+    mod.set_param_hint('c', min=200., max=250.)
+    result = mod.fit(df['date_nec'].values, x=df['density'].values, a=400., b=0.05, c=249.)
+    ax.plot(x, fit_func(x,**result.best_values), 'k')
+    
+    print result.best_values
+
+    df2['date_nec'] = df2['date_nec'].apply(randomize_first_date)
+    ax.plot(df2['density'], df2['date_nec'], 'ro', alpha = 0.5)
+    result2 = mod.fit(df2['date_nec'].values, x=df2['density'].values, a=400., b=0.05, c=249.)
+    ax.plot(x, fit_func(x,**result2.best_values), 'r')
+
+def plot_necrosis_dynamics(fit='logistic'):
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib.collections import LineCollection
+    from lmfit import Model
+    from scipy.optimize import curve_fit
+    
+    def convert_in_ddays(x):
+        dates_days = np.array([4, 9, 11, 16, 21, 28, 36, 43])
+        dates_dd = np.array([45, 125, 164, 249, 336, 471, 619, 748])
+        dates = {k:v for k,v in zip(dates_days, dates_dd)}
+        if x in dates:
+            return dates[x]
+        elif not np.isnan(x):
+            f = interpolate.interp1d(dates_days, dates_dd)
+            return f(x)[0]
+        else:
+            return x    
+    
+    def logistic(x, a, b, c, d):
+        date = np.array(x['date'].values)
+        dens = x['density'].values
+        x0 = -a*dens + b
+        k = c*dens + d
+        return 1./(1+np.exp(-k*(date-x0)))
+        
+    def gompertz(x, a, b, c, d):
+        date = np.array(x['date'].values)
+        dens = x['density'].values
+        A = a*dens + b
+        B = c*dens + d
+#        return np.exp(-B * np.exp(-A*date))
+        return np.exp(-B * np.exp(-A*date))
+
+    filename = 'calibration_lesion_rust_2005_data.csv'
+    df_obs = pd.read_csv(filename, sep = ';')
+    df_obs = df_obs[df_obs['complex']==0]
+    df_obs['date'] = df_obs['date'].apply(convert_in_ddays)
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    dates = np.unique(df_obs['date'])
+    verts = []
+    zs = []
+    for density in np.unique(df_obs['density']):
+        df_d = df_obs[df_obs['density']==density]
+        sevs = df_d['sev_nec'].values
+        ind_nan = np.where(np.isnan(sevs))[0]
+        if len(ind_nan)<=9:
+            if any(np.isnan(sevs)):
+                ind_0 = np.where(sevs==0)[0]
+                
+                if len(ind_0)>0:
+                    ind_0 = ind_0[0]
+                    sevs[ind_nan[ind_nan<ind_0]] = 0.
+                ind_nan = np.where(np.isnan(sevs))[0]
+                if len(ind_nan)>0:
+                    ind_not_nan = np.where(~np.isnan(sevs))[0]
+                    f = interpolate.interp1d(dates[ind_not_nan], sevs[ind_not_nan])
+                    for i in ind_nan:
+                        if i<ind_not_nan[-1]:
+                            sevs[i] = f(dates[i])
+    
+            verts.append(list(zip(dates, sevs)))
+            zs.append(density)
+        
+    cm = plt.get_cmap('spectral')
+    poly = LineCollection(verts, linestyle = '-',
+                            colors = [cm(1.*i/len(verts)) for i in range(len(verts))])
+#    poly.set_alpha(0.7)
+#    poly.set_cmap('jet')
+    ax.add_collection3d(poly, zs=zs, zdir='y')
+    ax.set_xlabel('Date')
+    ax.set_xlim3d(0, 800)
+    ax.set_ylabel('Density')
+    ax.set_ylim3d(0, 110)
+    ax.set_zlabel('Severity in necrosis')
+    ax.set_zlim3d(0, 1)
+
+    if fit == 'logistic':
+        mod = Model(logistic)
+    elif fit == 'gompertz':
+        mod = Model(gompertz)
+    df_obs = df_obs[~np.isnan(df_obs['sev_nec'])]
+
+    if fit == 'logistic':
+        mod.set_param_hint('a', min=1., max=3.)
+        mod.set_param_hint('b', min=700., max=800.)
+        mod.set_param_hint('c', min=3e-5, max=1e-4)
+        mod.set_param_hint('d', min=0.008, max=0.013)
+        result = mod.fit(df_obs['sev_nec'], x=df_obs[['date','density']], a=7., b=800., c=1e-4, d=0.013)   
+    elif fit == 'gompertz':
+        result = mod.fit(df_obs['sev_nec'], x=df_obs[['date','density']], a=0.01, b=0.01, c=5, d=500)
+    print result.best_values
+    
+    x = np.arange(0, 800, 50)
+    y = np.arange(0, 102, 10)
+    df = pd.DataFrame(index = y, columns = x)
+    for density in y:
+        df_ = pd.DataFrame(df.columns, columns = ['date'])
+        df_['density'] = density
+#        df.loc[density, :] = fit_func(df_, **popt)
+        if fit == 'logistic':
+            df.loc[density, :] = logistic(df_, **result.best_values)
+        elif fit == 'gompertz':
+            df.loc[density, :] = gompertz(df_, **result.best_values)
+    X, Y = np.meshgrid(df.columns, df.index)
+    ax.plot_surface(X,Y, df.values, rstride=1, cstride=1, color='b', alpha=0.2)
+
+def sim_necrosis_dynamics(**kwds):
+    def _parse(date, hour):
+        return datetime(int(date[6:10]),int(date[3:5]),int(date[0:2]),int(hour))
+
+    def adapt_date_2005(i_date):
+        return np.array([4, 9, 11, 16, 21, 28, 36])[i_date-1]
+                
+    weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
+                       parse_dates={'datetime':['date', 'hour']},
+                       date_parser=_parse)
+    weather['day'] = map(lambda x : x.dayofyear -  weather['datetime'][0].dayofyear, weather['datetime'])
+    weather.set_index('datetime', inplace = True)
+    
+    brown_rust = BrownRustFungus()
+    growth_controler = GeometricCircleCompetition()
+
+    dates = np.arange(100, 801, 100)
+    densities = np.arange(1, 112, 10)
+    df = pd.DataFrame(index = densities, columns = densities)
+    for d in densities:
+        g, leaf = get_g_and_one_leaf()
+        leaf.area = 10.
+        leaf.green_area = 10.
+        les = brown_rust.lesion(mutable = False, group_dus = True, **kwds)
+        les.set_position([[1] for i in range(int(d*leaf.area))])
+        leaf.lesions = [les]
+        i_dates = 0
+        ddays = 0
+        for date in weather.index:
+            leaf.temperature_sequence = [weather.loc[date, 'temperature']]
+            les.update(leaf = leaf)
+            growth_controler.control(g)
+            if leaf.lesions[0].status > 0:
+                ddays += weather.loc[date, 'temperature']/24.
+                if i_dates<len(dates) and ddays >= dates[i_dates]:
+                    sev_nec = les.surface_empty / leaf.area
+                    df.loc[d, dates[i_dates]] = sev_nec
+                    i_dates += 1
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    X, Y = np.meshgrid(df.columns, df.index)
+    ax.plot_surface(X,Y, df.values, rstride=1, cstride=1, color='b', alpha=0.5)
+
+def example_ratio_chlo_spo():
+    from scipy.stats import linregress, t
+        
+    def conf_int(lst, perc_conf=95):
+        mu = np.mean(lst)
+        v =  1.0/(len(lst)-1) * sum([(i-mu)**2 for i in lst])
+        n = len(lst)
+        c = t.interval(perc_conf * 1.0 / 100, n-1)[1]
+        return np.sqrt(v/n) * c    
+    
+    def convert_in_ddays(x):
+        dates_days = np.array([4, 9, 11, 16, 21, 28, 36, 43])
+        dates_dd = np.array([45, 125, 164, 249, 336, 471, 619, 748])
+        dates = {k:v for k,v in zip(dates_days, dates_dd)}
+        if x in dates:
+            return dates[x]
+        elif not np.isnan(x):
+            f = interpolate.interp1d(dates_days, dates_dd)
+            return f(x)[0]
+        else:
+            return x    
+    filename = 'calibration_lesion_rust_2005_data.csv'
+    df_obs = pd.read_csv(filename, sep = ';')
+    df_obs = df_obs[df_obs['complex']==0]
+    df_obs['date'] = df_obs['date'].apply(convert_in_ddays)
+    df_obs = df_obs[(~np.isnan(df_obs['sev_chlo'])) & 
+                    (~np.isnan(df_obs['sev_spo'])) &
+                    (df_obs['sev_chlo']>0)]
+    df_obs['ratio'] = df_obs['sev_spo']/df_obs['sev_chlo']
+    df_obs['diff'] = df_obs['sev_spo'] - df_obs['sev_chlo']
+    df_obs = df_obs[df_obs['diff']>-0.5]
+    df_obs = df_obs[df_obs['ratio']<50]
+    df_obs = df_obs[df_obs['date']!=125]
+    fig, ax = plt.subplots()    
+    ax.plot(df_obs['date'], df_obs['ratio'], 'ko', alpha = 0.3)
+    slope, intercept, r_value, p_value, std_err = linregress(df_obs['date'], df_obs['ratio'])
+    
+    x = np.arange(800)    
+    f = np.poly1d((slope, intercept))
+    y = f(x)
+#    ax.plot(x,y)
+    
+    df_mean = df_obs.groupby('date').mean()
+    df_conf = df_obs.groupby('date').agg(conf_int)
+    ax.errorbar(df_mean.index, df_mean['ratio'], yerr=df_conf['ratio'], 
+                linestyle = '', marker='o', color = 'r', markersize=5, elinewidth=10)
+    ax.set_ylabel('Ratio of severity\n sporulation vs. chlorosis')
+    ax.set_xlabel('Thermal time')
+    
+    fig, ax = plt.subplots()    
+    ax.plot(df_obs['date'], df_obs['diff'], 'ko', alpha = 0.3)
+    ax.errorbar(df_mean.index, df_mean['diff'], yerr=df_conf['diff'], 
+                linestyle = '', marker='o', color = 'r', markersize=5, elinewidth=10)
+    ax.set_ylabel('Differences in severity\n sporulation vs. chlorosis')    
+    ax.set_xlabel('Thermal time')
+    
+    return {'p_value':p_value}
+
+           
 def example_production_spo(**kwds):
-    weather = read_weather_year(2012)
-    df = weather.data
-    df = df.reset_index()
-    df = df[df['degree_days']>0]
-    leaf = get_one_leaf()
+    leaf = get_one_leaf()    
     brown_rust = BrownRustFungus()
     lesion = brown_rust.lesion(mutable = False, group_dus = False, **kwds)
-    stock = []
+    leaf.lesions = [lesion]
     daily_prod = []
     tt = []
-    cum_tt = 0.
-    count = 0.
-    nb_spores = 0.
-    for i, row in df.iterrows():
-        if count < 5000:
-            count += 1
-            leaf.temperature_sequence = [20.]
-#            leaf.temperature_sequence = [row['temperature_air']]
-            lesion.update(leaf = leaf)
-            lesion.control_growth(growth_offer = lesion.growth_demand)
-            new_nb_spores = lesion.stock_spores - nb_spores
-            stock.append(lesion.stock_spores)
-#            daily_prod.append(new_nb_spores / lesion.surface_spo if lesion.surface_spo >0. else 0.)
-            daily_prod.append(new_nb_spores)
-            nb_spores = lesion.stock_spores
-
-            cum_tt += lesion.delta_thermal_time_growth(leaf_temperature = [row['temperature_air']])
-            tt.append(cum_tt)
-
-    # daily_prod = np.concatenate([[0.], np.diff(stock)])
-    # daily_prod = np.diff(stock)
+    for i in range(1000):
+        leaf.temperature_sequence = [24.]
+        lesion.update(leaf = leaf)
+        lesion.control_growth(growth_offer = lesion.growth_demand)
+        daily_prod.append(lesion.stock_spores)
+        lesion.stock_spores = 0.
+        tt.append(lesion.age_tt)
 
     fig, ax = plt.subplots()
     ax.plot(tt, daily_prod)
-#    ax.plot(tt, stock)
     ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
     ax.set_ylabel("Daily spore production", fontsize = 18)
 
@@ -674,7 +1028,7 @@ def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
                       variety = 'Mercia', nplants = 200, 
                       density_factor = 1, vmax = 25,
                       k_dispersal = 0.16):
-    reconst = EchapReconstructions()
+    reconst = echap_reconstructions()
     stand_density_factor = {'Mercia':1., 'Rht3':1, 'Tremie12':0.8, 'Tremie13':0.8}
     stand_density_factor[variety] = density_factor
     adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = 7,
@@ -691,7 +1045,7 @@ def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
 def example_inoculation(age_canopy = 1400., density_inoculum = 2000.,
                         variety = 'Mercia', nplants = 200, 
                         density_factor = 1, vmax = None):    
-    reconst = EchapReconstructions()
+    reconst = echap_reconstructions()
     stand_density_factor = {'Mercia':1., 'Rht3':1, 'Tremie12':0.8, 'Tremie13':0.8}
     stand_density_factor[variety] = density_factor
     adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = 7,
@@ -742,7 +1096,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00",
     weather = get_weather(start_date=sowing_date, end_date=end_date)
     
     # Set canopy
-    reconst = EchapReconstructions()
+    reconst = echap_reconstructions()
     adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
     g = adel.setup_canopy(age=age_canopy)
     

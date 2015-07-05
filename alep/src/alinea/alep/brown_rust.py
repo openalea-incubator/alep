@@ -51,7 +51,8 @@ class BrownRustDU(DispersalUnit):
 
             # Response to wetness
             wet_duration = len([w for w in wets if w == True])
-            wet_factor = 1 - np.exp(-(f.A_wet_infection*(wet_duration - f.wetness_min))**f.B_wet_infection)
+            wet_factor = np.exp(-f.B_wet_infection * np.exp(-f.k_wet_infection*x))
+#            wet_factor = 1 - np.exp(-(f.A_wet_infection*(wet_duration - f.wetness_min))**f.B_wet_infection)
             dry_duration = len(wets) - wet_duration
             loss_rate = min(1., dry_duration / f.loss_delay if f.loss_delay > 0. else 0.)
 
@@ -118,9 +119,6 @@ class BrownRustLesion(Lesion):
         self.age_tt = 0.
         # Age in sporulation
         self.age_sporulation = 0.
-        # latency
-        y = self.logistic(self.fungus.x0, np.arange(1000))
-        self.latency = np.argmax(y>self.fungus.start_spo*max(y))
         # Surfaces in each stage
         self.surface_chlo = 0.
         self.surface_spo = 0.
@@ -152,7 +150,8 @@ class BrownRustLesion(Lesion):
             
             # Calulate production of spores and necrosis
             if self.is_sporulating:
-                self.update_sporulation()
+#                self.update_sporulation()
+                self.update_sporulation(leaf)
 
 
     def get_effective_temp(self, T = 0.):
@@ -186,7 +185,7 @@ class BrownRustLesion(Lesion):
         self.dtt = self.delta_thermal_time_growth(leaf_temperature = leaf_temperature)
         self.age_tt += self.dtt
         
-        if (self.is_chlorotic and self.age_tt >= self.latency):
+        if (self.is_chlorotic and self.age_tt >= self.fungus.latency):
             self.status += 1
             
     def logistic(self, x0, x):
@@ -201,42 +200,79 @@ class BrownRustLesion(Lesion):
         self.growth_demand = self.nb_lesions * (self.logistic(f.x0, x2) - \
                         self.logistic(f.x0, x1))
         
-    def update_sporulation(self):
+    def update_sporulation(self, leaf):
         f = self.fungus
         self.age_sporulation += self.dtt
-        if self.age_sporulation <= f.delay_high_spo:
-            self.stock_spores += self.surface_spo * f.production_max_by_tt * \
-                                 self.dtt * f.conversion_mg_to_nb_spo
-        elif self.age_sporulation < f.delay_total_spo:
-            self.stock_spores += self.surface_spo * f.production_max_by_tt * \
-                                 self.dtt * f.conversion_mg_to_nb_spo
-#            self.stock_spores += max(0, self.surface_spo * f.production_max_by_tt * \
-#                                self.dtt * f.conversion_mg_to_nb_spo) * \
-#                                (f.delay_total_spo - self.age_sporulation) / \
-#                                (f.delay_total_spo - f.delay_high_spo)
-#                                
-            # Update_necrosis
-            self.update_necrosis()
-        else:
-            self.status += 1
-            self.surface_empty += self.surface_chlo + \
-                                 self.surface_spo + \
-                                 self.surface_sink
-            self.surface_chlo = 0.
-            self.surface_spo = 0.
-            self.surface_sink = 0.
-            self.disable()
+
+        lesion_density = sum([l.nb_lesions for l in leaf.lesions])/leaf.area
+#        self.delay_high_spo = f.delay_high_spo * (1 - 1./(1. + np.exp( -0.03 * (lesion_density - 100))))
+#        self.delay_high_spo = 400.*np.exp(-0.05*lesion_density) + 420.
         
-    def update_necrosis(self):
+        self.update_necrosis(lesion_density)
+        self.stock_spores += self.surface_spo * f.production_max_by_tt * \
+                                 self.dtt * f.conversion_mg_to_nb_spo
+#        if self.age_tt < f.delay_total_spo:
+#            self.stock_spores += self.surface_spo * f.production_max_by_tt * \
+#                                 self.dtt * f.conversion_mg_to_nb_spo
+#            
+##            if self.age_tt > self.delay_high_spo:
+##            if self.age_tt > f.delay_high_spo:
+#                # Update_necrosis
+##                self.update_necrosis(lesion_density)
+#            
+#        else:
+#            self.status += 1
+#            self.surface_empty += self.surface_chlo + \
+#                                 self.surface_spo + \
+#                                 self.surface_sink
+#            self.surface_chlo = 0.
+#            self.surface_spo = 0.
+#            self.surface_sink = 0.
+#            self.disable()
+        
+    def update_necrosis(self, lesion_density = 0.):
+        def logistic_necro(date, dens):
+            a = 3.0
+            b = 800.
+            c = 3e-05
+            d = 0.0081
+
+            x0 = -a*dens + b
+            k = c*dens + d
+            return 1./(1+np.exp(-k*(date-x0)))
+            
+        def gompertz_necro(date, dens):
+            a = 3.08e-5
+            b = 0.00305171209440162
+            c = 0.0089309782201911596
+            d = 10.448840245012178
+            A = a*dens + b
+            B = c*dens + d
+            return np.exp(-B * np.exp(-A*date)) 
+        
         if self.surface_sink > 0.:
             f = self.fungus
-            if f.delay_total_spo - self.age_sporulation > 0.:
-                ratio_empty = self.dtt / (f.delay_total_spo - self.age_sporulation)
-            else:
-                ratio_empty = 0.
-            empty_sink = min(self.surface_sink, self.surface_sink * ratio_empty)
-            empty_chlo = min(self.surface_chlo, self.surface_chlo * ratio_empty)
-            empty_spo = min(self.surface_spo, self.surface_spo * ratio_empty)
+            a_spo = self.age_sporulation
+            dens = lesion_density
+#            ratio_empty = logistic_necro(a_spo, dens)-logistic_necro(a_spo-self.dtt, dens)
+            ratio_empty = gompertz_necro(a_spo, dens)-gompertz_necro(a_spo-self.dtt, dens)
+#            acceleration_nec = f.delay_high_spo - self.delay_high_spo
+#            
+#            if f.delay_total_spo - acceleration_nec - self.age_tt > 0.:
+#                
+#                ratio_empty = self.dtt / (f.delay_total_spo - acceleration_nec - self.age_tt)
+#            else:
+#                ratio_empty = 0.
+                
+#            empty_sink = min(self.surface_sink, self.surface_sink * ratio_empty)
+#            empty_chlo = min(self.surface_chlo, self.surface_chlo * ratio_empty)
+#            empty_spo = min(self.surface_spo, self.surface_spo * ratio_empty)
+#                
+            smax_by_les = min(self._surface_max, self.nb_lesions * 1./lesion_density)
+            empty_sink = min(self.surface_sink, smax_by_les * f.ratio_sink * ratio_empty)
+            empty_chlo =  min(self.surface_chlo, smax_by_les * f.ratio_chlo * ratio_empty)
+            empty_spo =  min(self.surface_spo, smax_by_les * f.ratio_spo * ratio_empty)
+
             self.surface_sink -= empty_sink
             self.surface_chlo -= empty_chlo
             self.surface_spo -= empty_spo
@@ -250,6 +286,11 @@ class BrownRustLesion(Lesion):
                 return
 
             # Assign growth offer
+            try:
+                self._surface_max_compet -= (self.growth_demand-growth_offer)
+            except:
+                self._surface_max_compet = self._surface_max - (self.growth_demand-growth_offer)
+                
             f = self.fungus
             self.surface_sink += (1 - f.ratio_chlo - f.ratio_spo) * growth_offer
             self.surface_chlo += f.ratio_chlo * growth_offer
@@ -375,25 +416,25 @@ brown_rust_parameters = dict(CHLOROTIC = 0,
                              temp_max_inf = 30.,
                              temp_min_inf = 2.,
                              wetness_min = 0.,
-                             A_wet_infection = 0.11,
-                             B_wet_infection = 3.152,
-                             infection_delay = 8.,
+                             k_wet_infection = 0.47,
+                             B_wet_infection = 30.,
+                             infection_delay = 3.,
                              loss_delay = 48.,
                              Smax = 0.09,
-                             k = 0.013,
-                             x0 = 370.,
+                             k = 0.015,
+                             x0 = 350.,
                              temp_opt_chlo = 27.,
                              temp_max_chlo = 40.,
                              temp_min_chlo = 0.,
+                             ratio_sink = 0.33, 
                              ratio_chlo = 0.4,
-                             ratio_spo = 0.25,
-                             delay_to_spo = 50.,
-                             start_spo = 0.05,
+                             ratio_spo = 0.27,
+                             latency = 170.,
                              sporulating_capacity = 0.7,
                              production_max_by_tt = 0.05,
                              conversion_mg_to_nb_spo = 7e4,
-                             delay_high_spo = 550.,
-                             delay_total_spo = 800.)
+                             delay_high_spo = 720.,
+                             delay_total_spo = 1050.)
 
 # Brown rust fungus ################################################################################
 class BrownRustFungus(Fungus):
@@ -412,7 +453,7 @@ def is_iterable(obj):
     """ Test if object is iterable """
     return isinstance(obj, collections.Iterable)
 
-def get_proba_inf(T):
+def get_proba_inf_T(T):
     # Pivonia and Yang
     temp_opt = 15.
     temp_max = 30.
@@ -421,6 +462,54 @@ def get_proba_inf(T):
     beta = (temp_max - temp_opt)/(temp_opt - temp_min)
     alpha = 1/((temp_opt - temp_min)*(temp_max - temp_opt)**beta)
     return max(0, alpha*(T-temp_min)*(temp_max - T)**beta)
+
+def plot_proba_inf_T():
+    import matplotlib.pyplot as plt
+    temp = range(36)
+    fig, ax = plt.subplots()
+    ax.plot(temp, [get_proba_inf_T(T) for T in temp])
+    ax.set_ylabel("Probability of infection", fontsize = 16)
+    ax.set_xlabel("Temperature (degrees Celsius)", fontsize = 16)
+
+def weibull(x, A = 0.11, B = 3.152, x_min = 0.):
+    return 1 - np.exp(-(A*x - x_min)**B)
+    
+def gompertz(x, k = 0.47, B = 30.):
+    return np.exp(-B * np.exp(-k*x))
+    
+def get_proba_inf_WD(WD, A = 0.11, B = 3.152):
+    # Caubel
+    wetness_min = 8
+    if WD >= wetness_min:
+        return weibull(WD, A = A, B = B, x_min = 0.)
+    else:
+        return 0.
+
+def compare_proba_inf_WD_weibull(A = 0.11, B = 3.152):
+    import matplotlib.pyplot as plt
+    wetness = np.arange(0,30,0.1)
+    y1 = [get_proba_inf_WD(WD) for WD in wetness]
+    y2 = [weibull(WD, A = A, B = B, x_min = 0.) for WD in wetness]
+    fig, ax = plt.subplots()
+    ax.plot(wetness, y1, 'b')
+    ax.plot(wetness, y2, 'r')
+    
+def compare_proba_inf_WD_gomp(k = 0.47, B = 30.):
+    import matplotlib.pyplot as plt
+    wetness = np.arange(0,30,0.1)
+    y1 = [get_proba_inf_WD(WD) for WD in wetness]
+    y2 = [gompertz(WD, k=k, B=B) for WD in wetness]
+    fig, ax = plt.subplots()
+    ax.plot(wetness, y1, 'b')
+    ax.plot(wetness, y2, 'r')
+
+def plot_proba_inf_WD():
+    import matplotlib.pyplot as plt
+    wetness = np.arange(0,30,0.1)
+    fig, ax = plt.subplots()
+    ax.plot(wetness, [gompertz(WD) for WD in wetness])
+    ax.set_ylabel("Probability of infection", fontsize = 16)
+    ax.set_xlabel("Wetness duration (hours)", fontsize = 16)
 
 def get_progress(T):
     delay_to_chlo = 144.
@@ -443,13 +532,14 @@ def plot_effective_T():
     temp = range(41)
     fig, ax = plt.subplots()
     ax.plot(temp, [get_effective_T(T) for T in temp])
-    ax.set_ylabel("Teff (degrees Celsius)", fontsize = 18)
-    ax.set_xlabel("Tt (degrees Celsius)", fontsize = 18)
+    ax.set_ylabel("Teff (degrees Celsius)", fontsize = 16)
+    ax.set_xlabel("Temperature (degrees Celsius)", fontsize = 16)
 
 def plot_progress():
     import matplotlib.pyplot as plt
     temp = range(40)
-    plt.plot(temp, [get_progress(T) for T in temp])
+    fig, ax = plt.subplots()
+    ax.plot(temp, [get_progress(T) for T in temp])
 
 def logistic_growth(x, x0 = 254.):
     # Inspire de Audsley
