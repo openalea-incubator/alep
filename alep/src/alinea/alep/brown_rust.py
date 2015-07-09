@@ -51,7 +51,7 @@ class BrownRustDU(DispersalUnit):
 
             # Response to wetness
             wet_duration = len([w for w in wets if w == True])
-            wet_factor = np.exp(-f.B_wet_infection * np.exp(-f.k_wet_infection*x))
+            wet_factor = np.exp(-f.B_wet_infection * np.exp(-f.k_wet_infection*wet_duration))
 #            wet_factor = 1 - np.exp(-(f.A_wet_infection*(wet_duration - f.wetness_min))**f.B_wet_infection)
             dry_duration = len(wets) - wet_duration
             loss_rate = min(1., dry_duration / f.loss_delay if f.loss_delay > 0. else 0.)
@@ -204,11 +204,12 @@ class BrownRustLesion(Lesion):
         f = self.fungus
         self.age_sporulation += self.dtt
 
-        lesion_density = sum([l.nb_lesions for l in leaf.lesions])/leaf.area
+#        lesion_density = sum([l.nb_lesions for l in leaf.lesions])/leaf.area
+        
 #        self.delay_high_spo = f.delay_high_spo * (1 - 1./(1. + np.exp( -0.03 * (lesion_density - 100))))
 #        self.delay_high_spo = 400.*np.exp(-0.05*lesion_density) + 420.
         
-        self.update_necrosis(lesion_density)
+        self.update_necrosis(leaf)
         self.stock_spores += self.surface_spo * f.production_max_by_tt * \
                                  self.dtt * f.conversion_mg_to_nb_spo
 #        if self.age_tt < f.delay_total_spo:
@@ -230,7 +231,7 @@ class BrownRustLesion(Lesion):
 #            self.surface_sink = 0.
 #            self.disable()
         
-    def update_necrosis(self, lesion_density = 0.):
+    def update_necrosis(self, leaf=None):
         def logistic_necro(date, dens):
             a = 3.0
             b = 800.
@@ -253,30 +254,47 @@ class BrownRustLesion(Lesion):
         if self.surface_sink > 0.:
             f = self.fungus
             a_spo = self.age_sporulation
-            dens = lesion_density
+            dens = sum([l.nb_lesions for l in leaf.lesions])/leaf.area if leaf.area > 0 else 0.
+# --------------------------------
 #            ratio_empty = logistic_necro(a_spo, dens)-logistic_necro(a_spo-self.dtt, dens)
-            ratio_empty = gompertz_necro(a_spo, dens)-gompertz_necro(a_spo-self.dtt, dens)
+# --------------------------------
+            
+# --------------------------------
 #            acceleration_nec = f.delay_high_spo - self.delay_high_spo
-#            
+            
 #            if f.delay_total_spo - acceleration_nec - self.age_tt > 0.:
 #                
 #                ratio_empty = self.dtt / (f.delay_total_spo - acceleration_nec - self.age_tt)
 #            else:
 #                ratio_empty = 0.
-                
+#                
+#            if f.delay_total_spo - a_spo > 0.:
+#                
+#                ratio_empty = self.dtt / (f.delay_total_spo - a_spo)
+#            else:
+#                ratio_empty = 0.    
+#                
 #            empty_sink = min(self.surface_sink, self.surface_sink * ratio_empty)
 #            empty_chlo = min(self.surface_chlo, self.surface_chlo * ratio_empty)
 #            empty_spo = min(self.surface_spo, self.surface_spo * ratio_empty)
-#                
-            smax_by_les = min(self._surface_max, self.nb_lesions * 1./lesion_density)
-            empty_sink = min(self.surface_sink, smax_by_les * f.ratio_sink * ratio_empty)
-            empty_chlo =  min(self.surface_chlo, smax_by_les * f.ratio_chlo * ratio_empty)
-            empty_spo =  min(self.surface_spo, smax_by_les * f.ratio_spo * ratio_empty)
+# --------------------------------                
+
+            ratio_empty = gompertz_necro(a_spo, dens)-gompertz_necro(a_spo-self.dtt, dens)
+                      
+#            smax = leaf.smax_by_lesion * self.nb_lesions
+            smax = self.nb_lesions*(1-np.exp(-dens*0.09))/dens
+#            if a_spo > 450. and dens > 12:
+#                import pdb
+#                pdb.set_trace()
+            empty_sink = min(self.surface_sink, smax * f.ratio_sink * ratio_empty)
+            empty_chlo =  min(self.surface_chlo, smax * f.ratio_chlo * ratio_empty)
+            empty_spo =  min(self.surface_spo, smax * f.ratio_spo * ratio_empty)
 
             self.surface_sink -= empty_sink
             self.surface_chlo -= empty_chlo
             self.surface_spo -= empty_spo
             self.surface_empty += empty_sink + empty_chlo + empty_spo
+
 
     def control_growth(self, growth_offer = 0.):
         """ Limit lesion growth to the surface available on the leaf ('growth_offer')"""
@@ -286,11 +304,6 @@ class BrownRustLesion(Lesion):
                 return
 
             # Assign growth offer
-            try:
-                self._surface_max_compet -= (self.growth_demand-growth_offer)
-            except:
-                self._surface_max_compet = self._surface_max - (self.growth_demand-growth_offer)
-                
             f = self.fungus
             self.surface_sink += (1 - f.ratio_chlo - f.ratio_spo) * growth_offer
             self.surface_chlo += f.ratio_chlo * growth_offer
@@ -432,7 +445,7 @@ brown_rust_parameters = dict(CHLOROTIC = 0,
                              latency = 170.,
                              sporulating_capacity = 0.7,
                              production_max_by_tt = 0.05,
-                             conversion_mg_to_nb_spo = 7e4,
+                             conversion_mg_to_nb_spo = 2e5,
                              delay_high_spo = 720.,
                              delay_total_spo = 1050.)
 

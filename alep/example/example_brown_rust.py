@@ -12,7 +12,10 @@ from alinea.alep.inoculation import AirborneContamination
 from alinea.alep.protocol import infect, update
 from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.dispersal_transport import BrownRustDispersal
-from alinea.echap.architectural_reconstructions import echap_reconstructions
+#from alinea.echap.architectural_reconstructions import EchapReconstructions
+from alinea.echap.architectural_reconstructions import (EchapReconstructions,
+                                                        echap_reconstructions,
+                                                        reconstruction_parameters)
 from alinea.adel.data_samples import adel_two_metamers_stand
 from alinea.alep.architecture import get_leaves
 from alinea.alep.architecture import set_properties
@@ -47,6 +50,9 @@ def get_one_leaf():
     g = get_small_g()
     leaves = get_leaves(g)
     return g.node(leaves[0])
+
+#def echap_reconstructions():
+#    return EchapReconstructions()
 
 def example_surface(nb_steps = 4500, nb_lesions = 1, with_compet = False, **kwds):
     weather = read_weather_year(2012)
@@ -171,199 +177,6 @@ def example_density_robert_2002(**kwds):
     ax.set_xlabel("Density (nb lesions/cm2)", fontsize = 18)
     ax.set_ylabel("Mean surface of 1 lesion (cm2)", fontsize = 18)
 
-def example_density_robert_2004(**kwds):
-    brown_rust = BrownRustFungus()
-#    growth_controler = NoPriorityGrowthControl()
-    growth_controler = GeometricCircleCompetition()
-
-    def example_single_density(d = 40):
-        g, leaf = get_g_and_one_leaf()
-        leaf.area = 10.
-        leaf.green_area = 10.
-#        df_temp = pd.DataFrame([24.], 
-#                                columns = ['temp'])
-        df_temp = pd.DataFrame([18.], 
-                                columns = ['temp'])
-        leaf.temperature_sequence = df_temp['temp']
-        les = brown_rust.lesion(mutable = False, group_dus = True,**kwds)
-        les.set_position([[1] for i in range(int(d*leaf.area))])
-        leaf.lesions = [les]
-        for i in range(160+21*18):
-            les.update(leaf = leaf)
-            growth_controler.control(g)
-        surfs = les.surface / les.nb_lesions
-        surfs_spo = les.surface_spo / les.nb_lesions
-        return surfs, surfs_spo
-
-    filename = 'calibration_lesion_rust_2004.csv'
-    df_obs = pd.read_csv(filename, sep = ';')
-    df_sim = pd.DataFrame(columns = ['surf_mean', 'surf_spo_mean'])
-    # x = np.sort(np.concatenate([df_obs['density'], np.arange(1, 41, 2)]))
-    x = np.sort(np.concatenate([df_obs['density'], np.arange(1,1)]))
-    for d in x:
-        df_sim.loc[len(df_sim)+1] = example_single_density(d)
-    df_sim['density'] = x
-    df_sim['severity'] = df_sim['density'] * df_sim['surf_spo_mean']
-    df_obs['severity'] = df_obs['density'] * df_obs['surface']
-
-    rmse = np.sqrt(((df_sim[df_sim['density'].isin(df_obs['density'])]['surf_spo_mean'] -
-                        df_obs['surface']) ** 2).mean())
-
-    fig, ax = plt.subplots()
-    ax.plot(df_sim.density, df_sim.surf_spo_mean)
-    ax.plot(df_obs.density, df_obs.surface, 'ro')
-#    ax.annotate('Smax = %.2f' % Smax, xy=(0.05, 0.95),
-#                xycoords='axes fraction', fontsize=14)
-#    ax.annotate('Tau = %.2f' % sporulating_capacity,
-#                xy=(0.05, 0.85), xycoords='axes fraction', fontsize=14)
-    ax.annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.95), 
-                xycoords='axes fraction', fontsize=14)
-    ax.set_xlabel("Density (nb lesions/cm2)", fontsize = 18)
-    ax.set_ylabel("Mean surface of 1 lesion (cm2)", fontsize = 18)
-    
-    fig, ax = plt.subplots()
-    ax.plot(df_sim.density, df_sim.severity)
-    ax.plot(df_obs.density, df_obs.severity, 'ro')
-    ax.annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.95), 
-                xycoords='axes fraction', fontsize=14)
-    ax.set_xlabel("Density (nb lesions/cm2)", fontsize = 18)
-    ax.set_ylabel("Severity in sporulation", fontsize = 18)
-    ax.set_ylim([0., 1.])
-
-def example_density_robert_2004_complete(temperature = 14., **kwds):
-    def _parse(date, hour):
-        return datetime(int(date[6:10]),int(date[3:5]),int(date[0:2]),int(hour))
-    weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
-                       parse_dates={'datetime':['date', 'hour']},
-                       date_parser=_parse)
-    weather['day'] = map(lambda x : x.dayofyear -  weather['datetime'][0].dayofyear, weather['datetime'])
-    weather.set_index('datetime', inplace = True)
-    
-    brown_rust = BrownRustFungus()
-#    growth_controler = NoPriorityGrowthControl()
-    growth_controler = GeometricCircleCompetition()
-
-    filename = 'calibration_lesion_rust_2004_complete.csv'
-    df_obs = pd.read_csv(filename, sep = ';')
-    df_obs['severity'] = df_obs['density'] * df_obs['area']
-    dates_obs = np.unique(df_obs['date'])
-    dates = {}
-#    dates = {date:date*temperature for date in dates_obs}
-    columns = ['date', 'density', 'area', 'severity']
-    densities = np.arange(1, 50, 5)
-    df_sim = pd.DataFrame([[np.nan for col in columns] 
-                           for i in range(len(dates_obs)*len(densities))],
-                           columns = columns)
-    indx = 0
-    for d in densities:
-        g, leaf = get_g_and_one_leaf()
-        leaf.area = 10.
-        leaf.green_area = 10.
-        les = brown_rust.lesion(mutable = False, group_dus = True, **kwds)
-        les.set_position([[1] for i in range(int(d*leaf.area))])
-        leaf.lesions = [les]
-        i_dates = 0
-        day = 0
-        for date in weather.index:
-            leaf.temperature_sequence = [weather.loc[date, 'temperature']]
-            les.update(leaf = leaf)
-            growth_controler.control(g)
-            if leaf.lesions[0].status > 0:
-                if day == 0.:
-                    print date
-                    print les.age_tt
-                    day = weather.loc[date, 'day']
-                if (day > 0 and date.hour == 12 and i_dates < len(dates_obs) and
-                    weather.loc[date, 'day'] - day + 1 >= dates_obs[i_dates]):
-                    surf_spo = les.surface_spo / les.nb_lesions
-                    spo = {'date':dates_obs[i_dates], 'density':d, 
-                           'area':surf_spo, 'severity':d*surf_spo}
-                    df_sim.loc[indx, :] = pd.Series(spo)
-                    indx +=1
-                    if d == densities[0]:
-                        dates[dates_obs[i_dates]] = les.age_tt - les.fungus.latency
-                    i_dates += 1
-                    
-#            if i_dates < len(dates):
-#                date = dates_obs[i_dates]
-#                if leaf.lesions[0].age_sporulation >= dates[date]:
-#                    surf_spo = les.surface_spo / les.nb_lesions
-#                    spo = {'date':date, 'density':d, 'area':surf_spo}
-#                    df_sim.loc[indx, :] = pd.Series(spo)
-#                    indx +=1
-#                    i_dates += 1
-                    
-    fig, axs = plt.subplots(2, 4)
-    dates_iter = iter(dates_obs)
-    rmses = []
-    for i, ax in enumerate(axs.flat):
-        date = next(dates_iter)
-        df_o = df_obs[df_obs['date']==date]
-        df_s = df_sim[df_sim['date']==date]
-
-        # Plot
-        ax.plot(df_o['density'], df_o['area'], 'ro')
-        ax.plot(df_s['density'], df_s['area'], 'b')            
-        
-        # Get RMSE
-        df_o = df_o.sort('density')
-        df_s.loc[0, ['density', 'area']] = [0.,0.]
-        df_s = df_s.sort('density')
-        
-        s = interpolate.interp1d(df_s['density'], df_s['area'])
-        df_i = df_o.copy()
-        df_i.loc[:,'area'] = [s(d) for d in df_i['density']]
-        rmses.append(np.sqrt((df_i['area'].astype(float) - df_o['area'].astype(float)) ** 2).mean())
-        
-        if i<4:
-            ax.set_ylim([0, 0.016])
-        else:
-            ax.set_ylim([0, 0.03])
-            ax.set_xlabel('Lesion density', fontsize = 16)
-        ax.set_xlim([0, 45])
-        if i%4 == 0:
-            ax.set_ylabel('Lesion size (in cm2)', fontsize = 16)
-        ax.annotate('%d days\n%d Cd' %(date, dates[date]), xy=(0.7, 0.8), 
-                    xycoords='axes fraction', fontsize=14)
-    
-    rmse = np.mean(rmses)
-    axs[0][0].annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
-                xycoords='axes fraction', fontsize=14)
-
-    fig, axs = plt.subplots(2, 4)
-    dates_iter = iter(dates_obs)
-    rmses = []
-    for i, ax in enumerate(axs.flat):
-        date = next(dates_iter)
-        df_o = df_obs[df_obs['date']==date]
-        df_s = df_sim[df_sim['date']==date]
-
-        # Plot
-        ax.plot(df_o['density'], df_o['severity'], 'ro')
-        ax.plot(df_s['density'], df_s['severity'], 'b')            
-        
-        # Get RMSE
-        df_o = df_o.sort('density')
-        df_s.loc[0, ['density', 'severity']] = [0.,0.]
-        df_s = df_s.sort('density')
-        
-        s = interpolate.interp1d(df_s['density'], df_s['severity'])
-        df_i = df_o.copy()
-        df_i.loc[:,'severity'] = [s(d) for d in df_i['density']]
-        rmses.append(np.sqrt((df_i['severity'].astype(float) - df_o['severity'].astype(float)) ** 2).mean())
-        
-        if i>=4:
-            ax.set_xlabel('Lesion density', fontsize = 16)
-        ax.set_ylim([0, 1.])
-        ax.set_xlim([0, 45])
-        if i%4 == 0:
-            ax.set_ylabel('Severity in sporulation (%)', fontsize = 16)
-        ax.annotate('%d days\n%d Cd' %(date, dates[date]), xy=(0.7, 0.8), 
-                    xycoords='axes fraction', fontsize=14)
-    rmse = np.mean(rmses)
-    axs[0][0].annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
-                xycoords='axes fraction', fontsize=14)
-
 def example_density_robert_2005(**kwds):
     def _parse(date, hour):
         return datetime(int(date[6:10]),int(date[3:5]),int(date[0:2]),int(hour))
@@ -431,6 +244,10 @@ def example_density_robert_2005(**kwds):
 #    df_sim.loc[:, 'surface_visible'] = df_sim['chlo'] + df_sim['spo'] + \
 #                                        df_sim['nec']
     
+    filename = 'calibration_lesion_rust_2004_complete.csv'
+    df_obs_2004 = pd.read_csv(filename, sep = ';')
+    df_obs_2004['severity'] = df_obs_2004['density'] * df_obs_2004['area']    
+    
     fig, axs = plt.subplots(len(natures), len(dates_obs))
     states = iter(['sporulation', 'chlorosis', 'necrosis'])
     rmses = []
@@ -438,35 +255,63 @@ def example_density_robert_2005(**kwds):
         nature = natures[i]
         df_obs_nature = df_obs.loc[:, ['date', 'density', 'sev_'+nature]]
         df_obs_nature = df_obs_nature.rename(columns={'sev_'+nature:'severity'})
-        for j, ax in enumerate(axs_line):
-            date = dates_obs[j]
-            df_o = df_obs_nature[df_obs_nature['date']==date]
-            df_s = df_sim[(df_sim['nature']==nature) &
-                            (df_sim['date']==date)]
-
-            # Plot
-            ax.plot(df_o['density'], df_o['severity'], 'bo')
-            ax.plot(df_s['density'], df_s['severity'], 'k')            
-            
-            # Get RMSE
-            df_o = df_o.sort('density')
-            df_s.loc[0, ['density', 'severity']] = [0.,0.]
-            df_s = df_s.sort('density')
-            
-            s = interpolate.interp1d(df_s['density'], df_s['severity'])
-            df_i = df_o.copy()
-            df_i.loc[:,'severity'] = [s(d) for d in df_i['density']]
-            rmses.append(np.sqrt((df_i['severity'].astype(float) - df_o['severity'].astype(float)) ** 2).mean())
-            
-
-            ax.set_xlim([0,120])
-            ax.set_ylim([0,1])
-            if j == 0:
-                ax.set_ylabel('Severity in '+ next(states), fontsize = 16)
-            if i == 0:
+        if nature=='spo':
+            for j, ax in enumerate(axs_line):            
+                date = dates_obs[j]
+                df_o_2004 = df_obs_2004[df_obs_2004['date']==date]
+                df_o_2005 = df_obs_nature[df_obs_nature['date']==date]
+                df_s = df_sim[(df_sim['nature']==nature) &
+                              (df_sim['date']==date)]
+        
+                # Plot
+                ax.plot(df_o_2004['density'], df_o_2004['severity'], 'ro')
+                if len(df_o_2005)>0:
+                    ax.plot(df_o_2005['density'], df_o_2005['severity'], 'bo')
+                ax.plot(df_s['density'], df_s['severity'], 'k')            
+                
+                # Get RMSE
+                df_s.loc[0, ['density', 'severity']] = [0.,0.]
+                df_s = df_s.sort('density')
+                
+                s = interpolate.interp1d(df_s['density'], df_s['severity'])
+                df_o = pd.concat([df_o_2004, df_o_2005])
+                df_o.sort('density')
+                df_i = df_o.copy()
+                df_i.loc[:,'severity'] = [s(d) for d in df_i['density']]
+                rmses.append(np.sqrt((df_i['severity'].astype(float) - df_o['severity'].astype(float)) ** 2).mean())
+                
+                ax.set_xlim([0,120])
+                ax.set_ylim([0,1])
+                if j == 0:
+                    ax.set_ylabel('Severity in '+ next(states), fontsize = 16)
                 ax.set_title('%d days - %d Cd' %(date, dates[date]))
-            if i == len(natures)-1:
-                ax.set_xlabel('Lesion density', fontsize = 16)
+        else:
+            for j, ax in enumerate(axs_line):
+                date = dates_obs[j]
+                df_o = df_obs_nature[df_obs_nature['date']==date]
+                df_s = df_sim[(df_sim['nature']==nature) &
+                                (df_sim['date']==date)]
+        
+                # Plot
+                ax.plot(df_o['density'], df_o['severity'], 'bo')
+                ax.plot(df_s['density'], df_s['severity'], 'k')            
+                
+                # Get RMSE
+                df_o = df_o.sort('density')
+                df_s.loc[0, ['density', 'severity']] = [0.,0.]
+                df_s = df_s.sort('density')
+                
+                s = interpolate.interp1d(df_s['density'], df_s['severity'])
+                df_i = df_o.copy()
+                df_i.loc[:,'severity'] = [s(d) for d in df_i['density']]
+                rmses.append(np.sqrt((df_i['severity'].astype(float) - df_o['severity'].astype(float)) ** 2).mean())
+        
+                ax.set_xlim([0,120])
+                ax.set_ylim([0,1])
+                if j == 0:
+                    ax.set_ylabel('Severity in '+ next(states), fontsize = 16)
+                if i == len(natures)-1:
+                    ax.set_xlabel('Lesion density', fontsize = 16)
     rmse = np.mean(rmses)
     axs[0][0].annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
                 xycoords='axes fraction', fontsize=14)
@@ -475,9 +320,6 @@ def example_density_complete(with_complex=False, **kwds):
     def _parse(date, hour):
         return datetime(int(date[6:10]),int(date[3:5]),int(date[0:2]),int(hour))
 
-    def adapt_date_2005(i_date):
-        return np.array([4, 9, 11, 16, 21, 28, 36])[i_date-1]
-                
     weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
                        parse_dates={'datetime':['date', 'hour']},
                        date_parser=_parse)
@@ -497,7 +339,9 @@ def example_density_complete(with_complex=False, **kwds):
         df_obs_2005 = df_obs_2005[df_obs_2005['complex']==0]
     df_obs_2005 = df_obs_2005.loc[:, ['date', 'density', 'sev_spo']]
     df_obs_2005 = df_obs_2005.rename(columns={'sev_spo':'severity'})
-    df_obs_2005['area'] = df_obs_2005['severity'] / df_obs_2005['density']
+    df_obs_2005['area'] = [x/y if y>0. else 0. for x,y in zip(df_obs_2005['severity'],df_obs_2005['density'])]
+    
+    (df_obs_2004, df_obs_2005) = map(lambda df: df[df['date']!=9], (df_obs_2004, df_obs_2005))
 
     
     dates_obs = np.unique(df_obs_2004['date'])
@@ -537,81 +381,90 @@ def example_density_complete(with_complex=False, **kwds):
                         dates[dates_obs[i_dates]] = les.age_tt - les.fungus.latency
                     i_dates += 1
                     
+#    fig, axs = plt.subplots(2, 3)
     fig, axs = plt.subplots(2, 4)
     dates_iter = iter(dates_obs)
     rmses = []
     for i, ax in enumerate(axs.flat):
-        date = next(dates_iter)
-        (df_o_2004, df_o_2005) = map(lambda df: df[df['date']==date],
-                                    (df_obs_2004, df_obs_2005))
-        df_s = df_sim[df_sim['date']==date]
-
-        # Plot
-        ax.plot(df_o_2004['density'], df_o_2004['area'], 'ro')
-        if len(df_o_2005)>0:
-            ax.plot(df_o_2005['density'], df_o_2005['area'], 'bo')
-        ax.plot(df_s['density'], df_s['area'], 'k')
-        
-        # Get RMSE
-        df_s.loc[0, ['density', 'area']] = [0.,0.]
-        df_s = df_s.sort('density')
-        
-        s = interpolate.interp1d(df_s['density'], df_s['area'])
-        df_o = pd.concat([df_o_2004, df_o_2005])
-        df_o.sort('density')
-        df_i = df_o.copy()
-        df_i.loc[:,'area'] = [s(d) for d in df_i['density']]
-        rmses.append(np.sqrt((df_i['area'].astype(float) - df_o['area'].astype(float)) ** 2).mean())
-
-        if i<4:
-            ax.set_ylim([0, 0.016])
-        else:
-            ax.set_ylim([0, 0.03])
-            ax.set_xlabel('Lesion density', fontsize = 16)
-        ax.set_xlim([0, max(densities)])
-        if i%4 == 0:
-            ax.set_ylabel('Lesion size (in cm2)', fontsize = 16)
-        ax.annotate('%d days\n%d Cd' %(date, dates[date]), xy=(0.7, 0.8), 
-                    xycoords='axes fraction', fontsize=14)
+        if i<7:
+            date = next(dates_iter)
+            (df_o_2004, df_o_2005) = map(lambda df: df[df['date']==date],
+                                        (df_obs_2004, df_obs_2005))
+            df_s = df_sim[df_sim['date']==date]
     
+            # Plot
+            ax.plot(df_o_2004['density'], df_o_2004['area'], 'ro')
+            if len(df_o_2005)>0:
+                ax.plot(df_o_2005['density'], df_o_2005['area'], 'bo')
+            ax.plot(df_s['density'], df_s['area'], 'k')
+            
+            # Get RMSE
+            df_s.loc[0, ['density', 'area']] = [0.,0.]
+            df_s = df_s.sort('density')
+            
+            s = interpolate.interp1d(df_s['density'], df_s['area'])
+            df_o = pd.concat([df_o_2004, df_o_2005])
+            df_o.sort('density')
+            df_i = df_o.copy()
+            df_i.loc[:,'area'] = [s(d) for d in df_i['density']]
+            rmses.append(np.sqrt((df_i['area'].astype(float) - df_o['area'].astype(float)) ** 2).mean())
+    
+            if i<4:
+#                ax.set_ylim([0, 0.016])
+                ax.set_ylim([0, 0.03])
+            else:
+                ax.set_ylim([0, 0.03])
+                ax.set_xlabel('Lesion density', fontsize = 16)
+            ax.set_xlim([0, max(densities)])
+            if i%4 == 0:
+                ax.set_ylabel('Lesion size (in cm2)', fontsize = 16)
+            ax.annotate('%d days\n%d Cd' %(date, dates[date]), xy=(0.7, 0.8), 
+                        xycoords='axes fraction', fontsize=14)
+        else:
+            ax.set_visible(False)
+
     rmse = np.mean(rmses)
     axs[0][0].annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
                 xycoords='axes fraction', fontsize=14)
 
+#    fig, axs = plt.subplots(2, 3)
     fig, axs = plt.subplots(2, 4)
     dates_iter = iter(dates_obs)
     rmses = []
     for i, ax in enumerate(axs.flat):
-        date = next(dates_iter)
-        (df_o_2004, df_o_2005) = map(lambda df: df[df['date']==date],
-                                    (df_obs_2004, df_obs_2005))
-        df_s = df_sim[df_sim['date']==date]
-
-        # Plot
-        ax.plot(df_o_2004['density'], df_o_2004['severity'], 'ro')
-        if len(df_o_2005)>0:
-            ax.plot(df_o_2005['density'], df_o_2005['severity'], 'bo')
-        ax.plot(df_s['density'], df_s['severity'], 'k')            
-        
-        # Get RMSE
-        df_s.loc[0, ['density', 'severity']] = [0.,0.]
-        df_s = df_s.sort('density')
-        
-        s = interpolate.interp1d(df_s['density'], df_s['severity'])
-        df_o = pd.concat([df_o_2004, df_o_2005])
-        df_o.sort('density')
-        df_i = df_o.copy()
-        df_i.loc[:,'severity'] = [s(d) for d in df_i['density']]
-        rmses.append(np.sqrt((df_i['severity'].astype(float) - df_o['severity'].astype(float)) ** 2).mean())
-        
-        if i>=4:
-            ax.set_xlabel('Lesion density', fontsize = 16)
-        ax.set_ylim([0, 1.])
-        ax.set_xlim([0, max(densities)])
-        if i%4 == 0:
-            ax.set_ylabel('Severity in sporulation (%)', fontsize = 16)
-        ax.annotate('%d days\n%d Cd' %(date, dates[date]), xy=(0.7, 0.8), 
-                    xycoords='axes fraction', fontsize=14)
+        if i<7:
+            date = next(dates_iter)
+            (df_o_2004, df_o_2005) = map(lambda df: df[df['date']==date],
+                                        (df_obs_2004, df_obs_2005))
+            df_s = df_sim[df_sim['date']==date]
+    
+            # Plot
+            ax.plot(df_o_2004['density'], df_o_2004['severity'], 'ro')
+            if len(df_o_2005)>0:
+                ax.plot(df_o_2005['density'], df_o_2005['severity'], 'bo')
+            ax.plot(df_s['density'], df_s['severity'], 'k')            
+            
+            # Get RMSE
+            df_s.loc[0, ['density', 'severity']] = [0.,0.]
+            df_s = df_s.sort('density')
+            
+            s = interpolate.interp1d(df_s['density'], df_s['severity'])
+            df_o = pd.concat([df_o_2004, df_o_2005])
+            df_o.sort('density')
+            df_i = df_o.copy()
+            df_i.loc[:,'severity'] = [s(d) for d in df_i['density']]
+            rmses.append(np.sqrt((df_i['severity'].astype(float) - df_o['severity'].astype(float)) ** 2).mean())
+            
+            if i>=4:
+                ax.set_xlabel('Lesion density', fontsize = 16)
+            ax.set_ylim([0, 1.])
+            ax.set_xlim([0, max(densities)])
+            if i%4 == 0:
+                ax.set_ylabel('Severity in sporulation (%)', fontsize = 16)
+            ax.annotate('%d days\n%d Cd' %(date, dates[date]), xy=(0.7, 0.8), 
+                        xycoords='axes fraction', fontsize=14)
+        else:
+            ax.set_visible(False)
     rmse = np.mean(rmses)
     axs[0][0].annotate('RMSE : %.4f' %rmse, xy=(0.05, 0.9), 
                 xycoords='axes fraction', fontsize=14)
@@ -844,7 +697,6 @@ def plot_necrosis_dynamics(fit='logistic'):
         if len(ind_nan)<=9:
             if any(np.isnan(sevs)):
                 ind_0 = np.where(sevs==0)[0]
-                
                 if len(ind_0)>0:
                     ind_0 = ind_0[0]
                     sevs[ind_nan[ind_nan<ind_0]] = 0.
@@ -946,7 +798,7 @@ def sim_necrosis_dynamics(**kwds):
     ax.plot_surface(X,Y, df.values, rstride=1, cstride=1, color='b', alpha=0.5)
 
 def example_ratio_chlo_spo():
-    from scipy.stats import linregress, t
+    from scipy.stats import t
         
     def conf_int(lst, perc_conf=95):
         mu = np.mean(lst)
@@ -980,12 +832,6 @@ def example_ratio_chlo_spo():
     df_obs = df_obs[df_obs['date']!=125]
     fig, ax = plt.subplots()    
     ax.plot(df_obs['date'], df_obs['ratio'], 'ko', alpha = 0.3)
-    slope, intercept, r_value, p_value, std_err = linregress(df_obs['date'], df_obs['ratio'])
-    
-    x = np.arange(800)    
-    f = np.poly1d((slope, intercept))
-    y = f(x)
-#    ax.plot(x,y)
     
     df_mean = df_obs.groupby('date').mean()
     df_conf = df_obs.groupby('date').agg(conf_int)
@@ -1000,8 +846,6 @@ def example_ratio_chlo_spo():
                 linestyle = '', marker='o', color = 'r', markersize=5, elinewidth=10)
     ax.set_ylabel('Differences in severity\n sporulation vs. chlorosis')    
     ax.set_xlabel('Thermal time')
-    
-    return {'p_value':p_value}
 
            
 def example_production_spo(**kwds):
@@ -1026,9 +870,11 @@ def example_production_spo(**kwds):
 
 def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
                       variety = 'Mercia', nplants = 200, 
-                      density_factor = 1, vmax = 25,
-                      k_dispersal = 0.16):
-    reconst = echap_reconstructions()
+                      density_factor = 1, vmax = 10,
+                      k_dispersal = 0.07, position_source=3/5.):
+    pars = reconstruction_parameters()
+    pars['density_tuning'] = {variety:density_factor}
+    reconst = EchapReconstructions(reset_data=True, pars=pars)
     stand_density_factor = {'Mercia':1., 'Rht3':1, 'Tremie12':0.8, 'Tremie13':0.8}
     stand_density_factor[variety] = density_factor
     adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = 7,
@@ -1039,13 +885,20 @@ def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
                                    domain = adel.domain,
                                    domain_area = adel.domain_area,
                                    k_dispersal = k_dispersal)
-    dispersor.plot_distri_layers(g, nb_dispersal_units)
-    dispersor.view_distri_layers(g, nb_dispersal_units, vmax = vmax)
+    dispersor.plot_distri_layers(g, nb_dispersal_units,
+                                 position_source=position_source)
+    df = dispersor.view_distri_layers(g, nb_dispersal_units, vmax = vmax,
+                                      position_source=position_source)
+    print '-----------------------------'
+    print 'Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area)
+    print '-----------------------------'
     
-def example_inoculation(age_canopy = 1400., density_inoculum = 2000.,
+def example_inoculation(age_canopy = 1400., density_inoculum = 1e4,
                         variety = 'Mercia', nplants = 200, 
-                        density_factor = 1, vmax = None):    
-    reconst = echap_reconstructions()
+                        density_factor = 1, vmax = 10):    
+    pars = reconstruction_parameters()
+    pars['density_tuning'] = {variety:density_factor}
+    reconst = EchapReconstructions(reset_data=True, pars=pars)
     stand_density_factor = {'Mercia':1., 'Rht3':1, 'Tremie12':0.8, 'Tremie13':0.8}
     stand_density_factor[variety] = density_factor
     adel = reconst.get_reconstruction(name=variety, nplants = nplants, nsect = 7,
@@ -1055,7 +908,9 @@ def example_inoculation(age_canopy = 1400., density_inoculum = 2000.,
                                          domain_area = adel.domain_area)
     df = contaminator.plot_distri_layers(g, density_inoculum)
     contaminator.view_distri_layers(g, density_inoculum, vmax = vmax)
-    return sum(df[1])/adel.domain_area
+    print '-----------------------------'
+    print 'Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area)
+    print '-----------------------------'
 
 def disperse(g,
              emission_model=None,
@@ -1091,12 +946,12 @@ def setup_simu(sowing_date="2000-10-15 12:00:00",
                end_date="2001-05-25 01:00:00", start_date = None,
                variety = 'Mercia', nplants = 30, nsect = 7, age_canopy = 0.,
                TT_delay = 20, dispersal_delay = 24,
-               k_dispersal = 1.85, **kwds):
+               k_dispersal = 0.07, **kwds):
     # Get weather
     weather = get_weather(start_date=sowing_date, end_date=end_date)
     
     # Set canopy
-    reconst = echap_reconstructions()
+    reconst = echap_reconstructions(reset=True, reset_data=True)
     adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
     g = adel.setup_canopy(age=age_canopy)
     
@@ -1203,7 +1058,7 @@ def example_frezal(k_dispersal = 0.16, source = 2, position_source = 4,
     ax.set_xlabel("Thermal time (Cd)", fontsize = 18)
     return g, recorder
     
-def example_frezal_complete(k_dispersal = 0.16, position_source = 5, **kwds):
+def example_frezal_complete(k_dispersal = 0.07, position_source = 2, **kwds):
     leaves = [1, 2, 3]    
     starts = {2000 : {lf:"2000-05-04 12:00:00" for lf in leaves},
               2001 : {1: "2001-05-07 12:00:00",
@@ -1270,7 +1125,7 @@ def plot_sim_obs_frezal(df_sim, df_obs):
                          (df_sim, df_obs))
         y_bottom = np.array([0., 0.])
         for target in np.arange(3., 0., -1.):
-            y = [obs.loc[:, int(target)].values[0], sim.loc[:, str(target)].values[0]]            
+            y = [obs.loc[:, int(target)].values[0], sim.loc[:, int(target)].values[0]]            
             ax.bar(x, y, bottom=y_bottom, color = next(colors), align = 'center')
             y_bottom += np.array(y)
             ax.set_xlim([0, 3])
@@ -1312,9 +1167,9 @@ def external_contamination(g,
                     leaf.dispersal_units = dlist
     return g
     
-def example_annual_loop(variety = 'Mercia', nplants = 30, 
-                        year = 2012, sowing_date = '10-15', 
-                        density_dispersal_units = 1000):
+def example_annual_loop(variety = 'Tremie13', nplants = 30, 
+                        year = 2012, sowing_date = '10-29', 
+                        density_dispersal_units = 500):
     (g, adel, fungus, canopy_timing, dispersal_timing, rust_timing, recorder, 
      growth_controler, infection_controler, 
      dispersor) = setup_simu(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 

@@ -306,9 +306,6 @@ class AirborneContamination:
         # Compute severity by leaf
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
                     self.contaminate(g, density_dispersal_units).iteritems()}
-        print '-----------------------------'
-        print 'Nb of deposits %d' % sum(deposits.values())
-        print '-----------------------------'
         set_property_on_each_id(g, 'nb_dispersal_units', deposits)
     
         # Visualization
@@ -340,6 +337,7 @@ class AirborneContamination:
         
     def plot_distri_layers(self, g, density_dispersal_units = 1000.):
         import pandas as pd
+        import matplotlib.pyplot as plt
         self.leaves_in_grid(g)
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
                     self.contaminate(g, density_dispersal_units).iteritems()}
@@ -347,5 +345,9 @@ class AirborneContamination:
                         for k,v in self.layers.iteritems()}
         df = pd.DataFrame([[k,v] for k, v in depo_layer.iteritems()])
         df = df.sort(0)
-        df.plot(0,1)
+        df[2] = df[1]/df[1].sum()
+        fig, ax = plt.subplots()
+        ax.plot(df[2], df[0], 'k')
+        ax.set_ylabel('Height', fontsize = 16)
+        ax.set_xlabel('Proportion of deposits', fontsize = 16)
         return df

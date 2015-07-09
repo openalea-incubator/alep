@@ -229,8 +229,8 @@ class GeometricCircleCompetition:
                         growth_offer = l.growth_demand * offer/total_demand if total_demand>0. else 0.
                         l.control_growth(growth_offer = growth_offer)
                 
-                potential_lesion_areas.update({vid:potential_lesion_area for vid in leaf})                
-
+                potential_lesion_areas.update({vid:potential_lesion_area for vid in leaf})
+                
 # Growth control between 2 diseases ###########################################
 import random as rd
 class SeptoRustCompetition:

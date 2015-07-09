@@ -426,6 +426,9 @@ import numpy as np
 from scipy.integrate import simps
         
 class BrownRustDispersal:
+    import sys
+    sys.setrecursionlimit(10000)
+
     """ Calculate distribution of dispersal units in horizontal layers """
     def __init__(self, fungus = None,
                  domain = None,
@@ -502,21 +505,6 @@ class BrownRustDispersal:
         dus_by_layer = {layer:sum([dispersal_units[v]
                         for v in vids if v in dispersal_units])*beer_factor
                         for layer, vids in self.layers.iteritems()}
-        
-#        def distribute(source, target):
-#            distance = abs(target - source + 2*np.sign(target-source))
-#            if abs(source - target) < self.layer_thickness:
-#                xmax = np.arange(1, max(self.layers.keys()))
-#                ymax = np.exp(-self.k_dispersal*xmax)
-#                x = np.array([0., self.layer_thickness])
-#                y = np.exp(-self.k_dispersal*x)
-#                return simps(y,x)/(2*simps(ymax,xmax))
-#            else:
-#                xmax = np.arange(1, max(self.layers.keys()))
-#                ymax = np.exp(-self.k_dispersal*xmax)
-#                x = np.array([distance-self.layer_thickness, distance])
-#                y = np.exp(-self.k_dispersal*x)
-#                return simps(y,x)/(2*simps(ymax,xmax))
                 
         def sum_nb(nb_leaves, nb_du):
             if nb_leaves == 1:
@@ -529,24 +517,9 @@ class BrownRustDispersal:
                 if nb_du_sup >= 1:
                     nb_on_vid = int(round(max(0, min(nb_du, np.random.normal(nb_du_avg, nb_du_sup)))))
                 else:
-#                    nb_on_vid = np.random.randint(nb_du)
                     nb_on_vid = 1 if np.random.random()<nb_du_sup else 0
                 return [nb_on_vid] + sum_nb(nb_leaves-1, nb_du - nb_on_vid)
                 
-#        def sum_nb(nb_leaves, nb_du, nb_du_sup):
-#            if nb_leaves == 1:
-#                return [nb_du]
-#            elif nb_du == 0:
-#                return [0] + sum_nb(nb_leaves-1, nb_du, nb_du_sup)
-#            else:
-#                if nb_du_sup >= 1:
-#                    nb_on_vid = min(nb_du, np.random.normal(nb_du_sup))
-#                else:
-##                    nb_on_vid = np.random.randint(nb_du)
-#                    nb_on_vid = 1 if np.random.random()<nb_du_sup else 0
-#                return [nb_on_vid] + sum_nb(nb_leaves-1, nb_du - nb_on_vid, nb_du_sup)
-
-
         deposits = {}
         for source, nb_dus in dus_by_layer.iteritems():
             if nb_dus > 0.:
@@ -556,8 +529,6 @@ class BrownRustDispersal:
                         dist = abs(source - target)
                         area_l = sum([areas[vid] for vid in vids])
                         proba_du_layer = area_l*np.exp(-self.k_dispersal*dist)/total_area
-#                        nb_depo_layer = int(round(nb_dus*area_l*np.exp(-self.k_dispersal*dist)/total_area))
-#                        distribution_by_leaf = sum_nb(nb_vids, nb_depo_layer, 2*nb_depo_layer/nb_vids)
                         nb_depo_layer = np.random.binomial(nb_dus, proba_du_layer)
                         distribution_by_leaf = sum_nb(nb_vids, nb_depo_layer)
                         np.random.shuffle(distribution_by_leaf)
@@ -598,7 +569,8 @@ class BrownRustDispersal:
         scene = plot3d_transparency(g)
         Viewer.display(scene)
         
-    def view_distri_layers(self, g, nb_dispersal_units = 1e5, vmax = None):
+    def view_distri_layers(self, g, nb_dispersal_units = 1e5, vmax = None,
+                           position_source = 3./5):
         from alinea.alep.architecture import set_property_on_each_id
         from alinea.alep.alep_color import alep_colormap, green_yellow_red
         from alinea.alep.disease_outputs import plot3d_transparency
@@ -608,13 +580,10 @@ class BrownRustDispersal:
         self.leaves_in_grid(g)
         layers = self.layers.keys()
         layers.sort()        
-        layer = layers[int(2*len(layers)/3)]
+        layer = layers[int(position_source*len(layers))]
         leaf = self.layers[layer][0]
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
                     self.disperse(g, dispersal_units = {leaf : nb_dispersal_units}).iteritems()}  
-        print '-----------------------------'
-        print 'Nb of deposits %d' % sum(deposits.values())
-        print '-----------------------------'
         set_property_on_each_id(g, 'nb_dispersal_units', deposits)
     
         # Visualization
@@ -645,13 +614,15 @@ class BrownRustDispersal:
         scene = plot3d_transparency(g)
         Viewer.display(scene)
         
-    def plot_distri_layers(self, g, nb_dispersal_units = 1000):
-        import pandas as pd        
+    def plot_distri_layers(self, g, nb_dispersal_units = 1000, 
+                           position_source = 3./5):
+        import pandas as pd
+        import matplotlib.pyplot as plt
         # Compute severity by leaf
         self.leaves_in_grid(g)
         layers = self.layers.keys()
         layers.sort()        
-        layer = layers[int(2*len(layers)/3)]
+        layer = layers[int(position_source*len(layers))]
         leaf = self.layers[layer][0]
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
                     self.disperse(g, dispersal_units = {leaf : nb_dispersal_units}).iteritems()}
@@ -659,5 +630,10 @@ class BrownRustDispersal:
                         for k,v in self.layers.iteritems()}
         df = pd.DataFrame([[k,v] for k, v in depo_layer.iteritems()])
         df = df.sort(0)
-        df.plot(0,1)
+        df[2] = df[1]/df[1].sum()
+        fig, ax = plt.subplots()
+        ax.plot(df[2], df[0], 'k')
+        ax.set_ylabel('Height', fontsize = 16)
+        ax.set_xlabel('Proportion of deposits', fontsize = 16)
+        
         return df
