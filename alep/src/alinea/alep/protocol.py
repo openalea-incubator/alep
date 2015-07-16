@@ -31,15 +31,14 @@ def external_contamination(g,
     """
     
     stock = contamination_source.emission(g, weather_data, **kwds)
-    labels = g.property('label')    
-    
-    if len(stock) > 0:
+    labels = g.property('label')
+    if stock > 0:
         # Allocation of stock of inoculum
-        deposits = contamination_model.contaminate(g, stock, weather_data, **kwds)
-        stock = [] # stock has been used (avoid uncontrolled future re-use)
+        deposits = contamination_model.contaminate(g, stock, weather_data, label = label)
+        stock = 0 # stock has been used (avoid uncontrolled future re-use)
 
         # Allocation of new dispersal units
-        for vid,dlist in deposits.iteritems():
+        for vid, dlist in deposits.iteritems():
             if len(dlist)>0 and labels[vid].startswith(label):
                 leaf = g.node(vid)
                 try:
@@ -260,7 +259,6 @@ def disperse(g,
       >>>       disperse(g, dispersor, "septoria")
     
     """
-
     # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
     if weather_data is None:
         DU = emission_model.get_dispersal_units(g, fungus_name, label)
@@ -269,7 +267,7 @@ def disperse(g,
     labels = g.property('label')
    
     # Transport of dispersal units
-    if len(sum(DU.values(), []))>0:
+    if sum(DU.values())>0:
         # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
         if weather_data is not None:
             deposits = transport_model.disperse(g, DU, weather_data)
@@ -284,62 +282,4 @@ def disperse(g,
                     leaf.dispersal_units += dlist
                 except:
                     leaf.dispersal_units = dlist
-    return g
-
-def wash(g, 
-         washing_model, 
-         global_rain_intensity, 
-         label="LeafElement", 
-         activate=True): 
-    """ Compute spores loss by washing.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy (and the soil)
-    washing_model: model
-        Model used to wash the DUs out of the leaf
-    global_rain_intensity: float
-        Rain intensity over the canopy to trigger washing
-    label: str
-        Label of the part of the MTG concerned by the calculation
-    activate: bool
-        True if computation is achieved, False otherwise
-    
-    Returns
-    -------
-    g: MTG
-        Updated MTG representing the canopy (and the soil)
-    
-    Example
-    -------
-      >>> g = MTG()
-      >>> stock = [SeptoriaDU(fungus = septoria(), nbSpores=random.randint(1,100), status='emitted') for i in range(100)]
-      >>> inoculator = RandomInoculation()
-      >>> initiate(g, stock, inoculator)
-      >>> washor = WashingModel()
-      >>> dt = 1
-      >>> nb_steps = 1000
-      >>> for i in range(nb_steps):
-      >>>     update_climate(g)
-      >>>     if global_rain_intensity > 0.:
-      >>>       wash(g, washor, global_rain_intensity)
-    """
-    if activate:
-        # compute washing rate on each leaf
-        washing_model.compute_washing_rate(g, global_rain_intensity)
-        
-        dispersal_units = g.property('dispersal_units')
-        for vid, du in dispersal_units.iteritems():
-            if g.label(vid).startswith(label):
-                leaf = g.node(vid)
-                # Sometimes, the list is created but is empty
-                if du: 
-                    nb_dus = len(du)
-                    nb_washed = int(round(leaf.washing_rate*nb_dus))
-                    for dispersal_unit in random.sample(du, nb_washed):
-                        # disable the DUs according to washing_rate on the leaf
-                        dispersal_unit.disable()
-                           
-            dispersal_units[vid] = [d for d in du if d.is_active]
     return g

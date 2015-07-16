@@ -9,7 +9,7 @@ from alinea.alep.growth_control import (NoPriorityGrowthControl,
                                         GeometricCircleCompetition,
                                         SeptoRustCompetition)
 from alinea.alep.inoculation import AirborneContamination
-from alinea.alep.protocol import infect, update
+from alinea.alep.protocol import infect, update, disperse, external_contamination
 from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.dispersal_transport import BrownRustDispersal
 #from alinea.echap.architectural_reconstructions import EchapReconstructions
@@ -17,8 +17,7 @@ from alinea.echap.architectural_reconstructions import (EchapReconstructions,
                                                         echap_reconstructions,
                                                         reconstruction_parameters)
 from alinea.adel.data_samples import adel_two_metamers_stand
-from alinea.alep.architecture import get_leaves
-from alinea.alep.architecture import set_properties
+from alinea.alep.architecture import get_leaves, set_properties
 from alinea.adel.newmtg import adel_labels
 from septo_decomposed import get_weather
 from alinea.alep.alep_time_control import CustomIterWithDelays
@@ -54,16 +53,18 @@ def get_one_leaf():
 #def echap_reconstructions():
 #    return EchapReconstructions()
 
-def example_surface(nb_steps = 4500, nb_lesions = 1, with_compet = False, **kwds):
+def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
+                    leaf_area = 1., **kwds):
     weather = read_weather_year(2012)
     df = weather.data
     df = df.reset_index()
     df = df[df['degree_days']>0]
     g, leaf = get_g_and_one_leaf()
-    leaf.area = 1.
-    leaf.green_area = 1. 
+    leaf.area = leaf_area
+    leaf.green_area = leaf_area
     brown_rust = BrownRustFungus()
     lesion = brown_rust.lesion(mutable = False, group_dus = True, **kwds)
+    nb_lesions = density_lesions * leaf_area
     lesion.set_position([[1] for i in range(nb_lesions)])
     leaf.lesions = [lesion]
     growth_controler = GeometricCircleCompetition()
@@ -648,7 +649,7 @@ def plot_first_date_necrosis(threshold = 0.03):
     result2 = mod.fit(df2['date_nec'].values, x=df2['density'].values, a=400., b=0.05, c=249.)
     ax.plot(x, fit_func(x,**result2.best_values), 'r')
 
-def plot_necrosis_dynamics(fit='logistic'):
+def plot_necrosis_dynamics(fit='gompertz'):
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.collections import LineCollection
     from lmfit import Model
@@ -882,6 +883,7 @@ def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
     g = adel.setup_canopy(age = age_canopy)
     fungus = BrownRustFungus()
     dispersor = BrownRustDispersal(fungus = fungus,
+                                   group_dus = True,
                                    domain = adel.domain,
                                    domain_area = adel.domain_area,
                                    k_dispersal = k_dispersal)
@@ -912,36 +914,6 @@ def example_inoculation(age_canopy = 1400., density_inoculum = 1e4,
     print 'Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area)
     print '-----------------------------'
 
-def disperse(g,
-             emission_model=None,
-             transport_model=None,
-             fungus_name='', 
-             label="LeafElement",
-             weather_data=None):
-    if weather_data is None:
-        DU = emission_model.get_dispersal_units(g, fungus_name, label)
-    else: 
-        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
-    labels = g.property('label')
-   
-    # Transport of dispersal units
-    if sum(DU.values())>0:
-        # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
-        if weather_data is not None:
-            deposits = transport_model.disperse(g, DU, weather_data)
-        else:
-            deposits = transport_model.disperse(g, DU) # update DU in g , change position, status 
-            
-        # Allocation of new dispersal units
-        for vid, dlist in deposits.iteritems():
-            if len(dlist)>0 and labels[vid].startswith(label):
-                leaf = g.node(vid)
-                try:
-                    leaf.dispersal_units += dlist
-                except:
-                    leaf.dispersal_units = dlist
-    return g
-
 def setup_simu(sowing_date="2000-10-15 12:00:00", 
                end_date="2001-05-25 01:00:00", start_date = None,
                variety = 'Mercia', nplants = 30, nsect = 7, age_canopy = 0.,
@@ -971,7 +943,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00",
     fungus = BrownRustFungus()
     fungus.parameters(**kwds)
     recorder = BrownRustRecorder()
-    growth_controler = NoPriorityGrowthControl()
+    growth_controler = GeometricCircleCompetition()
     infection_controler = BiotrophDUProbaModel()
     dispersor = BrownRustDispersal(fungus = fungus,
                                    domain = adel.domain,
@@ -1142,31 +1114,6 @@ def plot_sim_obs_frezal(df_sim, df_obs):
             labels = ['F1', 'F2', 'F3']
             ax.legend(proxy, labels, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
     
-def external_contamination(g, 
-             contamination_source, 
-             contamination_model,
-             weather_data = None, 
-             label = 'LeafElement', **kwds):
-    """ Innoculates fungal objects (dispersal units) on elements of the MTG
-        according to contamination_model.
-    """
-    stock = contamination_source.emission(g, weather_data, **kwds)
-    labels = g.property('label')
-    if stock > 0:
-        # Allocation of stock of inoculum
-        deposits = contamination_model.contaminate(g, stock, weather_data, label = label)
-        stock = 0 # stock has been used (avoid uncontrolled future re-use)
-
-        # Allocation of new dispersal units
-        for vid, dlist in deposits.iteritems():
-            if len(dlist)>0 and labels[vid].startswith(label):
-                leaf = g.node(vid)
-                try:
-                    leaf.dispersal_units += dlist
-                except:
-                    leaf.dispersal_units = dlist
-    return g
-    
 def example_annual_loop(variety = 'Tremie13', nplants = 30, 
                         year = 2012, sowing_date = '10-29', 
                         density_dispersal_units = 500):
@@ -1221,7 +1168,7 @@ def example_annual_loop(variety = 'Tremie13', nplants = 30,
             recorder.record(g, date, 
                             degree_days = rust_iter.value.degree_days[-1])
     
-    recorder.post_treatment(variety = 'Mercia')
+    recorder.post_treatment(variety = variety)
     ax = plot_by_leaf(recorder.data, variable = 'ratio_spo', 
                       xaxis = 'degree_days', return_ax = True)
     ax.set_title(variety+' '+str(year)+' sowing on '+sowing_date, fontsize = 18)
@@ -1276,9 +1223,9 @@ def example_competition_complex(nb_rust = 100, nb_septo = 100):
     leaf.area = 10.
     leaf.green_area = 10.
     brown_rust = BrownRustFungus()
-    rust = [brown_rust.lesion(mutable = False, group_dus = True) for i in range(nb_rust)]
+    rust = [brown_rust.lesion(mutable = False) for i in range(nb_rust)]
     septoria = SeptoriaFungus()    
-    septo = [septoria.lesion(mutable = False, group_dus = True) for i in range(nb_septo)]
+    septo = [septoria.lesion(mutable = False) for i in range(nb_septo)]
     for l in septo:
         l.set_position([1.,1.])
     tot_les = rust + septo
@@ -1287,12 +1234,10 @@ def example_competition_complex(nb_rust = 100, nb_septo = 100):
     growth_controler = SeptoRustCompetition(SeptoModel = septoria.lesion().__class__,
                                             RustModel = brown_rust.lesion().__class__)
     df = pd.DataFrame(columns=['degree_days', 
-                               'sev_rust', 'sev_septo', 'sev_tot', 
-                               'surf_rust', 'surf_septo', 'surf_tot',
-                               'nb_les_rust', 'nb_les_septo', 'nb_les_tot'])
+                               'sev_rust', 'sev_septo', 'sev_tot'])
     cum_tt = 0.
-    for i in range(500):
-        leaf.temperature_sequence = [24.]
+    for i in range(1000):
+        leaf.temperature_sequence = [21.]
         cum_tt += 1.
         df.loc[i, 'degree_days'] = cum_tt
         update(g, 1., growth_controler, label='LeafElement')
@@ -1302,28 +1247,13 @@ def example_competition_complex(nb_rust = 100, nb_septo = 100):
         s_surf = sum([l.surface for l in lesions if isinstance(l, septoria.lesion().__class__)])
         df.loc[i, 'sev_rust'] = r_surf/leaf.area
         df.loc[i, 'sev_septo'] = s_surf/leaf.area
-        df.loc[i, 'surf_rust'] = r_surf
-        df.loc[i, 'surf_septo'] = s_surf
-        df.loc[i, 'nb_les_rust'] = len([l for l in lesions if isinstance(l, brown_rust.lesion().__class__)])
-        df.loc[i, 'nb_les_septo'] = len([l for l in lesions if isinstance(l, septoria.lesion().__class__)])
+
     df.loc[:, 'sev_tot'] = df['sev_rust'] + df['sev_septo']
-    df.loc[:, 'surf_tot'] = df['surf_rust'] + df['surf_septo']
-    df.loc[:, 'nb_les_tot'] = df['nb_les_rust'] + df['nb_les_septo']
 
     fig, ax = plt.subplots()
     ax.plot(df['degree_days'], df['sev_rust'])
     ax.plot(df['degree_days'], df['sev_septo'])
     ax.plot(df['degree_days'], df['sev_tot'])
     ax.legend(['sev_rust', 'sev_septo', 'sev_tot'], loc = 'best')
+    ax.grid()
     
-    fig, ax = plt.subplots()
-    ax.plot(df['degree_days'], df['surf_rust'])
-    ax.plot(df['degree_days'], df['surf_septo'])
-    ax.plot(df['degree_days'], df['surf_tot'])
-    ax.legend(['surf_rust', 'surf_septo', 'surf_tot'], loc = 'best')
-
-    fig, ax = plt.subplots()
-    ax.plot(df['degree_days'], df['nb_les_rust'])
-    ax.plot(df['degree_days'], df['nb_les_septo'])
-    ax.plot(df['degree_days'], df['nb_les_tot'])
-    ax.legend(['nb_les_rust', 'nb_les_septo', 'nb_les_tot'], loc = 'best')

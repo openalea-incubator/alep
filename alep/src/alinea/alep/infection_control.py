@@ -15,7 +15,7 @@ class BiotrophDUProbaModel:
     
     A class for a model of dispersal unit position checking must contain the 
     following method:
-        - 'control_position': work at leaf scale.
+        - 'control': work at leaf scale.
         Affect the property 'can_infect_at_position' of the DUs.
         
     In this example, a dispersal unit can only infect an healthy tissue. 
@@ -33,6 +33,9 @@ class BiotrophDUProbaModel:
         g: MTG
             MTG representing the canopy (and the soil)
             'dispersal_units' are stored in the MTG as a property
+            'lesions' are stored in the MTG as a property
+            'green_area' is the green area of leaf elements
+            'area' is the total area of leaf elements
         label: str
             Label of the part of the MTG concerned by the calculation
             
@@ -89,67 +92,3 @@ class BiotrophDUProbaModel:
                                 DUs[vid] = dus_to_keep + dus
                         else:
                             DUs[vid] = dus_to_keep
-                  
-
-class BiotrophDUPositionModel:
-    """ Template class for checking position of dispersal units on a MTG that 
-        complies with the guidelines of Alep.
-    
-    A class for a model of dispersal unit position checking must contain the 
-    following method:
-        - 'control_position': work at leaf scale.
-        Affect the property 'can_infect_at_position' of the DUs.
-        
-    In this example, a dispersal unit can only infect an healthy tissue. 
-    Its property 'position' in its interface is required.
-    """   
-    def control(self, g, label='LeafElement'):
-        """ Control if the lesion can infect at its current position. If not, disable the dispersal unit.
-        
-        Parameters
-        ----------
-        g: MTG
-            MTG representing the canopy (and the soil)
-            'dispersal_units' are stored in the MTG as a property
-            
-        Returns
-        -------
-        g: MTG
-            Updated MTG representing the canopy
-        """
-        labels = g.property('label')
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
-        dispersal_units = {k:v for k,v in g.property('dispersal_units').iteritems() if len(v)>0.}
-        areas = g.property('area')
-        lesions = g.property('lesions')
-        for blade in bids:
-            leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
-            leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], []) 
-            les_surf = sum([les.surface for les in leaf_lesions])
-            leaf_area = sum([areas[lf] for lf in leaf])
-            ratio_les_surface = min(1, round(les_surf,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
-            
-            for vid in set(leaf) & set(dispersal_units):
-                dus_to_keep = []
-                dus = []
-                for du in dispersal_units[vid]:
-                    if du.is_active:
-                        if du.status == 'deposited':
-                            dus_to_keep.append(du)
-                        elif du.status == 'emitted':
-                            dus.append(du)
-                            
-                if len(dus)>0 and dus[0].fungus.group_dus == True:
-                    total_nb_dus = len(sum([du.position for du in dus],[]))
-                else:
-                    total_nb_dus = len(dus)
-                nb_on_lesions = int(total_nb_dus*ratio_les_surface)
-                for du in range(nb_on_lesions):
-                    random.shuffle(dus)
-                    dus[0].position = dus[0].position[1:]
-                    if dus[0].nb_dispersal_units==0.:
-                        dus[0].disable()
-                        dus = dus[1:]
-                for du in dus:
-                    du.set_status(status = 'deposited')
-                dispersal_units[vid] = dus_to_keep + dus

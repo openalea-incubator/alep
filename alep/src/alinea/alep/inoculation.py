@@ -6,7 +6,7 @@
 import random
 import numpy as np
 import collections
-from alinea.alep.fungal_objects import DispersalUnit, Lesion
+from alinea.alep.fungal_objects import DispersalUnit, Lesion, Fungus
 from alinea.alep.architecture import get_leaves
 from openalea.plantgl import all as pgl
 
@@ -203,10 +203,14 @@ def is_iterable(obj):
 
 class AirborneContamination:
     """ Model of airborne inoculation """
-    def __init__(self, fungus, mutable = False, 
+    def __init__(self, fungus, group_dus = False, mutable = False, 
                  domain_area = 1., convUnit = 0.01,
                  layer_thickness = 1., k_beer = 0.5):
-        self.fungus = fungus
+        if fungus is not None:
+            self.fungus = fungus
+        else:
+            self.fungus = Fungus()
+        self.group_dus = group_dus
         self.mutable = mutable        
         self.domain_area = domain_area 
         self.convUnit = convUnit
@@ -276,12 +280,12 @@ class AirborneContamination:
         deposits = {}
         sorted_layers = sorted(self.layers.keys(), reverse = True)
         for layer in sorted_layers:
-            if nb_dus > 0.:
+            if nb_dus > 0.:              
                 vids = self.layers[layer]
                 area_layer = sum([areas[vid] for vid in vids])
                 proba_du_layer = 1-np.exp(-self.k_beer*(area_layer*self.convUnit**2)/self.domain_area)
                 nb_dus_in_layer = np.random.binomial(nb_dus, proba_du_layer)
-                if len(vids)>0.:
+                if len(vids)>0.:                    
                     distribution_by_leaf = sum_nb(len(vids), nb_dus_in_layer)
                     np.random.shuffle(distribution_by_leaf)
                     deposits.update({lf:distribution_by_leaf[i_lf]
@@ -290,10 +294,16 @@ class AirborneContamination:
                     nb_dus -= sum(distribution_by_leaf)
         
         for vid, nb_dus in deposits.iteritems():
-            if nb_dus > 0.:
-                du = self.fungus.dispersal_unit(nb_dispersal_units = nb_dus)
-                du.set_nb_dispersal_units(nb_dus)
+            if self.fungus.group_dus==True:
+                du = self.fungus.dispersal_unit()
+                du.set_nb_dispersal_units(nb_dispersal_units = nb_dus)
                 deposits[vid] = [du]
+            else:
+                dus = []
+                for d in nb_dus:
+                    du = self.fungus.dispersal_unit()
+                    dus.append(du)
+                deposits[vid] = dus
         return deposits
             
     def view_distri_layers(self, g, density_dispersal_units = 1000., 

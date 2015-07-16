@@ -756,34 +756,127 @@ class VineLeafInspector:
         self.ratio_spo.append(100.*surface_spo/area if area>0. else 0.)
         self.surface_empty.append(surface_empty)
         self.ratio_empty.append(100.*surface_empty/area if area>0. else 0.)
+
+###############################################################################
+class AdelWheatRecorder(object):
+    """ Record simulation output on every leaf of main stems in a dataframe during simulation """
+    def __init__(self, group_dus = True, 
+                 fungus_name = 'template', increment = 1000):
+        self.fungus_name = fungus_name
+        self.group_dus = group_dus
+        self.increment = increment
+        columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 
+                   'leaf_area', 'leaf_green_area', 'fnl']
+        self.data = pandas.DataFrame(data = [[np.nan for col in columns] 
+                                    for i in range(increment)], 
+                                    columns = columns)
+    
+    def get_values_single_leaf(self, g, date, degree_days, id_list):
+        dict_lf = {}
+        dict_lf['date'] = date
+        dict_lf['degree_days'] = degree_days
+        
+        # Update leaf properties
+        areas = g.property('area')
+        green_areas = g.property('green_area')
+        fnls = g.property('nff')
+        a_label_splitted = self.a_labels[id_list[0]].split('_')
+        dict_lf['num_plant'] = int(a_label_splitted[0].split('plant')[1])
+        dict_lf['num_leaf_bottom'] = int(a_label_splitted[2].split('metamer')[1])
+        dict_lf['leaf_area'] = sum([areas[id] for id in id_list])
+        dict_lf['leaf_green_area'] = sum([green_areas[id] for id in id_list])
+        dict_lf['fnl'] =  fnls[g.complex_at_scale(id_list[0], 2)]
+        return dict_lf
+
+    def increment_data(self):
+        df = pandas.DataFrame(data = [[np.nan for col in self.data.columns] 
+                                for i in range(self.increment)], 
+                                columns = self.data.columns)
+        self.data = pandas.concat([self.data, df])
+        self.data = self.data.reset_index(drop = True)
+        
+    def add_line_from_dict(self, dict_lf={}):
+        indx = self.data[self.data['date'].isnull()].index[0]
+        self.data.loc[indx, :] = pandas.Series(dict_lf)
+        
+    def get_ids_on_blade(self, components, geometries=None, 
+                         areas=None, labels=None):
+        return [vid for vid in components if geometries.get(vid) is not None 
+                                        and areas.get(vid) is not None
+                                        and labels.get(vid).startswith('LeafElement')]
+                                                
+    def record(self, g, date = None, degree_days = None):
+        self.a_labels = {vid:lab for vid, lab
+                         in adel_labels(g, scale = 5).iteritems() 
+                         if 'LeafElement' in lab}
+        v_length = g.property('visible_length')
+        labels = g.property('label')
+        geometries = g.property('geometry')
+        areas = g.property('area')
+        blades = [id for id,lb in labels.iteritems() if lb.startswith('blade') and v_length[id]>0]
+        for blade in blades:
+            id_list = self.get_ids_on_blade(g.components(blade),
+                                            geometries, areas, labels)
+            if len(id_list)>0 and 'MS' in self.a_labels[id_list[0]]:
+                dict_lf = self.get_values_single_leaf(g = g, date = date, 
+                                                      degree_days = degree_days, 
+                                                      id_list = id_list)
+                self.add_line_from_dict(dict_lf)
+                if len(self.data[self.data['date'].isnull()]) == 0.:
+                    self.increment_data()
+                    
+    def add_leaf_numbers(self):
+        self.data['axis'] = 'MS'
+        for pl in set(self.data['num_plant']):
+            df_ax = self.data[self.data['num_plant'] == pl]
+            fnl = df_ax['fnl'].max()
+            df_ax.loc[:, 'num_leaf_top'] = fnl - df_ax['num_leaf_bottom'] + 1
+            self.data.loc[df_ax.index, 'num_leaf_top'] = fnl - df_ax['num_leaf_bottom'] + 1
+            for date in set(df_ax['degree_days']):
+                df_date = df_ax[df_ax['degree_days'] == date]
+                current_max_bottom = df_date['num_leaf_bottom'].max()
+                cur_max_leaf_top = df_date['fnl'] - current_max_bottom + 1
+                self.data.loc[df_date.index, 'cur_max_leaf_top'] = cur_max_leaf_top
+                self.data.loc[df_date.index, 'cur_num_leaf_top'] = cur_max_leaf_top - df_date['num_leaf_top'] + 1
+                
+    def add_variety(self, variety = None):
+        self.data['variety'] = variety
+    
+    def post_treatment(self, variety = None):
+        self.data = self.data[~pandas.isnull(self.data['date'])]
+        self.add_leaf_numbers()
+        if variety is not None:
+            self.add_variety(variety=variety)
+           
+    def save(self, filename):
+        self.data.to_csv(filename, index = False)
         
 ######################################################################
 import numpy
 import pandas
-from scipy.integrate import trapz, simps
-from alinea.astk.plantgl_utils import get_height
-from alinea.adel.newmtg import adel_ids
-from collections import Iterable
+from scipy.integrate import simps
 try:
     import cPickle as pickle
 except:
     import pickle
 from alinea.adel.newmtg import adel_labels
 
-class AdelSeptoRecorder:
+class AdelSeptoRecorder(AdelWheatRecorder):
     """ Record simulation output on every leaf of main stems in a dataframe during simulation """
-    def __init__(self, group_dus = True, fungus_name = 'septoria'):
-        self.fungus_name = fungus_name
-        self.group_dus = group_dus
+    def __init__(self, group_dus = True, 
+                 fungus_name = 'septoria', 
+                 increment = 1000):
+        super(AdelSeptoRecorder, self).__init__(group_dus = group_dus, 
+                                                fungus_name = fungus_name,
+                                                increment = increment)
         columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 'leaf_area', 
                    'leaf_green_area', 'leaf_length', 'leaf_senesced_length', 'fnl', 
-                   'nb_dispersal_units', 'nb_dus_on_green', 'nb_lesions', 'nb_lesions_on_green', 
+                   'nb_dispersal_units', 'nb_lesions', 'nb_lesions_on_green', 
                    'surface_inc', 'surface_chlo', 'surface_nec', 'surface_spo', 
                    'surface_spo_on_green', 'surface_empty', 'surface_empty_on_green', 
                    'surface_dead']
-        self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(20000)], 
+        self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(self.increment)], 
                                      columns = columns)
-        # self.data = pandas.DataFrame(columns = columns)
     
     def get_values_single_leaf(self, g, date, degree_days, id_list):
         dict_lf = {}
@@ -807,7 +900,6 @@ class AdelSeptoRecorder:
 
         # Update properties of dispersal units and lesions
         nb_dus = 0
-        nb_dus_on_green = 0
         nb_lesions = 0
         nb_lesions_on_green = 0
         surface_inc = 0.
@@ -825,12 +917,9 @@ class AdelSeptoRecorder:
                 for du in leaf.dispersal_units:
                     if du.fungus.name == self.fungus_name:
                         if self.group_dus:
-                            nb_dus += len(du.position)
-                            nb_dus_on_green += len(filter(lambda x: x[0]>leaf.senesced_length, du.position))
+                            nb_dus += du.nb_dispersal_units
                         else:
                             nb_dus += 1
-                            if du.position[0][0]>leaf.senesced_length:
-                                nb_dus_on_green += 1
                                 
             if 'lesions' in leaf.properties():
                 for les in leaf.lesions:
@@ -856,7 +945,6 @@ class AdelSeptoRecorder:
                         surface_dead += les.surface_dead
         
         dict_lf['nb_dispersal_units'] = nb_dus
-        dict_lf['nb_dus_on_green'] = nb_dus_on_green
         dict_lf['nb_lesions'] = nb_lesions
         dict_lf['nb_lesions_on_green'] = nb_lesions_on_green
         dict_lf['surface_inc'] = surface_inc
@@ -868,45 +956,7 @@ class AdelSeptoRecorder:
         dict_lf['surface_spo_on_green'] = surface_spo_on_green
         dict_lf['surface_empty_on_green'] = surface_empty_on_green
         return dict_lf
-        
-    def record(self, g, date = None, degree_days = None):
-        self.a_labels = {vid:lab for vid, lab in adel_labels(g, scale = 5).iteritems() 
-                            if 'LeafElement' in lab}
-        v_length = g.property('visible_length')
-        labels = g.property('label')
-        geometries = g.property('geometry')
-        areas = g.property('area')
-        blades = [id for id,lb in labels.iteritems() if lb.startswith('blade') and v_length[id]>0]
-        for blade in blades:
-            id_list = [id for id in g.components(blade) if geometries.get(id) is not None 
-                                                        and areas.get(id) is not None
-                                                        and labels[id].startswith('LeafElement')]
-            if len(id_list)>0 and 'MS' in self.a_labels[id_list[0]]:
-                dict_lf = self.get_values_single_leaf(g = g, date = date, 
-                                                      degree_days = degree_days, 
-                                                      id_list = id_list)
-                indx = self.data[self.data['date'].isnull()].index[0]
-                self.data.loc[indx, :] = pandas.Series(dict_lf)
-                if len(self.data[self.data['date'].isnull()]) == 0.:
-                    df = pandas.DataFrame(data = [[np.nan for col in self.data.columns] 
-                                            for i in range(20000)], columns = self.data.columns)
-                    self.data = pandas.concat([self.data, df])
-                    self.data = self.data.reset_index(drop = True)
                 
-    def add_leaf_numbers(self):
-        self.data['axis'] = 'MS'
-        for pl in set(self.data['num_plant']):
-            df_ax = self.data[self.data['num_plant'] == pl]
-            fnl = df_ax['fnl'].max()
-            df_ax.loc[:, 'num_leaf_top'] = fnl - df_ax['num_leaf_bottom'] + 1
-            self.data.loc[df_ax.index, 'num_leaf_top'] = fnl - df_ax['num_leaf_bottom'] + 1
-            for date in set(df_ax['degree_days']):
-                df_date = df_ax[df_ax['degree_days'] == date]
-                current_max_bottom = df_date['num_leaf_bottom'].max()
-                cur_max_leaf_top = df_date['fnl'] - current_max_bottom + 1
-                self.data.loc[df_date.index, 'cur_max_leaf_top'] = cur_max_leaf_top
-                self.data.loc[df_date.index, 'cur_num_leaf_top'] = cur_max_leaf_top - df_date['num_leaf_top'] + 1
-    
     def leaf_senesced_area(self):
         self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
     
@@ -1011,9 +1061,6 @@ class AdelSeptoRecorder:
                     self.data.loc[ind_data_lf, 'audpc_'+variable] = 'audpc not available: leaf has not reached senescence or premature leaf death'
                     self.data.loc[ind_data_lf, 'normalized_audpc_'+variable] = 'audpc not available: leaf has not reached senescence or premature leaf death'
     
-    def add_variety(self, variety = None):
-        self.data['variety'] = variety
-    
     def post_treatment(self, variety = None):
         self.add_leaf_numbers()
         self.leaf_senesced_area()
@@ -1035,46 +1082,6 @@ class AdelSeptoRecorder:
             self.add_variety()
         self.data['axis'] = 'MS'
            
-    def save(self, filename):
-        self.post_treatment()
-        self.data.to_csv(filename, index = False)
-        
-def initiate_all_adel_septo_recorders(g, nsect=5, date_sequence = None, fungus_name = 'septoria'):
-    """ Used in the case of recording all blades of the main stem of each plant.
-    
-    Returns
-    -------
-    leaf_labels: dict('P1'=dict('F1'= recorder init with list of labels for leaf sectors,
-                                ...,
-                                'Fi'= recorder),
-                      ...,
-                      'Pn'=dict('F1' = recorder,
-                                ...,
-                                'Fi' = recorder))
-    
-    """
-    vids = adel_ids(g)
-    labels = g.property('label')
-    stems = [id for id,lb in labels.iteritems() if lb.startswith('MS')]
-    recorders = {}
-    ind_plant = 0
-    for st in stems:
-        ind_plant += 1
-        recorders['P%d' % ind_plant] = {}
-        nff = int(g.node(st).properties()['nff'])
-        ind_lf = nff+1
-        for leaf in range(1, nff+1):
-            ind_lf -= 1
-            lf_labels = ['plant%d_MS_metamer%d_blade_LeafElement%d' % (ind_plant, leaf, sect) for sect in range(1, nsect+1)]
-            recorders['P%d' % ind_plant]['F%d' % ind_lf] = AdelSeptoRecorder(adel_labels = lf_labels, 
-                                                                             date_sequence = date_sequence,
-                                                                             fungus_name = fungus_name)
-            recorders['P%d' % ind_plant]['F%d' % ind_lf].update_vids_with_labels(vids)
-    return recorders
-        
-def num_leaf_to_str(num_leaves=range(1,5)):
-    return ['F%d' % lf for lf in num_leaves]
-    
 def get_recorder(*filenames):
     recorder = []
     for file in filenames:
@@ -1083,132 +1090,22 @@ def get_recorder(*filenames):
         f_rec.close()
     return recorder if len(recorder)>1 else recorder[0]
 
-def recorder_to_dataframe(recorder, weather = None, adel = None, skipna = True):
-    """ Translate recorder object in DataFrame with the same format as disease notations """
-    from alinea.astk.Weather import Weather
-    from alinea.echap.disease.septo_data_reader import table_count_notations
-    recos = []
-    for pl, rec_pl in recorder.iteritems():
-        for lf, rec_lf in rec_pl.iteritems():
-            rec_lf.data['plant'] = int(pl[1:])
-            rec_lf.data['num_leaf_top'] = int(lf[1:])
-            rec_lf.data['num_leaf_bottom'] = len(rec_pl) - int(lf[1:]) + 1
-            rec_lf.data['variety'] = 'tremie'
-            rec_lf.data = rec_lf.data.rename(columns = {'date_sequence':'datetime'})
-            # Temp : to move in disease outputs
-            rec_lf.data['pycnidia_coverage'] = (rec_lf.data['ratio_spo'] + rec_lf.data['ratio_empty'])*100
-            rec_lf.data['pycnidia_coverage_on_green'] = (rec_lf.data['ratio_spo'] + rec_lf.data['ratio_empty'])*100
-            # rec_lf.get_normalized_audpc()
-            # rec_lf.data['audpc'] = rec_lf.normalized_audpc
-            recos.append(rec_lf.data)
-    data_sim = pandas.concat(recos)
-    data_sim.index.name = 'datetime'
-    
-    # Convert ratios in percentage
-    list_of_ratios = [var for var in data_sim.columns if var.startswith('ratio')]+['severity', 'necrosis_percentage']
-    data_sim[list_of_ratios] = data_sim[list_of_ratios].apply(lambda x: x*100.)
-    
-    # Add leaf dates
-    if weather is not None:
-        filename = find_dates_filename(weather)
-        data_sim = add_leaf_dates_to_data(data_sim, adel, filename = filename)
-    else:
-        weather = Weather()
-        weather.data = pandas.DataFrame(data = recorder['P1']['F1'].data.degree_days,
-                                        index = recorder['P1']['F1'].data.index)
-    
-    # Ignore data from dates with dead leaves in each layer
-    if skipna == True:
-        df_count = table_count_notations(data_sim, weather, variable = 'severity', add_ddays = True)
-        for lf in df_count.columns:
-            df_lf = df_count[lf][map(lambda x: isinstance(x, (numpy.int64, int, float)), 
-                                    df_count[lf])]
-            nan_dates = df_lf[df_lf<df_lf.max()].reset_index().loc[:,'Date']
-            if len(nan_dates)>0:
-                for variable in data_sim.columns:
-                    if variable not in ['datetime', 'degree_days', 'date_death',
-                                        'variety', 'plant', 'num_leaf_top', 'num_leaf_bottom']:
-                        data_sim[variable][(data_sim['num_leaf_top']==lf) & 
-                                (data_sim.index.isin([d for d in nan_dates]))] = np.nan
-    return data_sim
-    
-def split_recorder_by_fnl(recorder):
-    fnls = set(len(v) for v in recorder.itervalues())
-    recorders = {}
-    for fnl in fnls:
-        recorders[fnl] = {k:v for k,v in recorder.iteritems() if len(v)==fnl}
-    return recorders
-    
-def renumber_recorder_from_bottom(recorder):
-    bottomed_reco = {}
-    for k, v in recorder.iteritems():
-        fnl = len(v)
-        bottomed_reco[k] = {}
-        for kk, vv in v.iteritems():
-            num_lf_top = int(''.join(x for x in kk if x.isdigit()))
-            num_lf_bottom = fnl - num_lf_top + 1
-            bottomed_reco[k]['F%d' % num_lf_bottom] = vv
-    return bottomed_reco
-    
-def mean_by_leaf(recorder, variable='necrosis_percentage', skipna = False):
-    ddays = max(recorder.values()[0].values(), key= lambda x: len(x.data.degree_days)).data.degree_days
-    leaves = ['F%d' % leaf for leaf in range(1, max(len(v) for v in recorder.itervalues())+1)]
-    df_mean_by_leaf = pandas.DataFrame(data={lf:[numpy.nan for i in range(len(ddays))] for lf in leaves}, 
-                                        index = ddays, columns = leaves)
-    dfs = []
-    for lf in leaves:
-        df_leaf = pandas.concat([v[lf].data[variable] for v in recorder.itervalues() if lf in v], axis=1)
-        dfs.append(df_leaf)
-        df_mean_by_leaf[:ddays[len(df_leaf)-1]][lf] = df_leaf.mean(axis=1, skipna = skipna).values
-    return df_mean_by_leaf
-
-def mean_audpc_by_leaf(recorder, variable = 'necrosis_percentage', normalized=True):
-    def try_get(x, lf):
-        try:
-            if normalized==True:
-                try:
-                    return float(recorder[x][lf].normalized_audpc)
-                except:
-                    return float(recorder[x][lf].get_normalized_audpc(variable = variable))
-            else:
-                try:
-                    return float(recorder[x][lf].audpc)
-                except:
-                    return float(recorder[x][lf].get_audpc(variable = variable))
-        except:
-            return np.nan
-            
-    df_mean_by_leaf = pandas.DataFrame()
-    plants = recorder.keys()
-    for leaf in range(1, max(len(v) for v in recorder.itervalues())+1):
-        lf = 'F%d' % leaf
-        df_mean_by_leaf[lf] = map(lambda x: try_get(x, lf), plants)
-    return df_mean_by_leaf.mean()
-    
-def glue_df_means(df_means, nb_rep=5):
-    glued = pandas.concat(df_means, axis=1, keys=range(nb_rep))
-    glued.swaplevel(0, 1, axis=1).sortlevel(axis=1)
-    return glued.groupby(level=1, axis=1).mean()
-    
-def get_mean_by_leaf(variable='necrosis_percentage', *recorders):
-    if len(recorders)==1:
-        return mean_by_leaf(recorders[0], variable=variable)
-    else:
-        df_means = [mean_by_leaf(reco, variable=variable) for reco in recorders]
-        return glue_df_means(df_means, len(recorders))
-
 ###############################################################################
-class BrownRustRecorder:
+class BrownRustRecorder(AdelWheatRecorder):
     """ Record simulation output on every leaf of main stems in a dataframe during simulation """
-    def __init__(self, group_dus = True, fungus_name = 'brown_rust'):
-        self.fungus_name = fungus_name
-        self.group_dus = group_dus
+    def __init__(self, group_dus = True, 
+                 fungus_name = 'brown_rust', 
+                 increment = 1000):
+        super(BrownRustRecorder, self).__init__(group_dus = group_dus, 
+                                                fungus_name = fungus_name,
+                                                increment = increment)
         columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 'leaf_area', 
                    'leaf_green_area', 'leaf_length', 'leaf_senesced_length', 'fnl', 
                    'nb_dispersal_units', 'nb_lesions',
                    'surface_sink', 'surface_chlo', 'surface_spo', 
                    'surface_empty', 'surface_dead']
-        self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(1000)], 
+        self.data = pandas.DataFrame(data = [[np.nan for col in columns] 
+                                     for i in range(self.increment)],
                                      columns = columns)
     
     def get_values_single_leaf(self, g, date, degree_days, id_list):
@@ -1271,64 +1168,140 @@ class BrownRustRecorder:
         dict_lf['surface_empty'] = surface_empty
         dict_lf['surface_dead'] = surface_dead
         return dict_lf
-        
-    def record(self, g, date = None, degree_days = None):
-        self.a_labels = {vid:lab for vid, lab in adel_labels(g, scale = 5).iteritems() 
-                            if 'LeafElement' in lab}
-        v_length = g.property('visible_length')
-        labels = g.property('label')
-        geometries = g.property('geometry')
-        areas = g.property('area')
-        blades = [id for id,lb in labels.iteritems() if lb.startswith('blade') and v_length[id]>0]
-        for blade in blades:
-            id_list = [id for id in g.components(blade) if geometries.get(id) is not None 
-                                                        and areas.get(id) is not None
-                                                        and labels[id].startswith('LeafElement')]
-            if len(id_list)>0 and 'MS' in self.a_labels[id_list[0]]:
-                dict_lf = self.get_values_single_leaf(g = g, date = date, 
-                                                      degree_days = degree_days, 
-                                                      id_list = id_list)
-                indx = self.data[self.data['date'].isnull()].index[0]
-                self.data.loc[indx, :] = pandas.Series(dict_lf)
-                if len(self.data[self.data['date'].isnull()]) == 0.:
-                    df = pandas.DataFrame(data = [[np.nan for col in self.data.columns] 
-                                            for i in range(20000)], columns = self.data.columns)
-                    self.data = pandas.concat([self.data, df])
-                    self.data = self.data.reset_index(drop = True)
-                
-    def add_leaf_numbers(self):
-        self.data['axis'] = 'MS'
-        for pl in set(self.data['num_plant']):
-            df_ax = self.data[self.data['num_plant'] == pl]
-            fnl = df_ax['fnl'].max()
-            df_ax.loc[:, 'num_leaf_top'] = fnl - df_ax['num_leaf_bottom'] + 1
-            self.data.loc[df_ax.index, 'num_leaf_top'] = fnl - df_ax['num_leaf_bottom'] + 1
-            for date in set(df_ax['degree_days']):
-                df_date = df_ax[df_ax['degree_days'] == date]
-                current_max_bottom = df_date['num_leaf_bottom'].max()
-                cur_max_leaf_top = df_date['fnl'] - current_max_bottom + 1
-                self.data.loc[df_date.index, 'cur_max_leaf_top'] = cur_max_leaf_top
-                self.data.loc[df_date.index, 'cur_num_leaf_top'] = cur_max_leaf_top - df_date['num_leaf_top'] + 1
     
     def leaf_senesced_area(self):
         self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
     
     def leaf_disease_area(self):
-        self.data['leaf_disease_area'] = self.data['surface_sink'] + self.data['surface_chlo'] + self.data['surface_spo'] + self.data['surface_empty'] + self.data['surface_dead']
+        self.data['leaf_disease_area'] = self.data['surface_sink'] + \
+                                         self.data['surface_chlo'] + \
+                                         self.data['surface_spo'] + \
+                                         self.data['surface_empty'] + \
+                                         self.data['surface_dead']
 
     def surface_alive(self):
-        self.data['surface_alive'] = self.data['surface_sink'] + self.data['surface_chlo'] +  self.data['surface_spo'] + self.data['surface_empty']
+        self.data['surface_alive'] = self.data['surface_sink'] + \
+                                         self.data['surface_chlo'] + \
+                                         self.data['surface_spo'] + \
+                                         self.data['surface_empty']
+
+    def add_max_leaf_green_area(self):
+        for ind in self.data.index:
+            df = self.data[(self.data['num_plant']==self.data['num_plant'][ind]) & \
+                            (self.data['num_leaf_bottom']==self.data['num_leaf_bottom'][ind])]
+            self.data.loc[ind,'max_leaf_green_area'] = df['leaf_green_area'].max()
+            
+    def get_ratio(self, variable='surface_alive'):
+        output = []
+        df = self.data
+        for ind in df.index:
+#            if (round(df['leaf_green_area'][ind], 16)==0. or 
+#               (df['leaf_senesced_area'][ind]> 0. and
+#                df['leaf_green_area'][ind]<0.3*df['max_leaf_green_area'][ind])):
+            if round(df['leaf_green_area'][ind], 16)==0.:
+                output.append(np.nan)
+            else:
+                output.append(self.data[variable][ind]/self.data['leaf_green_area'][ind])
+        return output
 
     def ratios(self):
-        self.data['ratio_sink'] = [self.data['surface_sink'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_chlo'] = [self.data['surface_chlo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_spo'] = [self.data['surface_spo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_empty'] = [self.data['surface_empty'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        if not 'max_leaf_green_area' in self.data.columns:
+            self.add_max_leaf_green_area()
+        self.data['ratio_sink'] = self.get_ratio(variable='surface_sink')
+        self.data['ratio_chlo'] = self.get_ratio(variable='surface_chlo')
+        self.data['ratio_spo'] = self.get_ratio(variable='surface_spo')
+        self.data['ratio_empty'] = self.get_ratio(variable='surface_empty')
+
+    def severity(self):
+        if not 'leaf_disease_area' in self.data:
+            self.leaf_disease_area()
+        if not 'max_leaf_green_area' in self.data.columns:
+            self.add_max_leaf_green_area()
+        self.data['severity'] = self.get_ratio(variable='surface_alive')
+
+    def add_variety(self, variety = None):
+        self.data['variety'] = variety
+    
+    def post_treatment(self, variety = None):
+        self.data = self.data[~pandas.isnull(self.data['date'])]
+        self.add_leaf_numbers()
+        self.leaf_senesced_area()
+        self.leaf_disease_area()
+        self.surface_alive()
+        self.ratios()
+        self.severity()
+        if variety is not None:
+            self.add_variety(variety=variety)
+        self.data['axis'] = 'MS'
+
+def get_data_without_death(data, num_leaf = 'num_leaf_bottom'):
+    datas = []
+    for lf in set(data[num_leaf]):
+        df = data[data[num_leaf] == lf]
+        df_count = df.groupby('degree_days').count()
+        last_date = df_count[df_count['num_plant'] == max(df_count['num_plant'])].index[-1]
+        datas.append(df[df['degree_days']<=last_date])
+    return pandas.concat(datas)
+    
+###############################################################################
+class SeptoRustRecorder:
+    """ Record simulation output on every leaf of main stems in a dataframe 
+        during simulation of septoria and brown rust coupled epidemics """
+    def __init__(self, group_dus = True, 
+                 increment = 1000):
+        super(AdelSeptoRecorder, self).__init__(group_dus = group_dus, 
+                                                increment = increment)
+        columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 
+                   'fnl', 'leaf_area', 'leaf_green_area', 
+                   'surface_septo', 'surface_rust']
+        self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(1000)], 
+                                     columns = columns)
+    
+    def get_values_single_leaf(self, g, date, degree_days, id_list):
+        dict_lf = {}
+        dict_lf['date'] = date
+        dict_lf['degree_days'] = degree_days
+        
+        # Update leaf properties
+        areas = g.property('area')
+        green_areas = g.property('green_area')
+        fnls = g.property('nff')
+        a_label_splitted = self.a_labels[id_list[0]].split('_')
+        dict_lf['num_plant'] = int(a_label_splitted[0].split('plant')[1])
+        dict_lf['num_leaf_bottom'] = int(a_label_splitted[2].split('metamer')[1])
+        dict_lf['leaf_area'] = sum([areas[id] for id in id_list])
+        dict_lf['leaf_green_area'] = sum([green_areas[id] for id in id_list])
+        dict_lf['fnl'] =  fnls[g.complex_at_scale(id_list[0], 2)]
+
+        # Update properties of dispersal units and lesions
+        surface_septo = 0.
+        surface_rust = 0.
+        
+        for id in id_list:
+            leaf = g.node(id)
+            if 'lesions' in leaf.properties():
+                for les in leaf.lesions:
+                    if les.fungus.name == 'septoria':
+                        surface_septo += les.surface
+                    elif les.fungus.name == 'brown_rust':
+                        surface_rust += les.surface
+        
+        dict_lf['surface_septo'] = surface_septo
+        dict_lf['surface_rust'] = surface_rust
+        return dict_lf
+    
+    def leaf_senesced_area(self):
+        self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
+    
+    def leaf_disease_area(self):
+        self.data['leaf_disease_area'] = self.data['surface_septo'] + self.data['surface_rust']
 
     def severity(self):
         if not 'leaf_disease_area' in self.data:
             self.leaf_disease_area()
         self.data['severity'] = [self.data['leaf_disease_area'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['severity_septo'] = [self.data['surface_septo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['severity_rust'] = [self.data['surface_rust'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
 
     def add_variety(self, variety = None):
         self.data['variety'] = variety
@@ -1339,26 +1312,10 @@ class BrownRustRecorder:
         self.add_leaf_numbers()
         self.leaf_senesced_area()
         self.leaf_disease_area()
-        self.surface_alive()
-        self.ratios()
         self.severity()
         if variety is not None:
             self.add_variety()
         self.data['axis'] = 'MS'
-
-           
-    def save(self, filename):
-        self.post_treatment()
-        self.data.to_csv(filename, index = False)
-   
-def get_data_without_death(data, num_leaf = 'num_leaf_bottom'):
-    datas = []
-    for lf in set(data[num_leaf]):
-        df = data[data[num_leaf] == lf]
-        df_count = df.groupby('degree_days').count()
-        last_date = df_count[df_count['num_plant'] == max(df_count['num_plant'])].index[-1]
-        datas.append(df[df['degree_days']<=last_date])
-    return pandas.concat(datas)
     
 # Plotting ####################################################################
 import matplotlib.pyplot as plt

@@ -14,23 +14,17 @@ class DispersalUnit(object):
     
     """
     # fungus = None
-    def __init__(self, position=None, mutable=False):
+    def __init__(self, mutable=False):
         """ Initialize the dispersal unit.
         
         Parameters
         ----------
-        position: non defined
-            Position of the dispersal unit on the phyto-element
-
         
-        Returns
-        -------
-            None
         """
         self.mutable = mutable
-        self.position = position
         self.is_active = True
         self.status = 'emitted'
+        self.nb_dispersal_units = 1
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
     
@@ -46,10 +40,20 @@ class DispersalUnit(object):
         
         Parameters
         ----------
-        position: list
+        position: (x,y)
             Position of the DU.
         """
         self.position = position
+        
+    def set_nb_dispersal_units(self, nb_dispersal_units=1):
+        """ Set the number of DUs in cohort to number given in argument.
+        
+        Parameters
+        ----------
+        nb_dispersal_units: int
+            Number of dispersal_units in the cohort
+        """
+        self.nb_dispersal_units = nb_dispersal_units
     
     def infect(self, leaf=None):
         self.create_lesion(leaf)
@@ -127,40 +131,21 @@ class Lesion(object):
         self.is_senescent = False
         # Position of the lesion
         self.position = None
+        # Capacity to differ from other lesions of same Fungus
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
         
-    def update(self, dt, leaf):
+    def update(self, dt, leaf, growth_rate=1e-4):
         pass
     
-    def is_sporulating(self):
-        """Filter used by emission model to filter input lesion (default true, ie noFilter) """
-        return True
-    
-    def emission(self, emission_rate = 1e4):
-        """ This method simulates the biological regulation of spore emission. Not generic
-        
-        Parameters to this function generaly are expressed as a climatic-dependant potential rate of emmission
-        """
-        nb_dus = int(emission_rate * self.fungus.length_unit**2)
-        
-        return self.create_dispersal_units(nb_dus)
+    def emission(self):
+        pass
     
     def senescence_response(self, **kwds):
         pass
         
     def control_growth(self, growth_offer=0.):
-        pass
-        
-    def become_senescent(self):
-        """ The lesion will become senescent during this time step.
-        """
-        self.is_senescent = True    
-    
-    def create_dispersal_units(self, nb_dus=1):
-        """ Generic method to create new dispersal units.
-        """
-        return [self.fungus.dispersal_unit(mutable = self.mutable) for i in range(int(nb_dus))]
+        pass        
         
     def disable_growth(self):
         """ Shut down lesion growth activity (turn it to False)
@@ -189,7 +174,10 @@ class Lesion(object):
         
     def set_position(self, position):
         self.position = position
-        
+    
+    def become_senescent(self):
+        self.is_senescent = True
+
 
 # Fungus Parameters (e.g. .ini): config of the fungus ####################################
 #class Parameters(object):
@@ -212,7 +200,10 @@ class Lesion(object):
             
 class Fungus(object):
     
-    def __init__(self, name='template', Lesion=Lesion, DispersalUnit = DispersalUnit, parameters = {}, length_unit = 0.01):
+    def __init__(self, name='template', Lesion=Lesion,
+                 DispersalUnit = DispersalUnit, 
+                 parameters = {'name':'template', 'group_dus':'False'},
+                 length_unit = 0.01):
         self.name = name
         self.length_unit = length_unit
         self.Lesion_class = Lesion

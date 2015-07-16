@@ -185,54 +185,76 @@ class GeometricCircleCompetition:
         else:
             return 0.
         
+    def manage_senescence_border(self, leaf, r, lesions, 
+                                 senesced_lengths, lengths):
+        s_ls = [senesced_lengths[lf] for lf in leaf]
+        s_l = sum(s_ls)
+        t_ls = [lengths[lf] for lf in leaf]
+        t_l = sum(t_ls)
+        new_length = t_l - r*(t_l - s_l)
+        idx = -1
+        while new_length > 0:
+            n_l = min(t_ls[idx],new_length)
+            s_ls[idx] = n_l
+            new_length -= n_l
+            idx -= 1
+        senesced_lengths.update({lf:s_ls[i] for i,lf in enumerate(leaf)})
+        for lf in leaf:
+            for l in lesions[lf]:
+                l.senescence_response(senesced_length=senesced_lengths[lf])
+    
     def control(self, g, label='LeafElement'):
         """ Limit lesion growth to healthy area on leaves and simulate 
             congestion between circular lesions.
         """       
         lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
-        areas = g.property('area')
         green_areas = g.property('green_area')
         geom = g.property('geometry')
         labels = g.property('label')
-        potential_lesion_areas = g.property('potential_lesion_area')
+        lengths = g.property('length')
+        senesced_lengths = g.property('senesced_length')
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) 
                     if labels[vid].startswith(label) and vid in geom]
-
-            # Save potential lesion area (same on all vids of leaf)            
-            pots = list(set(potential_lesion_areas.keys()) & set(leaf))
-            if len(pots)>0:
-                potential_lesion_area = potential_lesion_areas[pots[0]]
-            else:
-                potential_lesion_area = 0.
-                
             if len(leaf) > 0:
-                leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], [])
-                nb_lesions = sum([les.nb_lesions for les in leaf_lesions])
+                leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], [])              
+                nb_lesions = sum([les.nb_lesions_non_sen for les in leaf_lesions])
                 if nb_lesions>0.:
-                    les_surf = sum([les.surface for les in leaf_lesions])
-                    total_demand = sum(l.growth_demand for l in leaf_lesions)
-                    leaf_area = sum([areas[lf] for lf in leaf])
+                    pot_les_surf = 0.
+                    les_surf_non_sen = 0.
+                    total_demand = 0.
+                    for les in leaf_lesions:
+                        pot_les_surf += les.potential_surface
+                        les_surf_non_sen += les.surface_non_senescent
+                        total_demand += les.growth_demand
                     leaf_green_area = sum([green_areas[lf] for lf in leaf])
-                    ratio_green = min(1., leaf_green_area/leaf_area) if leaf_area>0. else 0.
-                    nb_les_on_green = float(nb_lesions) * ratio_green
-                   
-                    potential_lesion_area += total_demand
-                    true_area = self.true_area_impacted(nb_les_on_green, 
-                                                        leaf_green_area, 
-                                                        potential_lesion_area*ratio_green/nb_les_on_green)
+                    if round(les_surf_non_sen,16) < round(leaf_green_area, 16):
+                        true_area = self.true_area_impacted(nb_lesions, 
+                                                            leaf_green_area, 
+                                                            pot_les_surf/nb_lesions)
 
-                    offer = true_area - les_surf
+                        offer = true_area - les_surf_non_sen
+                    else:
+                        offer = 0
+                        r = leaf_green_area / les_surf_non_sen
+                        if round(r,14) < 1:
+                            self.manage_senescence_border(leaf, r, lesions,
+                                                          senesced_lengths,
+                                                          lengths)
 
-                    for l in leaf_lesions:
-                        growth_offer = l.growth_demand * offer/total_demand if total_demand>0. else 0.
-                        l.control_growth(growth_offer = growth_offer)
-                
-                potential_lesion_areas.update({vid:potential_lesion_area for vid in leaf})
+                    if offer > 0:
+                        for l in leaf_lesions:
+                            growth_offer = l.growth_demand * offer/total_demand if total_demand>0. else 0.
+                            l.control_growth(growth_offer = growth_offer)
+                    else:
+                        for l in leaf_lesions:
+                            growth_offer = offer*les.nb_lesions_non_sen/nb_lesions
+                            l.control_growth(growth_offer = growth_offer)
+
+                    
                 
 # Growth control between 2 diseases ###########################################
-import random as rd
 class SeptoRustCompetition:
     """ Class that control growth of lesions of brown rust and septoria in
         competition. 
@@ -241,90 +263,101 @@ class SeptoRustCompetition:
         self.SeptoModel = SeptoModel
         self.RustModel = RustModel
         
+    def true_area_impacted(self, nb_lesions, available_area, mean_lesion_size):
+        if available_area>0.:
+            return available_area*(1-np.minimum(1.,np.exp(-nb_lesions*mean_lesion_size/available_area)))
+        else:
+            return 0.
+    
+    def manage_senescence_border(self, leaf, r, lesions, 
+                                 senesced_lengths, lengths):
+        s_ls = [senesced_lengths[lf] for lf in leaf]
+        s_l = sum(s_ls)
+        t_ls = [lengths[lf] for lf in leaf]
+        t_l = sum(t_ls)
+        new_length = t_l - r*(t_l - s_l)
+        idx = -1
+        while new_length > 0:
+            n_l = min(t_ls[idx],new_length)
+            s_ls[idx] = n_l
+            new_length -= n_l
+            idx -= 1
+        senesced_lengths.update({lf:s_ls[i] for i,lf in enumerate(leaf)})
+        for lf in leaf:
+            for l in lesions[lf]:
+                l.senescence_response(senesced_length=senesced_lengths[lf])
+    
     def control(self, g, label = 'LeafElement'):
         lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
         areas = g.property('area')
         green_areas = g.property('green_area')
         labels = g.property('label')
         geom = g.property('geometry')
-        # Select all the leaves
+        lengths = g.property('length')
+        senesced_lengths = g.property('senesced_length')
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) 
                     if labels[vid].startswith(label) and vid in geom]
-            if len(leaf) > 0.:
-                area = sum([areas[lf] for lf in leaf])
-                green_area = sum([green_areas[lf] for lf in leaf])
+            if len(leaf) > 0:
                 leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], [])
-                
-                # Separate lesions in two groups according to priority level
+                leaf_area = sum([areas[lf] for lf in leaf])
+                leaf_green_area = sum([green_areas[lf] for lf in leaf])
+                ratio_green = min(1., leaf_green_area/leaf_area) if leaf_area>0. else 0.
+                s_prio = 0.
+                s_non_prio = 0.
+                s_pot_prio = 0.
+                s_pot_non_prio = 0.
+                demand_prio = 0.
+                demand_non_prio = 0.
+                true_area_prio = 0.
                 prio_les = []
-                other_les = []
+                non_prio_les = []
                 for l in leaf_lesions:
                     if isinstance(l, self.SeptoModel) and l.status >= l.fungus.CHLOROTIC:
+                        s_prio += l.surface_non_senescent
+                        s_pot_prio += l.potential_surface
                         prio_les.append(l)
+                        demand_prio += l.growth_demand
                     else:
-                        other_les.append(l)
-
-                # Grow prioritary lesions over other ones
+                        s_non_prio += l.surface_non_senescent
+                        s_pot_non_prio += l.potential_surface
+                        non_prio_les.append(l)
+                        demand_non_prio += l.growth_demand                    
+                                
                 if len(prio_les)>0:
-                    s_full = sum([l.surface for l in prio_les])
-                    offer_prio = max(green_area - s_full*green_area/area, 0)
-                    demand_prio = sum(l.growth_demand for l in prio_les)
-                    ratio = demand_prio/offer_prio if offer_prio > 0. else 0.
-                    if ratio < 1 and ratio > 0:
-                        # Surface is not limiting for prioritary lesions
-                        demand_others = 0.
-                        s_others = 0.
-                        # Remove some other lesions that are overgrown
-                        nb_dead = int(round(len(other_les)*ratio))
-                        deads = rd.sample(other_les, nb_dead)
+                    nb_prio_on_green =  len(prio_les) * ratio_green
+                    if round(s_prio, 16) < round(leaf_green_area, 16):
+                        true_area_prio = self.true_area_impacted(nb_prio_on_green,
+                                                                 leaf_green_area,
+                                                                 s_pot_prio/len(prio_les))  
+                        offer_prio = true_area_prio - s_prio
+                    else:
+                        offer_prio = 0.
+                        r = leaf_green_area / s_prio
+                        if round(r,14) < 1:
+                            self.manage_senescence_border(leaf, r, lesions,
+                                                          senesced_lengths,
+                                                          lengths)
+                    for l in prio_les:
+                        offer_lesion = l.growth_demand*offer_prio/demand_prio if demand_prio>0. else 0.
+                        l.control_growth(offer_lesion)
+                else:
+                    offer_prio = 0.
+
+                if len(non_prio_les)>0:
+                    nb_les = len(non_prio_les) + len(prio_les)
+                    nb_les_on_green = nb_les * ratio_green
+                    s_pot = s_pot_non_prio + s_pot_prio
+                    true_area_non_prio = self.true_area_impacted(nb_les_on_green,
+                                                                 leaf_green_area, 
+                                                                 s_pot/nb_les)
+                    offer_non_prio = true_area_non_prio - s_non_prio - true_area_prio
+                    if round(s_prio, 16) < round(leaf_green_area, 16):
                         import pdb
-                        pdb.set_trace()                        
-                        for l in deads:
-                            l.disappear()
-                            other_les.remove(l)
-                        for l in other_les:
-                            demand_others += l.growth_demand
-                            s_others += l.surface
-                        
-#                        for l in other_les:
-#                            if np.random.random() < ratio:
-#                                l.disappear()
-#                                other_les.remove(l)
-#                            else:
-#                                demand_others += l.growth_demand
-#                                s_others += l.surface
-                        # All prioritary lesions can grow as expected
-                        for l in prio_les:
-                            l.control_growth(l.growth_demand)
-                        offer_others = green_area - s_others*green_area/area - demand_prio
-                    else:
-                        # Space is limiting already for prioritary lesions
-                        # Grow over all others and share space left
-                        for l in other_les:
-                            l.disappear()
-                        offer_each = offer_prio / len(prio_les)
-                        for l in prio_les:
-                            l.control_growth(offer_each)
-                        other_les = []
-                else:                   
-                    demand_others = sum(l.growth_demand for l in other_les)
-                    s_others = sum([l.surface for l in other_les])
-                    offer_others = green_area - s_others*green_area/area
-                
-                # Distribute surface left for other lesions with lower
-                # level of priority
-                if len(other_les)>0.:                
-                    if demand_others < offer_others:
-                        for l in other_les:
-                            l.control_growth(l.growth_demand)
-                    else:
-                        offer_each = offer_others / len(other_les)
-                        for l in other_les:
-                            l.control_growth(offer_each)
-#                        
-#                import pdb
-#                pdb.set_trace()
-#                
+                        pdb.set_trace()
+                    for l in non_prio_les:
+                        offer_lesion = l.growth_demand * offer_non_prio/demand_non_prio if demand_non_prio>0. else 0.
+                        l.control_growth(offer_lesion)
+
                 

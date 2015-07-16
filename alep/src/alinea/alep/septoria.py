@@ -14,7 +14,7 @@ except ImportError:
     from openalea.core import plugin
 
 from random import random
-# import numpy as np
+import numpy as np
 
 # Dispersal unit #############################################################
 class SeptoriaDU(DispersalUnit):
@@ -37,36 +37,9 @@ class SeptoriaDU(DispersalUnit):
         super(SeptoriaDU, self).__init__(mutable=mutable)
         self.cumul_wetness = 0.
         self.cumul_loss_rate = 0.
-        self.dry_dt = -1.
+        self.dry_dt = -1.     
         # Temp
         self.nb_spores = 10.
-        
-    
-    def create_lesion(self, leaf=None):
-        """ Create a new lesion of fungus, set position, set number of spores and disable dispersal unit.
-        
-        Parameters
-        ----------
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. area, green area, healthy area,
-            senescence, rain intensity, wetness, temperature, lesions)
-        
-        Returns
-        -------
-            None
-        
-        """
-        les = self.fungus.lesion(mutable = self.mutable)
-        les.set_position(self.position)
-        if leaf is None:
-            self.disable()
-            return les
-        else:
-            try:
-                leaf.lesions.append(les)
-            except:
-                leaf.lesions = [les]
-            self.disable()
                 
     def infect(self, dt = 1, leaf = None, **kwds):
         """ Compute infection by the dispersal unit of Septoria.
@@ -83,11 +56,9 @@ class SeptoriaDU(DispersalUnit):
         -------
             None
         """
-        if self.fungus.group_dus == True:
-            self.position = filter(lambda x: x[0]>leaf.senesced_length, self.position)
-        elif self.position[0][0] <= leaf.senesced_length:
+        f = self.fungus
+        if leaf.green_area == 0.:
             self.disable()
-            return
 
         if self.nb_dispersal_units == 0. or self.nb_spores == 0.:
             self.disable()
@@ -100,28 +71,32 @@ class SeptoriaDU(DispersalUnit):
                 self.cumul_wetness += len(leaf_wet)
             else:
                 self.cumul_wetness = 0.
-                self.dry_dt = min(self.fungus.loss_delay-1, 
-                                    self.dry_dt + len(leaf_wet[leaf_wet==False]))
+                self.dry_dt = min(f.loss_delay-1, 
+                                  self.dry_dt + len(leaf_wet[leaf_wet==False]))
                     
             if self.cumul_wetness >= self.fungus.wd_min :                
-                # TODO : create a function of the number of spores            
-                proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
-                # Intrinsec proba of infection
-                proba_infection *= self.fungus.proba_inf
-                # Fongicide effect
-                #if 'global_efficacy' in leaf.properties():
-                #    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
-                if proba(proba_infection):
-                    self.create_lesion(leaf)
-                #else:
-                    # Todo: discuss this point
-                    # self.disable()
+                if temp<self.fungus.temp_min or temp>self.fungus.temp_max:
+                    proba_infection = 0.
+                else:
+                    proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
+                    # Intrinsec proba of infection
+                    proba_infection *= f.proba_inf
+                    # Fongicide effect
+                    #if 'global_efficacy' in leaf.properties():
+                    #    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
+                if f.group_dus:
+                    nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
+                    self.create_lesion(nb_les, leaf)                    
+                else:
+                    if proba(proba_infection):
+                        self.create_lesion(1, leaf)
+
             elif self.cumul_wetness == 0 :
-                loss_rate = 1./(self.fungus.loss_delay - self.dry_dt)
+                loss_rate = 1./(f.loss_delay - self.dry_dt)
                 # Proba conditionnelle doit se cumuler.
-                if self.fungus.group_dus:
-                    nb_disabled = sum([proba(loss_rate) for i in range(self.nb_dispersal_units)])
-                    self.position = self.position[nb_disabled:]
+                if f.group_dus:
+                    nb_dead = np.random.binomial(self.nb_dispersal_units, loss_rate)
+                    self.nb_dispersal_units -= nb_dead                
                     if self.nb_dispersal_units == 0.:
                         self.disable()
                         return
@@ -140,24 +115,43 @@ class SeptoriaDU(DispersalUnit):
         """
         self.nb_spores = nb_spores
         
-    def set_position(self, position=[0.,0.]):
-        """ Set position of each DU (list of positions if DUs are grouped in same cohort)  """
-        if not is_iterable(position[0]):
+    def set_position(self, position=None):
+        """ Set the position of the DU to position given in argument
+            (force iterable to manage cohorts)
+        """
+        if position is not None and len(position) > 0 and not is_iterable(position[0]):
             self.position = [position]
         else:
             self.position = position
+
+    def create_lesion(self, nb_lesions = 1, leaf = None, **kwds):
+        green_length = leaf.green_length
+        length = leaf.length
+        if green_length>0 and nb_lesions>0:        
+            les = self.fungus.lesion(mutable = self.mutable)
+            les.__dict__.update(kwds)
+            les.set_position([[length - np.random.random()*green_length, 0] 
+                                for i in range(nb_lesions)])
+            self.nb_dispersal_units -= nb_lesions
+            if leaf is None:
+                self.disable()
+                return les
+            else:
+                try:
+                    leaf.lesions.append(les)
+                except:
+                    leaf.lesions = [les]
+                if self.nb_dispersal_units == 0.:
+                    self.disable()
+                    return
+        else:
+            self.disable()
     
     def set_status(self, status = 'deposited'):
-        self.status = status  
-    
-    @property
-    def nb_dispersal_units(self):
-        if self.position is None:
-            return None
-        elif self.fungus.group_dus == True:
-            return len(self.position)
-        else:
-            return 1.
+        self.status = status
+        
+    def set_nb_dispersal_units(self, nb_dispersal_units = 1):
+        self.nb_dispersal_units = nb_dispersal_units
         
 # Fungus parameters (e.g. .ini): config of the fungus #############################
 septoria_parameters = dict(INCUBATING = 0,

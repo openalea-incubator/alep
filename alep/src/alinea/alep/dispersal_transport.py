@@ -416,14 +416,11 @@ class PowderyMildewWindDispersal:
         return deposits
         
 # Brown Rust wind dispersal (horizontal layers) ###############################
-from alinea.adel.mtg_interpreter import plot3d
 from openalea.plantgl import all as pgl
 from alinea.alep.architecture import get_leaves
+from alinea.alep.fungal_objects import Fungus
 from alinea.popdrops.alep_interface import compute_overlaying
-from alinea.caribu.caribu_star import caribu_rain_star
-from alinea.astk.plantgl_utils import get_lai
 import numpy as np
-from scipy.integrate import simps
         
 class BrownRustDispersal:
     import sys
@@ -431,13 +428,18 @@ class BrownRustDispersal:
 
     """ Calculate distribution of dispersal units in horizontal layers """
     def __init__(self, fungus = None,
+                 group_dus = False,
                  domain = None,
                  domain_area = 1.,
                  convUnit = 0.01,
                  layer_thickness = 1.,
                  k_dispersal = 0.07,
-                 k_beer = 0.5):
-        self.fungus = fungus
+                 k_beer = 0.5):             
+        if fungus is not None:
+            self.fungus = fungus
+        else:
+            self.fungus = Fungus()
+        self.group_dus = group_dus
         self.domain = domain
         self.domain_area = domain_area
         self.convUnit = convUnit
@@ -542,9 +544,16 @@ class BrownRustDispersal:
                                     deposits[lf] = depo
 
         for vid, nb_dus in deposits.iteritems():
-            du = self.fungus.dispersal_unit(nb_dispersal_units = nb_dus)
-            du.set_nb_dispersal_units(nb_dus)
-            deposits[vid] = [du]
+            if self.group_dus==True:
+                du = self.fungus.dispersal_unit()
+                du.set_nb_dispersal_units(nb_dispersal_units = nb_dus)
+                deposits[vid] = [du]
+            else:
+                dus = []
+                for d in nb_dus:
+                    du = self.fungus.dispersal_unit(1)
+                    dus.append(du)
+                deposits[vid] = dus
         return deposits
 
     def plot_layers(self, g):
