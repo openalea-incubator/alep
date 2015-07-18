@@ -1195,13 +1195,10 @@ class BrownRustRecorder(AdelWheatRecorder):
         output = []
         df = self.data
         for ind in df.index:
-#            if (round(df['leaf_green_area'][ind], 16)==0. or 
-#               (df['leaf_senesced_area'][ind]> 0. and
-#                df['leaf_green_area'][ind]<0.3*df['max_leaf_green_area'][ind])):
-            if round(df['leaf_green_area'][ind], 16)==0.:
-                output.append(np.nan)
+            if round(df['leaf_area'][ind], 16)>0.:
+                output.append(self.data[variable][ind]/self.data['leaf_area'][ind])
             else:
-                output.append(self.data[variable][ind]/self.data['leaf_green_area'][ind])
+                output.append(np.nan)
         return output
 
     def ratios(self):

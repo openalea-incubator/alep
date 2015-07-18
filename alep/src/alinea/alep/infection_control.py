@@ -4,9 +4,6 @@
 """
 
 # Imports #########################################################################
-import random
-from math import sqrt, pi
-from alinea.alep.disease_outputs import compute_severity_by_leaf
 
 # Random inoculation ##############################################################
 class BiotrophDUProbaModel:
@@ -23,6 +20,9 @@ class BiotrophDUProbaModel:
     The probability for it to be on a healthy tissue is computed with 
     the ratio between leaf healthy and total areas.
     """
+    def __init__(self, max_lesion_density=150):
+        self.max_lesion_density = max_lesion_density
+        
     def control(self, g, label='LeafElement'):
         """ Control if the dispersal units can infect at their current position.
         
@@ -56,11 +56,14 @@ class BiotrophDUProbaModel:
             leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], []) 
             les_surf = sum([les.surface for les in leaf_lesions])
             leaf_area = sum([areas[lf] for lf in leaf])
+            nb_lesions = sum([les.nb_lesions for les in leaf_lesions])
+            lesion_density = nb_lesions/leaf_area if leaf_area>0 else 0.
             leaf_green_area = sum([green_areas[lf] for lf in leaf])
             ratio_les_surface = min(1, round(les_surf,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
             ratio_green = min(1, round(leaf_green_area,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
             
-            if round(ratio_green*(1-ratio_les_surface), 10) == 0.:
+            if (round(ratio_green*(1-ratio_les_surface), 10) == 0. or 
+                lesion_density>=self.max_lesion_density):
                 for vid in set(leaf) & set(dispersal_units):
                     DUs[vid] = []
             else:
