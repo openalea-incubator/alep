@@ -27,4 +27,4 @@ def run_and_save_rust(variety='Tremie13',
                     str(year)+'_'+str(nb_pl)+'pl.csv'
         annual_loop_rust(variety=variety, year=year, sowing_date=sowing_date,
                           density_dispersal_units=density_dispersal_units,
-                          nb_plants=nb_pl, output_file=output_file)
+                          nplants=nb_pl, output_file=output_file)

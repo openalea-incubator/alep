@@ -261,11 +261,7 @@ class GeometricPoissonCompetition:
 class SeptoRustCompetition:
     """ Class that control growth of lesions of brown rust and septoria in
         competition. 
-    """
-    def __init__(self, SeptoModel, RustModel):
-        self.SeptoModel = SeptoModel
-        self.RustModel = RustModel
-        
+    """        
     def true_area_impacted(self, nb_lesions, available_area, mean_lesion_size):
         if available_area>0.:
             return available_area*(1-np.minimum(1.,np.exp(-nb_lesions*mean_lesion_size/available_area)))
@@ -322,7 +318,7 @@ class SeptoRustCompetition:
                 nb_prio = 0.
                 nb_non_prio = 0.
                 for l in leaf_lesions:
-                    if isinstance(l, self.SeptoModel) and l.status >= l.fungus.CHLOROTIC:
+                    if l.fungus.name=='septoria' and l.status >= l.fungus.CHLOROTIC:
                         s_prio += l.surface
                         s_prio_non_sen += l.surface_non_senescent
                         s_pot_prio += l.potential_surface
