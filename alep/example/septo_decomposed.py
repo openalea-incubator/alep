@@ -28,9 +28,10 @@ from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.disease_outputs import plot_severity_by_leaf, save_image, AdelSeptoRecorder
 from variable_septoria import *
 
-def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", variety='Mercia',
-            nplants = 30, nsect = 7, disc_level = 5, Tmin = 10., Tmax = 25., WDmin = 10., 
-            rain_min = 0.2, recording_delay = 24., reset_reconst = True):
+def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
+          end_date="2011-06-20 01:00:00", variety='Mercia',
+          nplants = 30, nsect = 7, disc_level = 5, Tmin = 10., Tmax = 25., WDmin = 10., 
+          rain_min = 0.2, recording_delay = 24., reset_reconst = True):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy
     it_wheat = 0
@@ -41,9 +42,11 @@ def setup(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00", vari
     g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True) 
             
     # Manage weather
-    weather = get_weather(start_date = start_date, end_date = end_date)
+    weather = get_weather(start_date = sowing_date, end_date = end_date)
     
     # Define the schedule of calls for each model
+    if start_date is None:
+        start_date = sowing_date
     seq = pandas.date_range(start = start_date, end = end_date, freq='H')
     TTmodel = DegreeDayModel(Tbase = 0)
     every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 20.)

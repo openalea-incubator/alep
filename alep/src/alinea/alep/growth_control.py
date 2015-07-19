@@ -310,6 +310,8 @@ class SeptoRustCompetition:
                 leaf_green_area = sum([green_areas[lf] for lf in leaf])
                 s_prio = 0.
                 s_non_prio = 0.
+                s_prio_non_sen = 0.
+                s_non_prio_non_sen = 0.
                 s_pot_prio = 0.
                 s_pot_non_prio = 0.
                 demand_prio = 0.
@@ -321,27 +323,29 @@ class SeptoRustCompetition:
                 nb_non_prio = 0.
                 for l in leaf_lesions:
                     if isinstance(l, self.SeptoModel) and l.status >= l.fungus.CHLOROTIC:
-                        s_prio += l.surface_non_senescent
+                        s_prio += l.surface
+                        s_prio_non_sen += l.surface_non_senescent
                         s_pot_prio += l.potential_surface
                         prio_les.append(l)
                         demand_prio += l.growth_demand
                         nb_prio += l.nb_lesions_non_sen
                     else:
-                        s_non_prio += l.surface_non_senescent
+                        s_non_prio += l.surface
+                        s_non_prio_non_sen += l.surface_non_senescent
                         s_pot_non_prio += l.potential_surface
                         non_prio_les.append(l)
                         demand_non_prio += l.growth_demand
                         nb_non_prio += l.nb_lesions_non_sen
                                 
                 if nb_prio>0:
-                    if round(s_prio, 16) < round(leaf_green_area, 16):
+                    if round(s_prio_non_sen, 16) < round(leaf_green_area, 16):
                         true_area_prio = self.true_area_impacted(nb_prio,
                                                                  leaf_green_area,
                                                                  s_pot_prio/nb_prio)  
-                        offer_prio = min(leaf_area-s_prio, true_area_prio - s_prio)
+                        offer_prio = min(leaf_area-s_prio, true_area_prio - s_prio_non_sen)
                     else:
                         offer_prio = 0.
-                        r = leaf_green_area / s_prio
+                        r = leaf_green_area / s_prio_non_sen
                         if round(r,14) < 1:
                             self.manage_senescence_border(leaf, r, lesions,
                                                           senesced_lengths,
@@ -355,18 +359,23 @@ class SeptoRustCompetition:
                             offer_lesion = offer_prio*l.nb_lesions_non_sen/nb_prio
                             l.control_growth(growth_offer=offer_lesion)
 
+
                 if nb_non_prio>0:
                     nb_les = nb_prio + nb_non_prio
                     s_pot = s_pot_non_prio + s_pot_prio
-                    if round(s_non_prio, 16) < round(leaf_green_area, 16):
+                    if round(s_non_prio_non_sen, 16) < round(leaf_green_area, 16):
                         true_area_non_prio = self.true_area_impacted(nb_les,
                                                                      leaf_green_area, 
                                                                      s_pot/nb_les)
                         offer_non_prio = min(leaf_area-s_prio-s_non_prio,
-                                             true_area_non_prio-s_non_prio-true_area_prio)
+                                             true_area_non_prio-s_non_prio_non_sen-true_area_prio)
                     else:
                         offer_non_prio = 0.
-                        r = leaf_green_area / s_non_prio
+                        r = leaf_green_area / s_non_prio_non_sen
+                        if round(r,14) < 1:
+                            self.manage_senescence_border(leaf, r, lesions,
+                                                          senesced_lengths,
+                                                          lengths)
 
                     if offer_non_prio>0:
                         for l in non_prio_les:
