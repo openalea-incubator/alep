@@ -255,11 +255,14 @@ class AirborneContamination:
         
         self.layers = layers
 
-    def emission(self, g, weather_data = None, density_dispersal_units = 0.):
-        return density_dispersal_units * self.domain_area
+    def emission(self, g, weather_data = None, 
+                 density_dispersal_units = 0., domain_area=None, **kwds):
+        if domain_area is None:
+            domain_area = self.domain_area
+        return density_dispersal_units * domain_area
     
     def contaminate(self, g, nb_dus = 0., weather_data = None,
-                    label='LeafElement'):
+                    label='LeafElement', domain_area=None, **kwds):
                         
         def sum_nb(nb_leaves, nb_du):
             if nb_leaves == 1:
@@ -275,6 +278,8 @@ class AirborneContamination:
                     nb_on_vid = 1 if np.random.random()<nb_du_sup else 0
                 return [nb_on_vid] + sum_nb(nb_leaves-1, nb_du - nb_on_vid)
         
+        if domain_area is None:
+            domain_area = self.domain_area
         areas = g.property('area')
         self.leaves_in_grid(g, label=label)
         deposits = {}
@@ -283,7 +288,7 @@ class AirborneContamination:
             if nb_dus > 0.:              
                 vids = self.layers[layer]
                 area_layer = sum([areas[vid] for vid in vids])
-                proba_du_layer = 1-np.exp(-self.k_beer*(area_layer*self.convUnit**2)/self.domain_area)
+                proba_du_layer = 1-np.exp(-self.k_beer*(area_layer*self.convUnit**2)/domain_area)
                 nb_dus_in_layer = np.random.binomial(nb_dus, proba_du_layer)
                 if len(vids)>0.:                    
                     distribution_by_leaf = sum_nb(len(vids), nb_dus_in_layer)

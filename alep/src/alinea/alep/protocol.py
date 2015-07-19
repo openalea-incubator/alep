@@ -34,7 +34,7 @@ def external_contamination(g,
     labels = g.property('label')
     if stock > 0:
         # Allocation of stock of inoculum
-        deposits = contamination_model.contaminate(g, stock, weather_data, label = label)
+        deposits = contamination_model.contaminate(g, stock, weather_data, label = label, **kwds)
         stock = 0 # stock has been used (avoid uncontrolled future re-use)
 
         # Allocation of new dispersal units
@@ -197,7 +197,7 @@ def update(g, dt,
         
         # 1. Compute growth demand
         for vid, les in lesions.iteritems():
-            lesions[vid] = [lesion for lesion in les if (lesion.surface>0. or lesion.growth_is_active)]
+#            lesions[vid] = [lesion for lesion in les if (lesion.surface>0. or lesion.growth_is_active)]
             # Update active lesions
             for lesion in lesions[vid]:
                 if lesion.is_active:
@@ -217,7 +217,8 @@ def disperse(g,
              transport_model=None,
              fungus_name='', 
              label="LeafElement",
-             weather_data=None):
+             weather_data=None,
+             **kwds):
     """ Disperse spores of the lesions of fungus identified by fungus_name.
         
     Parameters
@@ -261,18 +262,18 @@ def disperse(g,
     """
     # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
     if weather_data is None:
-        DU = emission_model.get_dispersal_units(g, fungus_name, label)
+        DU = emission_model.get_dispersal_units(g, fungus_name, label, **kwds)
     else: 
-        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data)
+        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data, **kwds)
     labels = g.property('label')
    
     # Transport of dispersal units
     if sum(DU.values())>0:
         # (C. Fournier, 22/11/2013 : keep compatibility with previous protocol and add a new one (used in septo3d/echap)
         if weather_data is not None:
-            deposits = transport_model.disperse(g, DU, weather_data)
+            deposits = transport_model.disperse(g, DU, weather_data, **kwds)
         else:
-            deposits = transport_model.disperse(g, DU) # update DU in g , change position, status 
+            deposits = transport_model.disperse(g, DU, **kwds) # update DU in g , change position, status 
             
         # Allocation of new dispersal units
         for vid, dlist in deposits.iteritems():

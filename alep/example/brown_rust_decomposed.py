@@ -22,7 +22,7 @@ from alinea.astk.TimeControl import (time_filter, IterWithDelays,
 # Imports for disease
 from alinea.alep.brown_rust import BrownRustFungus
 from alinea.alep.disease_outputs import BrownRustRecorder
-from alinea.alep.growth_control import GeometricCircleCompetition
+from alinea.alep.growth_control import GeometricPoissonCompetition
 from alinea.alep.inoculation import AirborneContamination
 from alinea.alep.protocol import infect, update, disperse, external_contamination
 from alinea.alep.infection_control import BiotrophDUProbaModel
@@ -65,14 +65,13 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
         recorder = BrownRustRecorder()
     else:
         recorder = None
-    growth_controler = GeometricCircleCompetition()
+    growth_controler = GeometricPoissonCompetition()
     infection_controler = BiotrophDUProbaModel()
     contaminator = AirborneContamination(fungus = fungus,
                                          group_dus = True,
                                          domain_area = adel.domain_area)
     dispersor = BrownRustDispersal(fungus = fungus,
                                    group_dus = True,
-                                   domain = adel.domain,
                                    domain_area = adel.domain_area)
     return (g, adel, fungus,  canopy_timing, dispersal_timing, rust_timing, 
             recorder, growth_controler, infection_controler, 
@@ -111,7 +110,8 @@ def annual_loop_rust(year = 2012, variety = 'Tremie13',
         geom = g.property('geometry')
         if dispersal_iter and len(geom)>0:
             external_contamination(g, contaminator, contaminator, 
-                                   density_dispersal_units = density_dispersal_units)
+                                   density_dispersal_units=density_dispersal_units,
+                                   domain_area=adel.domain_area)
         # Develop disease (infect for dispersal units and update for lesions)
         if rust_iter:
             infect(g, rust_iter.dt, infection_controler, label='LeafElement')
@@ -121,7 +121,8 @@ def annual_loop_rust(year = 2012, variety = 'Tremie13',
             disperse(g, dispersor, dispersor,
                      fungus_name = "brown_rust",
                      label='LeafElement', 
-                     weather_data=dispersal_iter.value)
+                     weather_data=dispersal_iter.value,
+                     domain_area=adel.domain_area)
         # Save outputs
         if rust_iter and record == True:
             date = rust_iter.value.index[-1]

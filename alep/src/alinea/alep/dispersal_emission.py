@@ -29,7 +29,9 @@ class SeptoriaRainEmission:
         """
         self.domain_area = domain_area
         
-    def get_dispersal_units(self, g, fungus_name="septoria", label='LeafElement', weather_data=None):
+    def get_dispersal_units(self, g, fungus_name="septoria", 
+                            label='LeafElement', weather_data=None,
+                            domain_area = None, k_wheat = 0.65):
         """ Compute emission of dispersal units by rain splash on wheat.
         
         Parameters
@@ -44,7 +46,8 @@ class SeptoriaRainEmission:
         dispersal_units : dict([leaf_id, list of dispersal units])
             Dispersal units emitted by leaf.
         """
-        k_wheat = 0.65
+        if domain_area is None:
+            domain_area = self.domain_area
         
         # Compute total leaf area
         total_area = get_total_leaf_area(g, label=label)
@@ -67,7 +70,8 @@ class SeptoriaRainEmission:
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 leaf = g.node(vid)
-                total_DU_leaf = 0.36 * 6.19e7 * intercept * tot_fraction_spo * leaf.rain_intensity * self.domain_area
+                total_DU_leaf = 0.36 * 6.19e7 * intercept * tot_fraction_spo *\
+                                leaf.rain_intensity * domain_area
                 
                 if lesion.is_stock_available(leaf):
                     initial_stock = lesion.stock_spores
@@ -174,10 +178,6 @@ class BenchSeptoriaRainEmission:
                     DU[vid] = []
                 DU[vid] += emissions
         return DU
-
-
-
-
  
 # Septoria rain emission ##########################################################
 class PowderyMildewWindEmission:
@@ -195,7 +195,8 @@ class PowderyMildewWindEmission:
         """
         pass
         
-    def get_dispersal_units(self, g, fungus_name="powdery_mildew", label='lf'):
+    def get_dispersal_units(self, g, fungus_name="powdery_mildew", label='lf',
+                            b = -5.8, r = 0.41):
         """ Compute emission of dispersal units by rain splash on wheat.
         
         Parameters
@@ -210,10 +211,8 @@ class PowderyMildewWindEmission:
         dispersal_units : dict([leaf_id, list of dispersal units])
             Dispersal units emitted by leaf.
         """
-        a = 0.71
         b = -5.8
         r = 0.41
-        treshold_to_empty = 1
         
         # Get lesions
         lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 

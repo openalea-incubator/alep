@@ -146,7 +146,7 @@ class BrownRustLesion(Lesion):
         # Manage senescence
         if (leaf.senesced_length is not None and self.position is not None and
             any([x[0]<=leaf.senesced_length for x in self.position])):
-            self.senescence_response(leaf.senesced_length, leaf)
+            self.senescence_response(leaf.senesced_length)
 
         if self.is_active:
             # Calculate progress in thermal time
@@ -275,7 +275,7 @@ class BrownRustLesion(Lesion):
         self.stock_spores = 0.
         return nb_dus
 
-    def senescence_response(self, senesced_length = 0., leaf=None):
+    def senescence_response(self, senesced_length = 0.):
         """ Calculate surface alive and dead after senescence """
         if not self.is_senescent:
             self.become_senescent()

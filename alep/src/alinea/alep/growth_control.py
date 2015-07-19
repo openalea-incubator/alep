@@ -172,13 +172,13 @@ class GrowthControlVineLeaf:
                     l.control_growth(growth_offer=growth_offer)
 
 # Geometric competition with circular lesions #################################
-class GeometricCircleCompetition:
-    """ Model of competition between circular lesions for leaf area.
+class GeometricPoissonCompetition:
+    """ Model of competition between lesions for leaf area.
     
         In this model, a Poisson law is used to simulate the congestion between
         circular lesions on leaves in healthy part of the leaf
     
-    """
+    """    
     def true_area_impacted(self, nb_lesions, available_area, mean_lesion_size):
         if available_area>0.:
             return available_area*(1-np.minimum(1.,np.exp(-nb_lesions*mean_lesion_size/available_area)))
@@ -193,15 +193,16 @@ class GeometricCircleCompetition:
         t_l = sum(t_ls)
         new_length = t_l - r*(t_l - s_l)
         idx = -1
-        while new_length > 0:
+        while round(new_length,10) > 0:
             n_l = min(t_ls[idx],new_length)
             s_ls[idx] = n_l
             new_length -= n_l
             idx -= 1
         senesced_lengths.update({lf:s_ls[i] for i,lf in enumerate(leaf)})
         for lf in leaf:
-            for l in lesions[lf]:
-                l.senescence_response(senesced_length=senesced_lengths[lf])
+            if lf in lesions:
+                for l in lesions[lf]:
+                    l.senescence_response(senesced_length=senesced_lengths[lf])
     
     def control(self, g, label='LeafElement'):
         """ Limit lesion growth to healthy area on leaves and simulate 
@@ -212,29 +213,33 @@ class GeometricCircleCompetition:
         geom = g.property('geometry')
         labels = g.property('label')
         lengths = g.property('length')
+        areas = g.property('area')
         senesced_lengths = g.property('senesced_length')
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) 
                     if labels[vid].startswith(label) and vid in geom]
             if len(leaf) > 0:
-                leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], [])              
+                leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], [])
                 nb_lesions = sum([les.nb_lesions_non_sen for les in leaf_lesions])
                 if nb_lesions>0.:
+                    les_surf = 0.
                     pot_les_surf = 0.
                     les_surf_non_sen = 0.
                     total_demand = 0.
                     for les in leaf_lesions:
+                        les_surf += les.surface
                         pot_les_surf += les.potential_surface
                         les_surf_non_sen += les.surface_non_senescent
                         total_demand += les.growth_demand
                     leaf_green_area = sum([green_areas[lf] for lf in leaf])
+                    leaf_area = sum([areas[lf] for lf in leaf])
                     if round(les_surf_non_sen,16) < round(leaf_green_area, 16):
                         true_area = self.true_area_impacted(nb_lesions, 
                                                             leaf_green_area, 
                                                             pot_les_surf/nb_lesions)
 
-                        offer = true_area - les_surf_non_sen
+                        offer = min(leaf_area-les_surf, true_area - les_surf_non_sen)
                     else:
                         offer = 0
                         r = leaf_green_area / les_surf_non_sen
@@ -252,8 +257,6 @@ class GeometricCircleCompetition:
                             growth_offer = offer*les.nb_lesions_non_sen/nb_lesions
                             l.control_growth(growth_offer = growth_offer)
 
-                    
-                
 # Growth control between 2 diseases ###########################################
 class SeptoRustCompetition:
     """ Class that control growth of lesions of brown rust and septoria in
@@ -284,8 +287,9 @@ class SeptoRustCompetition:
             idx -= 1
         senesced_lengths.update({lf:s_ls[i] for i,lf in enumerate(leaf)})
         for lf in leaf:
-            for l in lesions[lf]:
-                l.senescence_response(senesced_length=senesced_lengths[lf])
+            if lf in lesions:
+                for l in lesions[lf]:
+                    l.senescence_response(senesced_length=senesced_lengths[lf])
     
     def control(self, g, label = 'LeafElement'):
         lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
@@ -294,6 +298,7 @@ class SeptoRustCompetition:
         labels = g.property('label')
         geom = g.property('geometry')
         lengths = g.property('length')
+        areas = g.property('area')
         senesced_lengths = g.property('senesced_length')
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
         for blade in bids:
@@ -303,7 +308,6 @@ class SeptoRustCompetition:
                 leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], [])
                 leaf_area = sum([areas[lf] for lf in leaf])
                 leaf_green_area = sum([green_areas[lf] for lf in leaf])
-                ratio_green = min(1., leaf_green_area/leaf_area) if leaf_area>0. else 0.
                 s_prio = 0.
                 s_non_prio = 0.
                 s_pot_prio = 0.
@@ -313,25 +317,28 @@ class SeptoRustCompetition:
                 true_area_prio = 0.
                 prio_les = []
                 non_prio_les = []
+                nb_prio = 0.
+                nb_non_prio = 0.
                 for l in leaf_lesions:
                     if isinstance(l, self.SeptoModel) and l.status >= l.fungus.CHLOROTIC:
                         s_prio += l.surface_non_senescent
                         s_pot_prio += l.potential_surface
                         prio_les.append(l)
                         demand_prio += l.growth_demand
+                        nb_prio += l.nb_lesions_non_sen
                     else:
                         s_non_prio += l.surface_non_senescent
                         s_pot_non_prio += l.potential_surface
                         non_prio_les.append(l)
-                        demand_non_prio += l.growth_demand                    
+                        demand_non_prio += l.growth_demand
+                        nb_non_prio += l.nb_lesions_non_sen
                                 
-                if len(prio_les)>0:
-                    nb_prio_on_green =  len(prio_les) * ratio_green
+                if nb_prio>0:
                     if round(s_prio, 16) < round(leaf_green_area, 16):
-                        true_area_prio = self.true_area_impacted(nb_prio_on_green,
+                        true_area_prio = self.true_area_impacted(nb_prio,
                                                                  leaf_green_area,
-                                                                 s_pot_prio/len(prio_les))  
-                        offer_prio = true_area_prio - s_prio
+                                                                 s_pot_prio/nb_prio)  
+                        offer_prio = min(leaf_area-s_prio, true_area_prio - s_prio)
                     else:
                         offer_prio = 0.
                         r = leaf_green_area / s_prio
@@ -339,25 +346,35 @@ class SeptoRustCompetition:
                             self.manage_senescence_border(leaf, r, lesions,
                                                           senesced_lengths,
                                                           lengths)
-                    for l in prio_les:
-                        offer_lesion = l.growth_demand*offer_prio/demand_prio if demand_prio>0. else 0.
-                        l.control_growth(offer_lesion)
-                else:
-                    offer_prio = 0.
+                    if offer_prio > 0:
+                        for l in prio_les:
+                            offer_lesion = l.growth_demand*offer_prio/demand_prio if demand_prio>0. else 0.
+                            l.control_growth(offer_lesion)
+                    else:
+                        for l in prio_les:
+                            offer_lesion = offer_prio*l.nb_lesions_non_sen/nb_prio
+                            l.control_growth(growth_offer=offer_lesion)
 
-                if len(non_prio_les)>0:
-                    nb_les = len(non_prio_les) + len(prio_les)
-                    nb_les_on_green = nb_les * ratio_green
+                if nb_non_prio>0:
+                    nb_les = nb_prio + nb_non_prio
                     s_pot = s_pot_non_prio + s_pot_prio
-                    true_area_non_prio = self.true_area_impacted(nb_les_on_green,
-                                                                 leaf_green_area, 
-                                                                 s_pot/nb_les)
-                    offer_non_prio = true_area_non_prio - s_non_prio - true_area_prio
-                    if round(s_prio, 16) < round(leaf_green_area, 16):
-                        import pdb
-                        pdb.set_trace()
-                    for l in non_prio_les:
-                        offer_lesion = l.growth_demand * offer_non_prio/demand_non_prio if demand_non_prio>0. else 0.
-                        l.control_growth(offer_lesion)
+                    if round(s_non_prio, 16) < round(leaf_green_area, 16):
+                        true_area_non_prio = self.true_area_impacted(nb_les,
+                                                                     leaf_green_area, 
+                                                                     s_pot/nb_les)
+                        offer_non_prio = min(leaf_area-s_prio-s_non_prio,
+                                             true_area_non_prio-s_non_prio-true_area_prio)
+                    else:
+                        offer_non_prio = 0.
+                        r = leaf_green_area / s_non_prio
+
+                    if offer_non_prio>0:
+                        for l in non_prio_les:
+                            offer_lesion = l.growth_demand * offer_non_prio/demand_non_prio if demand_non_prio>0. else 0.
+                            l.control_growth(offer_lesion)
+                    else:
+                        for l in non_prio_les:
+                            offer_lesion = offer_non_prio*l.nb_lesions_non_sen/nb_non_prio
+                            l.control_growth(growth_offer=offer_lesion)
 
                 

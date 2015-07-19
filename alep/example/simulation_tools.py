@@ -14,6 +14,7 @@ from openalea.deploy.shared_data import shared_data
 from alinea.astk.Weather import Weather
 
 # Imports for wheat
+from alinea.echap.architectural_reconstructions import echap_reconstructions
 from alinea.adel.newmtg import move_properties
 from alinea.caribu.caribu_star import rain_and_light_star
 
@@ -76,19 +77,24 @@ def make_canopy(start_date = "2010-10-29 12:00:00",
                 variety = 'Tremie13', nplants = 30, nsect = 7, disc_level = 5, 
                 wheat_dir = './adel/tremie_2013_30pl_7sect', 
                 reset_reconst = True):
-    """ Simulate and save canopy (prior to simulation). """
-    adel, weather, seq, rain_timing, canopy_timing, septo_timing = setup(start_date = start_date,
-        end_date = end_date, variety = variety, nplants = nplants, nsect = nsect, disc_level = disc_level,
-        reset_reconst = reset_reconst)
-    
+    """ Simulate and save canopy (prior to simulation). """        
+    # Manage weather and scheduling
+    weather = get_weather(start_date = start_date, end_date = end_date)
+    seq = pandas.date_range(start = start_date, end = end_date, freq='H')
+    TTmodel = DegreeDayModel(Tbase = 0)
+    every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 20.)
+    canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
+
+    # Simulate and save wheat development    
+    reconst = echap_reconstructions(reset=True, reset_data=True)
+    adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)    
     domain = adel.domain
     convUnit = adel.convUnit
     g = adel.setup_canopy(age=0.)
     rain_and_light_star(g, light_sectors = '1', domain = domain, convUnit = convUnit)
     it_wheat = 0
     adel.save(g, it_wheat, dir=dir)
-    for i, controls in enumerate(zip(canopy_timing, septo_timing)):
-        canopy_iter, septo_iter = controls
+    for i, canopy_iter in enumerate(canopy_timing):
         if canopy_iter:
             it_wheat += 1
             g = adel.grow(g, canopy_iter.value)

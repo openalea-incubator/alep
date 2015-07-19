@@ -429,7 +429,6 @@ class BrownRustDispersal:
     """ Calculate distribution of dispersal units in horizontal layers """
     def __init__(self, fungus = None,
                  group_dus = False,
-                 domain = None,
                  domain_area = 1.,
                  convUnit = 0.01,
                  layer_thickness = 1.,
@@ -440,7 +439,6 @@ class BrownRustDispersal:
         else:
             self.fungus = Fungus()
         self.group_dus = group_dus
-        self.domain = domain
         self.domain_area = domain_area
         self.convUnit = convUnit
         self.layer_thickness = layer_thickness
@@ -489,20 +487,22 @@ class BrownRustDispersal:
     def get_dispersal_units(self, g, 
                             fungus_name = "brown_rust", 
                             label = 'LeafElement',
-                            weather_data = None):
+                            weather_data = None, **kwds):
         lesions = g.property('lesions')
         return {vid:sum([l.emission() for l in les if l.is_sporulating]) 
                         for vid, les in lesions.iteritems()}
 
     def disperse(self, g, dispersal_units = {}, weather_data = None,
-                 label='LeafElement'):
+                 label='LeafElement', domain_area=None, **kwds):
         self.leaves_in_grid(g, label=label)
         # Group DUs in layers and reduce global number according to Beer Law
         areas = g.property('area')
         geom = g.property('geometry')
         areas = {k:v for k,v in areas.iteritems() if k in geom}
         total_area = sum(areas.values())
-        lai = total_area*(self.convUnit**2)/self.domain_area
+        if domain_area is None:
+            domain_area = self.domain_area
+        lai = total_area*(self.convUnit**2)/domain_area if domain_area>0. else 0.
         beer_factor = 1-np.exp(-self.k_beer * lai)
         dus_by_layer = {layer:sum([dispersal_units[v]
                         for v in vids if v in dispersal_units])*beer_factor
@@ -601,10 +601,6 @@ class BrownRustDispersal:
         g = alep_colormap(g, 'nb_dispersal_units', cmap=green_yellow_red(), 
                           lognorm=False, zero_to_one=False, 
                           vmax = vmax)
-#        g = alep_ormap(g, 'nb_dispersal_units', cmap='jet', 
-#                  lognorm=False, zero_to_one=False, 
-#                  vmax = max(deposits.values())/2)col
-
         d = [np.arange(vmax)]
         fig, ax = plt.subplots()
         ax.imshow(d, cmap = green_yellow_red())
