@@ -85,8 +85,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, distri_chlorosis 
                                              compute_star = False)
 #    growth_controler = PriorityGrowthControl()
 #    growth_controler = GeometricPoissonCompetition()
-    growth_controler = SeptoRustCompetition(SeptoModel=fungus.__class__,
-                                            RustModel=None)
+    growth_controler = SeptoRustCompetition()
     infection_controler = BiotrophDUProbaModel()
     emitter = PopDropsEmission(domain=domain, compute_star = False)
     transporter = PopDropsTransport(fungus=fungus, group_dus=True,
@@ -95,8 +94,8 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, distri_chlorosis 
                                     compute_star = False)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
-def annual_loop_septo(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20 01:00:00", 
-                      variety = 'Tremie13', nplants = 30, nsect = 7,
+def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
+                      nplants = 30, nsect = 7,
                       sporulating_fraction = 1e-4, layer_thickness = 0.01, 
                       record = True, output_file = None,
                       save_images = False, reset_reconst = True, 
@@ -108,7 +107,8 @@ def annual_loop_septo(start_date = "2010-10-15 12:00:00", end_date = "2011-06-20
         Tmin = 0.
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
-     wheat_is_loaded) = setup(start_date = start_date, end_date = end_date, 
+     wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
+                              end_date=str(year)+"-07-01 00:00:00",
                               variety = variety, nplants = nplants,
                               nsect = nsect, Tmin = Tmin, 
                               reset_reconst = reset_reconst)

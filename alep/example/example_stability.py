@@ -20,10 +20,10 @@ def run_and_save_septo(variety='Tremie13',
 def run_and_save_rust(variety='Tremie13', 
                        year = 2013,
                        sowing_date = '10-15',
-                       density_dispersal_units = 500,
+                       density_dispersal_units = 300,
                        nplants=[1, 5, 10, 20, 30, 50, 100]):
     for nb_pl in nplants:
-        output_file = './stability/'+variety.lower()+'_'+\
+        output_file = './stability/rust/'+variety.lower()+'_'+\
                     str(year)+'_'+str(nb_pl)+'pl.csv'
         annual_loop_rust(variety=variety, year=year, sowing_date=sowing_date,
                           density_dispersal_units=density_dispersal_units,
