@@ -10,6 +10,7 @@ import sys
 from simulation_tools import wheat_path, init_canopy, grow_canopy
 from alinea.echap.architectural_reconstructions import echap_reconstructions
 from alinea.alep.architecture import set_properties
+from alinea.adel.newmtg import adel_labels
 
 # Imports for weather
 from simulation_tools import get_weather
@@ -117,6 +118,11 @@ def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
                                     distri_chlorosis, **kwds)
 
+    a_labels = adel_labels(g)
+    leaves = [k for k,v in a_labels.iteritems() if v.startswith('plant1_MS_metamer1_blade_LeafElement')]
+    for lf in leaves:
+        g.node(lf).tag = 'tag'
+
     # Prepare saving of outputs
     if record == True:
         recorder = AdelSeptoRecorder()
@@ -130,6 +136,13 @@ def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
             it_wheat += 1
             g = grow_canopy(g, adel, canopy_iter, it_wheat,
                         wheat_dir, wheat_is_loaded,rain_and_light=True)
+                        
+            a_labels = adel_labels(g)
+            leaves = [k for k,v in a_labels.iteritems() if v.startswith('plant1_MS_metamer1_blade_LeafElement')]
+            for lf in leaves:
+                g.node(lf).tag = 'tag'
+                
+                
         # Get weather for date and add it as properties on leaves
         if septo_iter:
             set_properties(g,label = 'LeafElement',
@@ -168,7 +181,7 @@ def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
                 elif it_wheat < 10000 :
                     image_name='./images_septo/image0%d.png' % it_wheat
                 else :
-                    image_name='./images_septo/image%d.png' % it_wheat
+                    image_name='./images_segpto/image%d.png' % it_wheat
                 save_image(scene, image_name=image_name)
         # Save outputs
         if record_iter and record == True:

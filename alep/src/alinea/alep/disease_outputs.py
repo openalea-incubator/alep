@@ -1012,9 +1012,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
         self.data['ratio_empty_on_green'] = [self.data['surface_empty_on_green'][ind]/self.data['leaf_green_area'][ind] if self.data['leaf_green_area'][ind]>0. else 0. for ind in self.data.index]
 
     def severity(self):
-        if not 'leaf_disease_area' in self.data:
-            self.leaf_disease_area()
-        self.data['severity'] = [self.data['leaf_disease_area'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['severity'] = [self.data['surface_alive'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
     
     def severity_on_green(self):
         if not 'severity' in self.data:
@@ -1345,7 +1343,7 @@ def conf_int(lst, perc_conf=95):
 def plot_mean(data, variable = 'severity', xaxis = 'degree_days', 
               error_bars = False, error_method = 'confidence_interval', 
               marker = 'd', empty_marker = False, linestyle = '-', color = 'b', 
-              title = None, xlabel = None, ylabel = None,
+              alpha = None, title = None, xlabel = None, ylabel = None,
               xlims = None, ylims = None, ax = None, return_ax = False):
     if variable in data.columns:
         if ax == None:
@@ -1354,6 +1352,8 @@ def plot_mean(data, variable = 'severity', xaxis = 'degree_days',
             markerfacecolor = color
         else:
             markerfacecolor = 'none'
+        if alpha is None:
+            alpha = 1
             
         df = data[pandas.notnull(data.loc[:,variable])].loc[:, [xaxis, variable]]
         df_mean = df.groupby(xaxis).mean()
@@ -1386,13 +1386,16 @@ def plot_mean(data, variable = 'severity', xaxis = 'degree_days',
             return ax
             
 def plot_sum(data, variable = 'severity', xaxis = 'degree_days', 
-              marker = 'd', linestyle = '-', color = 'b', 
+              marker = 'd', linestyle = '-', color = 'b', alpha = None,
               title = None, xlabel = None, ylabel = None,
               xlims = None, ylims = None, ax = None, return_ax = False):
     
     def get_mean_data(variable):
         if variable in data.columns:
-            df_sum.loc[:, variable] = df_mean.loc[:, variable]
+            df_sum.loc[:, variable] = df_mean.loc[:, variable]    
+    
+    if alpha is None:
+        alpha = 1
     
     if variable in data.columns:
         if ax == None:
@@ -1406,7 +1409,7 @@ def plot_sum(data, variable = 'severity', xaxis = 'degree_days',
             if var != 'xaxis':
                 get_mean_data(var)
 
-        ax.plot(df_sum.index, df_sum[variable], color = color, 
+        ax.plot(df_sum.index, df_sum[variable], color = color, alpha=alpha,
                     marker = marker, linestyle = linestyle)
         if title is not None:
             ax.set_title(title, fontsize = 18)
@@ -1425,13 +1428,15 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
                   leaves = range(1, 14), from_top = True, plant_axis = ['MS'],
                   error_bars = False, error_method = 'confidence_interval', 
                   marker = '', empty_marker = False, linestyle = '-', fixed_color = None, 
-                  title = None, legend = True, xlabel = None, ylabel = None,
+                  alpha = None, title = None, legend = True, xlabel = None, ylabel = None,
                   xlims = None, ylims = None, ax = None, return_ax = False, fig_size = (10,8)):
     df = data.copy()
     if ax == None:
         fig, ax = plt.subplots(figsize = fig_size)
     colors = ax._get_lines.set_color_cycle()
     colors = ax._get_lines.color_cycle
+    if alpha is None:
+        alpha = 1
         
     if from_top == True:
         num_leaf = 'num_leaf_top'
@@ -1449,7 +1454,8 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
         plot_mean(df_lf, variable = variable, xaxis = xaxis, 
                   error_bars = error_bars, error_method = error_method, 
                   marker = marker, empty_marker = empty_marker, linestyle = linestyle, 
-                  color = color, title = title, xlabel = xlabel, ylabel = ylabel,
+                  color = color, alpha = alpha, 
+                  title = title, xlabel = xlabel, ylabel = ylabel,
                   xlims = xlims, ylims = ylims, ax = ax)
         proxy += [plt.Line2D((0,1),(0,0), color = color, linestyle ='-')]
         labels += ['L%d' %lf]

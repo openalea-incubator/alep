@@ -174,7 +174,15 @@ class SeptoriaAgePhysio(Lesion):
         if self.growth_is_active:
             # Growth offer is added to surface according to state
             if self.is_incubating():
-                self.surface_first_ring += growth_offer
+                if growth_offer<0:
+#                    import pdb
+#                    pdb.set_trace()
+                    self.surface_dead -= growth_offer                   
+#                    self.potential_surface *= (1 + growth_offer/self.surface_non_senescent)
+                self.surface_first_ring = max(0, self.surface_first_ring + growth_offer)
+                if self.surface_first_ring == 0. and self.age_dday>self.ddday:
+                    self.disable()
+                    return
             else:
                 Smin = self._surface_min
                 if self.is_chlorotic() and round(self.surface_first_ring,14) < round(Smin,14):
@@ -220,14 +228,18 @@ class SeptoriaAgePhysio(Lesion):
                 self.growth_demand = progress * f.Smin * self.nb_lesions_non_sen
         else:
             if self.growth_is_active:
-                Smin = self._surface_min
-                self.growth_demand = round(Smin - self.surface_first_ring, 14)
+                ratio_left = 1 - (self.age_physio-progress)
+                self.growth_demand = progress * f.Smin * self.nb_lesions_non_sen *ratio_left
 
             # Change status
             self.ratio_left = round((self.age_physio - 1.)/progress, 14)
             self.change_status()
             self.change_status_edge()
             self.reset_age_physio()
+            
+            # Temp
+#            self.potential_surface = self.surface            
+            
             self.chlorosis()
 
     def chlorosis(self):
@@ -636,11 +648,14 @@ class SeptoriaAgePhysio(Lesion):
     @property
     def surface_non_senescent(self):
         """ calculate the surface of the lesion non affected by senescence. """
-        f = self.fungus
-        age_switch = f.age_physio_switch_senescence
-        ratio_non_sen = self.nb_lesions_non_sen / self.nb_lesions
-        return self.surface_inc + ratio_non_sen*(age_switch*self.surface_chlo +\
-                self.surface_nec + self.surface_spo + self.surface_empty)
+        if self.is_senescent:        
+            f = self.fungus
+            age_switch = f.age_physio_switch_senescence
+            ratio_non_sen = self.nb_lesions_non_sen / self.nb_lesions
+            return self.surface_inc + ratio_non_sen*(age_switch*self.surface_chlo +\
+                    self.surface_nec + self.surface_spo + self.surface_empty)
+        else:
+            return self.surface - self.surface_dead
 
             
 class SeptoriaFungus(Fungus):
