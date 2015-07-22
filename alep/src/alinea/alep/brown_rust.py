@@ -447,7 +447,11 @@ def group_duplicates_in_cohort(g):
         dd = defaultdict(list)
         for i,item in enumerate(seq):
             dd[item].append(i)
-        return [idx for key,idx in dd.iteritems() if len(idx)>1 and key==0.][-1]
+        dups = [idx for key,idx in dd.iteritems() if len(idx)>1 and key==0.]
+        if len(dups)>0:
+            return dups[-1]
+        else:
+            return []
     
     def group_lesions(les):
         new_l = les[0].fungus.lesion()
@@ -459,10 +463,11 @@ def group_duplicates_in_cohort(g):
         ages = [l.age_tt for l in les]
         if len(les)!=len(set(ages)):
             idxs = _get_index_duplicates(ages)
-            new_les = group_lesions([les[i] for i in idxs])
-            les = les[:idxs[0]]
-            les.append(new_les)
-            lesions[vid] = les
+            if len(idxs)>0:
+                new_les = group_lesions([les[i] for i in idxs])
+                les = les[:idxs[0]]
+                les.append(new_les)
+                lesions[vid] = les
     
 def get_proba_inf_T(T):
     # Pivonia and Yang
