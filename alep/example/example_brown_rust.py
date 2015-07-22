@@ -6,7 +6,7 @@ from alinea.alep.brown_rust import BrownRustFungus
 from alinea.alep.septoria_age_physio import SeptoriaFungus
 from alinea.alep.disease_outputs import BrownRustRecorder, plot_by_leaf
 from alinea.alep.growth_control import (NoPriorityGrowthControl,
-                                        GeometricCircleCompetition,
+                                        GeometricPoissonCompetition,
                                         SeptoRustCompetition)
 from alinea.alep.inoculation import AirborneContamination
 from alinea.alep.protocol import infect, update, disperse, external_contamination
@@ -67,7 +67,7 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     nb_lesions = density_lesions * leaf_area
     lesion.set_position([[1] for i in range(nb_lesions)])
     leaf.lesions = [lesion]
-    growth_controler = GeometricCircleCompetition()
+    growth_controler = GeometricPoissonCompetition()
     surfs = []
     surfs_chlo = []
     surfs_spo = []
@@ -117,7 +117,7 @@ def example_geom_competition(density = 30., **kwds):
     
     brown_rust = BrownRustFungus()
 #    growth_controler = NoPriorityGrowthControl()
-    growth_controler = GeometricCircleCompetition()
+    growth_controler = GeometricPoissonCompetition()
     
     df_temp = pd.DataFrame([24.], 
                             columns = ['temp'])
@@ -189,7 +189,7 @@ def example_density_robert_2005(**kwds):
     weather.set_index('datetime', inplace = True)    
     
     brown_rust = BrownRustFungus()
-    growth_controler = GeometricCircleCompetition()
+    growth_controler = GeometricPoissonCompetition()
 
     filename = 'calibration_lesion_rust_2005_data.csv'
     df_obs = pd.read_csv(filename, sep = ';')
@@ -329,7 +329,7 @@ def example_density_complete(with_complex=False, **kwds):
     
     brown_rust = BrownRustFungus()
 #    growth_controler = NoPriorityGrowthControl()
-    growth_controler = GeometricCircleCompetition()
+    growth_controler = GeometricPoissonCompetition()
 
     filename = 'calibration_lesion_rust_2004_complete.csv'
     df_obs_2004 = pd.read_csv(filename, sep = ';')
@@ -481,7 +481,7 @@ def compare_competition_models(**kwds):
     
     brown_rust = BrownRustFungus()
     growth_controler_1 = NoPriorityGrowthControl()
-    growth_controler_2 = GeometricCircleCompetition()
+    growth_controler_2 = GeometricPoissonCompetition()
 
     filename = 'calibration_lesion_rust_2004_complete.csv'
     df_obs_2004 = pd.read_csv(filename, sep = ';')
@@ -769,7 +769,7 @@ def sim_necrosis_dynamics(**kwds):
     weather.set_index('datetime', inplace = True)
     
     brown_rust = BrownRustFungus()
-    growth_controler = GeometricCircleCompetition()
+    growth_controler = GeometricPoissonCompetition()
 
     dates = np.arange(100, 801, 100)
     densities = np.arange(1, 112, 10)
@@ -943,7 +943,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00",
     fungus = BrownRustFungus()
     fungus.parameters(**kwds)
     recorder = BrownRustRecorder()
-    growth_controler = GeometricCircleCompetition()
+    growth_controler = GeometricPoissonCompetition()
     infection_controler = BiotrophDUProbaModel()
     dispersor = BrownRustDispersal(fungus = fungus,
                                    domain = adel.domain,

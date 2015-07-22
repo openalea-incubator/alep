@@ -182,7 +182,7 @@ septoria_parameters = dict(INCUBATING = 0,
                  reduction_by_rain = 0.5,
                  threshold_spo = 1e-4,
                  nb_rings_by_state = 10,
-                 age_physio_switch_senescence=1,
+                 age_physio_switch_senescence=1.,
                  group_dus = False)
                  
 # class SeptoriaParameters(Parameters):

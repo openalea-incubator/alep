@@ -22,6 +22,7 @@ from alinea.astk.TimeControl import (IterWithDelays, rain_filter, time_filter,
 # Imports for alep septoria
 from alinea.alep.protocol import *
 from alinea.alep.septoria import plugin_septoria
+from alinea.alep.septoria_age_physio import group_duplicates_in_cohort
 from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum
 from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import PriorityGrowthControl,SeptoRustCompetition, GeometricPoissonCompetition
@@ -119,7 +120,7 @@ def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
                                     distri_chlorosis, **kwds)
 
     a_labels = adel_labels(g)
-    leaves = [k for k,v in a_labels.iteritems() if v.startswith('plant1_MS_metamer1_blade_LeafElement')]
+    leaves = [k for k,v in a_labels.iteritems() if v.startswith('plant1_MS_metamer3_blade_LeafElement')]
     for lf in leaves:
         g.node(lf).tag = 'tag'
 
@@ -138,7 +139,7 @@ def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
                         wheat_dir, wheat_is_loaded,rain_and_light=True)
                         
             a_labels = adel_labels(g)
-            leaves = [k for k,v in a_labels.iteritems() if v.startswith('plant1_MS_metamer1_blade_LeafElement')]
+            leaves = [k for k,v in a_labels.iteritems() if v.startswith('plant1_MS_metamer3_blade_LeafElement')]
             for lf in leaves:
                 g.node(lf).tag = 'tag'
                 
@@ -162,6 +163,7 @@ def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
         # Develop disease (infect for dispersal units and update for lesions)
         if septo_iter:
             infect(g, septo_iter.dt, infection_controler, label='LeafElement')
+            group_duplicates_in_cohort(g) # Additional optimisation (group identical cohorts)
             update(g, septo_iter.dt, growth_controler, senescence_model=None, label='LeafElement')            
         # Disperse and wash
         if rain_iter and len(geom)>0 and rain_iter.value.rain.mean()>0.2:
@@ -190,7 +192,7 @@ def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
             recorder.record(g, date, degree_days = record_iter.value.degree_days[-1])
                     
     if record == True:
-        recorder.post_treatment(variety = 'tremie')
+        recorder.post_treatment(variety = variety)
         if output_file is not None:
             recorder.save(output_file)
         else:

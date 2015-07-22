@@ -1,7 +1,5 @@
 """ Define the protocol between plant architecture and lesions """
 
-import random
-
 def external_contamination(g, 
              contamination_source, 
              contamination_model,
@@ -197,7 +195,6 @@ def update(g, dt,
         
         # 1. Compute growth demand
         for vid, les in lesions.iteritems():
-#            lesions[vid] = [lesion for lesion in les if (lesion.surface>0. or lesion.growth_is_active)]
             # Update active lesions
             for lesion in lesions[vid]:
                 if lesion.is_active:

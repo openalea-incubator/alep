@@ -135,10 +135,10 @@ class Lesion(object):
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
         
-    def update(self, dt, leaf, growth_rate=1e-4):
+    def update(self, dt, leaf, **kwds):
         pass
     
-    def emission(self):
+    def emission(self, **kwds):
         pass
     
     def senescence_response(self, **kwds):
@@ -200,11 +200,10 @@ class Lesion(object):
             
 class Fungus(object):
     
-    def __init__(self, name='template', Lesion=Lesion,
+    def __init__(self, Lesion=Lesion,
                  DispersalUnit = DispersalUnit, 
                  parameters = {'name':'template', 'group_dus':'False'},
                  length_unit = 0.01):
-        self.name = name
         self.length_unit = length_unit
         self.Lesion_class = Lesion
         self.DispersalUnit_class = DispersalUnit

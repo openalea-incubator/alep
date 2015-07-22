@@ -20,7 +20,7 @@ from alinea.astk.TimeControl import (time_filter, IterWithDelays,
                                      time_control)
                                      
 # Imports for disease
-from alinea.alep.brown_rust import BrownRustFungus
+from alinea.alep.brown_rust import BrownRustFungus, group_duplicates_in_cohort
 from alinea.alep.disease_outputs import BrownRustRecorder
 from alinea.alep.growth_control import GeometricPoissonCompetition
 from alinea.alep.inoculation import AirborneContamination
@@ -79,7 +79,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
 
 def annual_loop_rust(year = 2012, variety = 'Tremie13', 
                      nplants = 30, nsect = 7, sowing_date = '10-15',
-                     density_dispersal_units = 500,
+                     density_dispersal_units = 300,
                      record = True, output_file = None, **kwds):
     """ Simulate an epidemics over the campaign. """
     # Setup simu
@@ -115,6 +115,7 @@ def annual_loop_rust(year = 2012, variety = 'Tremie13',
         # Develop disease (infect for dispersal units and update for lesions)
         if rust_iter:
             infect(g, rust_iter.dt, infection_controler, label='LeafElement')
+            group_duplicates_in_cohort(g) # Additional optimisation (group identical cohorts)
             update(g, rust_iter.dt, growth_controler, label='LeafElement')
         # Disperse disease
         if dispersal_iter and len(geom)>0:

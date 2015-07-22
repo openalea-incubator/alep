@@ -1,13 +1,14 @@
 """ Functions used for sensitivity analysis of septoria model
 """
 from disease_sensi_morris import *
+from alinea.alep.disease_outputs import AdelSeptoRecorder
 from sensi_septo_tools import variety_code
 from brown_rust_decomposed import annual_loop
 import numpy as np
 import pandas as pd
 from scipy.integrate import simps
 
-class SensiRustRecorder:
+class SensiRustRecorder(AdelSeptoRecorder):
     """ Record simulation output on every leaf of main stems in a dataframe during simulation """
     def __init__(self, group_dus = True, fungus_name = 'brown_rust',
                  increment = 1000):
@@ -49,26 +50,27 @@ class SensiRustRecorder:
         if not 'leaf_disease_area' in self.data:
             self.leaf_disease_area()
         self.data['severity'] = [self.data['surface'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-
-    def audpc(self):
+    
+    def get_audpc(self, variable='severity'):
         for pl in set(self.data['num_plant']):
             df_pl =  self.data[self.data['num_plant'] == pl]
             for lf in set(df_pl['num_leaf_top']):
-                ind_data_lf = (self.data['num_plant'] == pl) & (self.data['num_leaf_top'] == lf)
-                df_lf = self.data[ind_data_lf]
+                df_lf = df_pl[df_pl['num_leaf_top'] == lf]
+                ind_data_lf = df_lf.index
                 if round(df_lf['leaf_green_area'][pandas.notnull(df_lf['leaf_disease_area'])].iloc[-1],10)==0.:
                     data = df_lf[variable][df_lf['leaf_green_area']>0]
                     ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
                     data_ref = numpy.ones(len(data))
-                    audpc = simps(data, ddays)
+                    if len(data[data>0])>0:
+                        audpc = simps(data[data>0], ddays[data>0])
+                    else:
+                        audpc = 0.
                     self.data.loc[ind_data_lf, 'audpc'] = audpc
-                    audpc_ref = simps(data_ref, ddays)
+                    audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
                     self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
                 else:
                     self.data.loc[ind_data_lf, 'audpc'] = np.nan
-                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan
-    
-
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan   
     def add_variety(self, variety = None):
         self.data['variety'] = variety
     
@@ -77,7 +79,7 @@ class SensiRustRecorder:
         self.add_variety(variety = variety)        
         self.add_leaf_numbers()
         self.severity()
-        self.audpc()
+        self.get_audpc()
         if variety is not None:
             self.add_variety(variety=variety)           
 

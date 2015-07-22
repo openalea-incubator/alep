@@ -872,9 +872,9 @@ class AdelSeptoRecorder(AdelWheatRecorder):
         columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 'leaf_area', 
                    'leaf_green_area', 'leaf_length', 'leaf_senesced_length', 'fnl', 
                    'nb_dispersal_units', 'nb_lesions', 'nb_lesions_on_green', 
-                   'surface_inc', 'surface_chlo', 'surface_nec', 'surface_spo', 
-                   'surface_spo_on_green', 'surface_empty', 'surface_empty_on_green', 
-                   'surface_dead']
+                   'surface_inc', 'surface_chlo', 'surface_nec', 'surface_nec_on_green', 
+                   'surface_spo', 'surface_spo_on_green', 'surface_empty', 
+                   'surface_empty_on_green', 'surface_dead']
         self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(self.increment)], 
                                      columns = columns)
     
@@ -905,6 +905,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
         surface_inc = 0.
         surface_chlo = 0.
         surface_nec = 0.
+        surface_nec_on_green = 0.
         surface_spo = 0.
         surface_spo_on_green = 0.
         surface_empty = 0.
@@ -925,16 +926,19 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                 for les in leaf.lesions:
                     if les.fungus.name == self.fungus_name:
                         if self.group_dus:
-                            nb_les = len(les.position)
-                            nb_les_on_green = len(filter(lambda x: x[0]>leaf.senesced_length, les.position))
+                            nb_les = les.nb_lesions
+                            nb_les_on_green = les.nb_lesions_non_sen
                             nb_lesions += nb_les
                             nb_lesions_on_green += nb_les_on_green
-                            surface_spo_on_green = les.surface_spo * nb_les_on_green/nb_les if nb_les>0. else 0.
-                            surface_empty_on_green = les.surface_empty * nb_les_on_green/nb_les if nb_les>0. else 0.
+                            ratio_green = float(nb_les_on_green)/nb_les if nb_les>0. else 0.
+                            surface_nec_on_green += les.surface_nec *  ratio_green
+                            surface_spo_on_green += les.surface_spo * ratio_green
+                            surface_empty_on_green += les.surface_empty * ratio_green
                         else:
                             nb_lesions += 1
                             if les.position[0][0]>leaf.senesced_length:
                                 nb_lesions_on_green += 1
+                                surface_nec_on_green = les.surface_nec_on_green
                                 surface_spo_on_green = les.surface_spo
                                 surface_empty_on_green = les.surface_empty
                         surface_inc += les.surface_inc
@@ -953,132 +957,103 @@ class AdelSeptoRecorder(AdelWheatRecorder):
         dict_lf['surface_spo'] = surface_spo
         dict_lf['surface_empty'] = surface_empty
         dict_lf['surface_dead'] = surface_dead
+        dict_lf['surface_nec_on_green'] = surface_nec_on_green
         dict_lf['surface_spo_on_green'] = surface_spo_on_green
         dict_lf['surface_empty_on_green'] = surface_empty_on_green
         return dict_lf
                 
     def leaf_senesced_area(self):
-        self.data['leaf_senesced_area'] = self.data['leaf_area'] - self.data['leaf_green_area']
+        self.data['leaf_senesced_area'] = self.data['leaf_area'] - \
+                                          self.data['leaf_green_area']
     
     def leaf_disease_area(self):
-        self.data['leaf_disease_area'] = self.data['surface_inc'] + self.data['surface_chlo'] + self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty'] + self.data['surface_dead']
+        self.data['leaf_disease_area'] = self.data['surface_inc'] + \
+                                         self.data['surface_chlo'] + \
+                                         self.data['surface_nec'] + \
+                                         self.data['surface_spo'] + \
+                                         self.data['surface_empty']
+                                         
+    def leaf_necrotic_area(self):
+        self.data['leaf_necrotic_area'] = self.data['surface_nec'] + \
+                                          self.data['surface_spo'] + \
+                                          self.data['surface_empty']
+        
 
-    def leaf_lesion_area_on_green(self):
-        if not 'leaf_disease_area' in self.data:
-            self.leaf_disease_area()
-        if not 'leaf_senesced_area' in self.data:
-            self.leaf_senesced_area()
-        self.data['leaf_lesion_area_on_green'] = [self.data['leaf_disease_area'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-    
     def leaf_necrotic_area_on_green(self):
-        if not 'necrosis' in self.data:
-            self.necrosis()
-        if not 'leaf_senesced_area' in self.data:
-            self.leaf_senesced_area()
-        self.data['leaf_necrotic_area_on_green'] = [self.data['necrosis'][ind]*(1 - self.data['leaf_senesced_area'][ind]/self.data['leaf_area'][ind]) if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['leaf_necrotic_area_on_green'] = self.data['surface_nec_on_green'] + \
+                                                   self.data['surface_spo_on_green'] + \
+                                                   self.data['surface_empty_on_green']
+
+    def _ratio(self, variable='leaf_necrotic_area', against='leaf_area'):
+        r = []
+        for ind in self.data.index:
+            a = self.data[against][ind]
+            if a > 0.:
+                r.append(self.data[variable][ind]/a)
+            else:
+                r.append(0.)
+        return r
     
-    def leaf_necrotic_senescent(self):
+    def severity(self):
+        """ Necrotic area of lesions compared to total leaf area """
+        if not 'leaf_necrotic_area' in self.data:
+            self.leaf_necrotic_area()
+        self.data['severity'] = self._ratio(variable='leaf_necrotic_area',
+                                            against='leaf_area')
+        
+    def severity_on_green(self):
+        """ Necrotic area of lesions on green compared to green leaf area """
         if not 'leaf_necrotic_area_on_green' in self.data:
             self.leaf_necrotic_area_on_green()
-        if not 'leaf_senesced_area' in self.data:
-            self.leaf_senesced_area()
-        self.data['leaf_necrotic_senescent'] = self.data['leaf_senesced_area'] + self.data['leaf_necrotic_area_on_green']
-        
-    def necrotic_senescent_percentage(self):
-        if not 'leaf_necrotic_senescent' in self.data:
-            self.leaf_necrotic_senescent()
-        self.data['leaf_necrotic_senescent'] = [self.data['leaf_necrotic_senescent'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        
-    def leaf_healthy_area(self):
-        if not 'leaf_lesion_area_on_green' in self.data:
-            self.leaf_lesion_area_on_green()
-        self.data['leaf_healthy_area'] = self.data['leaf_green_area'] - self.data['leaf_lesion_area_on_green']
+        self.data['severity_on_green'] = self._ratio(variable='leaf_necrotic_area_on_green',
+                                                     against='leaf_green_area')
     
-    def leaf_unhealthy_area(self):
-        if not 'leaf_healthy_area' in self.data:
-            self.leaf_healthy_area()
-        self.data['leaf_unhealthy_area'] = self.data['leaf_area'] - self.data['leaf_healthy_area']
-
-    def surface_alive(self):
-        self.data['surface_alive'] = self.data['surface_inc'] + self.data['surface_chlo'] + self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
-
     def ratios(self):
-        self.data['ratio_inc'] = [self.data['surface_inc'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_chlo'] = [self.data['surface_chlo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_nec'] = [self.data['surface_nec'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_spo'] = [self.data['surface_spo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_empty'] = [self.data['surface_empty'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_spo_on_green'] = [self.data['surface_spo_on_green'][ind]/self.data['leaf_green_area'][ind] if self.data['leaf_green_area'][ind]>0. else 0. for ind in self.data.index]
-        self.data['ratio_empty_on_green'] = [self.data['surface_empty_on_green'][ind]/self.data['leaf_green_area'][ind] if self.data['leaf_green_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['ratio_inc'] = self._ratio(variable='surface_inc',
+                                             against='leaf_area')
+        self.data['ratio_chlo'] = self._ratio(variable='surface_chlo',
+                                              against='leaf_area')
+        self.data['ratio_nec'] = self._ratio(variable='surface_nec',
+                                             against='leaf_area')
+        self.data['ratio_spo'] = self._ratio(variable='surface_spo',
+                                             against='leaf_area')
+        self.data['ratio_empty'] = self._ratio(variable='surface_empty',
+                                               against='leaf_area')
 
-    def severity(self):
-        self.data['severity'] = [self.data['surface_alive'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-    
-    def severity_on_green(self):
-        if not 'severity' in self.data:
-            self.severity()
-        if not 'leaf_lesion_area_on_green' in self.data:
-            self.leaf_lesion_area_on_green()
-        self.data['severity_on_green'] = [self.data['leaf_lesion_area_on_green'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-
-    def necrosis(self):
-        self.data['necrosis'] = self.data['surface_nec'] + self.data['surface_spo'] + self.data['surface_empty']
-    
-    def necrosis_percentage(self):
-        if not 'necrosis' in self.data:
-            self.necrosis()
-        self.data['necrosis_percentage'] = [self.data['necrosis'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-        
-    def pycnidia_coverage(self):
-        if not 'ratio_spo' in self.data and not 'ratio_empty' in self.data:
-            self.ratios()
-        self.data['pycnidia_coverage'] = self.data['ratio_spo'] + self.data['ratio_empty']
-        
-    def pycnidia_coverage_on_green(self):
-        if not 'ratio_spo_on_green' in self.data and not 'ratio_empty_on_green' in self.data:
-            self.ratios()
-        self.data['pycnidia_coverage_on_green'] = self.data['ratio_spo_on_green'] + self.data['ratio_empty_on_green']
-
-    def get_audpc(self, variable='pycnidia_coverage'):
-        if not variable in self.data:
-            exec('self.'+variable+'()')
+    def get_audpc(self, variable='severity'):
         for pl in set(self.data['num_plant']):
             df_pl =  self.data[self.data['num_plant'] == pl]
             for lf in set(df_pl['num_leaf_top']):
-                ind_data_lf = (self.data['num_plant'] == pl) & (self.data['num_leaf_top'] == lf)
-                df_lf = self.data[ind_data_lf]
-                if df_lf['leaf_green_area'][pandas.notnull(df_lf['leaf_green_area'])].iloc[-1]==0.:
+                df_lf = df_pl[df_pl['num_leaf_top'] == lf]
+                ind_data_lf = df_lf.index
+                if round(df_lf['leaf_green_area'][pandas.notnull(df_lf['leaf_disease_area'])].iloc[-1],10)==0.:
                     data = df_lf[variable][df_lf['leaf_green_area']>0]
                     ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
                     data_ref = numpy.ones(len(data))
-                    audpc = simps(data, ddays)
-                    self.data.loc[ind_data_lf, 'audpc_'+variable] = audpc
-                    audpc_ref = simps(data_ref, ddays)
-                    self.data.loc[ind_data_lf, 'normalized_audpc_'+variable] = audpc/audpc_ref if audpc_ref>0. else 0.
+                    if len(data[data>0])>0:
+                        audpc = simps(data[data>0], ddays[data>0])
+                    else:
+                        audpc = 0.
+                    self.data.loc[ind_data_lf, 'audpc'] = audpc
+                    audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
                 else:
-                    self.data.loc[ind_data_lf, 'audpc_'+variable] = 'audpc not available: leaf has not reached senescence or premature leaf death'
-                    self.data.loc[ind_data_lf, 'normalized_audpc_'+variable] = 'audpc not available: leaf has not reached senescence or premature leaf death'
+                    self.data.loc[ind_data_lf, 'audpc'] = np.nan
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan    
     
     def post_treatment(self, variety = None):
+        self.data = self.data[~pandas.isnull(self.data['date'])]
         self.add_leaf_numbers()
         self.leaf_senesced_area()
+        self.leaf_necrotic_area()
+        self.leaf_necrotic_area_on_green()
         self.leaf_disease_area()
-        self.leaf_lesion_area_on_green()
-        self.leaf_healthy_area()
-        self.leaf_unhealthy_area()
-        self.surface_alive()
         self.ratios()
         self.severity()
         self.severity_on_green()
-        self.necrosis()
-        self.necrosis_percentage()
-        self.pycnidia_coverage()
-        self.pycnidia_coverage_on_green()
-        self.get_audpc('necrosis_percentage')
-        self.get_audpc('pycnidia_coverage')
+        self.get_audpc()
         if variety is not None:
-            self.add_variety()
-        self.data['axis'] = 'MS'
+            self.add_variety(variety=variety)
            
 def get_recorder(*filenames):
     recorder = []
@@ -1216,6 +1191,27 @@ class BrownRustRecorder(AdelWheatRecorder):
 
     def add_variety(self, variety = None):
         self.data['variety'] = variety
+        
+    def get_audpc(self, variable='severity'):
+        for pl in set(self.data['num_plant']):
+            df_pl =  self.data[self.data['num_plant'] == pl]
+            for lf in set(df_pl['num_leaf_top']):
+                df_lf = df_pl[df_pl['num_leaf_top'] == lf]
+                ind_data_lf = df_lf.index
+                if round(df_lf['leaf_green_area'][pandas.notnull(df_lf['leaf_disease_area'])].iloc[-1],10)==0.:
+                    data = df_lf[variable][df_lf['leaf_green_area']>0]
+                    ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
+                    data_ref = numpy.ones(len(data))
+                    if len(data[data>0])>0:
+                        audpc = simps(data[data>0], ddays[data>0])
+                    else:
+                        audpc = 0.
+                    self.data.loc[ind_data_lf, 'audpc'] = audpc
+                    audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
+                else:
+                    self.data.loc[ind_data_lf, 'audpc'] = np.nan
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan 
     
     def post_treatment(self, variety = None):
         self.data = self.data[~pandas.isnull(self.data['date'])]
@@ -1225,6 +1221,7 @@ class BrownRustRecorder(AdelWheatRecorder):
         self.surface_alive()
         self.ratios()
         self.severity()
+        self.get_audpc()
         if variety is not None:
             self.add_variety(variety=variety)
         self.data['axis'] = 'MS'

@@ -175,22 +175,27 @@ class SeptoriaAgePhysio(Lesion):
             # Growth offer is added to surface according to state
             if self.is_incubating():
                 if growth_offer<0:
-#                    import pdb
-#                    pdb.set_trace()
                     self.surface_dead -= growth_offer                   
-#                    self.potential_surface *= (1 + growth_offer/self.surface_non_senescent)
                 self.surface_first_ring = max(0, self.surface_first_ring + growth_offer)
                 if self.surface_first_ring == 0. and self.age_dday>self.ddday:
                     self.disable()
                     return
             else:
+#                growth_offer = min(self.surface_inc)
                 Smin = self._surface_min
                 if self.is_chlorotic() and round(self.surface_first_ring,14) < round(Smin,14):
                     if self.age_dday - self.ddday < self.fungus.degree_days_to_chlorosis:
-                        diff = self.fungus.degree_days_to_chlorosis - (self.age_dday - self.ddday)
-                        ratio_inc = diff/self.ddday
-                        self.surface_first_ring += growth_offer*ratio_inc
-                        growth_offer *= (1 - ratio_inc)
+                        if growth_offer <= 0:
+                            self.surface_dead -= growth_offer                   
+                            self.surface_first_ring = max(0, self.surface_first_ring + growth_offer)
+                            if self.surface_first_ring == 0. and self.age_dday>self.ddday:
+                                self.disable()
+                                return
+                        else:
+                            diff = self.fungus.degree_days_to_chlorosis - (self.age_dday - self.ddday)
+                            ratio_inc = diff/self.ddday
+                            self.surface_first_ring += growth_offer*ratio_inc
+                            growth_offer *= (1 - ratio_inc)
                 nb_full_rings = int(floor(self.distribution_new_rings))
                 surf = np.array([])
                 for rg in range(nb_full_rings):
@@ -490,20 +495,20 @@ class SeptoriaAgePhysio(Lesion):
                     self.surfaces_chlo[:ind_cut] *= (1 - ratio_sen)
                     self.surfaces_chlo[ind_cut] -= to_dead_on_cut_ring
                     
-                    if nb_new_sen==self.nb_lesions_non_sen:
-                        if age_switch==1 or len(self.surfaces_chlo>0.)==0:
-                            self.age_physio_edge = 0.
-                            self.change_status_edge()
-                        else:
-                            self.age_physio_edge = age_switch
-                    elif any([x==0. for x in self.surfaces_chlo]):
-                        rings = rings[self.surfaces_chlo>0.]
-                        if len(rings)>0:
-                            self.age_physio_edge = rings[0]
-                        else:
-                            self.age_physio_edge = 0.
-                            self.change_status_edge()
-                    self.surfaces_chlo = self.surfaces_chlo[self.surfaces_chlo>0.]
+                if nb_new_sen==self.nb_lesions_non_sen:
+                    if age_switch==1 or len(self.surfaces_chlo>0.)==0:
+                        self.age_physio_edge = 0.
+                        self.change_status_edge()
+                    else:
+                        self.age_physio_edge = age_switch
+                elif any([x==0. for x in self.surfaces_chlo]):
+                    rings = rings[self.surfaces_chlo>0.]
+                    if len(rings)>0:
+                        self.age_physio_edge = rings[0]
+                    else:
+                        self.age_physio_edge = 0.
+                        self.change_status_edge()
+                self.surfaces_chlo = self.surfaces_chlo[self.surfaces_chlo>0.]
 
             # Update number of lesions in senescence
             self.nb_lesions_sen += nb_new_sen         
@@ -648,7 +653,7 @@ class SeptoriaAgePhysio(Lesion):
     @property
     def surface_non_senescent(self):
         """ calculate the surface of the lesion non affected by senescence. """
-        if self.is_senescent:        
+        if self.is_senescent:
             f = self.fungus
             age_switch = f.age_physio_switch_senescence
             ratio_non_sen = self.nb_lesions_non_sen / self.nb_lesions
@@ -661,14 +666,42 @@ class SeptoriaAgePhysio(Lesion):
 class SeptoriaFungus(Fungus):
     def __init__(self, name='septoria', Lesion=SeptoriaAgePhysio, DispersalUnit=SeptoriaDU, parameters=septoria_parameters):
         super(SeptoriaFungus, self).__init__(name=name, Lesion=Lesion, DispersalUnit=DispersalUnit, parameters=parameters)
+
+# Useful functions ############################################################
+#import collections
+#def is_iterable(obj):
+#    """ Test if object is iterable """
+#    return isinstance(obj, collections.Iterable)
         
-import collections
-def is_iterable(obj):
-    """ Test if object is iterable """
-    return isinstance(obj, collections.Iterable)
+def group_duplicates_in_cohort(g):
+    def _get_index_duplicates(seq):
+        from collections import defaultdict
+        dd = defaultdict(list)
+        for i,item in enumerate(seq):
+            dd[item].append(i)
+        return [idx for key,idx in dd.iteritems() if len(idx)>1 and key==0.][-1]
+    
+    def group_lesions(les):
+        new_l = les[0].fungus.lesion()
+        new_l.position = sum([l.position for l in les], [])
+        return new_l
+    
+    lesions = g.property('lesions')
+    for vid, les in lesions.iteritems():
+        ages = [l.age_dday for l in les]
+        if len(les)!=len(set(ages)):
+            idxs = _get_index_duplicates(ages)
+            new_les = group_lesions([les[i] for i in idxs])
+            les = les[:idxs[0]]
+            les.append(new_les)
+            lesions[vid] = les
+                
     
 class SeptoError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
+            
+        
