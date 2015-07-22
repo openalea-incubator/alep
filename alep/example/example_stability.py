@@ -4,6 +4,8 @@
 from septo_decomposed import annual_loop_septo
 from brown_rust_decomposed import annual_loop_rust
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
 import pandas as pd
 import os
 from alinea.alep.disease_outputs import plot_by_leaf
@@ -17,7 +19,7 @@ def run_and_save_septo(variety='Tremie13',
                        year = 2013,
                        sowing_date = '10-15',
                        sporulating_fraction = 1e-3,
-                       nplants=[1, 5, 10, 20, 30, 50, 100]):
+                       nplants=[1, 5, 10, 20, 30, 50]):
     for nb_pl in nplants:
         output_file = get_output_path(fungus='septoria', variety=variety,
                                       year=year, nb_pl=nb_pl)
@@ -29,7 +31,7 @@ def run_and_save_rust(variety='Tremie13',
                        year = 2013,
                        sowing_date = '10-15',
                        density_dispersal_units = 300,
-                       nplants=[1, 5, 10, 20, 30, 50, 100]):
+                       nplants=[1, 5, 10, 20, 30, 50]):
     for nb_pl in nplants:
         output_file = get_output_path(fungus='rust', variety=variety,
                                       year=year, nb_pl=nb_pl)
@@ -39,9 +41,12 @@ def run_and_save_rust(variety='Tremie13',
                           
 def plot_stability(fungus='rust', variety='Tremie13',
                    year = 2013, sowing_date = '10-15',  
-                   nplants = [1, 5, 10, 20, 30, 50, 100],
+                   nplants = [1, 5, 10, 20, 30, 50],
                    leaves = [10, 5, 1]):
-    fig, axs = plt.subplots(3,1)
+    fig, axs = plt.subplots(1,3)
+    cm = plt.get_cmap('hot') 
+    cNorm  = colors.Normalize(vmin=0, vmax=nplants[-1])
+    scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
     for nb_pl in nplants:
         output_file = get_output_path(fungus='rust', variety=variety,
                                       year=year, nb_pl=nb_pl)
@@ -49,8 +54,10 @@ def plot_stability(fungus='rust', variety='Tremie13',
             df = pd.read_csv(output_file, sep=',')
             for i, ax in enumerate(axs):
                 lf = leaves[i]
+                color = scalarMap.to_rgba(nb_pl)
                 plot_by_leaf(df, variable='severity', xaxis='degree_days',
-                             leaves=[lf], fixed_color='k', alpha=0.3, ax=ax)
+                             leaves=[lf], fixed_color=color, alpha=0.5, ax=ax,
+                             ylims=[0, 1], legend=False)
                 ax.annotate('Leaf %d' % lf, xy=(0.05, 0.95), 
                             xycoords='axes fraction', fontsize=14)
             

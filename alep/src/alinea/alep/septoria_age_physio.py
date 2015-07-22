@@ -664,8 +664,8 @@ class SeptoriaAgePhysio(Lesion):
 
             
 class SeptoriaFungus(Fungus):
-    def __init__(self, name='septoria', Lesion=SeptoriaAgePhysio, DispersalUnit=SeptoriaDU, parameters=septoria_parameters):
-        super(SeptoriaFungus, self).__init__(name=name, Lesion=Lesion, DispersalUnit=DispersalUnit, parameters=parameters)
+    def __init__(self, Lesion=SeptoriaAgePhysio, DispersalUnit=SeptoriaDU, parameters=septoria_parameters):
+        super(SeptoriaFungus, self).__init__(Lesion=Lesion, DispersalUnit=DispersalUnit, parameters=parameters)
 
 # Useful functions ############################################################
 #import collections

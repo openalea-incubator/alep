@@ -395,7 +395,8 @@ class BrownRustLesion(Lesion):
         return self.surface_alive
         
 # Fungus parameters: config of the fungus ##########################################################
-brown_rust_parameters = dict(CHLOROTIC = 0,
+brown_rust_parameters = dict(name = 'brown_rust',
+                             CHLOROTIC = 0,
                              SPORULATING = 1,
                              EMPTY = 2,
                              group_dus = True,
@@ -427,12 +428,11 @@ brown_rust_parameters = dict(CHLOROTIC = 0,
 # Brown rust fungus ################################################################################
 class BrownRustFungus(Fungus):
     """ Define a fungus model with dispersal unit class, lesion class and set of parameters """
-    def __init__(self, name = 'brown_rust',
+    def __init__(self,
                  Lesion = BrownRustLesion,
                  DispersalUnit = BrownRustDU,
                  parameters = brown_rust_parameters):
-        super(BrownRustFungus, self).__init__(name = name,
-                                              Lesion = Lesion,
+        super(BrownRustFungus, self).__init__(Lesion = Lesion,
                                               DispersalUnit = DispersalUnit,
                                               parameters = parameters)
 

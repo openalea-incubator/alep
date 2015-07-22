@@ -1367,7 +1367,7 @@ def plot_mean(data, variable = 'severity', xaxis = 'degree_days',
                         markerfacecolor = markerfacecolor,  markeredgecolor = color)
         else:
             ax.plot(df_mean.index, df_mean[variable],
-                    marker = marker, linestyle = linestyle, color = color,
+                    marker = marker, linestyle = linestyle, color = color, alpha=alpha,
                     markerfacecolor = markerfacecolor,  markeredgecolor = color)
         if title is not None:
             ax.set_title(title, fontsize = 18)
