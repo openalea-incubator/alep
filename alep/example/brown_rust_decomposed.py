@@ -87,7 +87,7 @@ def annual_loop_rust(year = 2012, variety = 'Tremie13',
      recorder, growth_controler, infection_controler, 
      contaminator, dispersor, it_wheat, wheat_dir,
      wheat_is_loaded) = setup_simu(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
-                   end_date=str(year)+"-07-01 00:00:00",
+                   end_date=str(year)+"-08-01 00:00:00",
                    variety = variety, nplants = nplants, nsect = nsect, 
                    TT_delay = 20, dispersal_delay = 24, record=record, **kwds)
         
