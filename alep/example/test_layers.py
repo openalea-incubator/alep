@@ -66,6 +66,7 @@ def test_transport_rain_two_metamers(interleaf=10.,
                                      density = 350.,
                                      layer_thickness=0.01, 
                                      leaf_sectors = 2,
+                                     density_emitted=1e5,
                                      by_sector = False):
     g, domain_area, domain, convunit = adel_two_metamers_stand(leaf_sectors=leaf_sectors, 
                                                                density=density,
@@ -77,7 +78,7 @@ def test_transport_rain_two_metamers(interleaf=10.,
     leaves = get_leaf_ids(g)
     DU = emission_source(g, leaves, 
                          domain_area=domain_area,
-                         density_emitted=1e5)
+                         density_emitted=density_emitted)
     transporter = PopDropsTransport(domain=domain, domain_area=domain_area,
                                     dh=layer_thickness, convUnit=convunit,
                                     group_dus=True)
@@ -212,4 +213,16 @@ def plot_sectors_two_metamers(by_sector = False):
         ax[1].set_title('Target leaf', fontsize = 18)
 
 # Examples in stand ###########################################################
-#from alinea.echap.architectural_reconstructions import 
+from alinea.echap.architectural_reconstructions import soisson_reconstruction
+
+def test_transport_wind_canopy(nplants=30, density=250.,
+                               inter_row=0.15, nsect=3, 
+                               age_canopy=1400., position_source = 3./5):
+    # Generate canopy                                   
+    adel = soisson_reconstruction(nplants=nplants, density=density,
+                                  inter_row=inter_row, nsect=nsect)
+    g = adel.setup_canopy(age_canopy)
+    
+    # Get source leaf
+    
+
