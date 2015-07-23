@@ -137,8 +137,7 @@ def run_and_save_rust_aupdc(variety = 'Tremie13',
             g, reco = annual_loop_rust(variety=variety, year=year,
                                         sowing_date=sowing_date,
                                         density_dispersal_units=density_dispersal_units,
-                                        nplants=nb_pl, 
-                                        output_file=output_file, **kwds)
+                                        nplants=nb_pl, **kwds)
             df = get_mean_audpc_by_leaf(reco.data, variable = 'normalized_audpc')
             df['rep'] = rep
             df['nb_plants'] = nb_pl
