@@ -212,4 +212,4 @@ def plot_sectors_two_metamers(by_sector = False):
         ax[1].set_title('Target leaf', fontsize = 18)
 
 # Examples in stand ###########################################################
-from alinea.echap.architectural_reconstructions import 
+#from alinea.echap.architectural_reconstructions import 
