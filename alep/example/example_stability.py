@@ -13,66 +13,75 @@ from alinea.alep.disease_outputs import plot_by_leaf, conf_int
 
 # Working with full recorder ##################################################
 def get_output_path_full_recorder(fungus='rust', variety='Tremie13', 
-                                  year = 2013, nb_pl=1, inoc=300):
+                                  year = 2013, nb_pl=1, inoc=300, rep=0):
     inoc = str(inoc)
     inoc = inoc.replace('.', '_')
     return './stability/'+fungus+'/'+variety.lower()+'_'+ \
-            str(year)+'_'+str(nb_pl)+'pl_inoc'+inoc+'.csv'
+            str(year)+'_'+str(nb_pl)+'pl_inoc'+inoc+'_rep_'+str(rep)+'.csv'
 
 def run_and_save_septo_full_recorder(variety='Tremie13', 
                                    year = 2013,
                                    sowing_date = '10-15',
                                    sporulating_fraction = 1e-3,
                                    nplants=[1, 5, 10, 20, 30, 50],
+                                   nreps = 5,
                                    **kwds):
-    for nb_pl in nplants:
-        output_file = get_output_path_full_recorder(fungus='septoria',
-                                                    variety=variety,
-                                                    year=year, nb_pl=nb_pl,
-                                                    inoc=sporulating_fraction)
-        annual_loop_septo(variety=variety, year=year, sowing_date=sowing_date,
-                          sporulating_fraction=sporulating_fraction,
-                          nplants=nb_pl, output_file=output_file, **kwds)
+    for rep in range(nreps):
+        for nb_pl in nplants:
+            output_file = get_output_path_full_recorder(fungus='septoria',
+                                                        variety=variety,
+                                                        year=year, nb_pl=nb_pl,
+                                                        inoc=sporulating_fraction,
+                                                        rep = rep)
+            annual_loop_septo(variety=variety, year=year, sowing_date=sowing_date,
+                              sporulating_fraction=sporulating_fraction,
+                              nplants=nb_pl, output_file=output_file, **kwds)
                           
 def run_and_save_rust_full_recorder(variety='Tremie13', 
                                    year = 2013,
                                    sowing_date = '10-15',
                                    density_dispersal_units = 300,
                                    nplants=[1, 5, 10, 20, 30, 50],
+                                   nreps = 5,
                                    **kwds):
-    for nb_pl in nplants:
-        output_file = get_output_path_full_recorder(fungus='brown_rust',
-                                                    variety=variety,
-                                                    year=year, nb_pl=nb_pl,
-                                                    inoc=density_dispersal_units)
-        annual_loop_rust(variety=variety, year=year, sowing_date=sowing_date,
-                          density_dispersal_units=density_dispersal_units,
-                          nplants=nb_pl, output_file=output_file,**kwds)
+    for rep in range(nreps):    
+        for nb_pl in nplants:
+            output_file = get_output_path_full_recorder(fungus='brown_rust',
+                                                        variety=variety,
+                                                        year=year, nb_pl=nb_pl,
+                                                        inoc=density_dispersal_units,
+                                                        rep=rep)
+            annual_loop_rust(variety=variety, year=year, sowing_date=sowing_date,
+                              density_dispersal_units=density_dispersal_units,
+                              nplants=nb_pl, output_file=output_file,**kwds)
                           
 def plot_stability(fungus='rust', variety='Tremie13',
                    year = 2013, sowing_date = '10-15', 
                    inoc = 300,
                    nplants = [1, 5, 10, 20, 30, 50],
-                   leaves = [10, 5, 1]):
+                   leaves = [10, 5, 1],
+                   nreps = 5):
     fig, axs = plt.subplots(1,3)
     cm = plt.get_cmap('hot') 
     cNorm  = colors.Normalize(vmin=0, vmax=nplants[-1])
     scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
-    for nb_pl in nplants:
-        output_file = get_output_path_full_recorder(fungus=fungus,
-                                                    variety=variety,
-                                                    year=year, nb_pl=nb_pl,
-                                                    inoc=inoc)
-        if os.path.exists(output_file):
-            df = pd.read_csv(output_file, sep=',')
-            for i, ax in enumerate(axs):
-                lf = leaves[i]
-                color = scalarMap.to_rgba(nb_pl)
-                plot_by_leaf(df, variable='severity', xaxis='degree_days',
-                             leaves=[lf], fixed_color=color, alpha=0.5, ax=ax,
-                             ylims=[0, 1], legend=False)
-                ax.annotate('Leaf %d' % lf, xy=(0.05, 0.95), 
-                            xycoords='axes fraction', fontsize=14)
+    for rep in range(nreps):
+        for nb_pl in nplants:
+            output_file = get_output_path_full_recorder(fungus=fungus,
+                                                        variety=variety,
+                                                        year=year, nb_pl=nb_pl,
+                                                        inoc=inoc,
+                                                        rep=rep)
+            if os.path.exists(output_file):
+                df = pd.read_csv(output_file, sep=',')
+                for i, ax in enumerate(axs):
+                    lf = leaves[i]
+                    color = scalarMap.to_rgba(nb_pl)
+                    plot_by_leaf(df, variable='severity', xaxis='degree_days',
+                                 leaves=[lf], fixed_color=color, alpha=0.5, ax=ax,
+                                 ylims=[0, 1], legend=False)
+                    ax.annotate('Leaf %d' % lf, xy=(0.05, 0.95), 
+                                xycoords='axes fraction', fontsize=14)
 
 # Working with audpc only #####################################################
 def get_output_path_audpc(fungus='rust', variety='Tremie13', 
@@ -146,7 +155,7 @@ def run_and_save_rust_aupdc(variety = 'Tremie13',
     
 def plot_stability_audpc(fungus='rust', variety = 'Tremie13', year = 2013,
                          inoc = 300,
-                         nplants = [1, 5, 10, 15, 20, 25, 30, 40, 50, 60],
+                         nplants = [1, 5, 10, 15, 20, 25, 30, 40, 50],
                          nb_reps = 5, leaves = [10, 5, 1], 
                          variable = 'normalized_audpc'):
     fig, axs = plt.subplots(1,3, figsize=(16,10))

@@ -214,15 +214,192 @@ def plot_sectors_two_metamers(by_sector = False):
 
 # Examples in stand ###########################################################
 from alinea.echap.architectural_reconstructions import soisson_reconstruction
+from alinea.alep.architecture import get_leaves
+from alinea.adel.newmtg import adel_labels
+from openalea.plantgl import all as pgl
+import collections
+from alinea.alep.dispersal_transport import BrownRustDispersal
+from alinea.alep.disease_outputs import conf_int
 
-def test_transport_wind_canopy(nplants=30, density=250.,
-                               inter_row=0.15, nsect=3, 
-                               age_canopy=1400., position_source = 3./5):
+def get_source_leaf(g, position_source=2./3):
+    tesselator = pgl.Tesselator()
+    bbc = pgl.BBoxComputer(tesselator)
+    leaves = get_leaves(g, label='LeafElement')
+    centroids = g.property('centroid')
+    geometries = g.property('geometry')
+    targets = list(leaf for leaf in leaves if leaf in geometries.iterkeys())
+    for vid in targets:
+        if isinstance(geometries[vid], collections.Iterable):
+            bbc.process(pgl.Scene(geometries[vid]))
+        else:
+            bbc.process(pgl.Scene([pgl.Shape(geometries[vid])]))
+        center = bbc.result.getCenter()
+        centroids[vid] = center
+    zmax = max(centroids.items(), key=lambda x:x[1][2])[1][2]
+    distances = {vid:pgl.norm(centroids[vid]-(0,0,position_source*zmax)) for vid in centroids}
+    return min(distances.items(), key=lambda x:x[1])[0]
+
+def get_deposits_num_leaf(g, adel, num_leaf_top=1, deposits={}, du_density=1e5):
+    df = adel.get_exposed_areas(g)
+    df = df[(df['axe']=='MS') & (df['element'].str.startswith('LeafElement'))]
+    leaves = df[df['ntop']==num_leaf_top]['vid']
+    nb_deposits_top = 0.
+    for lf in leaves:
+        if lf in deposits:
+            nb_deposits_top += sum([du.nb_dispersal_units for du in deposits[lf]])
+    return (nb_deposits_top/adel.domain_area)/du_density
+
+def transport_wind_canopy_single(nplants = 10, plant_density = 250.,
+                                inter_row = 0.15, nsect = 5, 
+                                age_canopy = 1400., position_source = 3./5,
+                                du_density = 1e5, layer_thickness=1.):
     # Generate canopy                                   
-    adel = soisson_reconstruction(nplants=nplants, density=density,
+    adel = soisson_reconstruction(nplants=nplants,
+                                  sowing_density=plant_density,
+                                  plant_density=plant_density,
                                   inter_row=inter_row, nsect=nsect)
     g = adel.setup_canopy(age_canopy)
-    
     # Get source leaf
+    leaf = get_source_leaf(g, position_source=position_source)
+    # Run dispersal
+    DU_emitted = {leaf:du_density*adel.domain_area}
+    transporter = BrownRustDispersal(group_dus=True, 
+                                     domain_area=adel.domain_area,
+                                     layer_thickness=layer_thickness)
+    deposits = transporter.disperse(g, dispersal_units = DU_emitted)
     
+    # Get top leaves of main stems
+    nb_deposits_top = get_deposits_num_leaf(g, adel, num_leaf_top=1, 
+                                            deposits=deposits,
+                                            du_density=du_density)
+    nb_deposits_bottom = get_deposits_num_leaf(g, adel, num_leaf_top=5, 
+                                            deposits=deposits,
+                                            du_density=du_density)       
+    nb_deposits_total = (sum(sum([du.nb_dispersal_units for du in v]) 
+                        for v in deposits.itervalues())/adel.domain_area)/du_density
+    return nb_deposits_total, nb_deposits_top, nb_deposits_bottom
+    
+def plot_results(df, groupby='nplants', xlabel = 'Number of plants'):
+    fig, axs = plt.subplots(1,3, figsize=(16,10))
+    df_mean = df.groupby(groupby).agg(numpy.mean)
+    df_conf = df.groupby(groupby).agg(conf_int)
+    variables = iter(['nb_dus_tot', 'nb_dus_top', 'nb_dus_bottom'])
+    for ax in axs.flat:
+        variable = next(variables)
+        ax.errorbar(df_mean.index, df_mean[variable], yerr=df_conf[variable],
+                    linestyle='', marker='o')
+        ax.set_xlabel(xlabel, fontsize=16)
+        ax.set_ylabel('Number of deposits', fontsize=16)
+        ax.set_xlim([0, max(df[groupby])*1.1])
+        ax.set_ylim([0, 1])
+        ax.grid()
+        ax.annotate(variable, xy=(0.05, 0.95), 
+                    xycoords='axes fraction', fontsize=14)
 
+def test_transport_wind_canopy_nplants(nplants = numpy.concatenate([[1], numpy.arange(5,51,5)]), 
+                                       nreps = 10,
+                                       plant_density = 250.,
+                                       inter_row = 0.15, nsect = 5, 
+                                       age_canopy = 1400., 
+                                       position_source = 3./5,
+                                       du_density = 1e5, layer_thickness=1.):
+    # Run test and group outputs in dataframe
+    df = pandas.DataFrame(index=range(nreps*len(nplants)),
+                          columns=['nplants', 'rep', 'nb_dus_tot',
+                                   'nb_dus_top', 'nb_dus_bottom'])
+    idx = -1
+    for npl in nplants:
+        for rep in range(nreps):
+            idx += 1
+            (nb_dus, nb_dus_top,
+             nb_dus_bot) = transport_wind_canopy_single(nplants=npl,
+                                         plant_density=plant_density,
+                                         inter_row=inter_row, nsect=nsect, 
+                                         age_canopy=age_canopy,
+                                         position_source=position_source,
+                                         du_density=du_density,
+                                         layer_thickness=layer_thickness)
+            df.loc[idx, 'nplants'] = npl
+            df.loc[idx, 'rep'] = rep
+            df.loc[idx, 'nb_dus_tot'] = nb_dus
+            df.loc[idx, 'nb_dus_top'] = nb_dus_top
+            df.loc[idx, 'nb_dus_bottom'] = nb_dus_bot
+    
+    for col in df.columns:
+        df[col] = df[col].astype(float)
+
+    # Read dataframe and plot
+    plot_results(df, groupby='nplants', xlabel = 'Number of plants')
+    
+def test_transport_wind_canopy_nsect(nplants = 10, 
+                                     nreps = 10,
+                                     plant_density = 250.,
+                                     inter_row = 0.15,
+                                     nsect = range(1,11), 
+                                     age_canopy = 1400., 
+                                     position_source = 3./5,
+                                     du_density = 1e5, layer_thickness=1.):
+    # Run test and group outputs in dataframe
+    df = pandas.DataFrame(index=range(nreps*len(nsect)),
+                          columns=['nsect', 'rep', 'nb_dus',
+                                   'nb_dus_top', 'nb_dus_bottom'])
+    idx = -1
+    for ns in nsect:
+        for rep in range(nreps):
+            idx += 1
+            (nb_dus, nb_dus_top,
+             nb_dus_bot) = transport_wind_canopy_single(nplants=nplants,
+                                         plant_density=plant_density,
+                                         inter_row=inter_row, nsect=ns, 
+                                         age_canopy=age_canopy,
+                                         position_source=position_source,
+                                         du_density=du_density,
+                                         layer_thickness=layer_thickness)
+            df.loc[idx, 'nsect'] = ns
+            df.loc[idx, 'rep'] = rep
+            df.loc[idx, 'nb_dus_tot'] = nb_dus
+            df.loc[idx, 'nb_dus_top'] = nb_dus_top
+            df.loc[idx, 'nb_dus_bottom'] = nb_dus_bot
+    
+    for col in df.columns:
+        df[col] = df[col].astype(float)
+
+    # Read dataframe and plot
+    plot_results(df, groupby='nsect', xlabel = 'Number of sectors by leaf')
+    
+def test_transport_wind_canopy_layers(nplants = 1, 
+                                     nreps = 10,
+                                     plant_density = 250.,
+                                     inter_row = 0.15,
+                                     nsect = 5, 
+                                     age_canopy = 1400., 
+                                     position_source = 3./5,
+                                     du_density = 1e5, 
+                                     layer_thickness=numpy.arange(1,11)):
+    # Run test and group outputs in dataframe
+    df = pandas.DataFrame(index=range(nreps*len(layer_thickness)),
+                          columns=['nsect', 'rep', 'nb_dus',
+                                   'nb_dus_top', 'nb_dus_bottom'])
+    idx = -1
+    for l in layer_thickness:
+        for rep in range(nreps):
+            idx += 1
+            (nb_dus, nb_dus_top,
+             nb_dus_bot) = transport_wind_canopy_single(nplants=nplants,
+                                         plant_density=plant_density,
+                                         inter_row=inter_row, nsect=nsect, 
+                                         age_canopy=age_canopy,
+                                         position_source=position_source,
+                                         du_density=du_density,
+                                         layer_thickness=l)
+            df.loc[idx, 'layers'] = l
+            df.loc[idx, 'rep'] = rep
+            df.loc[idx, 'nb_dus_tot'] = nb_dus
+            df.loc[idx, 'nb_dus_top'] = nb_dus_top
+            df.loc[idx, 'nb_dus_bottom'] = nb_dus_bot
+            
+    for col in df.columns:
+        df[col] = df[col].astype(float)
+
+    # Read dataframe and plot
+    plot_results(df, groupby='layers', xlabel = 'Layer thickness')

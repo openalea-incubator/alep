@@ -101,7 +101,6 @@ def update_plot(g, leaf_source):
     g = alep_colormap(g, 'nb_dus', cmap=green_yellow_red(levels=1000),
                       lognorm=False, zero_to_one=False, vmax=25)
 
-    leaves = get_leaves(g, label='LeafElement')
     # pos_sen = g.property('position_senescence')
     for id in g:
         if not id in nb_dus_by_leaf:

@@ -1319,7 +1319,10 @@ def variance(lst):
     all divided by number of data points
     """
     mu = numpy.mean(lst)
-    return 1.0/(len(lst)-1) * sum([(i-mu)**2 for i in lst])
+    if len(lst)>1:
+        return 1.0/(len(lst)-1) * sum([(i-mu)**2 for i in lst])
+    else:
+        return 0.
         
 def conf_int(lst, perc_conf=95):
     """
