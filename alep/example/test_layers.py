@@ -1,10 +1,11 @@
 from alinea.adel.data_samples import adel_two_metamers_stand
 from alinea.alep.fungal_objects import Fungus
 from alinea.alep.disease_outputs import get_synthetic_outputs_by_leaf
+from brown_rust_decomposed import annual_loop_rust
 from alinea.alep.protocol import disperse
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.septo3d.dispersion.alep_interfaces import Septo3DTransport
- from itertools import product
+from itertools import product
 from alinea.astk.Weather import sample_weather
 from alinea.astk.TimeControl import *
 import matplotlib.pyplot as plt
@@ -415,7 +416,7 @@ def visualize_layers_wind(age_canopy = 1400., nplants = 50,
     dispersor.plot_layers(g)
     
 def get_output_path(agent='wind', variety='Tremie13', 
-                    year = 2013, inoc=300, nb_reps=5,
+                    year = 2013, inoc=50,
                     factor='nsect_x_layers'):
     inoc = str(inoc)
     inoc = inoc.replace('.', '_')
@@ -427,17 +428,18 @@ def test_annual_loop_rust_nsect_x_layers(year = 2013, variety = 'Tremie13',
                                          sowing_date = '10-29',
                                          density_dispersal_units = 50,
                                          layer_thickness = [3., 10.],
-                                         nreps = 5):
-    output_file = get_output_path_synthetic(agent='wind',
-                                            variety=variety,
-                                            year=year, 
-                                            inoc=density_dispersal_units)
+                                         nreps = 5, **kwds):
+    output_file = get_output_path(agent='wind',
+                                variety=variety,
+                                year=year, 
+                                inoc=density_dispersal_units)
     for rep in range(nreps):
         for ns, lay in product(nsect, layer_thickness):
             g, reco = annual_loop_rust(variety=variety, year=year,
                                         sowing_date=sowing_date,
                                         density_dispersal_units=density_dispersal_units,
-                                        nplants=nb_pl, layer_thickness = lay,
+                                        nplants=nplants, nsect=ns, 
+                                        layer_thickness = lay,
                                         **kwds)
             df = get_synthetic_outputs_by_leaf(reco.data)
             df['rep'] = rep
