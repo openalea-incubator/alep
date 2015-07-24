@@ -104,7 +104,7 @@ class SeptoriaAgePhysio(Lesion):
                 self.growth_demand = 0.
                 
             # Update potential surface
-            self.potential_surface += self.growth_demand
+            self.potential_surface += self.growth_demand 
         
         if (self.incubation_completed == False and
             round(self.surface_first_ring,14) >= round(self._surface_min, 14)):
@@ -240,11 +240,7 @@ class SeptoriaAgePhysio(Lesion):
             self.ratio_left = round((self.age_physio - 1.)/progress, 14)
             self.change_status()
             self.change_status_edge()
-            self.reset_age_physio()
-            
-            # Temp
-#            self.potential_surface = self.surface            
-            
+            self.reset_age_physio()           
             self.chlorosis()
 
     def chlorosis(self):
@@ -263,7 +259,7 @@ class SeptoriaAgePhysio(Lesion):
             # Limit growth to size max
             Smax = self._surface_max
             if self.surface + self.growth_demand >= Smax:
-                self.growth_demand = Smax - self.surface
+                self.growth_demand = max(0., Smax - self.surface)
 
         # Compute exchanges of surfaces
         if self.incubation_completed:
@@ -343,7 +339,7 @@ class SeptoriaAgePhysio(Lesion):
         # Compute progress in necrosis
         time_to_spo = f.degree_days_to_sporulation
         progress = self.progress(age_threshold=time_to_spo)
-        
+
         # Compute exchanges of surfaces
         if self.incubation_completed:
             age_physio = self.age_physio
@@ -464,7 +460,7 @@ class SeptoriaAgePhysio(Lesion):
             nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
             nb_new_sen = nb_sen - self.nb_lesions_sen
             ratio_sen = float(nb_new_sen)/(self.nb_lesions_non_sen)
-
+            
             # Reduce surfaces alive
             f = self.fungus
             age_switch = f.age_physio_switch_senescence
@@ -624,7 +620,7 @@ class SeptoriaAgePhysio(Lesion):
     @property
     def _surface_max(self):
         """ Calculate the surface max for a lesion. """
-        return self.fungus.Smax * self.nb_lesions_non_sen + self.surface_dead 
+        return self.fungus.Smax * self.nb_lesions_non_sen + self.surface_senescent
     
     @property
     def surface(self):
@@ -661,6 +657,11 @@ class SeptoriaAgePhysio(Lesion):
                     self.surface_nec + self.surface_spo + self.surface_empty)
         else:
             return self.surface - self.surface_dead
+            
+    @property
+    def surface_senescent(self):
+        """ Calculate the surface of the lesion affected by senescence. """
+        return self.surface - self.surface_non_senescent
 
             
 class SeptoriaFungus(Fungus):

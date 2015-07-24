@@ -473,3 +473,36 @@ def test_annual_loop_rust_nsect_x_layers(year = 2013, variety = 'Tremie13',
             df['layer_thickness'] = lay
             df_out = pandas.concat([df_out, df])
     df_out.to_csv(output_file, sep = ',')
+
+def plot_annual_loop_rust_nsect_x_layers(year = 2013, variety = 'Tremie13', 
+                                         nplants = 10, nsect = [3, 10], 
+                                         sowing_date = '10-29',
+                                         density_dispersal_units = 50,
+                                         layer_thickness = [3., 10.],
+                                         nreps = 5, 
+                                         variable = 'normalized_audpc',
+                                         ylims = None):
+    output_file = get_output_path(agent='wind',
+                                variety=variety,
+                                year=year, 
+                                inoc=density_dispersal_units)
+    df = pandas.read_csv(output_file, sep = ',')
+    scenarios = product(nsect, layer_thickness)
+    
+    fig, axs = plt.subplots(1, len(nsect)*len(layer_thickness))
+    ax_iter = iter(axs.flat)
+    for ns, lay in scenarios:
+        ax = next(ax_iter)
+        print ns, lay
+        df_sc = df[(df['nsect']==ns) & (df['layer_thickness']==lay)]
+        df_mean =  df_sc.groupby('num_leaf_top').agg(numpy.mean)
+        df_conf =  df_sc.groupby('num_leaf_top').agg(conf_int)
+        ax.errorbar(df_mean.index, df_mean[variable], yerr=df_conf[variable],
+                    linestyle='', marker='o')
+        if ylims is not None:
+            ax.set_ylim(ylims)
+        ax.set_xlabel('Leaf number', fontsize = 16)
+        ax.set_ylabel(variable, fontsize = 16)
+        ax.annotate('nb sect %d \n layer thickness % d' %(ns,lay), xy=(0.05, 0.8), 
+                    xycoords='axes fraction', fontsize=14)
+        

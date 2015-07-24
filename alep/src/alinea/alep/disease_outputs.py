@@ -854,7 +854,7 @@ class AdelWheatRecorder(object):
 ######################################################################
 import numpy
 import pandas
-from scipy.integrate import simps
+from scipy.integrate import simps, trapz
 try:
     import cPickle as pickle
 except:
@@ -1032,10 +1032,15 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                     data_ref = numpy.ones(len(data))
                     if len(data[data>0])>0:
                         audpc = simps(data[data>0], ddays[data>0])
+                        audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
+                        if numpy.isnan(audpc):
+                            audpc = trapz(data[data>0], ddays[data>0])
+                        if numpy.isnan(audpc_ref):
+                            audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
                     else:
                         audpc = 0.
+                        audpc_ref = 0.
                     self.data.loc[ind_data_lf, 'audpc'] = audpc
-                    audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
                     self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
                 else:
                     self.data.loc[ind_data_lf, 'audpc'] = np.nan
@@ -1065,7 +1070,7 @@ def get_recorder(*filenames):
 
 def get_date_threshold(data, variable = 'severity', 
                        xaxis = 'degree_days', from_top = True,
-                       threshold = 5):
+                       threshold = 0.05):
     """ Get date at which variable overpass given threshold """
     df = data.copy()
     df.reset_index(inplace=True)
@@ -1255,14 +1260,19 @@ class BrownRustRecorder(AdelWheatRecorder):
                     data_ref = numpy.ones(len(data))
                     if len(data[data>0])>0:
                         audpc = simps(data[data>0], ddays[data>0])
+                        audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
+                        if numpy.isnan(audpc):
+                            audpc = trapz(data[data>0], ddays[data>0])
+                        if numpy.isnan(audpc_ref):
+                            audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
                     else:
                         audpc = 0.
+                        audpc_ref = 0.
                     self.data.loc[ind_data_lf, 'audpc'] = audpc
-                    audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
                     self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
                 else:
                     self.data.loc[ind_data_lf, 'audpc'] = np.nan
-                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan 
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan   
     
     def post_treatment(self, variety = None):
         self.data = self.data[~pandas.isnull(self.data['date'])]
