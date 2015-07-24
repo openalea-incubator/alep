@@ -273,8 +273,9 @@ def transport_canopy_single(agent='wind',
     elif agent=='rain':
         transporter = PopDropsTransport(domain=adel.domain, 
                                         domain_area=adel.domain_area,
-                                    dh=layer_thickness, convUnit=adel.ConvUnit,
-                                    group_dus=True)
+                                        dh=layer_thickness,
+                                        convUnit=adel.convUnit,
+                                        group_dus=True)
     deposits = transporter.disperse(g, dispersal_units = DU_emitted)
     
     # Get top leaves of main stems
@@ -425,6 +426,16 @@ def visualize_layers_wind(age_canopy = 1400., nplants = 50,
     g = adel.setup_canopy(age_canopy)
     dispersor = BrownRustDispersal(domain_area = adel.domain_area,
                                    layer_thickness=layer_thickness)
+    dispersor.plot_layers(g)
+    
+def visualize_layers_rain(age_canopy = 1400., nplants = 50,
+                          layer_thickness = 1., nsect = 5):
+    adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
+    g = adel.setup_canopy(age_canopy)
+    dispersor = PopDropsTransport(domain=adel.domain, 
+                                    domain_area=adel.domain_area,
+                                    dh=layer_thickness,
+                                    convUnit=adel.convUnit)
     dispersor.plot_layers(g)
     
 def get_output_path(agent='wind', variety='Tremie13', 
