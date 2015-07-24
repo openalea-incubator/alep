@@ -256,6 +256,8 @@ def transport_canopy_single(agent='wind',
                             inter_row = 0.15, nsect = 5, 
                             age_canopy = 1400., position_source = 3./5,
                             du_density = 1e5, layer_thickness=1.):
+    if agent=='rain':
+        layer_thickness *= 0.01    
     # Generate canopy                                   
     adel = soisson_reconstruction(nplants=nplants,
                                   sowing_density=plant_density,
@@ -276,7 +278,7 @@ def transport_canopy_single(agent='wind',
                                         dh=layer_thickness,
                                         convUnit=adel.convUnit,
                                         group_dus=True)
-    deposits = transporter.disperse(g, dispersal_units = DU_emitted)
+    deposits = transporter.disperse(g, DU_emitted, weather_data=sample_weather_with_rain())
     
     # Get top leaves of main stems
     nb_deposits_top = get_deposits_num_leaf(g, adel, num_leaf_top=1, 
