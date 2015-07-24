@@ -456,6 +456,7 @@ def test_annual_loop_rust_nsect_x_layers(year = 2013, variety = 'Tremie13',
                                 variety=variety,
                                 year=year, 
                                 inoc=density_dispersal_units)
+    df_out = pandas.DataFrame()
     for rep in range(nreps):
         for ns, lay in product(nsect, layer_thickness):
             g, reco = annual_loop_rust(variety=variety, year=year,

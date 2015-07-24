@@ -56,14 +56,14 @@ def run_and_save_rust_full_recorder(variety='Tremie13',
                               density_dispersal_units=density_dispersal_units,
                               nplants=nb_pl, output_file=output_file,**kwds)
                           
-def plot_stability(fungus='rust', variety='Tremie13',
-                   year = 2013, sowing_date = '10-15', 
-                   inoc = 300,
-                   nplants = [1, 5, 10, 20, 30, 50],
-                   leaves = [10, 5, 1],
-                   nreps = 5):
+def plot_stability_full_recorder(fungus='rust', variety='Tremie13',
+                                   year = 2013, sowing_date = '10-15', 
+                                   inoc = 300,
+                                   nplants = [1, 5, 10, 20, 30, 50],
+                                   leaves = [10, 5, 1],
+                                   nreps = 5, cmap='hot'):
     fig, axs = plt.subplots(1,3)
-    cm = plt.get_cmap('hot') 
+    cm = plt.get_cmap(cmap) 
     cNorm  = colors.Normalize(vmin=0, vmax=nplants[-1])
     scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
     for rep in range(nreps):
