@@ -9,7 +9,8 @@ import matplotlib.cm as cmx
 import pandas as pd
 import numpy as np
 import os
-from alinea.alep.disease_outputs import plot_by_leaf, conf_int
+from alinea.alep.disease_outputs import (plot_by_leaf, conf_int,
+                                         get_synthetic_outputs_by_leaf)
 
 # Working with full recorder ##################################################
 def get_output_path_full_recorder(fungus='rust', variety='Tremie13', 
@@ -46,7 +47,7 @@ def run_and_save_rust_full_recorder(variety='Tremie13',
                                    **kwds):
     for rep in range(nreps):    
         for nb_pl in nplants:
-            output_file = get_output_path_full_recorder(fungus='brown_rust',
+            output_file = get_output_path_full_recorder(fungus='rust',
                                                         variety=variety,
                                                         year=year, nb_pl=nb_pl,
                                                         inoc=density_dispersal_units,
@@ -84,37 +85,24 @@ def plot_stability(fungus='rust', variety='Tremie13',
                                 xycoords='axes fraction', fontsize=14)
 
 # Working with audpc only #####################################################
-def get_output_path_audpc(fungus='rust', variety='Tremie13', 
+def get_output_path_synthetic(fungus='rust', variety='Tremie13', 
                           year = 2013, inoc=300, nb_reps=5):
     inoc = str(inoc)
     inoc = inoc.replace('.', '_')
     return './stability/'+fungus+'/'+variety.lower()+'_'+ \
-            str(year)+'_pl_inoc'+inoc+'_audpc.csv'
+            str(year)+'_pl_inoc'+inoc+'_synthetic.csv'
 
-def get_mean_audpc_by_leaf(data, variable = 'normalized_audpc'):
-    leaves = np.unique(data['num_leaf_top'])
-    df = pd.DataFrame(index = range(len(leaves)), 
-                      columns = ['num_leaf_top', variable])
-    idx = -1
-    for lf in leaves:
-        idx += 1
-        df_lf = data[data['num_leaf_top']==lf]
-        audpcs = np.unique(df_lf[variable])
-        df.loc[idx, 'num_leaf_top'] = lf
-        df.loc[idx, variable] = np.mean(audpcs)
-    return df 
-
-def run_and_save_septo_aupdc(variety = 'Tremie13', 
-                             year = 2013,
-                             sowing_date = '10-15',
-                             sporulating_fraction = 1e-3,
-                             nplants = [1, 5, 10, 15, 20, 25, 30, 40, 50, 60],
-                             nb_reps = 5, **kwds):
-    output_file = get_output_path_audpc(fungus='septoria',
-                                        variety=variety,
-                                        year=year, 
-                                        inoc=sporulating_fraction,
-                                        nb_reps=nb_reps)
+def run_and_save_septo_synthetic(variety = 'Tremie13', 
+                                 year = 2013,
+                                 sowing_date = '10-15',
+                                 sporulating_fraction = 1e-3,
+                                 nplants = [1, 5, 10, 15, 20, 25, 30, 40, 50],
+                                 nb_reps = 5, **kwds):
+    output_file = get_output_path_synthetic(fungus='septoria',
+                                            variety=variety,
+                                            year=year, 
+                                            inoc=sporulating_fraction,
+                                            nb_reps=nb_reps)
     df_out = pd.DataFrame()
     for nb_pl in nplants:
         for rep in nb_reps:
@@ -123,7 +111,7 @@ def run_and_save_septo_aupdc(variety = 'Tremie13',
                                         sporulating_fraction=sporulating_fraction,
                                         nplants=nb_pl, 
                                         output_file=output_file, **kwds)
-            df = get_mean_audpc_by_leaf(reco.data, variable = 'normalized_audpc')
+            df = get_synthetic_outputs_by_leaf(reco.data)
             df['rep'] = rep
             df['nb_plants'] = nb_pl
             df_out = pd.concat([df_out, df])
@@ -135,11 +123,11 @@ def run_and_save_rust_aupdc(variety = 'Tremie13',
                              density_dispersal_units = 300,
                              nplants = [1, 5, 10, 15, 20, 25, 30, 40, 50, 60],
                              nb_reps = 5, **kwds):
-    output_file = get_output_path_audpc(fungus='rust',
-                                        variety=variety,
-                                        year=year, 
-                                        inoc=density_dispersal_units,
-                                        nb_reps=nb_reps)
+    output_file = get_output_path_synthetic(fungus='rust',
+                                            variety=variety,
+                                            year=year, 
+                                            inoc=density_dispersal_units,
+                                            nb_reps=nb_reps)
     df_out = pd.DataFrame()
     for nb_pl in nplants:
         for rep in range(nb_reps):
@@ -147,7 +135,7 @@ def run_and_save_rust_aupdc(variety = 'Tremie13',
                                         sowing_date=sowing_date,
                                         density_dispersal_units=density_dispersal_units,
                                         nplants=nb_pl, **kwds)
-            df = get_mean_audpc_by_leaf(reco.data, variable = 'normalized_audpc')
+            df = get_synthetic_outputs_by_leaf(reco.data)
             df['rep'] = rep
             df['nb_plants'] = nb_pl
             df_out = pd.concat([df_out, df])
@@ -159,11 +147,11 @@ def plot_stability_audpc(fungus='rust', variety = 'Tremie13', year = 2013,
                          nb_reps = 5, leaves = [10, 5, 1], 
                          variable = 'normalized_audpc'):
     fig, axs = plt.subplots(1,3, figsize=(16,10))
-    output_file = get_output_path_audpc(fungus=fungus,
-                                        variety=variety,
-                                        year=year, 
-                                        inoc=inoc,
-                                        nb_reps=nb_reps)
+    output_file = get_output_path_synthetic(fungus=fungus,
+                                            variety=variety,
+                                            year=year, 
+                                            inoc=inoc,
+                                            nb_reps=nb_reps)
     df = pd.read_csv(output_file, sep=',')
     for i, lf in enumerate(leaves):
         ax = axs[i]

@@ -15,7 +15,8 @@ from alinea.alep.dispersal_transport import BrownRustDispersal
 #from alinea.echap.architectural_reconstructions import EchapReconstructions
 from alinea.echap.architectural_reconstructions import (EchapReconstructions,
                                                         echap_reconstructions,
-                                                        reconstruction_parameters)
+                                                        reconstruction_parameters,
+                                                        soisson_reconstruction)
 from alinea.adel.data_samples import adel_two_metamers_stand
 from alinea.alep.architecture import get_leaves, set_properties
 from alinea.adel.newmtg import adel_labels
@@ -884,7 +885,6 @@ def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
     fungus = BrownRustFungus()
     dispersor = BrownRustDispersal(fungus = fungus,
                                    group_dus = True,
-                                   domain = adel.domain,
                                    domain_area = adel.domain_area,
                                    k_dispersal = k_dispersal)
     dispersor.plot_distri_layers(g, nb_dispersal_units,
@@ -895,6 +895,14 @@ def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
     print 'Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area)
     print '-----------------------------'
     
+def visualize_layer_thickness(age_canopy = 1400., nplants = 50,
+                              layer_thickness = 1., nsect = 5):
+    adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
+    g = adel.setup_canopy(age_canopy)
+    dispersor = BrownRustDispersal(domain_area = adel.domain_area,
+                                   layer_thickness=layer_thickness)
+    dispersor.plot_layers(g)
+                               
 def example_inoculation(age_canopy = 1400., density_inoculum = 1e4,
                         variety = 'Mercia', nplants = 200, 
                         density_factor = 1, vmax = 10):    

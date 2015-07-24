@@ -403,3 +403,11 @@ def test_transport_wind_canopy_layers(nplants = 1,
 
     # Read dataframe and plot
     plot_results(df, groupby='layers', xlabel = 'Layer thickness')
+    
+def visualize_layers_wind(age_canopy = 1400., nplants = 50,
+                          layer_thickness = 1., nsect = 5):
+    adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
+    g = adel.setup_canopy(age_canopy)
+    dispersor = BrownRustDispersal(domain_area = adel.domain_area,
+                                   layer_thickness=layer_thickness)
+    dispersor.plot_layers(g)

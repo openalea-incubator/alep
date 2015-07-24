@@ -1063,6 +1063,57 @@ def get_recorder(*filenames):
         f_rec.close()
     return recorder if len(recorder)>1 else recorder[0]
 
+def get_date_threshold(data, variable = 'severity', 
+                       xaxis = 'degree_days', from_top = True,
+                       threshold = 5):
+    """ Get date at which variable overpass given threshold """
+    df = data.copy()
+    df.reset_index(inplace=True)
+    df.set_index('num_plant', inplace = True)
+    
+    if from_top == True:
+        num_leaf = 'num_leaf_top'
+    else:
+        num_leaf = 'num_leaf_bottom'
+
+    df_dates = pandas.DataFrame(index=np.unique(df.index), columns=set(df[num_leaf]))
+    for lf in set(df[num_leaf]):
+        for pl in set(df[df[num_leaf]==lf].index):
+            df_ = df[df[num_leaf]==lf].loc[pl,:]
+            if (is_iterable(df_[variable]) and
+                any(df_[variable] < threshold) and 
+                any(df_[variable] > threshold)):
+                # Extract date when threshold is overpassed from interpolation between notations
+                df_2 = pandas.Series([np.nan for i in np.arange(int(min(df_[xaxis]))-100,
+                                                            int(max(df_[xaxis]))+100)],
+                                                            index = np.arange(int(min(df_[xaxis]))-100,
+                                                            int(max(df_[xaxis]))+100))
+                df_2[df_[xaxis][pandas.notnull(df_[xaxis])].astype(int)] = df_[variable][pandas.notnull(df_[xaxis])].values
+                df_2.interpolate(inplace=True)
+                df_dates.loc[pl,lf] = np.argmax(df_2>threshold)
+    return df_dates
+    
+def get_synthetic_outputs_by_leaf(data):
+    leaves = np.unique(data['num_leaf_top'])
+    df = pandas.DataFrame(index = range(len(leaves)), 
+                      columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
+                                 'max_severity', 'age_threshold'])
+    df_dates = get_date_threshold(df, threshold=0.05)
+    idx = -1
+    for lf in leaves:
+        idx += 1
+        df_lf = data[data['num_leaf_top']==lf]
+        audpcs = numpy.unique(df_lf['audpc'])
+        n_audpcs = numpy.unique(df_lf['normalized_audpc'])
+        max_sevs = df_lf.groupby('num_plant').max()['severity'].mean()
+        date_t = df_dates[lf].mean()
+        df.loc[idx, 'num_leaf_top'] = lf
+        df.loc[idx, 'audpc'] = np.mean(audpcs)
+        df.loc[idx, 'normalized_audpc'] = numpy.mean(n_audpcs)
+        df.loc[idx, 'max_severity'] = numpy.mean(max_sevs)
+        df.loc[idx, 'age_threshold'] = numpy.mean(date_t)
+    return df    
+
 ###############################################################################
 class BrownRustRecorder(AdelWheatRecorder):
     """ Record simulation output on every leaf of main stems in a dataframe during simulation """
@@ -1467,3 +1518,8 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
                     loc='center left', bbox_to_anchor=(1, 0.5))
     if return_ax == True:
         return ax
+        
+import collections
+def is_iterable(obj):
+    """ Test if object is iterable """
+    return isinstance(obj, collections.Iterable)

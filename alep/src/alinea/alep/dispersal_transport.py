@@ -562,8 +562,9 @@ class BrownRustDispersal:
         from alinea.alep.disease_outputs import plot3d_transparency
         from openalea.plantgl.all import Viewer
         # Compute severity by leaf
-        layers = self.leaves_in_grid(g)
-        layer_by_leaf = {vid:k[0] for k,v in layers.iteritems() for vid in v}
+        self.leaves_in_grid(g)
+        layers = self.layers
+        layer_by_leaf = {vid:k for k,v in layers.iteritems() for vid in v}
         set_property_on_each_id(g, 'height', layer_by_leaf)
     
         # Visualization
