@@ -86,7 +86,7 @@ def plot_stability(fungus='rust', variety='Tremie13',
 
 # Working with audpc only #####################################################
 def get_output_path_synthetic(fungus='rust', variety='Tremie13', 
-                          year = 2013, inoc=300, nb_reps=5):
+                          year = 2013, inoc=300):
     inoc = str(inoc)
     inoc = inoc.replace('.', '_')
     return './stability/'+fungus+'/'+variety.lower()+'_'+ \
@@ -101,8 +101,7 @@ def run_and_save_septo_synthetic(variety = 'Tremie13',
     output_file = get_output_path_synthetic(fungus='septoria',
                                             variety=variety,
                                             year=year, 
-                                            inoc=sporulating_fraction,
-                                            nb_reps=nb_reps)
+                                            inoc=sporulating_fraction)
     df_out = pd.DataFrame()
     for nb_pl in nplants:
         for rep in nb_reps:
@@ -117,7 +116,7 @@ def run_and_save_septo_synthetic(variety = 'Tremie13',
             df_out = pd.concat([df_out, df])
     df_out.to_csv(output_file, sep = ',')
 
-def run_and_save_rust_aupdc(variety = 'Tremie13', 
+def run_and_save_rust_synthetic(variety = 'Tremie13', 
                              year = 2013,
                              sowing_date = '10-15',
                              density_dispersal_units = 300,
@@ -126,8 +125,7 @@ def run_and_save_rust_aupdc(variety = 'Tremie13',
     output_file = get_output_path_synthetic(fungus='rust',
                                             variety=variety,
                                             year=year, 
-                                            inoc=density_dispersal_units,
-                                            nb_reps=nb_reps)
+                                            inoc=density_dispersal_units)
     df_out = pd.DataFrame()
     for nb_pl in nplants:
         for rep in range(nb_reps):
@@ -150,8 +148,7 @@ def plot_stability_audpc(fungus='rust', variety = 'Tremie13', year = 2013,
     output_file = get_output_path_synthetic(fungus=fungus,
                                             variety=variety,
                                             year=year, 
-                                            inoc=inoc,
-                                            nb_reps=nb_reps)
+                                            inoc=inoc)
     df = pd.read_csv(output_file, sep=',')
     for i, lf in enumerate(leaves):
         ax = axs[i]

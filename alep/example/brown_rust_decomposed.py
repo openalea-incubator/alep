@@ -32,7 +32,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
                variety = 'Mercia', nplants = 30, nsect = 7,
                TT_delay = 20, dispersal_delay = 24,
-               record=True, **kwds):
+               record=True, layer_thickness=1., **kwds):
     # Get weather
     weather = get_weather(start_date=sowing_date, end_date=end_date)
     
@@ -69,10 +69,12 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     infection_controler = BiotrophDUProbaModel()
     contaminator = AirborneContamination(fungus = fungus,
                                          group_dus = True,
-                                         domain_area = adel.domain_area)
+                                         domain_area = adel.domain_area,
+                                         layer_thickness=layer_thickness)
     dispersor = BrownRustDispersal(fungus = fungus,
                                    group_dus = True,
-                                   domain_area = adel.domain_area)
+                                   domain_area = adel.domain_area,
+                                   layer_thickness=layer_thickness)
     return (g, adel, fungus,  canopy_timing, dispersal_timing, rust_timing, 
             recorder, growth_controler, infection_controler, 
             contaminator, dispersor, it_wheat, wheat_dir, wheat_is_loaded)
@@ -80,7 +82,8 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
 def annual_loop_rust(year = 2012, variety = 'Tremie13', 
                      nplants = 30, nsect = 7, sowing_date = '10-15',
                      density_dispersal_units = 300,
-                     record = True, output_file = None, **kwds):
+                     record = True, output_file = None, layer_thickness=1.,
+                     **kwds):
     """ Simulate an epidemics over the campaign. """
     # Setup simu
     (g, adel, fungus, canopy_timing, dispersal_timing, rust_timing, 
@@ -89,7 +92,8 @@ def annual_loop_rust(year = 2012, variety = 'Tremie13',
      wheat_is_loaded) = setup_simu(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
                    end_date=str(year)+"-08-01 00:00:00",
                    variety = variety, nplants = nplants, nsect = nsect, 
-                   TT_delay = 20, dispersal_delay = 24, record=record, **kwds)
+                   TT_delay = 20, dispersal_delay = 24, record=record, 
+                   layer_thickness=layer_thickness, **kwds)
         
     # Simulation loop
     for i, controls in enumerate(zip(canopy_timing, 
