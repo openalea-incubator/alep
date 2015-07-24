@@ -457,5 +457,5 @@ def test_annual_loop_rust_nsect_x_layers(year = 2013, variety = 'Tremie13',
             df['rep'] = rep
             df['nsect'] = ns
             df['layer_thickness'] = lay
-            df_out = pd.concat([df_out, df])
+            df_out = pandas.concat([df_out, df])
     df_out.to_csv(output_file, sep = ',')
