@@ -1098,7 +1098,7 @@ def get_synthetic_outputs_by_leaf(data):
     df = pandas.DataFrame(index = range(len(leaves)), 
                       columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
                                  'max_severity', 'age_threshold'])
-    df_dates = get_date_threshold(df, threshold=0.05)
+    df_dates = get_date_threshold(data, threshold=0.05)
     idx = -1
     for lf in leaves:
         idx += 1
