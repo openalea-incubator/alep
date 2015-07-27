@@ -96,7 +96,7 @@ def run_and_save_septo_synthetic(variety = 'Tremie13',
                                  year = 2013,
                                  sowing_date = '10-15',
                                  sporulating_fraction = 1e-3,
-                                 nplants = [1, 5, 10, 15, 20, 25, 30, 40, 50],
+                                 nplants = [1, 5, 10, 15, 20, 25, 30, 40],
                                  nb_reps = 5, **kwds):
     output_file = get_output_path_synthetic(fungus='septoria',
                                             variety=variety,
@@ -104,7 +104,7 @@ def run_and_save_septo_synthetic(variety = 'Tremie13',
                                             inoc=sporulating_fraction)
     df_out = pd.DataFrame()
     for nb_pl in nplants:
-        for rep in nb_reps:
+        for rep in range(nb_reps):
             g, reco = annual_loop_septo(variety=variety, year=year,
                                         sowing_date=sowing_date,
                                         sporulating_fraction=sporulating_fraction,
