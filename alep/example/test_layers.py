@@ -436,7 +436,7 @@ def visualize_layers_rain(age_canopy = 1400., nplants = 50,
     
 def visualize_dispersal_rain(age_canopy = 1400., nplants = 50,
                              layer_thickness = 0.01, nsect = 7,
-                             nb_dispersal_units = 1e5, 
+                             nb_dispersal_units = 1e5,
                              position_source=3./5):
     adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
     g = adel.setup_canopy(age_canopy)
