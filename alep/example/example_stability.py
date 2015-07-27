@@ -120,7 +120,7 @@ def run_and_save_rust_synthetic(variety = 'Tremie13',
                              year = 2013,
                              sowing_date = '10-15',
                              density_dispersal_units = 300,
-                             nplants = [1, 5, 10, 15, 20, 25, 30, 40, 50, 60],
+                             nplants = [1, 5, 10, 15, 20, 25, 30, 40],
                              nb_reps = 5, **kwds):
     output_file = get_output_path_synthetic(fungus='rust',
                                             variety=variety,
@@ -139,11 +139,15 @@ def run_and_save_rust_synthetic(variety = 'Tremie13',
             df_out = pd.concat([df_out, df])
     df_out.to_csv(output_file, sep = ',')
     
-def plot_stability_audpc(fungus='rust', variety = 'Tremie13', year = 2013,
-                         inoc = 300,
-                         nplants = [1, 5, 10, 15, 20, 25, 30, 40, 50],
-                         nb_reps = 5, leaves = [10, 5, 1], 
-                         variable = 'normalized_audpc'):
+def plot_stability_synthetic(fungus='rust', 
+                             variety = 'Tremie13',
+                             year = 2013,
+                             inoc = 300,
+                             nplants = [1, 5, 10, 15, 20, 25, 30, 40],
+                             nb_reps = 5, leaves = [10, 5, 1], 
+                             variable = 'normalized_audpc', 
+                             ylabel = 'Normalized AUDPC', 
+                             ylims = None):
     fig, axs = plt.subplots(1,3, figsize=(16,10))
     output_file = get_output_path_synthetic(fungus=fungus,
                                             variety=variety,
@@ -159,8 +163,9 @@ def plot_stability_audpc(fungus='rust', variety = 'Tremie13', year = 2013,
                     linestyle='', marker='o')
         ax.set_xlabel('Number of plants', fontsize=16)
         if ax==axs[0]:
-            ax.set_ylabel('Normalized AUDPC', fontsize=16)
+            ax.set_ylabel(ylabel, fontsize=16)
         ax.set_xlim([0, max(nplants)+5])
-        ax.set_ylim([0, 1])
+        if ylims is not None:
+            ax.set_ylim(ylims)
         ax.annotate('Leaf %d' % lf, xy=(0.05, 0.95), 
                     xycoords='axes fraction', fontsize=14)

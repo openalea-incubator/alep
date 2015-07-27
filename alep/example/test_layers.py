@@ -7,7 +7,7 @@ from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.septo3d.dispersion.alep_interfaces import Septo3DTransport
 from alinea.alep.dispersal_transport import BrownRustDispersal
 from itertools import product
-from alinea.astk.Weather import sample_weather
+from alinea.astk.Weather import sample_weather_with_rain
 from alinea.astk.TimeControl import *
 import matplotlib.pyplot as plt
 plt.ion()
@@ -36,12 +36,6 @@ class DummyEmission():
                 except:
                     DU[vid] = emissions
         return DU
-
-def sample_weather_with_rain():
-    seq, weather = sample_weather()
-    every_rain = rain_filter(seq, weather)  
-    rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
-    return rain_timing.next().value
 
 def get_leaf_ids(g):
     labels = g.property('label')
@@ -431,7 +425,7 @@ def visualize_layers_wind(age_canopy = 1400., nplants = 50,
     dispersor.plot_layers(g)
     
 def visualize_layers_rain(age_canopy = 1400., nplants = 50,
-                          layer_thickness = 1., nsect = 5):
+                          layer_thickness = 0.01, nsect = 5):
     adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
     g = adel.setup_canopy(age_canopy)
     dispersor = PopDropsTransport(domain=adel.domain, 
@@ -439,6 +433,19 @@ def visualize_layers_rain(age_canopy = 1400., nplants = 50,
                                     dh=layer_thickness,
                                     convUnit=adel.convUnit)
     dispersor.plot_layers(g)
+    
+def visualize_dispersal_rain(age_canopy = 1400., nplants = 50,
+                             layer_thickness = 0.01, nsect = 7,
+                             nb_dispersal_units = 1e5, 
+                             position_source=3./5):
+    adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
+    g = adel.setup_canopy(age_canopy)
+    dispersor = PopDropsTransport(domain=adel.domain, 
+                                    domain_area=adel.domain_area,
+                                    dh=layer_thickness,
+                                    convUnit=adel.convUnit)
+    dispersor.view_distri_layers(g, nb_dispersal_units)
+    dispersor.plot_distri_layers(g, nb_dispersal_units)
     
 def get_output_path(agent='wind', variety='Tremie13', 
                     year = 2013, inoc=50,
