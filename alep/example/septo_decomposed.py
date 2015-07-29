@@ -80,11 +80,12 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, distri_chlorosis 
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
     inoculum = SoilInoculum(fungus=fungus, 
                             sporulating_fraction=sporulating_fraction,
-                            domain_area=domain_area, mutable=mutable)
+                            domain_area=domain_area)
     contaminator = PopDropsSoilContamination(fungus=fungus,
                                              group_dus=True,
                                              domain=domain, domain_area=domain_area, 
-                                             compute_star = False)
+                                             compute_star = False,
+                                             mutable = mutable)
 #    growth_controler = PriorityGrowthControl()
 #    growth_controler = GeometricPoissonCompetition()
     growth_controler = SeptoRustCompetition()
