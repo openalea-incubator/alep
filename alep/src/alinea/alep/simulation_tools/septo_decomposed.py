@@ -7,7 +7,7 @@ import pandas
 import sys
 
 # Imports for wheat
-from simulation_tools import wheat_path, init_canopy, grow_canopy
+from alinea.alep.simulation_tools.simulation_tools import wheat_path, init_canopy, grow_canopy
 from alinea.echap.architectural_reconstructions import echap_reconstructions
 from alinea.alep.architecture import set_properties
 from alinea.adel.newmtg import adel_labels

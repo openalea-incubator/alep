@@ -6,12 +6,12 @@ import pandas as pd
 import sys
 
 # Imports for wheat
-from simulation_tools import wheat_path, init_canopy, grow_canopy
+from alinea.alep.simulation_tools.simulation_tools import wheat_path, init_canopy, grow_canopy
 from alinea.echap.architectural_reconstructions import echap_reconstructions
 from alinea.alep.architecture import set_properties
 
 # Imports for weather
-from simulation_tools import get_weather
+from alinea.alep.simulation_tools.simulation_tools import get_weather
 
 # Imports for scheduling of simulation
 from alinea.alep.alep_time_control import CustomIterWithDelays

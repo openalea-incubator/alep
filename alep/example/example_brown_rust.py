@@ -20,7 +20,7 @@ from alinea.echap.architectural_reconstructions import (EchapReconstructions,
 from alinea.adel.data_samples import adel_two_metamers_stand
 from alinea.alep.architecture import get_leaves, set_properties
 from alinea.adel.newmtg import adel_labels
-from septo_decomposed import get_weather
+from alinea.alep.simulation_tools.simulation_tools import get_weather
 from alinea.alep.alep_time_control import CustomIterWithDelays
 from alinea.alep.alep_weather import plot_wetness_and_temp
 from alinea.astk.TimeControl import (time_filter, IterWithDelays,

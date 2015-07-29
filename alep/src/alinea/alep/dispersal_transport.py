@@ -557,7 +557,6 @@ class BrownRustDispersal:
                         probas[target] += proba_lai*proba_dist
                     except:
                         probas[target] = proba_lai*proba_dist
-#                    proba_du_layer = area_l*np.exp(-self.k_dispersal*dist)/total_area
             total_probas = sum([p for p in probas.itervalues()])
             
             for layer, proba in probas.iteritems():
@@ -575,21 +574,6 @@ class BrownRustDispersal:
                             deposits[lf] += depo
                         except:
                             deposits[lf] = depo
-#               
-#            probas = {k:v/total_probas for k,v in probas.iteritems()}
-#            import pdb
-#            pdb.set_trace()
-#                    nb_depo_layer = np.random.binomial(nb_dus, proba_du_layer)
-#                    distribution_by_leaf = sum_nb(nb_vids, nb_depo_layer)
-#                    np.random.shuffle(distribution_by_leaf)
-#                    for i_lf, lf in enumerate(vids):
-#                        if distribution_by_leaf[i_lf] > 0.:
-#                            depo = distribution_by_leaf[i_lf]
-#                            depo = compute_overlaying(depo, areas[lf], np.pi*0.0015**2)
-#                            try:
-#                                deposits[lf] += depo
-#                            except:
-#                                deposits[lf] = depo
 
         for vid, nb_dus in deposits.iteritems():
             if self.group_dus==True:

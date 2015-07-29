@@ -7,7 +7,7 @@ import pandas as pd
 
 
 # Imports for weather and scheduling of simulation
-from septo_decomposed import get_weather
+from alinea.alep.simulation_tools.septo_decomposed import get_weather
 from alinea.alep.alep_time_control import CustomIterWithDelays
 from alinea.astk.TimeControl import (time_filter, IterWithDelays,
                                      thermal_time_filter, DegreeDayModel,
@@ -38,7 +38,7 @@ from alinea.echap.architectural_reconstructions import echap_reconstructions
 from alinea.alep.architecture import set_properties
 
 # Imports for weather and scheduling of simulation
-from septo_decomposed import get_weather
+from alinea.alep.simulation_tools.septo_decomposed import get_weather
 from alinea.alep.alep_time_control import CustomIterWithDelays
 from alinea.astk.TimeControl import (time_filter, IterWithDelays,
                                      thermal_time_filter, DegreeDayModel,

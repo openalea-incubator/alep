@@ -16,9 +16,9 @@ def variable_septoria(distri_chlorosis = {'mu':200., 'sigma':30.}):
                                                              sigma=self.fungus.sigma)
 
     class VariableSeptoriaFungus(Fungus):
-        def __init__(self, name='septoria', Lesion=VariableSeptoria, 
+        def __init__(self, Lesion=VariableSeptoria, 
                         DispersalUnit=SeptoriaDU, parameters=septoria_parameters):
-            super(VariableSeptoriaFungus, self).__init__(name=name, Lesion=Lesion,
+            super(VariableSeptoriaFungus, self).__init__(Lesion=Lesion,
                                                          DispersalUnit = DispersalUnit, 
                                                          parameters=parameters)
                                                          

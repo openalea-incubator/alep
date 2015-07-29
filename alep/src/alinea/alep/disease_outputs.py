@@ -974,14 +974,12 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                                          self.data['surface_empty']
                                          
     def leaf_necrotic_area(self):
-        self.data['leaf_necrotic_area'] = self.data['surface_nec'] + \
-                                          self.data['surface_spo'] + \
+        self.data['leaf_necrotic_area'] = self.data['surface_spo'] + \
                                           self.data['surface_empty']
         
 
     def leaf_necrotic_area_on_green(self):
-        self.data['leaf_necrotic_area_on_green'] = self.data['surface_nec_on_green'] + \
-                                                   self.data['surface_spo_on_green'] + \
+        self.data['leaf_necrotic_area_on_green'] = self.data['surface_spo_on_green'] + \
                                                    self.data['surface_empty_on_green']
 
     def _ratio(self, variable='leaf_necrotic_area', against='leaf_area'):

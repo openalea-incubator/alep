@@ -1,7 +1,7 @@
 from alinea.adel.data_samples import adel_two_metamers_stand
 from alinea.alep.fungal_objects import Fungus
 from alinea.alep.disease_outputs import get_synthetic_outputs_by_leaf
-from brown_rust_decomposed import annual_loop_rust
+from alinea.alep.simulation_tools.brown_rust_decomposed import annual_loop_rust
 from alinea.alep.protocol import disperse
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.septo3d.dispersion.alep_interfaces import Septo3DTransport
