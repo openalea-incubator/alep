@@ -494,11 +494,28 @@ class BrownRustDispersal:
 
     def disperse(self, g, dispersal_units = {}, weather_data = None,
                  label='LeafElement', domain_area=None, **kwds):
+                     
+        def expo_decrease(dist):
+            return np.exp(-self.k_dispersal*dist)
+            
+        def left_in_canopy(nb_dus, layer, max_height):
+            xmax = np.arange(100)
+            ymax = expo_decrease(xmax)
+            x_up = np.arange(max_height-layer)
+            y_up = expo_decrease(x_up)
+            upward = np.trapz(y_up,x_up)/np.trapz(ymax,xmax)
+            x_down = np.arange(max_height)
+            y_down = expo_decrease(x_down)
+            downward = np.trapz(y_down,x_down)/np.trapz(ymax,xmax)
+            return nb_dus*(upward+downward)/2.
+        
         self.leaves_in_grid(g, label=label)
         # Group DUs in layers and reduce global number according to Beer Law
         areas = g.property('area')
         geom = g.property('geometry')
-        areas = {k:v for k,v in areas.iteritems() if k in geom}
+        labels = g.property('label')
+        areas = {k:v for k,v in areas.iteritems() 
+                if k in geom and labels[k].startswith('LeafElement')}
         total_area = sum(areas.values())
         if domain_area is None:
             domain_area = self.domain_area
@@ -507,6 +524,10 @@ class BrownRustDispersal:
         dus_by_layer = {layer:sum([dispersal_units[v]
                         for v in vids if v in dispersal_units])*beer_factor
                         for layer, vids in self.layers.iteritems()}
+        max_height = max(self.layers.keys())
+        dus_by_layer = {layer:left_in_canopy(nb_dus, layer, max_height)
+                        for layer, nb_dus 
+                        in dus_by_layer.iteritems() if nb_dus>0.}
                 
         def sum_nb(nb_leaves, nb_du):
             if nb_leaves == 1:
@@ -524,24 +545,51 @@ class BrownRustDispersal:
                 
         deposits = {}
         for source, nb_dus in dus_by_layer.iteritems():
-            if nb_dus > 0.:
-                for target, vids in self.layers.iteritems():
-                    nb_vids = len(vids)
-                    if nb_vids>0:
-                        dist = abs(source - target)
-                        area_l = sum([areas[vid] for vid in vids])
-                        proba_du_layer = area_l*np.exp(-self.k_dispersal*dist)/total_area
-                        nb_depo_layer = np.random.binomial(nb_dus, proba_du_layer)
-                        distribution_by_leaf = sum_nb(nb_vids, nb_depo_layer)
-                        np.random.shuffle(distribution_by_leaf)
-                        for i_lf, lf in enumerate(vids):
-                            if distribution_by_leaf[i_lf] > 0.:
-                                depo = distribution_by_leaf[i_lf]
-                                depo = compute_overlaying(depo, areas[lf], np.pi*0.0015**2)
-                                try:
-                                    deposits[lf] += depo
-                                except:
-                                    deposits[lf] = depo
+            probas = {}
+            for target, vids in self.layers.iteritems():
+                nb_vids = len(vids)
+                if nb_vids>0:
+                    dist = abs(source - target)
+                    area_l = (sum([areas[vid] for vid in vids])*self.convUnit**2)/self.domain_area
+                    proba_lai = 1-np.exp(-self.k_beer * area_l)
+                    proba_dist = np.exp(-self.k_dispersal*dist)
+                    try:
+                        probas[target] += proba_lai*proba_dist
+                    except:
+                        probas[target] = proba_lai*proba_dist
+#                    proba_du_layer = area_l*np.exp(-self.k_dispersal*dist)/total_area
+            total_probas = sum([p for p in probas.itervalues()])
+            
+            for layer, proba in probas.iteritems():
+                proba /= total_probas
+                nb_depo_layer = np.random.binomial(nb_dus, proba)
+                vids = self.layers[layer]
+                nb_vids = len(vids)
+                distribution_by_leaf = sum_nb(nb_vids, nb_depo_layer)
+                np.random.shuffle(distribution_by_leaf)
+                for i_lf, lf in enumerate(vids):
+                    if distribution_by_leaf[i_lf] > 0.:
+                        depo = distribution_by_leaf[i_lf]
+                        depo = compute_overlaying(depo, areas[lf], np.pi*0.0015**2)
+                        try:
+                            deposits[lf] += depo
+                        except:
+                            deposits[lf] = depo
+#               
+#            probas = {k:v/total_probas for k,v in probas.iteritems()}
+#            import pdb
+#            pdb.set_trace()
+#                    nb_depo_layer = np.random.binomial(nb_dus, proba_du_layer)
+#                    distribution_by_leaf = sum_nb(nb_vids, nb_depo_layer)
+#                    np.random.shuffle(distribution_by_leaf)
+#                    for i_lf, lf in enumerate(vids):
+#                        if distribution_by_leaf[i_lf] > 0.:
+#                            depo = distribution_by_leaf[i_lf]
+#                            depo = compute_overlaying(depo, areas[lf], np.pi*0.0015**2)
+#                            try:
+#                                deposits[lf] += depo
+#                            except:
+#                                deposits[lf] = depo
 
         for vid, nb_dus in deposits.iteritems():
             if self.group_dus==True:
@@ -550,7 +598,7 @@ class BrownRustDispersal:
                 deposits[vid] = [du]
             else:
                 dus = []
-                for d in nb_dus:
+                for d in range(nb_dus):
                     du = self.fungus.dispersal_unit(1)
                     dus.append(du)
                 deposits[vid] = dus
@@ -591,7 +639,11 @@ class BrownRustDispersal:
         layers = self.layers.keys()
         layers.sort()        
         layer = layers[int(position_source*len(layers))]
-        leaf = self.layers[layer][0]
+        if len(self.layers[layer])>0:
+            leaf = self.layers[layer][0]
+        else:
+            non_empty = {k:v for k,v in self.layers.iteritems() if len(v)>0}
+            leaf = self.layers[min(non_empty.keys(), key=lambda k:abs(k-layer))][0]
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
                     self.disperse(g, dispersal_units = {leaf : nb_dispersal_units}).iteritems()}  
         set_property_on_each_id(g, 'nb_dispersal_units', deposits)
@@ -629,7 +681,11 @@ class BrownRustDispersal:
         layers = self.layers.keys()
         layers.sort()        
         layer = layers[int(position_source*len(layers))]
-        leaf = self.layers[layer][0]
+        if len(self.layers[layer])>0:
+            leaf = self.layers[layer][0]
+        else:
+            non_empty = {k:v for k,v in self.layers.iteritems() if len(v)>0}
+            leaf = self.layers[min(non_empty.keys(), key=lambda k:abs(k-layer))][0]
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
                     self.disperse(g, dispersal_units = {leaf : nb_dispersal_units}).iteritems()}
         depo_layer = {k:sum([deposits[vid] for vid in v if vid in deposits])

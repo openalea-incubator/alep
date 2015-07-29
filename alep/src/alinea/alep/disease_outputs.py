@@ -1285,7 +1285,6 @@ class BrownRustRecorder(AdelWheatRecorder):
         self.get_audpc()
         if variety is not None:
             self.add_variety(variety=variety)
-        self.data['axis'] = 'MS'
 
 def get_data_without_death(data, num_leaf = 'num_leaf_bottom'):
     datas = []

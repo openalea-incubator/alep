@@ -10,6 +10,7 @@ from itertools import product
 from alinea.astk.Weather import sample_weather_with_rain
 from alinea.astk.TimeControl import *
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 plt.ion()
 import numpy
 import pandas
@@ -211,7 +212,8 @@ def plot_sectors_two_metamers(by_sector = False):
         ax[1].set_title('Target leaf', fontsize = 18)
 
 # Examples in stand ###########################################################
-from alinea.echap.architectural_reconstructions import soisson_reconstruction
+from alinea.echap.architectural_reconstructions import (soisson_reconstruction,
+                                                        echap_reconstructions)
 from alinea.alep.architecture import get_leaves
 from openalea.plantgl import all as pgl
 import collections
@@ -301,6 +303,22 @@ def plot_results(df, groupby='nplants', xlabel = 'Number of plants'):
         ax.grid()
         ax.annotate(variable, xy=(0.05, 0.95), 
                     xycoords='axes fraction', fontsize=14)
+                    
+def plot_crossed_results(df, groupby=['nsect', 'layers'], xlabel = 'Number of sectors', 
+                         ylabel = 'Layer thickness'):
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    df_mean = df.groupby(groupby).agg(numpy.mean)
+    df_mean = df_mean.reset_index()
+    df = df_mean[['nsect', 'layers', 'nb_dus_tot']]
+    df = df.pivot(index='layers', columns='nsect', values='nb_dus_tot')
+    X, Y = numpy.meshgrid(df.columns, df.index)
+    ax.plot_surface(X, Y, df.values, 
+                    rstride=1, cstride=1, color='b', alpha=0.5)
+    ax.set_xlabel('Number of sectors by leaf')
+    ax.set_ylabel('Layer thickness')
+    ax.set_zlabel('Proportion of deposits on leaves')
+    ax.set_zlim([0,1])
 
 def test_transport_canopy_nplants(agent = 'wind',
                                   nplants = numpy.concatenate([[1], numpy.arange(5,51,5)]), 
@@ -416,6 +434,48 @@ def test_transport_canopy_layers(agent='wind',
     # Read dataframe and plot
     plot_results(df, groupby='layers', xlabel = 'Layer thickness')
     
+def test_transport_canopy_nsect_x_layers(agent='wind',
+                                         nplants = 5, 
+                                         nreps = 10,
+                                         plant_density = 250.,
+                                         inter_row = 0.15,
+                                         nsect = numpy.arange(2,11,2), 
+                                         age_canopy = 1400., 
+                                         position_source = 3./5,
+                                         du_density = 1e5, 
+                                         layer_thickness=numpy.arange(2,11,2)):
+    # Run test and group outputs in dataframe
+    df = pandas.DataFrame(index=range(nreps*len(nsect)*len(layer_thickness)),
+                          columns=['nsect', 'rep', 'nb_dus',
+                                   'nb_dus_top', 'nb_dus_bottom'])
+    idx = -1
+    for ns in nsect:
+        for l in layer_thickness:
+            for rep in range(nreps):
+                idx += 1
+                (nb_dus, nb_dus_top,
+                 nb_dus_bot) = transport_canopy_single(agent=agent,
+                                             nplants=nplants,
+                                             plant_density=plant_density,
+                                             inter_row=inter_row, nsect=ns, 
+                                             age_canopy=age_canopy,
+                                             position_source=position_source,
+                                             du_density=du_density,
+                                             layer_thickness=l)
+                df.loc[idx, 'nsect'] = ns
+                df.loc[idx, 'layers'] = l
+                df.loc[idx, 'rep'] = rep
+                df.loc[idx, 'nb_dus_tot'] = nb_dus
+                df.loc[idx, 'nb_dus_top'] = nb_dus_top
+                df.loc[idx, 'nb_dus_bottom'] = nb_dus_bot
+            
+    for col in df.columns:
+        df[col] = df[col].astype(float)
+
+    # Read dataframe and plot
+    plot_crossed_results(df, groupby=['nsect', 'layers'], xlabel = 'Number of sectors', 
+                         ylabel = 'Layer thickness')
+    
 def visualize_layers_wind(age_canopy = 1400., nplants = 50,
                           layer_thickness = 1., nsect = 5):
     adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
@@ -423,6 +483,23 @@ def visualize_layers_wind(age_canopy = 1400., nplants = 50,
     dispersor = BrownRustDispersal(domain_area = adel.domain_area,
                                    layer_thickness=layer_thickness)
     dispersor.plot_layers(g)
+    
+def visualize_dispersal_wind(variety='Soisson',
+                             age_canopy = 1400., nplants = 50,
+                             layer_thickness = 0.01, nsect = 7,
+                             nb_dispersal_units = 1e5,
+                             position_source=3./5):
+    if variety == 'Soisson':
+        adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
+    else:
+        reconst = echap_reconstructions(reset=True, reset_data=True)
+        adel = reconst.get_reconstruction(name='Tremie12', nplants=nplants, nsect=nsect)
+    g = adel.setup_canopy(age_canopy)
+    dispersor = BrownRustDispersal(group_dus = True,
+                                   domain_area = adel.domain_area,
+                                   layer_thickness=layer_thickness)
+    dispersor.view_distri_layers(g, nb_dispersal_units)
+    dispersor.plot_distri_layers(g, nb_dispersal_units)    
     
 def visualize_layers_rain(age_canopy = 1400., nplants = 50,
                           layer_thickness = 0.01, nsect = 5):
@@ -512,4 +589,3 @@ def plot_annual_loop_rust_nsect_x_layers(year = 2013, variety = 'Tremie13',
         ax.set_ylabel(variable, fontsize = 16)
         ax.annotate('nb sect %d \n layer thickness % d' %(ns,lay), xy=(0.05, 0.8), 
                     xycoords='axes fraction', fontsize=14)
-        

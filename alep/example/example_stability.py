@@ -148,7 +148,7 @@ def plot_stability_synthetic(fungus='rust',
                              variable = 'normalized_audpc', 
                              ylabel = 'Normalized AUDPC', 
                              ylims = None):
-    fig, axs = plt.subplots(1,3, figsize=(16,10))
+    fig, axs = plt.subplots(1,3, figsize=(16,6))
     output_file = get_output_path_synthetic(fungus=fungus,
                                             variety=variety,
                                             year=year, 
