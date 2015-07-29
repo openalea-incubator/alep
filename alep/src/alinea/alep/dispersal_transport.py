@@ -628,12 +628,13 @@ class BrownRustDispersal:
         Viewer.display(scene)
         
     def view_distri_layers(self, g, nb_dispersal_units = 1e5, vmax = None,
-                           position_source = 3./5):
+                           position_source = 3./5, return_df=False):
         from alinea.alep.architecture import set_property_on_each_id
         from alinea.alep.alep_color import alep_colormap, green_yellow_red
         from alinea.alep.disease_outputs import plot3d_transparency
         from openalea.plantgl.all import Viewer
         import matplotlib.pyplot as plt
+        import pandas as pd
         # Compute severity by leaf
         self.leaves_in_grid(g)
         layers = self.layers.keys()
@@ -671,6 +672,18 @@ class BrownRustDispersal:
                 g.node(id).transparency = 0.                      
         scene = plot3d_transparency(g)
         Viewer.display(scene)
+        
+        if return_df==True:        
+            depo_layer = {k:sum([deposits[vid] for vid in v if vid in deposits])
+                            for k,v in self.layers.iteritems()}
+            df = pd.DataFrame([[k,v] for k, v in depo_layer.iteritems()])
+            df = df.sort(0)
+            df[2] = df[1]/df[1].sum()
+            fig, ax = plt.subplots()
+            ax.plot(df[2], df[0], 'k')
+            ax.set_ylabel('Height', fontsize = 16)
+            ax.set_xlabel('Proportion of deposits', fontsize = 16)
+            return df
         
     def plot_distri_layers(self, g, nb_dispersal_units = 1000, 
                            position_source = 3./5):

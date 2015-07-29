@@ -870,7 +870,7 @@ def example_production_spo(**kwds):
     ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
     ax.set_ylabel("Daily spore production", fontsize = 18)
 
-def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
+def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e4,
                       variety = 'Mercia', nplants = 200, 
                       density_factor = 1, vmax = 10,
                       k_dispersal = 0.07, position_source=3/5.):
@@ -890,7 +890,8 @@ def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e5,
     dispersor.plot_distri_layers(g, nb_dispersal_units,
                                  position_source=position_source)
     df = dispersor.view_distri_layers(g, nb_dispersal_units, vmax = vmax,
-                                      position_source=position_source)
+                                      position_source=position_source,
+                                      return_df=True)
     print '-----------------------------'
     print 'Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area)
     print '-----------------------------'
