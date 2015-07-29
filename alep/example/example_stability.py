@@ -2,7 +2,7 @@
 """
 
 from alinea.alep.simulation_tools.septo_decomposed import annual_loop_septo
-from brown_rust_decomposed import annual_loop_rust
+from alinea.alep.simulation_tools.brown_rust_decomposed import annual_loop_rust
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
