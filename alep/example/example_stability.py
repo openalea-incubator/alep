@@ -108,8 +108,7 @@ def run_and_save_septo_synthetic(variety = 'Tremie13',
             g, reco = annual_loop_septo(variety=variety, year=year,
                                         sowing_date=sowing_date,
                                         sporulating_fraction=sporulating_fraction,
-                                        nplants=nb_pl, 
-                                        output_file=output_file, **kwds)
+                                        nplants=nb_pl, **kwds)
             df = get_synthetic_outputs_by_leaf(reco.data)
             df['rep'] = rep
             df['nb_plants'] = nb_pl
