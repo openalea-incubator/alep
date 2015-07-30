@@ -1034,7 +1034,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                         if numpy.isnan(audpc):
                             audpc = trapz(data[data>0], ddays[data>0])
                         if numpy.isnan(audpc_ref):
-                            audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
+                            audpc_ref = trapz(data_ref[data_ref>0], ddays[data_ref>0])
                     else:
                         audpc = 0.
                         audpc_ref = 0.

@@ -7,8 +7,10 @@ import pandas
 import sys
 
 # Imports for wheat
-from alinea.alep.simulation_tools.simulation_tools import wheat_path, init_canopy, grow_canopy
-from alinea.echap.architectural_reconstructions import echap_reconstructions
+from alinea.alep.simulation_tools.simulation_tools import (wheat_path, 
+                                                           init_canopy, 
+                                                           grow_canopy,
+                                                           alep_echap_reconstructions)
 from alinea.alep.architecture import set_properties
 from alinea.adel.newmtg import adel_labels
 
@@ -33,14 +35,14 @@ from variable_septoria import *
 def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
           nplants = 30, nsect = 7, disc_level = 5, Tmin = 10., Tmax = 25., WDmin = 10., 
-          rain_min = 0.2, recording_delay = 24., reset_reconst = True):
+          rain_min = 0.2, recording_delay = 24., rep = None):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy
     it_wheat = 0
-    reconst = echap_reconstructions(reset=True, reset_data=True)
+    reconst = alep_echap_reconstructions()
     adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
     year = int(end_date[:4])    
-    wheat_dir = wheat_path((year, variety, nplants, nsect))
+    wheat_dir = wheat_path(year, variety, nplants, nsect, rep)
     g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True) 
             
     # Manage weather
@@ -97,12 +99,12 @@ def septo_disease(adel, sporulating_fraction, layer_thickness, distri_chlorosis 
                                     compute_star = False)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
-def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
-                      nplants = 30, nsect = 7,
+def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
+                      nplants = 15, nsect = 7,
                       sporulating_fraction = 1e-4, layer_thickness = 0.01, 
                       record = True, output_file = None,
                       save_images = False, reset_reconst = True, 
-                      distri_chlorosis = None, **kwds):
+                      distri_chlorosis = None, rep = None, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     if 'temp_min' in kwds:
         Tmin = kwds['temp_min']
@@ -113,8 +115,7 @@ def annual_loop_septo(year = 2012, variety = 'Tremie13', sowing_date = '10-15',
      wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
                               end_date=str(year)+"-07-01 00:00:00",
                               variety = variety, nplants = nplants,
-                              nsect = nsect, Tmin = Tmin, 
-                              reset_reconst = reset_reconst)
+                              nsect = nsect, Tmin = Tmin, rep = rep)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 

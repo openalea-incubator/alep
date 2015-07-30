@@ -6,8 +6,10 @@ import pandas as pd
 import sys
 
 # Imports for wheat
-from alinea.alep.simulation_tools.simulation_tools import wheat_path, init_canopy, grow_canopy
-from alinea.echap.architectural_reconstructions import echap_reconstructions
+from alinea.alep.simulation_tools.simulation_tools import (wheat_path, 
+                                                           init_canopy, 
+                                                           grow_canopy,
+                                                           alep_echap_reconstructions)
 from alinea.alep.architecture import set_properties
 
 # Imports for weather
@@ -32,16 +34,16 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
                variety = 'Mercia', nplants = 30, nsect = 7,
                TT_delay = 20, dispersal_delay = 24,
-               record=True, layer_thickness=1., **kwds):
+               record=True, layer_thickness=1., rep = None, **kwds):
     # Get weather
     weather = get_weather(start_date=sowing_date, end_date=end_date)
     
     # Set canopy
     it_wheat = 0
-    reconst = echap_reconstructions(reset=True, reset_data=True)
+    reconst = alep_echap_reconstructions()
     adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
     year = int(end_date[:4])    
-    wheat_dir = wheat_path((year, variety, nplants, nsect))
+    wheat_dir = wheat_path(year, variety, nplants, nsect, rep)
     g, wheat_is_loaded = init_canopy(adel, wheat_dir)    
     
     # Manage temporal sequence  
@@ -83,7 +85,7 @@ def annual_loop_rust(year = 2012, variety = 'Tremie13',
                      nplants = 30, nsect = 7, sowing_date = '10-15',
                      density_dispersal_units = 300,
                      record = True, output_file = None, layer_thickness=1.,
-                     **kwds):
+                     rep = None, **kwds):
     """ Simulate an epidemics over the campaign. """
     # Setup simu
     (g, adel, fungus, canopy_timing, dispersal_timing, rust_timing, 
