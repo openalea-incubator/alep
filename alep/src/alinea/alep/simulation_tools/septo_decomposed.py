@@ -114,7 +114,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
      wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
-                              end_date=str(year)+"-07-01 00:00:00",
+                              end_date=str(year)+"-08-01 00:00:00",
                               variety = variety, nplants = nplants,
                               nsect=nsect, Tmin=Tmin, rep_wheat=rep_wheat)
 
