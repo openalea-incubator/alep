@@ -35,14 +35,14 @@ from variable_septoria import *
 def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
           nplants = 30, nsect = 7, disc_level = 5, Tmin = 10., Tmax = 25., WDmin = 10., 
-          rain_min = 0.2, recording_delay = 24., rep = None):
+          rain_min = 0.2, recording_delay = 24., rep_wheat = None):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy
     it_wheat = 0
     reconst = alep_echap_reconstructions()
     adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
-    year = int(end_date[:4])    
-    wheat_dir = wheat_path(year, variety, nplants, nsect, rep)
+    year = int(end_date[:4])
+    wheat_dir = wheat_path(year, variety, nplants, nsect, rep_wheat)
     g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True) 
             
     # Manage weather
@@ -64,7 +64,8 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
     return (g, adel, weather, seq, rain_timing, canopy_timing, septo_timing, 
             recorder_timing, it_wheat, wheat_dir, wheat_is_loaded)
 
-def septo_disease(adel, sporulating_fraction, layer_thickness, distri_chlorosis = None, **kwds):
+def septo_disease(adel, sporulating_fraction, layer_thickness,
+                  distri_chlorosis = None, **kwds):
     """ Choose models to assemble the disease model. """
                
     if 'alinea.alep.septoria_age_physio' in sys.modules:
@@ -104,7 +105,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       sporulating_fraction = 1e-4, layer_thickness = 0.01, 
                       record = True, output_file = None,
                       save_images = False, reset_reconst = True, 
-                      distri_chlorosis = None, rep = None, **kwds):
+                      distri_chlorosis = None, rep_wheat = True, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     if 'temp_min' in kwds:
         Tmin = kwds['temp_min']
@@ -115,16 +116,11 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
      wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
                               end_date=str(year)+"-07-01 00:00:00",
                               variety = variety, nplants = nplants,
-                              nsect = nsect, Tmin = Tmin, rep = rep)
+                              nsect=nsect, Tmin=Tmin, rep_wheat=rep_wheat)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
                                     distri_chlorosis, **kwds)
-
-    a_labels = adel_labels(g)
-    leaves = [k for k,v in a_labels.iteritems() if v.startswith('plant1_MS_metamer3_blade_LeafElement')]
-    for lf in leaves:
-        g.node(lf).tag = 'tag'
 
     # Prepare saving of outputs
     if record == True:
@@ -138,13 +134,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
         if canopy_iter:
             it_wheat += 1
             g = grow_canopy(g, adel, canopy_iter, it_wheat,
-                        wheat_dir, wheat_is_loaded,rain_and_light=True)
-                        
-            a_labels = adel_labels(g)
-            leaves = [k for k,v in a_labels.iteritems() if v.startswith('plant1_MS_metamer3_blade_LeafElement')]
-            for lf in leaves:
-                g.node(lf).tag = 'tag'
-                
+                        wheat_dir, wheat_is_loaded,rain_and_light=True)               
                 
         # Get weather for date and add it as properties on leaves
         if septo_iter:

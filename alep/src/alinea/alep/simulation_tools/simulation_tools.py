@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-15  -*- 
 """
 Main tools to run a simulation of disease epidemics on wheat
 """
@@ -41,11 +42,20 @@ def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"
     # weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=25.)
     weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=0., max_temp=30.)
     return weather
-    
+
+def count_available_canopies(year, variety, nplants, nsect):
+    filepath = str(shared_data(alinea.alep)/'wheat_reconstructions')
+    list_files = os.listdir(filepath)
+    start = variety.lower()+'_'+str(int(year))+'_'+\
+            str(nplants)+'pl_'+str(nsect)+'sect'
+    return len([f for f in list_files if f.startswith(start)])
+
 def wheat_path(year, variety, nplants, nsect, rep):
     if rep is None:
         rep = ''
-    return './wheat_canopies/'+variety.lower()+'_'+str(int(year))+'_'+str(nplants)+'pl_'+str(nsect)+'sect_rep'+rep
+    filepath = str(shared_data(alinea.alep)/'wheat_reconstructions')
+    return filepath+'/'+variety.lower()+'_'+str(int(year))+'_'+\
+            str(nplants)+'pl_'+str(nsect)+'sect_rep'+str(rep)
 
 def init_canopy(adel, wheat_dir, rain_and_light=True):
     if os.path.exists(wheat_dir):
