@@ -13,6 +13,9 @@ scenarios += [{'year':2012, 'variety':'Tremie12', 'sowing_date':'10-21',
 scenarios += [{'year':2013, 'variety':'Tremie13', 'sowing_date':'10-29', 
             'nplants':15, 'nsect':7, 'fixed_rep':rep} for rep in range(30)]
 
+def make_canopy_helper(kwargs):
+    return make_canopy(**kwargs)
+            
 if __name__ == '__main__':
     nb_cpu = cpu_count()
-    pymap(make_canopy, scenarios, nb_cpu-1)
+    pymap(make_canopy_helper, scenarios, nb_cpu-1)

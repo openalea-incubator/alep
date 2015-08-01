@@ -127,4 +127,4 @@ def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
         for rep in range(nreps):
             make_canopy_one_rep(rep=rep)
     else:
-        make_canopy_one_rep(rep=rep)
+        make_canopy_one_rep(rep=fixed_rep)
