@@ -230,7 +230,7 @@ def plot_stability_synthetic(fungus='rust',
         ax.set_xlabel(xlabel, fontsize=16)
         if ax==axs[0]:
             ax.set_ylabel(ylabel, fontsize=16)
-        ax.set_xlim([0, max(iterable.values()[0])+5])
+        ax.set_xlim([0, max(iterable.values()[0])*1.1])
         if ylims is not None:
             ax.set_ylim(ylims)
         ax.annotate('Leaf %d' % lf, xy=(0.05, 0.95), 
