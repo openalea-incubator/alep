@@ -94,19 +94,9 @@ def alep_echap_reconstructions():
     return reconst
     
 def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
-                nplants = 15, nsect = 7, nreps=10):
-    """ Simulate and save canopy (prior to simulation). """        
-    # Manage weather and scheduling
-    start_date=str(year-1)+"-"+sowing_date+" 12:00:00"
-    end_date=str(year)+"-07-01 00:00:00"
-    weather = get_weather(start_date=start_date, end_date=end_date)
-    seq = pandas.date_range(start=start_date, end=end_date, freq='H')
-    TTmodel = DegreeDayModel(Tbase = 0)
-    every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 20.)
-    canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
-
-    # Simulate and save wheat development
-    for rep in range(nreps):
+                nplants = 15, nsect = 7, nreps=10, fixed_rep=None):
+    """ Simulate and save canopy (prior to simulation). """    
+    def make_canopy_one_rep(rep=0):
         reconst = alep_echap_reconstructions()
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)    
         domain = adel.domain
@@ -122,3 +112,19 @@ def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                 g = adel.grow(g, canopy_iter.value)
                 rain_and_light_star(g, light_sectors = '1', domain=domain, convUnit=convUnit)
                 adel.save(g, it_wheat, dir=wheat_dir)
+                
+    # Manage weather and scheduling
+    start_date=str(year-1)+"-"+sowing_date+" 12:00:00"
+    end_date=str(year)+"-07-01 00:00:00"
+    weather = get_weather(start_date=start_date, end_date=end_date)
+    seq = pandas.date_range(start=start_date, end=end_date, freq='H')
+    TTmodel = DegreeDayModel(Tbase = 0)
+    every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 20.)
+    canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
+
+    # Simulate and save wheat development
+    if fixed_rep is None:
+        for rep in range(nreps):
+            make_canopy_one_rep(rep=rep)
+    else:
+        make_canopy_one_rep(rep=rep)
