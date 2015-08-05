@@ -105,7 +105,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       sporulating_fraction = 1e-4, layer_thickness = 0.01, 
                       record = True, output_file = None,
                       save_images = False, reset_reconst = True, 
-                      distri_chlorosis = None, rep_wheat = True, **kwds):
+                      distri_chlorosis = None, rep_wheat = None, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     if 'temp_min' in kwds:
         Tmin = kwds['temp_min']

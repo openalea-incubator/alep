@@ -3,11 +3,13 @@
 
 from alinea.alep.simulation_tools.septo_decomposed import annual_loop_septo
 from alinea.alep.simulation_tools.brown_rust_decomposed import annual_loop_rust
+from alinea.alep.simulation_tools.simulation_tools import count_available_canopies
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 import pandas as pd
 import numpy as np
+import random as rd
 import os
 from alinea.alep.disease_outputs import (plot_by_leaf, conf_int,
                                          get_synthetic_outputs_by_leaf)
@@ -133,6 +135,15 @@ def get_output_path_synthetic(fungus='rust', variety='Tremie13',
     return './stability/'+fungus+'/'+variety.lower()+'_'+ \
             str(year)+'_inoc'+inoc+'_synthetic_'+iterable+'.csv'
 
+def get_rep_wheats(variety = 'Tremie13', year = 2013, 
+                    nplants = 15, nsect = 7, nreps = 5):
+    nb_can = count_available_canopies(year, variety, nplants, nsect)
+    if nb_can >= nreps:
+        rep_wheats = rd.sample(range(nb_can), nreps)
+    else:
+        rep_wheats = [None for rep in range(nreps)]
+    return rep_wheats
+            
 def run_and_save_septo_synthetic(variety = 'Tremie13', 
                                  year = 2013,
                                  sowing_date = '10-15',
@@ -146,17 +157,19 @@ def run_and_save_septo_synthetic(variety = 'Tremie13',
                                             year=year, 
                                             inoc=sporulating_fraction,
                                             iterable=iterable.keys()[0])
+    rep_wheats = get_rep_wheats(variety, year, nplants, nsect, nreps)
     df_out = pd.DataFrame()
     for it in iterable.values()[0]:
         nb_pl, ns, dh = get_value_iteration(it, iterable, nb_pl, ns, dh)
-        for rep in range(nb_reps):
+        for irep, rep_wheat in enumerate(rep_wheats):
             g, reco = annual_loop_septo(variety=variety, year=year,
                                         sowing_date=sowing_date,
                                         sporulating_fraction=sporulating_fraction,
                                         nplants=nb_pl,
-                                        nsect = ns, dh = dh,**kwds)
+                                        nsect = ns, dh = dh,
+                                        rep_wheat=rep_wheat, **kwds)
             df = get_synthetic_outputs_by_leaf(reco.data)
-            df['rep'] = rep
+            df['rep'] = irep
             df['nb_plants'] = nb_pl
             df['nb_sects'] = ns
             df['layer_thickness'] = dh
@@ -176,16 +189,18 @@ def run_and_save_rust_synthetic(variety = 'Tremie13',
                                             year=year, 
                                             inoc=density_dispersal_units,
                                             iterable=iterable.keys()[0])
+    rep_wheats = get_rep_wheats(variety, year, nplants, nsect, nreps)
     df_out = pd.DataFrame()
     for it in iterable.values()[0]:
         nb_pl, ns, dh = get_value_iteration(it, iterable, nb_pl, ns, dh)
-        for rep in range(nb_reps):
+        for irep, rep_wheat in enumerate(rep_wheats):
             g, reco = annual_loop_rust(variety=variety, year=year,
                                         sowing_date=sowing_date,
                                         density_dispersal_units=density_dispersal_units,
-                                        nplants=nb_pl, **kwds)
+                                        nplants=nb_pl, nsect = ns, dh = dh,
+                                        rep_wheat=rep_wheat, **kwds)
             df = get_synthetic_outputs_by_leaf(reco.data)
-            df['rep'] = rep
+            df['rep'] = irep
             df['nb_plants'] = nb_pl
             df['nb_sects'] = ns
             df['layer_thickness'] = dh
