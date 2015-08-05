@@ -319,8 +319,9 @@ class AirborneContamination:
         from openalea.plantgl.all import Viewer
         import matplotlib.pyplot as plt
         # Compute severity by leaf
+        nb_dus = density_dispersal_units * self.domain_area
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
-                    self.contaminate(g, density_dispersal_units).iteritems()}
+                    self.contaminate(g, nb_dus).iteritems()}
         set_property_on_each_id(g, 'nb_dispersal_units', deposits)
     
         # Visualization
@@ -354,8 +355,9 @@ class AirborneContamination:
         import pandas as pd
         import matplotlib.pyplot as plt
         self.leaves_in_grid(g)
+        nb_dus = density_dispersal_units * self.domain_area
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
-                    self.contaminate(g, density_dispersal_units).iteritems()}
+                    self.contaminate(g, nb_dus).iteritems()}
         depo_layer = {k:sum([deposits[vid] for vid in v if vid in deposits])
                         for k,v in self.layers.iteritems()}
         df = pd.DataFrame([[k,v] for k, v in depo_layer.iteritems()])

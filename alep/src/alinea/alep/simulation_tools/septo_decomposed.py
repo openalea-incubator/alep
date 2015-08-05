@@ -192,7 +192,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
     else:
         return g
     
-def stat_profiler(call='run_disease()'):
+def stat_profiler(call='annual_loop_septo()'):
     import cProfile
     import pstats
     cProfile.run(call, 'septo_stats')

@@ -61,6 +61,9 @@ class BrownRustDU(DispersalUnit):
                 if f.group_dus:
                     init_nb_dus = self.nb_dispersal_units
                     nb_les = np.random.binomial(init_nb_dus, proba_infection)
+                    area = leaf.area
+                    les_dens = sum([l.nb_lesions for l in leaf.lesions])/area if 'lesions' in leaf.properties() else 0.
+                    nb_les = int(min(nb_les, (f.max_lesion_density-les_dens)*area))
                     self.create_lesion(nb_les, leaf)
                     if init_nb_dus > nb_les:
                         nb_dead = np.random.binomial(init_nb_dus - nb_les, loss_rate)
@@ -109,13 +112,7 @@ class BrownRustLesion(Lesion):
     """ Define a lesion of brown rust """
     def __init__(self, mutable = False):
         """ Initialize the lesion of brown rust """
-        super(BrownRustLesion, self).__init__(mutable = mutable)
-        
-        # TEMP
-        if self.nb_lesions >1:
-            import pdb
-            pdb.set_trace()
-        
+        super(BrownRustLesion, self).__init__(mutable = mutable)        
         # Status of the lesion
         self.status = 0.
         # Age in thermal time
@@ -157,7 +154,7 @@ class BrownRustLesion(Lesion):
             
             # Calulate production of spores and necrosis
             if self.is_sporulating:
-                self.update_sporulation(leaf)
+                self.update_sporulation(dt=dt, leaf=leaf)
                 
             # Update potential surface
             self.potential_surface += self.growth_demand
@@ -209,12 +206,11 @@ class BrownRustLesion(Lesion):
         self.growth_demand = self.nb_lesions_non_sen * (self.logistic(f.x0, x2) - \
                         self.logistic(f.x0, x1))
         
-    def update_sporulation(self, leaf):
+    def update_sporulation(self, dt=1, leaf=None):
         f = self.fungus
         self.age_sporulation += self.dtt        
         self.update_necrosis(leaf)
-        self.stock_spores += self.surface_spo * f.production_max_by_tt * \
-                                 self.dtt * f.conversion_mg_to_nb_spo
+        self.stock_spores += self.surface_spo*100*f.conversion_mg_to_nb_spo*dt/24.
         
     def update_necrosis(self, leaf=None):
            
@@ -233,8 +229,9 @@ class BrownRustLesion(Lesion):
             nb_les = sum([l.nb_lesions_non_sen for l in leaf.lesions])
             dens = nb_les/leaf.green_area if leaf.green_area > 0 else 0.
             ratio_empty = gompertz_necro(a_spo, dens)-gompertz_necro(a_spo-self.dtt, dens)
-            ratio_les = self.nb_lesions_non_sen/float(nb_les)
+            ratio_les = self.nb_lesions_non_sen/float(nb_les)            
             total_smax = self.nb_lesions_non_sen*(1-np.exp(-dens*f.Smax))/dens
+#            total_smax = min(leaf.green_area, self.nb_lesions_non_sen*f.Smax) # to use if simple model of competition
             smax = ratio_les*total_smax
             empty_sink = min(self.surface_sink, smax * f.ratio_sink * ratio_empty)
             empty_chlo =  min(self.surface_chlo, smax * f.ratio_chlo * ratio_empty)
@@ -244,7 +241,6 @@ class BrownRustLesion(Lesion):
             self.surface_chlo -= empty_chlo
             self.surface_spo -= empty_spo
             self.surface_empty += empty_sink + empty_chlo + empty_spo
-
 
     def control_growth(self, growth_offer = 0.):
         """ Limit lesion growth to the surface available on the leaf ('growth_offer')"""
@@ -354,10 +350,7 @@ class BrownRustLesion(Lesion):
     @property
     def nb_lesions_non_sen(self):
         """ Get number of non senescent lesions in cohort. """
-        if self.position is None:
-            return None
-        else:
-            return self.nb_lesions - self.nb_lesions_sen
+        return self.nb_lesions - self.nb_lesions_sen
 
     @property
     def is_chlorotic(self):
@@ -409,19 +402,18 @@ brown_rust_parameters = dict(name = 'brown_rust',
                              B_wet_infection = 30.,
                              infection_delay = 3.,
                              loss_delay = 48.,
+                             max_lesion_density = 150.,
                              Smax = 0.09,
                              k = 0.015,
                              x0 = 350.,
                              temp_opt_chlo = 27.,
                              temp_max_chlo = 40.,
                              temp_min_chlo = 0.,
-                             ratio_sink = 0.33, 
+                             ratio_sink = 0.28, 
                              ratio_chlo = 0.4,
-                             ratio_spo = 0.27,
+                             ratio_spo = 0.32,
                              latency = 170.,
-                             sporulating_capacity = 0.7,
-                             production_max_by_tt = 0.05,
-                             conversion_mg_to_nb_spo = 2e5,
+                             conversion_mg_to_nb_spo = 200,
                              delay_high_spo = 720.,
                              delay_total_spo = 1050.)
 

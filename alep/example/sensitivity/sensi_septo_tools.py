@@ -1,128 +1,221 @@
 """ Functions used for sensitivity analysis of septoria model
 """
 from disease_sensi_morris import *
-from septo_decomposed import run_disease, make_canopy
-from alinea.alep.disease_outputs import get_recorder
-try:
-    import cPickle as pickle
-except:
-    import pickle
-from alinea.alep.disease_outputs import *
-from alinea.echap.disease.septo_data_treatment import (get_date_threshold,
-                                                       get_speed)
+from alinea.alep.disease_outputs import AdelWheatRecorder
+from alinea.alep.simulation_tools.septo_decomposed import annual_loop_septo
 
 ### Run and save simulation
+class SeptoSensiRecorder(AdelWheatRecorder):
+    """ Record simulation output on every leaf of main stems in a dataframe during simulation """
+    def __init__(self, group_dus = True, 
+                 fungus_name = 'septoria', 
+                 increment = 1000):
+        super(AdelSeptoRecorder, self).__init__(group_dus = group_dus, 
+                                                fungus_name = fungus_name,
+                                                increment = increment)
+        columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 'leaf_area', 
+                   'leaf_green_area', 'fnl', 'surface_spo', 'surface_spo_on_green', 
+                   'surface_empty', 'surface_empty_on_green', 'surface_dead']
+        self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(self.increment)], 
+                                     columns = columns)
+    
+    def get_values_single_leaf(self, g, date, degree_days, id_list):
+        dict_lf = {}
+        dict_lf['date'] = date
+        dict_lf['degree_days'] = degree_days
+        
+        # Update leaf properties
+        areas = g.property('area')
+        green_areas = g.property('green_area')
+        lengths = g.property('length')
+        senesced_lengths = g.property('senesced_length')
+        fnls = g.property('nff')
+        a_label_splitted = self.a_labels[id_list[0]].split('_')
+        dict_lf['num_plant'] = int(a_label_splitted[0].split('plant')[1])
+        dict_lf['num_leaf_bottom'] = int(a_label_splitted[2].split('metamer')[1])
+        dict_lf['leaf_area'] = sum([areas[id] for id in id_list])
+        dict_lf['leaf_green_area'] = sum([green_areas[id] for id in id_list])
+        dict_lf['fnl'] =  fnls[g.complex_at_scale(id_list[0], 2)]
+
+        # Update properties of dispersal units and lesions
+        surface_spo = 0.
+        surface_spo_on_green = 0.
+        surface_empty = 0.
+        surface_empty_on_green = 0.
+        surface_dead = 0.
+        
+        for id in id_list:
+            leaf = g.node(id)
+            if 'dispersal_units' in leaf.properties():
+                for du in leaf.dispersal_units:
+                    if du.fungus.name == self.fungus_name:
+                        if self.group_dus:
+                            nb_dus += du.nb_dispersal_units
+                        else:
+                            nb_dus += 1
+                                
+            if 'lesions' in leaf.properties():
+                for les in leaf.lesions:
+                    if les.fungus.name == self.fungus_name:
+                        if self.group_dus:
+                            nb_les = les.nb_lesions
+                            nb_les_on_green = les.nb_lesions_non_sen
+                            ratio_green = float(nb_les_on_green)/nb_les if nb_les>0. else 0.
+                            surface_nec_on_green += les.surface_nec *  ratio_green
+                            surface_spo_on_green += les.surface_spo * ratio_green
+                            surface_empty_on_green += les.surface_empty * ratio_green
+                        else:
+                            nb_lesions += 1
+                            if les.position[0][0]>leaf.senesced_length:
+                                nb_lesions_on_green += 1
+                                surface_nec_on_green = les.surface_nec_on_green
+                                surface_spo_on_green = les.surface_spo
+                                surface_empty_on_green = les.surface_empty
+                        surface_spo += les.surface_spo
+                        surface_empty += les.surface_empty
+                        surface_dead += les.surface_dead
+        dict_lf['surface_spo'] = surface_spo
+        dict_lf['surface_empty'] = surface_empty
+        dict_lf['surface_dead'] = surface_dead
+        dict_lf['surface_nec_on_green'] = surface_nec_on_green
+        dict_lf['surface_spo_on_green'] = surface_spo_on_green
+        dict_lf['surface_empty_on_green'] = surface_empty_on_green
+        return dict_lf
+
+    def leaf_necrotic_area(self):
+        self.data['leaf_necrotic_area'] = self.data['surface_spo'] + \
+                                          self.data['surface_empty']
+
+    def leaf_necrotic_area_on_green(self):
+        self.data['leaf_necrotic_area_on_green'] = self.data['surface_spo_on_green'] + \
+                                                   self.data['surface_empty_on_green']
+
+    def _ratio(self, variable='leaf_necrotic_area', against='leaf_area'):
+        r = []
+        for ind in self.data.index:
+            a = self.data[against][ind]
+            if a > 0.:
+                r.append(self.data[variable][ind]/a)
+            else:
+                r.append(0.)
+        return r
+    
+    def severity(self):
+        """ Necrotic area of lesions compared to total leaf area """
+        if not 'leaf_necrotic_area' in self.data:
+            self.leaf_necrotic_area()
+        self.data['severity'] = self._ratio(variable='leaf_necrotic_area',
+                                            against='leaf_area')
+        
+    def severity_on_green(self):
+        """ Necrotic area of lesions on green compared to green leaf area """
+        if not 'leaf_necrotic_area_on_green' in self.data:
+            self.leaf_necrotic_area_on_green()
+        self.data['severity_on_green'] = self._ratio(variable='leaf_necrotic_area_on_green',
+                                                     against='leaf_green_area')
+
+    def get_audpc(self, variable='severity'):
+        for pl in set(self.data['num_plant']):
+            df_pl =  self.data[self.data['num_plant'] == pl]
+            for lf in set(df_pl['num_leaf_top']):
+                df_lf = df_pl[df_pl['num_leaf_top'] == lf]
+                ind_data_lf = df_lf.index
+                if round(df_lf['leaf_green_area'][pandas.notnull(df_lf['leaf_disease_area'])].iloc[-1],10)==0.:
+                    data = df_lf[variable][df_lf['leaf_green_area']>0]
+                    ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
+                    data_ref = numpy.ones(len(data))
+                    if len(data[data>0])>0:
+                        audpc = simps(data[data>0], ddays[data>0])
+                        audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
+                        if numpy.isnan(audpc):
+                            audpc = trapz(data[data>0], ddays[data>0])
+                        if numpy.isnan(audpc_ref):
+                            audpc_ref = trapz(data_ref[data_ref>0], ddays[data_ref>0])
+                    else:
+                        audpc = 0.
+                        audpc_ref = 0.
+                    self.data.loc[ind_data_lf, 'audpc'] = audpc
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
+                else:
+                    self.data.loc[ind_data_lf, 'audpc'] = np.nan
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan    
+    
+    def post_treatment(self, variety = None):
+        self.data = self.data[~pandas.isnull(self.data['date'])]
+        self.add_leaf_numbers()
+        self.leaf_necrotic_area()
+        self.leaf_necrotic_area_on_green()
+        self.severity()
+        self.severity_on_green()
+        self.get_audpc()
+        if variety is not None:
+            self.add_variety(variety=variety)
+            
 def variety_code():
     return {'Mercia':1, 'Rht3':2, 'Tremie12':3, 'Tremie13':4}
     
-def wheat_path((year, variety, nplants, nsect)):
-    if variety.lower().startswith('tremie'):
-        variety = 'tremie'
-    return '../adel/'+variety.lower()+'_'+str(int(year))+'_'+str(nplants)+'pl_'+str(nsect)+'sect'
-
-def make_canopies((yr, day, variety, nplants, nsect, wheat_path)):
-    make_canopy(start_date = str(int(yr-1))+"-10-"+str(int(day))+" 12:00:00", end_date = str(int(yr))+"-08-01 00:00:00",
-            variety = variety, nplants = nplants, nsect = nsect, disc_level = 5, dir = wheat_path)
+def variety_decode():
+    return {v:k for k,v in variety_code().iteritems()}
     
-def reconstruct_wheat(qualitative_parameters, nb_plants = 6, nb_sects = 5):   
-    combinations = list(itertools.product(*[qualitative_parameters['year']['values'], variety_code.values(), [nb_plants], [nb_sects]]))
-    combinations = map(lambda x: x + (wheat_path(x),), combinations)
-    make_canopies(combinations)
-
-def annual_loop(sample):
-    try:
-        # Get indice of simulation
-        i_sample = sample.pop('i_sample')
-
-        # Get year of simulation
-        if 'year' in sample:
-            year = int(sample.pop('year'))
-            if year == 2011:
-                start_date = "2010-10-15"
-                end_date = "2011-06-20"
-            elif year == 2012:
-                start_date = "2011-10-21"
-                end_date = "2012-07-18"
-                variety = 'Tremie12'
-            elif year == 2013:
-                start_date = "2012-10-29"
-                end_date = "2013-08-01"
-                variety = 'Tremie13'
-            else:
-                start_date = str(year-1)+"-10-15"
-                end_date = str(year)+"-08-01"
-        else:
-            year = 2005
-            start_date = str(year-1)+"-10-15"
-            end_date = str(year)+"-08-01"
-        start_date += " 12:00:00"
-        end_date += " 00:00:00"
-            
-        # Get variety
-        if 'variety' in sample:
-            variety_code = {1:'Mercia', 2:'Rht3', 3:'Tremie12', 4:'Tremie13'}
-            variety = variety_code[sample.pop('variety')]
-        #else:
-         #   variety = 'Mercia'
-
-        # Get wheat path
-        nplants = 10
-        #nplants = 1
-        nsect = 7
-        w_path = wheat_path((year, variety, nplants, nsect))
-
-        # Run and save simulation
-        g, recorder = run_disease(start_date = start_date, 
-                         end_date = end_date, 
-                         variety = variety, nplants = nplants, nsect = nsect,
-                         dir = w_path, reset_reconst = True, 
-                         degree_days_to_necrosis = 70.,
-                         degree_days_to_sporulation = 70., **sample)
-        stored_rec = './septoria/'+variety.lower()+'_'+str(year)+'_'+str(int(i_sample))+'.pckl'
-        f_rec = open(stored_rec, 'w')
-        pickle.dump(recorder, f_rec)
-        f_rec.close()
-        del recorder
-    except:
-        print 'evaluation failed'
+def run_septoria(sample):
+    i_sample = sample.pop('i_sample')
+    year = int(sample.pop('year'))
+    variety = variety_decode()[sample.pop('variety')]
+    sowing_date = '10-15'
+    if year == 2012:
+        sowing_date = '10-21'
+    elif year == 2013:
+        sowing_date = '10-29'
+    output_file ='./septoria/'+variety.lower()+'_'+ \
+                    str(year)+'_'+str(int(i_sample))+'.csv'
+    annual_loop_septo(year = year, variety = variety, sowing_date=sowing_date,
+                        nplants = 1, output_file = output_file, **sample)
         
-def save_sensitivity_outputs(year = 2012,
-                             variety = 'Tremie12',
-                             parameter_range_file = 'septo_param_range.txt',
-                             input_file = 'septo_morris_input_full.txt',
-                             output_file = 'septo_morris_output_tremie_12.csv'):
-    parameter_names = pd.read_csv(param_range_file,
-                                  header=None, sep = ' ')[0].values
+def get_septo_morris_path(year = 2012, variety = 'Tremie12'):
+    return './septoria/septo_morris_output_'+variety.lower()+'_'+str(year)+'.csv'
+        
+def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
+                             parameter_range_file = './septoria/septo_param_range.txt',
+                             input_file = './septoria/septo_morris_input_full.txt'):
+    parameter_names = pd.read_csv(parameter_range_file, header=None, sep = ' ')[0].values.tolist()
     list_param_names = ['i_sample', 'year', 'variety'] + parameter_names
     df_in = pd.read_csv(input_file, sep=' ',
                         index_col=0, names=list_param_names)
     vc = variety_code()
     df_in = df_in[(df_in['year']==year) & (df_in['variety']==vc[variety])]
     i_samples = df_in.index
-
-    df_out = pd.DataFrame(columns = ['num_leaf_top'] + list(df_in.columns) + ['normalized_audpc_pycnidia_coverage', 
-                                                                              'normalized_audpc_necrosis_percentage',
-                                                                              'max_pycnidia_coverage', 
-                                                                              'max_necrosis_percentage',
-                                                                              'speed', 'date_thr'])
+    df_out = pd.DataFrame(columns = ['num_leaf_top'] + list(df_in.columns) + ['normalized_audpc', 'max_severity'])
     for i_sample in i_samples:
-        stored_rec = './'+variety.lower()+'/recorder_'+str(int(i_sample))+'.pckl'
-        recorder = get_recorder(stored_rec)
-        df_reco = recorder.data
-        df_dates = get_date_threshold(df_reco, weather, variable = 'necrosis_percentage', threshold = 0.2).mean()
-        df_speed = get_speed(df_reco, weather, variable = 'necrosis_percentage').mean()
+        stored_rec = './septoria/'+variety.lower()+'_'+str(year)+'_'+str(int(i_sample))+'.csv'
+        df_reco = pd.read_csv(stored_rec)
         for lf in np.unique(df_reco['num_leaf_top']):
             df_reco_lf = df_reco[(df_reco['num_leaf_top']==lf)]
             output = {}
             output['num_leaf_top'] = lf
             for col in df_in.columns:
                 output[col] = df_in.loc[i_sample, col]
-            output['normalized_audpc_pycnidia_coverage'] = df_reco_lf.normalized_audpc_pycnidia_coverage[df_reco_lf['normalized_audpc_pycnidia_coverage'].apply(np.isreal)].mean()
-            output['normalized_audpc_necrosis_percentage'] = df_reco_lf.normalized_audpc_necrosis_percentage[df_reco_lf['normalized_audpc_necrosis_percentage'].apply(np.isreal)].mean()
-            output['max_pycnidia_coverage'] = min(df_reco_lf.groupby('plant').max()['pycnidia_coverage'].mean(), 100.)
-            output['max_necrosis_percentage'] = min(df_reco_lf.groupby('plant').max()['necrosis_percentage'].mean(), 100.)
-            output['speed'] = df_speed[lf] if lf in df_speed.index else np.nan
-            output['date_thr'] = df_dates[lf] if lf in df_dates.index else np.nan
+            output['normalized_audpc'] = df_reco_lf.normalized_audpc.mean()
+            output['max_severity'] = df_reco_lf.max_severity.mean()
             df_out = df_out.append(output, ignore_index = True)
-        del recorder
-    df_out.to_csv(filename)
+    output_file = get_septo_morris_path(year=year, variety=variety)
+    df_out.to_csv(output_file)
+
+def plot_septo_morris_by_leaf(year = 2012, variety = 'Tremie12',
+                             variable = 'normalized_audpc',
+                             parameter_range_file = './septoria/septo_param_range.txt',
+                             input_file = './septoria/septo_morris_input.txt'):
+    output_file = get_septo_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    plot_morris_by_leaf(df_out, variable=variable,
+                        parameter_range_file=parameter_range_file,
+                        input_file=input_file)
+
+def plot_septo_morris_3_leaves(year = 2012, variety = 'Tremie12', 
+                               leaves = [10, 5, 1], variable = 'normalized_audpc',
+                               parameter_range_file = './septoria/septo_param_range.txt',
+                               input_file = './septoria/septo_morris_input.txt'):
+    output_file = get_septo_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    plot_morris_3_leaves(df_out, leaves=leaves, variable=variable,
+                        parameter_range_file=parameter_range_file,
+                        input_file=input_file)

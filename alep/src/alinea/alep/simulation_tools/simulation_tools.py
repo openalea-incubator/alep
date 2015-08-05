@@ -58,6 +58,8 @@ def wheat_path(year, variety, nplants, nsect, rep):
             str(nplants)+'pl_'+str(nsect)+'sect_rep'+str(rep)
 
 def init_canopy(adel, wheat_dir, rain_and_light=True):
+    import pdb
+    pdb.set_trace()
     if os.path.exists(wheat_dir):
         wheat_is_loaded = True
         it_wheat = 0
@@ -74,6 +76,8 @@ def grow_canopy(g, adel, canopy_iter, it_wheat,
                 wheat_dir, wheat_is_loaded=True, rain_and_light=True):
     if wheat_is_loaded:
         newg, TT = adel.load(it_wheat, dir=wheat_dir)
+        import pdb
+        pdb.set_trace()
         move_properties(g, newg)
         return newg
     else:

@@ -61,11 +61,12 @@ class BiotrophDUProbaModel:
             leaf_green_area = sum([green_areas[lf] for lf in leaf])
             ratio_les_surface = min(1, round(les_surf,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
             ratio_green = min(1, round(leaf_green_area,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
-            
+
             if (round(ratio_green*(1-ratio_les_surface), 10) == 0. or 
                 lesion_density>=self.max_lesion_density):
                 for vid in set(leaf) & set(dispersal_units):
                     DUs[vid] = []
+                    dispersal_units[vid] = []
             else:
                 for vid in set(leaf) & set(dispersal_units):
                     dus_to_keep = []

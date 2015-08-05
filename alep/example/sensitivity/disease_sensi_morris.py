@@ -96,6 +96,31 @@ def plot_morris_by_leaf(df_out, variable = 'normalized_audpc',
             ax.annotate(tags.next(), (x,y))
         ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
                     xycoords='axes fraction', fontsize=18)
+                    
+def plot_morris_3_leaves(df_out, leaves = [10, 5, 1],
+                        variable = 'normalized_audpc',
+                        parameter_range_file = 'param_range_SA.txt',
+                        input_file = 'morris_input.txt'):
+    problem = read_param_file(parameter_range_file)
+    param_values = np.loadtxt(input_file)
+    fig, axs = plt.subplots(1,3, figsize=(18,6))
+    leaves = iter(leaves)
+    for i, ax in enumerate(axs.flat):
+        lf = leaves.next()
+        df = df_out[df_out['num_leaf_top']==lf]
+        Y = df[variable]
+        Si = morris.analyze(problem, param_values, Y, grid_jump = 5, 
+                            num_levels = 10, conf_level=0.95, 
+                            print_to_console=False)
+        ax.plot(Si['mu_star'], Si['sigma'], 'b*')
+        tags = iter(Si['names'])
+        for x,y in zip(Si['mu_star'], Si['sigma']):
+            ax.annotate(tags.next(), (x,y))
+        ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
+                    xycoords='axes fraction', fontsize=18)
+        ax.set_ylabel('Sigma', fontsize=18)
+        ax.set_xlabel('Mu_star', fontsize=18)
+    plt.tight_layout()
         
 def plot_morris_by_leaf_synthetic(df_out, variable = 'normalized_audpc',
                                   parameter_range_file = 'param_range_SA.txt',

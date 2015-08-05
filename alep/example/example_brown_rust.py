@@ -4,7 +4,7 @@
 from alinea.echap.weather_data import read_weather_year
 from alinea.alep.brown_rust import BrownRustFungus
 from alinea.alep.septoria_age_physio import SeptoriaFungus
-from alinea.alep.disease_outputs import BrownRustRecorder, plot_by_leaf
+from alinea.alep.disease_outputs import BrownRustRecorder, plot_by_leaf, conf_int
 from alinea.alep.growth_control import (NoPriorityGrowthControl,
                                         GeometricPoissonCompetition,
                                         SeptoRustCompetition)
@@ -66,7 +66,7 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     brown_rust = BrownRustFungus()
     lesion = brown_rust.lesion(mutable = False, group_dus = True, **kwds)
     nb_lesions = density_lesions * leaf_area
-    lesion.set_position([[1] for i in range(nb_lesions)])
+    lesion.set_position([[1] for i in range(int(nb_lesions))])
     leaf.lesions = [lesion]
     growth_controler = GeometricPoissonCompetition()
     surfs = []
@@ -319,6 +319,8 @@ def example_density_robert_2005(**kwds):
                 xycoords='axes fraction', fontsize=14)
 
 def example_density_complete(with_complex=False, **kwds):
+    """ ...Doesn't work on its own, need to comment line in necrosis of 
+        brown rust lesion... """
     def _parse(date, hour):
         return datetime(int(date[6:10]),int(date[3:5]),int(date[0:2]),int(hour))
 
@@ -498,7 +500,7 @@ def compare_competition_models(**kwds):
     i_date = 5
     
     columns = ['date', 'density', 'area', 'severity']
-    densities = np.arange(1, 50, 5)
+    densities = np.arange(1, 115, 5)
     df_sim_1  = pd.DataFrame([[np.nan for col in columns] 
                                for d in densities],
                                columns = columns)
@@ -680,7 +682,6 @@ def plot_necrosis_dynamics(fit='gompertz'):
         dens = x['density'].values
         A = a*dens + b
         B = c*dens + d
-#        return np.exp(-B * np.exp(-A*date))
         return np.exp(-B * np.exp(-A*date))
 
     filename = 'calibration_lesion_rust_2005_data.csv'
@@ -870,7 +871,7 @@ def example_production_spo(**kwds):
     ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
     ax.set_ylabel("Daily spore production", fontsize = 18)
 
-def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e4,
+def example_dispersal(age_canopy = 1400., density_dispersal_units = 1e4,
                       variety = 'Mercia', nplants = 200, 
                       density_factor = 1, vmax = 10,
                       k_dispersal = 0.07, position_source=3/5.):
@@ -887,11 +888,13 @@ def example_dispersal(age_canopy = 1400., nb_dispersal_units = 1e4,
                                    group_dus = True,
                                    domain_area = adel.domain_area,
                                    k_dispersal = k_dispersal)
-    dispersor.plot_distri_layers(g, nb_dispersal_units,
-                                 position_source=position_source)
+    nb_dispersal_units = density_dispersal_units * adel.domain_area
     df = dispersor.view_distri_layers(g, nb_dispersal_units, vmax = vmax,
                                       position_source=position_source,
                                       return_df=True)
+    print '-----------------------------'
+    print 'Nb of emissions by m2 :  %d' % density_dispersal_units
+    print '-----------------------------'    
     print '-----------------------------'
     print 'Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area)
     print '-----------------------------'
@@ -932,8 +935,11 @@ def setup_simu(sowing_date="2000-10-15 12:00:00",
     weather = get_weather(start_date=sowing_date, end_date=end_date)
     
     # Set canopy
-    reconst = echap_reconstructions(reset=True, reset_data=True)
-    adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+    if variety == 'Soisson':
+        adel = soisson_reconstruction(nplants=nplants, nsect=nsect)
+    else:
+        reconst = echap_reconstructions(reset=True, reset_data=True)
+        adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
     g = adel.setup_canopy(age=age_canopy)
     
     # Manage temporal sequence  
@@ -955,15 +961,16 @@ def setup_simu(sowing_date="2000-10-15 12:00:00",
     growth_controler = GeometricPoissonCompetition()
     infection_controler = BiotrophDUProbaModel()
     dispersor = BrownRustDispersal(fungus = fungus,
-                                   domain = adel.domain,
+                                   group_dus = True,
                                    domain_area = adel.domain_area,
                                    k_dispersal = k_dispersal)
     return (g, adel, fungus,  canopy_timing, dispersal_timing, rust_timing, 
             recorder, growth_controler, infection_controler, dispersor)
 
-def example_frezal(k_dispersal = 0.16, source = 2, position_source = 4, 
+def example_frezal(k_dispersal = 0.07, source = 2, position_source = 4, 
                    start_date = "2000-05-04 12:00:00",
-                   end_date = "2000-05-29 12:00:00",
+                   end_date = "2000-06-05 12:00:00",
+                   nplants = 15,
                    **kwds):
     # Cf table 3 frezal 2009 / revoir dates
     (g, adel, fungus, canopy_timing, dispersal_timing, rust_timing, recorder, 
@@ -971,7 +978,7 @@ def example_frezal(k_dispersal = 0.16, source = 2, position_source = 4,
      dispersor) = setup_simu(sowing_date=str(int(start_date[:4])-1)+"-10-15 12:00:00", 
                    end_date = end_date,
                    start_date = start_date,
-                   variety = 'Mercia', nplants = 30, nsect = 7, 
+                   variety = 'Soisson', nplants = nplants, nsect = 7, 
                    age_canopy = 1400., TT_delay = 20, dispersal_delay = 24, 
                    k_dispersal = k_dispersal, **kwds)
     
@@ -990,7 +997,7 @@ def example_frezal(k_dispersal = 0.16, source = 2, position_source = 4,
                     if int(l.split('_')[2].split('metamer')[1])==f_top and
                     int(l.split('_')[4].split('LeafElement')[1])==position_source]
     for source in sources:
-        les = fungus.lesion()
+        les = fungus.lesion(group_dus=True)
         les.set_position([0.5, 0.5])
         g.node(source).lesions = [les]
     
@@ -1039,7 +1046,8 @@ def example_frezal(k_dispersal = 0.16, source = 2, position_source = 4,
     ax.set_xlabel("Thermal time (Cd)", fontsize = 18)
     return g, recorder
     
-def example_frezal_complete(k_dispersal = 0.07, position_source = 2, **kwds):
+def example_frezal_complete(k_dispersal = 0.07, position_source = 2, 
+                            nplants = 15, **kwds):
     leaves = [1, 2, 3]    
     starts = {2000 : {lf:"2000-05-04 12:00:00" for lf in leaves},
               2001 : {1: "2001-05-07 12:00:00",
@@ -1058,7 +1066,8 @@ def example_frezal_complete(k_dispersal = 0.07, position_source = 2, **kwds):
                                          source = source,
                                          position_source = position_source,
                                          start_date=starts[year][source],
-                                         end_date=ends[year][source])
+                                         end_date=ends[year][source],
+                                         nplants=nplants)
             df = recorder.data
             deposits = {}
             for target in leaves:
@@ -1091,37 +1100,77 @@ def read_percentage_frezal():
     df_percentage = df_percentage.set_index(['source', 'year', 'target'])
     return df_percentage.unstack('target')['percentage']
     
-def plot_sim_obs_frezal(df_sim, df_obs):
+def plot_sim_obs_frezal(df_sim, df_obs, averaged = True):
     import itertools 
     from math import floor
-    fig, axs = plt.subplots(3,2)    
-    df_sim = df_sim.reset_index()
-    df_obs = df_obs.reset_index()
-    colors = itertools.cycle(['b', 'r', 'g'])
-    for i, ax in enumerate(axs.flat):
-        x = [1, 2]
-        src = int(floor(i/2)) + 1
-        yr = 2000 + i%2
-        (sim, obs) = map(lambda x: x[(x['source']==src) & (x['year']==yr)], 
-                         (df_sim, df_obs))
-        y_bottom = np.array([0., 0.])
-        for target in np.arange(3., 0., -1.):
-            y = [obs.loc[:, int(target)].values[0], sim.loc[:, int(target)].values[0]]            
-            ax.bar(x, y, bottom=y_bottom, color = next(colors), align = 'center')
-            y_bottom += np.array(y)
-            ax.set_xlim([0, 3])
-            ax.set_ylim([0, 100])
-            ax.set_xticks(x)
-            ax.set_xticklabels(['Obs', 'Sim'])
-        ax.set_title('Source F%d - Year %d' %(src, yr))
-        if i%2 == 0:
-            ax.set_ylabel('Distribution\n by leaf (%)', fontsize = 14)
-        if i == 1:
-            proxy = [plt.Rectangle((0,0), 0,0, facecolor='g'),
-                     plt.Rectangle((0,0), 0,0, facecolor='r'),
-                     plt.Rectangle((0,0), 0,0, facecolor='b')]
-            labels = ['F1', 'F2', 'F3']
-            ax.legend(proxy, labels, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+    if averaged == False:
+        fig, axs = plt.subplots(3,2)    
+        df_sim = df_sim.reset_index()
+        df_obs = df_obs.reset_index()
+        colors = itertools.cycle(['b', 'r', 'g'])
+        for i, ax in enumerate(axs.flat):
+            x = [1, 2]
+            src = int(floor(i/2)) + 1
+            yr = 2000 + i%2
+            (sim, obs) = map(lambda x: x[(x['source']==src) & (x['year']==yr)], 
+                             (df_sim, df_obs))
+            y_bottom = np.array([0., 0.])
+            for target in np.arange(3., 0., -1.):
+                y = [obs.loc[:, int(target)].values[0], sim.loc[:, int(target)].values[0]]            
+                ax.bar(x, y, bottom=y_bottom, color = next(colors), align = 'center')
+                y_bottom += np.array(y)
+                ax.set_xlim([0, 3])
+                ax.set_ylim([0, 100])
+                ax.set_xticks(x)
+                ax.set_xticklabels(['Obs', 'Sim'])
+            ax.set_title('Source F%d - Year %d' %(src, yr))
+            if i%2 == 0:
+                ax.set_ylabel('Distribution\n by leaf (%)', fontsize = 14)
+            if i == 1:
+                proxy = [plt.Rectangle((0,0), 0,0, facecolor='g'),
+                         plt.Rectangle((0,0), 0,0, facecolor='r'),
+                         plt.Rectangle((0,0), 0,0, facecolor='b')]
+                labels = ['F1', 'F2', 'F3']
+                ax.legend(proxy, labels, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+    else:
+        def pre_treat_df(df):
+            df = df.reset_index()
+            df = df.astype(float).groupby('source').mean()
+            df = df.drop('year', 1)
+            return df
+        fig, axs = plt.subplots(1,3)
+        (df_sim, df_obs) = map(lambda df: pre_treat_df(df), (df_sim, df_obs))
+        colors = itertools.cycle(['b', 'r', 'g'])
+        for i, ax in enumerate(axs.flat):
+            x = [1, 2]
+            src = i + 1
+            (sim, obs) = map(lambda x: x[(x.index==src)], (df_sim, df_obs))
+            y_bottom = np.array([0., 0.])
+            for target in np.arange(3., 0., -1.):
+                y = [obs.loc[:, int(target)].values[0], sim.loc[:, int(target)].values[0]]            
+                ax.bar(x, y, bottom=y_bottom, color = next(colors), align = 'center')
+                y_bottom += np.array(y)
+                ax.set_xlim([0, 3])
+                ax.set_ylim([0, 100])
+                ax.set_xticks(x)
+                ax.set_xticklabels(['Obs', 'Sim'])
+            ax.set_title('Source F%d' %src)
+            if i == 0:
+                ax.set_ylabel('Distribution\n by leaf (%)', fontsize = 14)
+            if i == 2:
+                proxy = [plt.Rectangle((0,0), 0,0, facecolor='g'),
+                         plt.Rectangle((0,0), 0,0, facecolor='r'),
+                         plt.Rectangle((0,0), 0,0, facecolor='b')]
+                labels = ['F1', 'F2', 'F3']
+                ax.legend(proxy, labels, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+
+def compare_weather_frezal(year = 2000, sowing_date = '10-15', 
+                             xlims = [0, 2500], title = None):
+    sowing_date = str(year-1)+"-"+sowing_date+" 12:00:00"
+    end_date = str(year)+"-07-01 00:00:00"
+    weather = get_weather(start_date=sowing_date,
+                          end_date=end_date)
+    return weather
     
 def example_annual_loop(variety = 'Tremie13', nplants = 30, 
                         year = 2012, sowing_date = '10-29', 
@@ -1189,11 +1238,9 @@ def plot_weather_annual_loop(year = 2012, sowing_date = '10-15',
                              xlims = [0, 2500], title = None):
     sowing_date = str(year-1)+"-"+sowing_date+" 12:00:00"
     end_date = str(year)+"-07-01 00:00:00"
-    weather = get_weather(start_date=sowing_date, end_date=end_date)
+    weather = get_weather(start_date=sowing_date,
+                          end_date=end_date)
     plot_wetness_and_temp(weather, xlims = xlims, title = title)
-
-def run_sensitivity_analysis():
-    pass
 
 def example_competition_complex_no_priority():    
     g, leaf = get_g_and_one_leaf()
@@ -1266,3 +1313,37 @@ def example_competition_complex(nb_rust = 100, nb_septo = 100):
     ax.legend(['sev_rust', 'sev_septo', 'sev_tot'], loc = 'best')
     ax.grid()
     
+def get_audpc_all_years(nreps=5):
+    years = range(1999, 2007) + range(2011, 2014)
+    from alinea.alep.simulation_tools.brown_rust_decomposed import annual_loop_rust
+    from alinea.alep.disease_outputs import get_synthetic_outputs_by_leaf
+    df = pd.DataFrame()
+    for rep in range(nreps):
+        for year in years:
+            g, recorder = annual_loop_rust(year=year, variety='Tremie12', 
+                                           sowing_date='10-15', nplants=1, 
+                                           density_dispersal_units=300, rep_wheat=rep)
+            df_s = get_synthetic_outputs_by_leaf(recorder.data)
+            df_s['year'] = year
+            df_s['rep'] = rep
+            df = pd.concat([df, df_s])
+    fig, ax = plt.subplots()
+    for lf in range(1, 12): 
+        df_ = df[df['num_leaf_top']==lf]
+        df_mean = df_.astype(float).groupby('year').agg(np.mean)
+        df_conf = df_.astype(float).groupby('year').agg(conf_int)
+        ax.errorbar(df_mean.index, df_mean['normalized_audpc'], 
+                    yerr=df_conf['normalized_audpc'], marker='o', linestyle='')
+        ax.set_xlabel('Year', fontsize=18)
+        ax.set_ylabel('Normalized AUDPC', fontsize=18)
+        
+    fig, ax = plt.subplots()
+    for lf in range(1, 12): 
+        df_ = df[df['num_leaf_top']==lf]
+        df_mean = df_.astype(float).groupby('year').agg(np.mean)
+        df_conf = df_.astype(float).groupby('year').agg(conf_int)
+        ax.errorbar(df_mean.index, df_mean['max_severity'], 
+                    yerr=df_conf['max_severity'], marker='o', linestyle='')
+        ax.set_xlabel('Year', fontsize=18)
+        ax.set_ylabel('Maximum severity', fontsize=18)
+    return df

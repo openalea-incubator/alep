@@ -34,7 +34,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
                variety = 'Mercia', nplants = 30, nsect = 7,
                TT_delay = 20, dispersal_delay = 24,
-               record=True, layer_thickness=1., rep = None, **kwds):
+               record=True, layer_thickness=1., rep_wheat = None, **kwds):
     # Get weather
     weather = get_weather(start_date=sowing_date, end_date=end_date)
     
@@ -43,8 +43,8 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     reconst = alep_echap_reconstructions()
     adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
     year = int(end_date[:4])    
-    wheat_dir = wheat_path(year, variety, nplants, nsect, rep)
-    g, wheat_is_loaded = init_canopy(adel, wheat_dir)    
+    wheat_dir = wheat_path(year, variety, nplants, nsect, rep_wheat)
+    g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True)  
     
     # Manage temporal sequence  
     if start_date is None:
@@ -81,18 +81,18 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
             recorder, growth_controler, infection_controler, 
             contaminator, dispersor, it_wheat, wheat_dir, wheat_is_loaded)
 
-def annual_loop_rust(year = 2012, variety = 'Tremie13', 
-                     nplants = 30, nsect = 7, sowing_date = '10-15',
+def annual_loop_rust(year = 2013, variety = 'Tremie13', 
+                     nplants = 15, nsect = 7, sowing_date = '10-15',
                      density_dispersal_units = 300,
                      record = True, output_file = None, layer_thickness=1.,
-                     rep = None, **kwds):
+                    rep_wheat = True, **kwds):
     """ Simulate an epidemics over the campaign. """
     # Setup simu
     (g, adel, fungus, canopy_timing, dispersal_timing, rust_timing, 
      recorder, growth_controler, infection_controler, 
      contaminator, dispersor, it_wheat, wheat_dir,
      wheat_is_loaded) = setup_simu(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
-                   end_date=str(year)+"-08-01 00:00:00",
+                   end_date=str(year)+"-07-30 00:00:00",
                    variety = variety, nplants = nplants, nsect = nsect, 
                    TT_delay = 20, dispersal_delay = 24, record=record, 
                    layer_thickness=layer_thickness, **kwds)
