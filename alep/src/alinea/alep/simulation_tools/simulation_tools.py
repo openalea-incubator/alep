@@ -20,7 +20,7 @@ from alinea.echap.architectural_reconstructions import (EchapReconstructions, pd
 from alinea.adel.newmtg import move_properties
 from alinea.caribu.caribu_star import rain_and_light_star
 
-def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-06-20 01:00:00"):
+def get_weather(start_date="2010-10-15 12:00:00", end_date="2011-08-01 01:00:00"):
     """ Get weather data for simulation. """
     start = datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     if start.year >= 2010:
@@ -115,7 +115,7 @@ def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                 
     # Manage weather and scheduling
     start_date=str(year-1)+"-"+sowing_date+" 12:00:00"
-    end_date=str(year)+"-07-01 00:00:00"
+    end_date=str(year)+"-08-01 00:00:00"
     weather = get_weather(start_date=start_date, end_date=end_date)
     seq = pandas.date_range(start=start_date, end=end_date, freq='H')
     TTmodel = DegreeDayModel(Tbase = 0)
