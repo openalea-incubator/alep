@@ -74,7 +74,7 @@ class SeptoriaAgePhysio(Lesion):
         """ Check if lesion status is sporulation. """
         return self.status == self.fungus.SPORULATING
     
-    def update(self, dt, leaf=None):
+    def update(self, dt=1., leaf=None):
         """ Update the status of the lesion and create a new growth ring if needed.
                 
         Parameters
