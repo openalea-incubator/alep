@@ -8,7 +8,7 @@ from alinea.alep.inoculation import AirborneContamination
 from alinea.alep.protocol import infect, update, disperse, external_contamination
 from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum
 from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEmission, PopDropsTransport
-from alinea.alep.growth_control import SeptoRustCompetition
+from alinea.alep.growth_control import SeptoRustCompetition, NoPriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.echap.architectural_reconstructions import (EchapReconstructions,
                                                         echap_reconstructions,
@@ -75,8 +75,7 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     for i, row in df.iterrows():
          if count < nb_steps:
             count += 1
-            # leaf.temperature_sequence = [row['temperature_air']]
-            leaf.temperature_sequence = [25.]
+            leaf.temperature_sequence = [row['temperature_air']]
             lesion.update(leaf = leaf)
             if with_compet == False:
                 lesion.control_growth(growth_offer = lesion.growth_demand)

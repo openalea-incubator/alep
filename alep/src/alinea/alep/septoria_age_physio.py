@@ -240,7 +240,8 @@ class SeptoriaAgePhysio(Lesion):
             self.ratio_left = round((self.age_physio - 1.)/progress, 14)
             self.change_status()
             self.change_status_edge()
-            self.reset_age_physio()           
+            self.reset_age_physio()
+            self.incubation_completed = True
             self.chlorosis()
 
     def chlorosis(self):
