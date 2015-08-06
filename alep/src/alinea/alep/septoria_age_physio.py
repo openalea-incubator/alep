@@ -483,7 +483,7 @@ class SeptoriaAgePhysio(Lesion):
                     rings[-1] = age_physio
                 rings = rings[floor(age_edge/width):]
                 rings[0] = age_edge
-                if age_switch>rings[0]:
+                if age_switch>rings[0] and len(self.surfaces_chlo)>0:
                     ind_cut = np.where(rings<age_switch)[0][-1]
                     ratio_to_dead = round((age_switch - rings[ind_cut])/(rings[ind_cut+1]-rings[ind_cut]), 14)
                     to_dead_on_cut_ring = self.surfaces_chlo[ind_cut]*ratio_sen*ratio_to_dead
