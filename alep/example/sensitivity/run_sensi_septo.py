@@ -9,28 +9,27 @@ from disease_sensi_morris import (generate_parameter_set,
 from sensi_septo_tools import run_septoria, variety_code
 import numpy as np
 
-# parameters = OrderedDict([('sporulating_fraction', [0., 2.e-4]),
-                          # ('degree_days_to_chlorosis', [130., 250.]),
-                          # ('Smin', [0.01, 0.09]),
-                          # ('Smax', [0.1, 1.0]),
-                          # ('growth_rate', [0.0001, 0.001]),
-                          # ('age_physio_switch_senescence', [0.01, 1.]),
-                          # ('sporulating_capacity', [0., 1.]),
-                          # ('density_dus_emitted', [1e3, 3e3]),
-                          # ('reduction_by_rain', [0., 1.]), 
-                          # ('proba_inf', [0., 1.]), 
-                          # ('loss_delay', [72., 168.]), 
-                          # ('temp_min', [0., 10.])])
-
-parameters = OrderedDict([('sporulating_fraction', [0., 2.e-4]),
+parameters = OrderedDict([('sporulating_fraction', [0., 1.e-2]),
+                          ('degree_days_to_chlorosis', [130., 250.]),
+                          ('Smin', [0.01, 0.09]),
+                          ('Smax', [0.1, 1.0]),
+                          ('growth_rate', [0.0001, 0.001]),
+                          ('age_physio_switch_senescence', [0., 1.]),
+                          ('sporulating_capacity', [0., 1.]),
+                          ('density_dus_emitted', [1e3, 3e3]),
+                          ('reduction_by_rain', [0., 1.]), 
+                          ('proba_inf', [0., 1.]), 
+                          ('loss_delay', [72., 168.]), 
                           ('temp_min', [0., 10.])])
 
 v = variety_code()
 
-scenarios = [(2011, v['Mercia']), 
-             (2011, v['Rht3']),
-             (2012, v['Tremie12']),
-             (2013, v['Tremie13'])]
+# scenarios = [(2011, v['Mercia']), 
+             # (2011, v['Rht3']),
+             # (2012, v['Tremie12']),
+             # (2013, v['Tremie13'])]
+             
+scenarios = [(2012, v['Tremie12'])]
 
 list_param_names = ['year', 'variety'] + parameters.keys()
 

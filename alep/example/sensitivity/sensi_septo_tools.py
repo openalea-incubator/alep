@@ -1,7 +1,8 @@
 """ Functions used for sensitivity analysis of septoria model
 """
 from disease_sensi_morris import *
-from alinea.alep.disease_outputs import AdelWheatRecorder
+from alinea.alep.disease_outputs import (AdelWheatRecorder,
+                                        get_synthetic_outputs_by_leaf)
 from alinea.alep.simulation_tools.septo_decomposed import annual_loop_septo
 
 ### Run and save simulation
@@ -169,7 +170,7 @@ def run_septoria(sample):
     output_file ='./septoria/'+variety.lower()+'_'+ \
                     str(year)+'_'+str(int(i_sample))+'.csv'
     annual_loop_septo(year = year, variety = variety, sowing_date=sowing_date,
-                        nplants = 1, output_file = output_file, **sample)
+                        nplants = 15, output_file = output_file, **sample)
         
 def get_septo_morris_path(year = 2012, variety = 'Tremie12'):
     return './septoria/septo_morris_output_'+variety.lower()+'_'+str(year)+'.csv'
@@ -188,6 +189,7 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
     for i_sample in i_samples:
         stored_rec = './septoria/'+variety.lower()+'_'+str(year)+'_'+str(int(i_sample))+'.csv'
         df_reco = pd.read_csv(stored_rec)
+        df_s = get_synthetic_outputs_by_leaf(df_reco)
         for lf in np.unique(df_reco['num_leaf_top']):
             df_reco_lf = df_reco[(df_reco['num_leaf_top']==lf)]
             output = {}
@@ -195,7 +197,7 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
             for col in df_in.columns:
                 output[col] = df_in.loc[i_sample, col]
             output['normalized_audpc'] = df_reco_lf.normalized_audpc.mean()
-            output['max_severity'] = df_reco_lf.max_severity.mean()
+            output['max_severity'] = df_s[df_s['num_leaf_top']==lf].max_severity.astype(float).values[0]
             df_out = df_out.append(output, ignore_index = True)
     output_file = get_septo_morris_path(year=year, variety=variety)
     df_out.to_csv(output_file)
