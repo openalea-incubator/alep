@@ -23,22 +23,20 @@ parameters = OrderedDict([('sporulating_fraction', [0., 1.e-2]),
                           ('temp_min', [0., 10.])])
 
 v = variety_code()
+nboots = 5
 
-# scenarios = [(2011, v['Mercia']), 
-             # (2011, v['Rht3']),
-             # (2012, v['Tremie12']),
-             # (2013, v['Tremie13'])]
-             
 scenarios = [(2012, v['Tremie12'])]
-
-list_param_names = ['year', 'variety'] + parameters.keys()
+list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
 
 generate_parameter_set(parameters,
                        scenarios,
                        parameter_range_file = './septoria/septo_param_range.txt',
                        sample_file = './septoria/septo_morris_input.txt',
                        num_trajectories = 10,
-                       num_levels = 10)
+                       num_levels = 5,
+                       grid_jump = 1,
+                       optimal_trajectories = None,
+                       nboots = 5)
 
 nb_cpu = cpu_count()
 filename = './septoria/septo_morris_input_full.txt'
