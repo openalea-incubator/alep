@@ -87,7 +87,7 @@ class SensiRustRecorder(AdelSeptoRecorder):
 
 def get_stored_rec(variety, year, i_sample, i_boot):
     return './brown_rust/'+variety.lower()+'_'+ str(year)+ \ 
-            '_'+str(int(i_sample))+'_boot'+str(i_boot)+'.csv'
+            '_'+str(int(i_sample))+'_boot'+str(int(i_boot))+'.csv'
             
 def run_brown_rust(sample):
     i_sample = sample.pop('i_sample')
@@ -111,7 +111,7 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
                              input_file = './brown_rust/rust_morris_input_full.txt',
                              nboots = 5):
     parameter_names = pd.read_csv(parameter_range_file, header=None, sep = ' ')[0].values.tolist()
-    list_param_names = ['i_sample', 'year', 'variety'] + parameter_names
+    list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameter_names
     for boot in range(nboots):
         input_boot = input_file[:-9]+'_boot'+str(boot)+input_file[-9:]
         df_in = pd.read_csv(input_boot, sep=' ',

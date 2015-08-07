@@ -21,13 +21,16 @@ parameters = OrderedDict([('sporulating_fraction', [0., 1.e-2]),
                           ('proba_inf', [0., 1.]), 
                           ('loss_delay', [72., 168.]), 
                           ('temp_min', [0., 10.])])
-
+                          
 v = variety_code()
-nboots = 5
 
-scenarios = [(2012, v['Tremie12'])]
+scenarios = [(2011, v['Mercia']), 
+             (2011, v['Rht3']),
+             (2012, v['Tremie12']),
+             (2013, v['Tremie13'])]
+
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
-
+nboots = 5
 generate_parameter_set(parameters,
                        scenarios,
                        parameter_range_file = './septoria/septo_param_range.txt',
@@ -36,14 +39,16 @@ generate_parameter_set(parameters,
                        num_levels = 5,
                        grid_jump = 1,
                        optimal_trajectories = None,
-                       nboots = 5)
+                       nboots = nboots)
 
 nb_cpu = cpu_count()
-filename = './septoria/septo_morris_input_full.txt'
-param_values = np.loadtxt(filename, delimiter=' ').tolist()
-samples = map(lambda x: param_values_to_dict(x, list_param_names), param_values)
+samples = []
+for i_boot in range(nboots):
+    filename = './septoria/septo_morris_input_boot'+str(i_boot)+'_full.txt'
+    param_values = np.loadtxt(filename, delimiter=' ').tolist()
+    samples += map(lambda x: param_values_to_dict(x, list_param_names), param_values)
 
 # Run disease simulation
 if __name__ == '__main__':
-    pymap(run_septoria, samples, nb_cpu)
+    pymap(run_septoria, samples, nb_cpu-2)
     

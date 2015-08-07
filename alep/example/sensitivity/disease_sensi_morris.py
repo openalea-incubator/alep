@@ -59,8 +59,8 @@ def generate_parameter_set(parameters,
                               optimal_trajectories=optimal_trajectories)
         
         # For Method of Morris, save the parameter values in a file (they are needed in the analysis)
-        sample_file = sample_file[:-4]+'_boot'+str(boot)+sample_file[-4:]
-        np.savetxt(sample_file, param_values, delimiter=' ')
+        s_file = sample_file[:-4]+'_boot'+str(boot)+sample_file[-4:]
+        np.savetxt(s_file, param_values, delimiter=' ')
         
         # Repeat samples for scenario
         full_params = []
@@ -77,7 +77,7 @@ def generate_parameter_set(parameters,
                         for i_sample, param_set in enumerate(full_params)]
 
         # Save full parameter values
-        np.savetxt(sample_file[:-4]+'_full'+sample_file[-4:], 
+        np.savetxt(s_file[:-4]+'_full'+s_file[-4:], 
                    full_params, delimiter=' ')
 
 def param_values_to_dict(values, list_param_names):
