@@ -152,7 +152,7 @@ def get_filename(fungus = 'brown_rust', year=2012, variety = 'Tremie12',
         
 def get_data_sim(fungus = 'brown_rust', variety = 'Tremie12',
                  nplants = 15, inoc=150):
-    filename = get_filename(fungus=fungus, variety=variety, 
+    filename = get_filename(fungus=fungus, year=year, variety=variety, 
                             nplants=nplants, inoc=inoc)
     df = pd.read_csv(filename, parse_dates={'datetime':[1]}, index_col=[0])
     df.index.names = ['date']
@@ -162,6 +162,6 @@ def get_data_sim(fungus = 'brown_rust', variety = 'Tremie12',
 def plot_simu_results(fungus = 'brown_rust', year = 2012,
                       variety = 'Tremie12', nplants = 15, inoc=300, 
                       nreps = 5, variable = 'severity'):
-   data_sim = get_data_sim(fungus=fungus, variety=variety,
+   data_sim = get_data_sim(fungus=fungus, year=year, variety=variety,
                            nplants=nplants, inoc=inoc)
    plot_by_leaf(data_sim, variable=variable)
