@@ -150,11 +150,12 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
     else:
         return g
         
-def get_filename(variety = 'Tremie12', nplants = 15, density_dispersal_units=300):
+def get_filename(year=2012, variety = 'Tremie12', 
+                 nplants = 15, density_dispersal_units=300):
     inoc = str(density_dispersal_units)
     inoc = inoc.replace('.', '_')
-    filename= str(nplants)+'pl_inoc'+inoc+'.csv'
-    return str(shared_data(alinea.alep)/'brown_rust_simulations'/variety/filename)
+    filename= variety+'_'+str(year)+'_'+str(nplants)+'pl_inoc'+inoc+'.csv'
+    return str(shared_data(alinea.alep)/'brown_rust_simulations'/filename)
 
 def run_reps(year = 2013, variety = 'Tremie13', 
              nplants = 15, nsect = 7, sowing_date = '10-15',
