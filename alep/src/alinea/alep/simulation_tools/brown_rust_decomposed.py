@@ -11,9 +11,10 @@ from openalea.deploy.shared_data import shared_data
 from alinea.alep.simulation_tools.simulation_tools import (wheat_path, 
                                                            init_canopy, 
                                                            grow_canopy,
-                                                           alep_echap_reconstructions)
+                                                           alep_echap_reconstructions,
+                                                           get_iter_rep_wheats,
+                                                           get_filename)
 from alinea.alep.architecture import set_properties
-from alinea.alep.simulation_tools.simulation_tools import count_available_canopies
 
 # Imports for weather
 from alinea.alep.simulation_tools.simulation_tools import get_weather
@@ -142,7 +143,7 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
                             degree_days = rust_iter.value.degree_days[-1])
     
     if record == True:
-        recorder.post_treatment(variety = variety)
+        recorder.post_treatment(variety=variety)
         if output_file is not None:
             recorder.save(output_file)
         else:
@@ -150,33 +151,22 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
     else:
         return g
         
-def get_filename(year=2012, variety = 'Tremie12', 
-                 nplants = 15, density_dispersal_units=300):
-    inoc = str(density_dispersal_units)
-    inoc = inoc.replace('.', '_')
-    filename= variety+'_'+str(year)+'_'+str(nplants)+'pl_inoc'+inoc+'.csv'
-    return str(shared_data(alinea.alep)/'brown_rust_simulations'/filename)
-
-def run_reps(year = 2013, variety = 'Tremie13', 
-             nplants = 15, nsect = 7, sowing_date = '10-15',
-             density_dispersal_units = 300, layer_thickness=1.,
-             nreps = 5, **kwds):
+def run_reps_rust(year = 2013, variety = 'Tremie13', 
+                  nplants = 15, nsect = 7, sowing_date = '10-15',
+                  density_dispersal_units = 150, 
+                  layer_thickness = 1., nreps = 5, **kwds):
     df = pd.DataFrame()
-    nb_can = count_available_canopies(year, variety, nplants, nsect)
-    if nb_can >= nreps:
-        rep_wheats = iter(rd.sample(range(nb_can), nreps))
-    else:
-        rep_wheats = iter([None for rep in range(nreps)])
+    rep_wheats = get_iter_rep_wheats(year, variety, nplants, nsect, nreps)
     for rep in range(nreps):
         g, recorder = annual_loop_rust(year=year, variety=variety,
-                                        sowing_date=sowing_date,
-                                        nplants=nplants, nsect=nsect,
-                                        density_dispersal_units=density_dispersal_units,
-                                        layer_thickness=layer_thickness, 
-                                        rep_wheat=next(rep_wheats), **kwds)
+                                       sowing_date=sowing_date,
+                                       nplants=nplants, nsect=nsect,
+                                       density_dispersal_units=density_dispersal_units,
+                                       layer_thickness=layer_thickness, 
+                                       rep_wheat=next(rep_wheats), **kwds)
         df_ = recorder.data
         df_['rep'] = rep
         df = pd.concat([df, df_])
-    output_file = get_filename(variety=variety, nplants=nplants,
-                                density_dispersal_units=density_dispersal_units)
+    output_file = get_filename(fungus='brown_rust', year=year, variety=variety,
+                               nplants=nplants, inoc=density_dispersal_units)
     df.to_csv(output_file)

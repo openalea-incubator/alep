@@ -1412,24 +1412,42 @@ def plot_mean(data, variable = 'severity', xaxis = 'degree_days',
             markerfacecolor = 'none'
         if alpha is None:
             alpha = 1
-            
-        df = data[pandas.notnull(data.loc[:,variable])].loc[:, [xaxis, variable]]
-        df_mean = df.groupby(xaxis).mean()
-        df['nb_rep'] = map(lambda x: df[xaxis].value_counts()[x], df[xaxis])
-        if error_bars == True and len(df['nb_rep'])>0 and min(df['nb_rep'])>1:
-            if error_method == 'confidence_interval':
-                df_err = df.groupby(xaxis).agg(conf_int)
-            elif error_method == 'std_deviation':
-                df_err = df.groupby(xaxis).std()
-            else:
-                raise ValueError("'error_method' unknown: 'try confidence_interval' or 'std_deviation'")
-            ax.errorbar(df_mean.index, df_mean[variable], yerr = df_err[variable].values,
-                        marker = marker, linestyle = linestyle, color = color,
+        
+        if 'rep' in data.columns:
+            reps = numpy.unique(data['rep'])
+        else:
+            reps = []
+        
+        if len(reps)>0:
+            df = pandas.DataFrame()
+            for rep in reps:
+                df_rep = data[data['rep']==rep]
+                df_rep = df_rep[pandas.notnull(df_rep.loc[:,variable])].loc[:, [xaxis, variable]]
+                df_mean_rep = df_rep.groupby(xaxis).mean()
+                df_mean_rep = df_mean_rep.reset_index()
+                df = pandas.concat([df, df_mean_rep])
+            df_mean = df.groupby(xaxis).mean()
+            ax.plot(df_mean.index, df_mean[variable],
+                        marker = marker, linestyle = linestyle, color = color, alpha=alpha,
                         markerfacecolor = markerfacecolor,  markeredgecolor = color)
         else:
-            ax.plot(df_mean.index, df_mean[variable],
-                    marker = marker, linestyle = linestyle, color = color, alpha=alpha,
-                    markerfacecolor = markerfacecolor,  markeredgecolor = color)
+            df = data[pandas.notnull(data.loc[:,variable])].loc[:, [xaxis, variable]]
+            df_mean = df.groupby(xaxis).mean()
+            df['nb_plants'] = map(lambda x: df[xaxis].value_counts()[x], df[xaxis])
+            if error_bars == True and len(df['nb_plants'])>0 and min(df['nb_plants'])>1:
+                if error_method == 'confidence_interval':
+                    df_err = df.groupby(xaxis).agg(conf_int)
+                elif error_method == 'std_deviation':
+                    df_err = df.groupby(xaxis).std()
+                else:
+                    raise ValueError("'error_method' unknown: 'try confidence_interval' or 'std_deviation'")
+                ax.errorbar(df_mean.index, df_mean[variable], yerr = df_err[variable].values,
+                            marker = marker, linestyle = linestyle, color = color,
+                            markerfacecolor = markerfacecolor,  markeredgecolor = color)
+            else:
+                ax.plot(df_mean.index, df_mean[variable],
+                        marker = marker, linestyle = linestyle, color = color, alpha=alpha,
+                        markerfacecolor = markerfacecolor,  markeredgecolor = color)
         if title is not None:
             ax.set_title(title, fontsize = 18)
         if xlabel is not None:
@@ -1488,7 +1506,7 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
                   marker = '', empty_marker = False, linestyle = '-', fixed_color = None, 
                   alpha = None, title = None, legend = True, xlabel = None, ylabel = None,
                   xlims = None, ylims = None, ax = None, return_ax = False, fig_size = (10,8)):
-    df = data.copy()
+    df = data.copy()       
     if ax == None:
         fig, ax = plt.subplots(figsize = fig_size)
     colors = ax._get_lines.set_color_cycle()
@@ -1502,7 +1520,7 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
         num_leaf = 'num_leaf_bottom'
     
     proxy = []
-    labels = []
+    labels = []       
     for lf in leaves:
         df_lf = df[(df['axis'].isin(plant_axis)) & (df[num_leaf]==lf)]
         if fixed_color == None:

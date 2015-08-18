@@ -10,9 +10,10 @@ import sys
 from alinea.alep.simulation_tools.simulation_tools import (wheat_path, 
                                                            init_canopy, 
                                                            grow_canopy,
-                                                           alep_echap_reconstructions)
+                                                           alep_echap_reconstructions,
+                                                           get_iter_rep_wheats,
+                                                           get_filename)
 from alinea.alep.architecture import set_properties
-from alinea.adel.newmtg import adel_labels
 
 # Imports for weather
 from simulation_tools import get_weather
@@ -191,6 +192,25 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
             return g, recorder
     else:
         return g
+        
+def run_reps_septo(fungus = 'septoria', year = 2013, variety = 'Tremie13', 
+                     nplants = 15, nsect = 7, sowing_date = '10-15',
+                     sporulating_fraction = 5e-3, layer_thickness=0.01, nreps = 5, **kwds):
+    df = pd.DataFrame()
+    rep_wheats = get_iter_rep_wheats(year, variety, nplants, nsect, nreps)
+    for rep in range(nreps):
+        g, recorder = annual_loop_septo(year=year, variety=variety,
+                                            sowing_date=sowing_date,
+                                            nplants=nplants, nsect=nsect,
+                                            sporulating_fraction=sporulating_fraction,
+                                            layer_thickness=layer_thickness, 
+                                            rep_wheat=next(rep_wheats), **kwds)
+        df_ = recorder.data
+        df_['rep'] = rep
+        df = pd.concat([df, df_])
+    output_file = get_filename(fungus='septoria', year=year, variety=variety,
+                               nplants=nplants, inoc=sporulating_fraction)
+    df.to_csv(output_file)
     
 def stat_profiler(call='annual_loop_septo()'):
     import cProfile

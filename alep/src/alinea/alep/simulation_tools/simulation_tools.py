@@ -3,6 +3,8 @@
 Main tools to run a simulation of disease epidemics on wheat
 """
 import os
+import pandas as pd
+import numpy as np
 
 # Imports for weather
 from alinea.alep.alep_weather import wetness_rapilly, linear_degree_days
@@ -13,6 +15,9 @@ import alinea.septo3d
 import alinea.alep
 from openalea.deploy.shared_data import shared_data
 from alinea.astk.Weather import Weather
+
+# Imports for disease
+from alinea.alep.disease_outputs import plot_by_leaf
 
 # Imports for wheat
 from alinea.echap.architectural_reconstructions import (EchapReconstructions, pdict,
@@ -128,3 +133,35 @@ def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
             make_canopy_one_rep(rep=rep)
     else:
         make_canopy_one_rep(rep=fixed_rep)
+        
+def get_iter_rep_wheats(year = 2013, variety = 'Tremie13',
+                        nplants = 15, nsect = 7, nreps=5):
+    nb_can = count_available_canopies(year, variety, nplants, nsect)
+    if nb_can >= nreps:
+        return iter(rd.sample(range(nb_can), nreps))
+    else:
+        return iter([None for rep in range(nreps)])
+        
+def get_filename(fungus = 'brown_rust', year=2012, variety = 'Tremie12', 
+                 nplants = 15, inoc=300):
+    inoc = str(inoc)
+    inoc = inoc.replace('.', '_')
+    filename= variety+'_'+str(year)+'_'+str(nplants)+'pl_inoc'+inoc+'.csv'
+    fungus_path = fungus + '_simulations'
+    return str(shared_data(alinea.alep)/fungus_path/filename)   
+        
+def get_data_sim(fungus = 'brown_rust', variety = 'Tremie12',
+                 nplants = 15, inoc=150):
+    filename = get_filename(fungus=fungus, variety=variety, 
+                            nplants=nplants, inoc=inoc)
+    df = pd.read_csv(filename, parse_dates={'datetime':[1]}, index_col=[0])
+    df.index.names = ['date']
+    df = df.drop('Unnamed: 0', axis=1)
+    return df
+    
+def plot_simu_results(fungus = 'brown_rust', year = 2012,
+                      variety = 'Tremie12', nplants = 15, inoc=300, 
+                      nreps = 5, variable = 'severity'):
+   data_sim = get_data_sim(fungus=fungus, variety=variety,
+                           nplants=nplants, inoc=inoc)
+   plot_by_leaf(data_sim, variable=variable)
