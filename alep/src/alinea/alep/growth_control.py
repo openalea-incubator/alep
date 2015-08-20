@@ -398,7 +398,7 @@ class SeptoRustCompetition:
                     else:
                         offer_non_prio = max(offer_non_prio, -s_non_prio_non_sen)
                         for l in non_prio_les:
-                            offer_lesion = offer_non_prio*l.surface_non_senescent/s_non_prio_non_sen
+                            offer_lesion = offer_non_prio*l.surface_non_senescent/s_non_prio_non_sen if s_non_prio_non_sen>0. else 0.
                             l.control_growth(growth_offer=offer_lesion)
 
                 

@@ -252,12 +252,32 @@ class BrownRustLesion(Lesion):
                 self.surface_chlo += f.ratio_chlo * growth_offer
                 self.surface_spo += f.ratio_spo * growth_offer
             else:
-                if self.surface_alive>0:
-                    self.surface_sink += growth_offer*self.surface_sink/self.surface_alive
-                    self.surface_chlo += growth_offer*self.surface_chlo/self.surface_alive                 
-                    self.surface_spo += growth_offer*self.surface_spo/self.surface_alive  
-                    self.surface_empty += growth_offer*self.surface_empty/self.surface_alive  
+                alive = self.surface_alive
+                dea = self.surface_dead
+                sink = self.surface_sink
+                chlo = self.surface_chlo
+                spo = self.surface_spo
+                emp = self.surface_empty
+                if alive>0.:
+                    self.surface_sink += growth_offer*self.surface_sink/alive
+                    self.surface_chlo += growth_offer*self.surface_chlo/alive
+                    self.surface_spo += growth_offer*self.surface_spo/alive
+                    self.surface_empty += growth_offer*self.surface_empty/alive
                     self.surface_dead -= growth_offer
+                if round(self.surface_alive,10) == 0:
+                    self.surface_sink = 0.
+                    self.surface_chlo = 0.
+                    self.surface_spo = 0.
+                    self.surface_empty = 0.
+                    self.disable_growth = 0.
+                
+                if round(-growth_offer,10) > round(alive, 10):
+                    import pdb
+                    pdb.set_trace()            
+            
+            if self.surface < 0:
+                import pdb
+                pdb.set_trace()
 
             # If lesion has reached max size, disable growth
             if round(self.surface, 4) >= round(self._surface_max, 4):

@@ -37,8 +37,10 @@ from alinea.alep.simulation_tools.simulation_tools import (wheat_path,
                                                            grow_canopy,
                                                            alep_echap_reconstructions,
                                                            get_iter_rep_wheats,
-                                                           get_filename)
+                                                           get_filename,
+                                                           get_data_sim)
 from alinea.alep.architecture import set_properties
+from alinea.alep.disease_outputs import plot_by_leaf
                                      
 def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
@@ -57,11 +59,11 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     """
     def modif_params(fungus, suffix='_septoria'):
         pars = fungus.parameters()
-        for p in pars:
-            if p in kwds:
-                pars[p] = kwds[p]
-            elif p.endswith(suffix):
-                pars[p[:-len(suffix)]] = kwds[p]
+        for par in pars.iterkeys():
+            if par in kwds:
+                pars[par] = kwds[par]
+            elif par+'_septoria' in kwds:
+                pars[par] = kwds[par+'_septoria']
         fungus.parameters(**pars)
         return fungus
     
@@ -145,7 +147,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
             
 def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                            nplants = 15, nsect = 7, sporulating_fraction = 1e-4, 
-                           density_dispersal_units = 300, 
+                           density_dispersal_units = 1e5, 
                            layer_thickness_septo = 0.01, layer_thickness_rust = 1.,
                            record = True, output_file = None,
                            reset_reconst = True, rep_wheat = None, **kwds):
@@ -165,7 +167,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                                               sporulating_fraction=sporulating_fraction,
                                               Tmin=Tmin, rep_wheat=rep_wheat, record=record,
                                               layer_thickness_septo=layer_thickness_septo,
-                                              layer_thickness_rust=layer_thickness_rust)
+                                              layer_thickness_rust=layer_thickness_rust, **kwds)
 
     for i, controls in enumerate(zip(canopy_timing, septo_dispersal_timing, rust_dispersal_timing,
                                      septo_timing, rust_timing, recorder_timing)):
@@ -194,7 +196,10 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
             g = external_contamination(g, septo_inoculum, septo_contaminator, septo_dispersal_iter.value,
                                        domain=adel.domain, 
                                        domain_area=adel.domain_area)
-        if rust_dispersal_iter and len(geom)>0:
+        if (rust_dispersal_iter and len(geom)>0 and
+            rust_dispersal_iter.value.index[0] > pd.to_datetime('2013-03-01') and
+            rust_dispersal_iter.value.index[-1] < pd.to_datetime('2013-03-15')):
+            print 'RUST INOC'
             g = external_contamination(g, rust_contaminator, rust_contaminator, 
                                        density_dispersal_units=density_dispersal_units,
                                        domain_area=adel.domain_area)
@@ -232,3 +237,51 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
             return g, recorder
     else:
         return g
+        
+def run_reps_septo_rust(year = 2013, variety = 'Tremie13', 
+                   nplants = 15, nsect = 7, sowing_date = '10-15',
+                   sporulating_fraction = 5e-4, density_dispersal_units=1e5,
+                   layer_thickness_septo = 0.01, layer_thickness_rust = 1.,
+                   nreps = 10, **kwds):
+    df = pd.DataFrame()
+    rep_wheats = get_iter_rep_wheats(year, variety, nplants, nsect, nreps)
+    for rep in range(nreps):
+        g, recorder = annual_loop_septo_rust(year=year, variety=variety,
+                                            sowing_date=sowing_date,
+                                            nplants=nplants, nsect=nsect,
+                                            sporulating_fraction=sporulating_fraction,
+                                            layer_thickness_septo=layer_thickness_septo, 
+                                            layer_thickness_rust=layer_thickness_rust, 
+                                            rep_wheat=next(rep_wheats), **kwds)
+        df_ = recorder.data
+        df_['rep'] = rep
+        df = pd.concat([df, df_])
+    inoc = str(sporulating_fraction)+'_'+str(density_dispersal_units)
+    inoc = inoc.replace('.', '_')
+    output_file = get_filename(fungus='septo_rust', year=year, variety=variety,
+                               nplants=nplants, inoc=inoc)
+    df.to_csv(output_file)
+    
+def plot_septo_rust(fungus = 'septo_rust', year = 2012,
+                    variety = 'Tremie12', nplants = 15,
+                    sporulating_fraction = 5e-4, density_dispersal_units=1e5, 
+                    nreps = 10, variable = 'severity', xaxis = 'degree_days', 
+                    leaves = range(1, 14), from_top = True,
+                    plant_axis = ['MS'], error_bars = False, 
+                    error_method = 'confidence_interval', marker = '', 
+                    empty_marker = False, linestyle = '-', 
+                    fixed_color = None, alpha = None, title = None, 
+                    legend = True, xlabel = None, ylabel = None, 
+                    xlims = None, ylims = None, ax = None,
+                    return_ax = False, fig_size = (10,8)):
+   inoc = str(sporulating_fraction)+'_'+str(density_dispersal_units)
+   inoc = inoc.replace('.', '_')
+   data_sim = get_data_sim(fungus=fungus, year=year, variety=variety,
+                           nplants=nplants, inoc=inoc)                           
+   plot_by_leaf(data_sim, variable=variable, xaxis=xaxis, leaves=leaves,
+                from_top=from_top, plant_axis=plant_axis, error_bars=error_bars,
+                error_method=error_method, marker=marker, 
+                empty_marker=empty_marker, linestyle=linestyle, 
+                fixed_color=fixed_color, alpha=alpha, title=title, 
+                legend=legend, xlabel=xlabel, ylabel=ylabel, xlims=xlims,
+                ylims=ylims, ax=ax, return_ax=return_ax, fig_size=fig_size)

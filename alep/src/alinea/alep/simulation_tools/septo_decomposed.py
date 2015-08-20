@@ -195,7 +195,8 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
         
 def run_reps_septo(fungus = 'septoria', year = 2013, variety = 'Tremie13', 
                      nplants = 15, nsect = 7, sowing_date = '10-15',
-                     sporulating_fraction = 5e-3, layer_thickness=0.01, nreps = 5, **kwds):
+                     sporulating_fraction = 5e-3, layer_thickness=0.01, 
+                     nreps = 10, **kwds):
     df = pd.DataFrame()
     rep_wheats = get_iter_rep_wheats(year, variety, nplants, nsect, nreps)
     for rep in range(nreps):
