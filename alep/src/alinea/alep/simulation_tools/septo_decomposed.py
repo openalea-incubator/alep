@@ -25,7 +25,7 @@ from alinea.astk.TimeControl import (IterWithDelays, rain_filter, time_filter,
 # Imports for alep septoria
 from alinea.alep.protocol import *
 from alinea.alep.septoria import plugin_septoria
-from alinea.alep.septoria_age_physio import group_duplicates_in_cohort
+from alinea.alep.simulation_tools.simulation_tools import group_duplicates_in_cohort
 from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum
 from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import PriorityGrowthControl,SeptoRustCompetition, GeometricPoissonCompetition
@@ -35,7 +35,7 @@ from variable_septoria import *
 
 def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
-          nplants = 30, nsect = 7, disc_level = 5, Tmin = 10., Tmax = 25., WDmin = 10., 
+          nplants = 30, nsect = 7, disc_level = 5, Tmin = 0., Tmax = 25., WDmin = 10., 
           rain_min = 0.2, recording_delay = 24., rep_wheat = None):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy

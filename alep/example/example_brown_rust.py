@@ -1234,14 +1234,6 @@ def example_annual_loop(variety = 'Tremie13', nplants = 30,
     ax.set_xlabel("Thermal time (Cd)", fontsize = 18)
     return g, recorder
 
-def plot_weather_annual_loop(year = 2012, sowing_date = '10-15', 
-                             xlims = [0, 2500], title = None):
-    sowing_date = str(year-1)+"-"+sowing_date+" 12:00:00"
-    end_date = str(year)+"-07-01 00:00:00"
-    weather = get_weather(start_date=sowing_date,
-                          end_date=end_date)
-    plot_wetness_and_temp(weather, xlims = xlims, title = title)
-
 def example_competition_complex_no_priority():    
     g, leaf = get_g_and_one_leaf()
     leaf.area = 10.

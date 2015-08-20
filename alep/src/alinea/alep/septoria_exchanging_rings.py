@@ -50,7 +50,7 @@ class SeptoriaExchangingRings(Lesion):
         # Age to reach to create another ring
         self.delta_age_ring = 0.
         # Age of the center of the lesion (degree days)
-        self.age_dday = 0.
+        self.age_tt = 0.
         # Delta degree days during time step
         self.ddday = 0.
         # Is first hour of rain
@@ -102,7 +102,7 @@ class SeptoriaExchangingRings(Lesion):
         assert self.surface >= 0, 'surface must be positive'
             
         # Update the age of the lesion
-        self.age_dday += ddday
+        self.age_tt += ddday
         
         # Temp
         if self.ddday<self.ddday_before_senescence:
@@ -110,7 +110,7 @@ class SeptoriaExchangingRings(Lesion):
             pdb.set_trace()
         
         try:
-            if self.age_dday<self.previous_age:
+            if self.age_tt<self.previous_age:
                 import pdb
                 pdb.set_trace()
         except:
@@ -118,7 +118,7 @@ class SeptoriaExchangingRings(Lesion):
         
         
         if self.growth_is_active:
-            assert self.age_dday - f.degree_days_to_chlorosis - self.delta_age_ring <= 20.
+            assert self.age_tt - f.degree_days_to_chlorosis - self.delta_age_ring <= 20.
 
         # Compute growth demand
         if self.growth_is_active:
@@ -134,15 +134,15 @@ class SeptoriaExchangingRings(Lesion):
                 if self.surface_rings[0] == 0.:
                     ind = self.surface_rings.nonzero()[0][0]
                     self.surface_rings = self.surface_rings[ind:]
-            # if self.age_dday - f.degree_days_to_chlorosis >= self.delta_age_ring - f.delta_age_ring:
-            if round(self.age_dday - f.degree_days_to_chlorosis, 6) > round(self.delta_age_ring, 6):
+            # if self.age_tt - f.degree_days_to_chlorosis >= self.delta_age_ring - f.delta_age_ring:
+            if round(self.age_tt - f.degree_days_to_chlorosis, 6) > round(self.delta_age_ring, 6):
                 # Create a new ring when needed
                 self.surface_rings = np.append(self.surface_rings, 0.)
                 self.delta_age_ring += f.delta_age_ring
                 
                 # Attempt to create several rings in one big time step
                 # Note : Failed so far...
-                # diff = self.delta_age_ring - (self.age_dday - f.degree_days_to_chlorosis)
+                # diff = self.delta_age_ring - (self.age_tt - f.degree_days_to_chlorosis)
                 # nb_rings = ceil(float(diff)/f.delta_age_ring)
             
             # Exchange the surfaces between the rings
@@ -266,16 +266,16 @@ class SeptoriaExchangingRings(Lesion):
         """
         f = self.fungus
         ddday = self.ddday
-        age_dday = self.age_dday
+        age_tt = self.age_tt
         time_to_chlo = f.degree_days_to_chlorosis
         
-        if age_dday < time_to_chlo: 
+        if age_tt < time_to_chlo: 
             r = f.Smin / time_to_chlo
-        elif (age_dday - ddday) < time_to_chlo:
+        elif (age_tt - ddday) < time_to_chlo:
             r1 = f.Smin / time_to_chlo
             r2 = f.growth_rate
-            diff1 = time_to_chlo - (age_dday - ddday)
-            diff2 = age_dday - time_to_chlo
+            diff1 = time_to_chlo - (age_tt - ddday)
+            diff2 = age_tt - time_to_chlo
             r = (diff1*r1 + diff2*r2)/ddday
         else:
             r = f.growth_rate
@@ -304,7 +304,7 @@ class SeptoriaExchangingRings(Lesion):
         ds = np.zeros(len(s))
         if self.surface_empty == 0. and self.surface_rings[-1]==0.:
             for ind in range(len(s)):
-                ds[ind] = min(s[ind], r*(self.age_dday%dring))
+                ds[ind] = min(s[ind], r*(self.age_tt%dring))
         else:
             for ind in range(len(s)):
                 ds[ind] = min(s[ind], r*ddday)
@@ -391,7 +391,7 @@ class SeptoriaExchangingRings(Lesion):
         if self.is_sporulating():
             width_ring = f.delta_age_ring
             delta_ring = self.delta_age_ring
-            age_dday = self.age_dday
+            age_tt = self.age_tt
             s = self.surface_rings
             time_to_chlo = f.degree_days_to_chlorosis
             time_to_spo = f.degree_days_to_necrosis + f.degree_days_to_sporulation
@@ -411,8 +411,8 @@ class SeptoriaExchangingRings(Lesion):
                         surface_spo = sum(s[-nb_full_rings:])
                     delta_ring -= width_ring * nb_full_rings
                 else:
-                    # portion_sporulating = (age_dday-time_to_spo)/(age_dday+width_ring-delta_ring)
-                    portion_sporulating = (age_dday-time_to_chlo-time_to_spo)/width_ring
+                    # portion_sporulating = (age_tt-time_to_spo)/(age_tt+width_ring-delta_ring)
+                    portion_sporulating = (age_tt-time_to_chlo-time_to_spo)/width_ring
                     surface_spo = portion_sporulating*s[-(nb_full_rings+1)]
             # self.surface_spo = surface_spo + self.first_ring.surface
             else:
@@ -442,7 +442,7 @@ class SeptoriaExchangingRings(Lesion):
         time_to_chlo = f.degree_days_to_chlorosis
         time_to_nec = f.degree_days_to_necrosis
         time_to_spo = f.degree_days_to_necrosis + f.degree_days_to_sporulation
-        age_dday = self.age_dday
+        age_tt = self.age_tt
 
         # Initiation
         surface_inc = 0.
@@ -474,8 +474,8 @@ class SeptoriaExchangingRings(Lesion):
                         surface_nec = sum(s[-nb_full_rings:])
                     s[-nb_full_rings:] = 0.
                 else:
-                    # portion_necrotic = (age_dday-time_to_nec)/(age_dday+width_ring-delta_ring)
-                    portion_necrotic = (age_dday-time_to_chlo-time_to_nec)/width_ring
+                    # portion_necrotic = (age_tt-time_to_nec)/(age_tt+width_ring-delta_ring)
+                    portion_necrotic = (age_tt-time_to_chlo-time_to_nec)/width_ring
                     surface_nec = portion_necrotic*s[-1]
                     s[-1] *= (1-portion_necrotic)
             else:
@@ -507,8 +507,8 @@ class SeptoriaExchangingRings(Lesion):
                     delta_ring -= width_ring * nb_full_rings
                     s = s[:-nb_full_rings]
                 else:
-                    # portion_sporulating = (age_dday-time_to_spo)/(age_dday+width_ring-delta_ring)
-                    portion_sporulating = (age_dday-time_to_chlo-time_to_spo)/width_ring
+                    # portion_sporulating = (age_tt-time_to_spo)/(age_tt+width_ring-delta_ring)
+                    portion_sporulating = (age_tt-time_to_chlo-time_to_spo)/width_ring
                     surface_spo = portion_sporulating*s[-1]
                     
                     # Temp
@@ -546,7 +546,7 @@ class SeptoriaExchangingRings(Lesion):
             
             self.previous_rings = self.surface_rings
             self.previous_first = self.first_ring.surface
-            self.previous_age = self.age_dday
+            self.previous_age = self.age_tt
             self.previous_dring = dring
             self.previous_spo = surface_spo
             self.previous_full = nb_full_rings
@@ -569,8 +569,8 @@ class SeptoriaExchangingRings(Lesion):
                         surface_nec = sum(s[-nb_full_rings:])
                     s[-nb_full_rings:] = 0.
                 else:
-                    # portion_necrotic = (age_dday-time_to_nec)/(age_dday+width_ring-delta_ring)
-                    portion_necrotic = (age_dday-time_to_chlo-time_to_nec)/width_ring
+                    # portion_necrotic = (age_tt-time_to_nec)/(age_tt+width_ring-delta_ring)
+                    portion_necrotic = (age_tt-time_to_chlo-time_to_nec)/width_ring
                     surface_nec = portion_necrotic*s[-1]
                     s[-1] *= (1-portion_necrotic)
             # Compute chlorotic surface
@@ -803,13 +803,13 @@ class SeptoriaExchangingRings(Lesion):
             # Complete the age of the lesion up to the end of time step
             # self.ddday = ddday - ddday_sen
             self.ddday = ddday_sen
-            self.age_dday += ddday - ddday_sen
+            self.age_tt += ddday - ddday_sen
             
             # Manage first ring
             self.first_ring.update(lesion=self)
             # Manage the other rings
             if len(self.surface_rings)>0:
-                if self.age_dday-f.degree_days_to_chlorosis > self.delta_age_ring:
+                if self.age_tt-f.degree_days_to_chlorosis > self.delta_age_ring:
                     self.surface_rings = np.append(self.surface_rings, 0.)
                     self.delta_age_ring += f.delta_age_ring
                 self.exchange_surfaces()
@@ -902,7 +902,7 @@ class FirstRing(Ring):
         # Surface of the ring
         self.surface = 0.
         # Age of the ring
-        self.age_dday = 0.
+        self.age_tt = 0.
         # Activity of the ring
         self.is_active = True
         # Growth activity of the ring
@@ -922,7 +922,7 @@ class FirstRing(Ring):
         """
         f = lesion.fungus
         # Ageing of the ring
-        self.age_dday = lesion.age_dday
+        self.age_tt = lesion.age_tt
         if self.is_incubating(fungus=f):
             self.incubating(lesion=lesion)
         elif self.is_chlorotic(fungus=f):
@@ -945,7 +945,7 @@ class FirstRing(Ring):
         time_to_chlorosis = f.degree_days_to_chlorosis
         
         # Compute status transition to necrotic
-        if self.age_dday >= time_to_chlorosis:
+        if self.age_tt >= time_to_chlorosis:
             self.status = f.CHLOROTIC
             self.chlorotic(lesion=lesion)
     
@@ -965,7 +965,7 @@ class FirstRing(Ring):
         time_to_necrosis = f.degree_days_to_chlorosis + f.degree_days_to_necrosis
 
         # Compute status transition to necrotic
-        if self.age_dday >= time_to_necrosis:
+        if self.age_tt >= time_to_necrosis:
             self.status = f.NECROTIC
             self.necrotic(lesion=lesion)
             
@@ -987,7 +987,7 @@ class FirstRing(Ring):
                            f.degree_days_to_sporulation)
        
         # Compute status transition to sporulating
-        if self.age_dday >= time_to_spo:
+        if self.age_tt >= time_to_spo:
             self.status = f.SPORULATING
     
     def grow(self, lesion, surface):

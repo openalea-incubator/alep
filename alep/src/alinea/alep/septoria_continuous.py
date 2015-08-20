@@ -38,7 +38,7 @@ class ContinuousSeptoria(Lesion):
         # Surface sporulating the time step before
         self.surface_spo_before = 0.
         # Age of the center of the lesion (degree days)
-        self.age_dday = 0.
+        self.age_tt = 0.
         # Delta age for each time step
         self.ddday = 0.
         # Position of senescence the time step before (Useful in case of senescence
@@ -75,7 +75,7 @@ class ContinuousSeptoria(Lesion):
         f = self.fungus
 
         # Disable the lesion if all is sporulating and stock is empty
-        if (self.age_dday > 0. and
+        if (self.age_tt > 0. and
             self.surface_spo != 0. and
             self.surface_spo == self.surface_alive and
             self.stock_spores == 0.):
@@ -93,7 +93,7 @@ class ContinuousSeptoria(Lesion):
             ddday = self.ddday_before_senescence
             
         # Update the age of the lesion
-        self.age_dday += ddday
+        self.age_tt += ddday
         
         # Update the status of the lesion
         self.update_status()
@@ -168,12 +168,12 @@ class ContinuousSeptoria(Lesion):
             Status of the lesion
         """
         f = self.fungus
-        age_dday = self.age_dday
+        age_tt = self.age_tt
         status = [f.SPORULATING, f.INCUBATING, f.CHLOROTIC, f.NECROTIC]
         times = [0,f.degree_days_to_chlorosis, f.degree_days_to_necrosis, f.degree_days_to_sporulation]
         times = np.cumsum(times)
         
-        self.status = status[np.argmin(times<=age_dday)] 
+        self.status = status[np.argmin(times<=age_tt)] 
 
     def update_growth_demand(self):
         """ Update the growth demand of the lesion according to its current growth rate.
@@ -209,16 +209,16 @@ class ContinuousSeptoria(Lesion):
         """
         f = self.fungus
         ddday = self.ddday
-        age_dday = self.age_dday
+        age_tt = self.age_tt
         time_to_chlo = f.degree_days_to_chlorosis
         
-        if age_dday < time_to_chlo: 
+        if age_tt < time_to_chlo: 
             r = f.Smin / time_to_chlo
-        elif (age_dday - ddday) < time_to_chlo:
+        elif (age_tt - ddday) < time_to_chlo:
             r1 = f.Smin / time_to_chlo
             r2 = f.growth_rate
-            diff1 = time_to_chlo - (age_dday - ddday)
-            diff2 = age_dday - time_to_chlo
+            diff1 = time_to_chlo - (age_tt - ddday)
+            diff2 = age_tt - time_to_chlo
             r = (diff1*r1 + diff2*r2)/ddday
         else:
             r = f.growth_rate
@@ -238,7 +238,7 @@ class ContinuousSeptoria(Lesion):
         f = self.fungus
         surface_alive = self.surface_alive
         status = self.status
-        age_dday = self.age_dday
+        age_tt = self.age_tt
         r = f.growth_rate
         Smin = f.Smin
         
@@ -260,7 +260,7 @@ class ContinuousSeptoria(Lesion):
             surface_chlo = surface_alive
             
         elif status == f.NECROTIC:
-            delta_age_nec = age_dday - time_to_nec
+            delta_age_nec = age_tt - time_to_nec
             # Potential surface in necrosis if no interruption
             pot_surface_nec = Smin + r*delta_age_nec
             if surface_alive < pot_surface_nec:
@@ -272,7 +272,7 @@ class ContinuousSeptoria(Lesion):
                 surface_chlo = surface_alive - surface_nec
 
         elif status == f.SPORULATING:
-            delta_age_spo = age_dday - time_to_spo
+            delta_age_spo = age_tt - time_to_spo
             # Potential surface in necrosis if no interruption
             pot_surface_spo = Smin + r*delta_age_spo
             if surface_alive < pot_surface_spo:
@@ -307,7 +307,7 @@ class ContinuousSeptoria(Lesion):
         f = self.fungus
         surface_alive = self.surface_alive
         status = self.status
-        age_dday = self.age_dday
+        age_tt = self.age_tt
         r = f.growth_rate
         Smin = f.Smin
         time_to_spo = f.degree_days_to_chlorosis + f.degree_days_to_necrosis + f.degree_days_to_sporulation
@@ -316,7 +316,7 @@ class ContinuousSeptoria(Lesion):
         surface_spo = 0.
         
         if self.status == f.SPORULATING:
-            delta_age_spo = age_dday - time_to_spo
+            delta_age_spo = age_tt - time_to_spo
             # Potential surface in necrosis if no interruption
             pot_surface_spo = Smin + r*delta_age_spo
             if surface_alive < pot_surface_spo:
@@ -381,7 +381,7 @@ class ContinuousSeptoria(Lesion):
         
         # Complete the age of the lesion up to the end of time step
         # Note : Age was stopped for update at the time of senescence occurence
-        self.age_dday += ddday - ddday_sen
+        self.age_tt += ddday - ddday_sen
         
         # Stop growth
         self.disable_growth()

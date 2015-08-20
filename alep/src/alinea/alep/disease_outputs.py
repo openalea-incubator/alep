@@ -1294,12 +1294,12 @@ def get_data_without_death(data, num_leaf = 'num_leaf_bottom'):
     return pandas.concat(datas)
     
 ###############################################################################
-class SeptoRustRecorder:
+class SeptoRustRecorder(AdelWheatRecorder):
     """ Record simulation output on every leaf of main stems in a dataframe 
         during simulation of septoria and brown rust coupled epidemics """
     def __init__(self, group_dus = True, 
                  increment = 1000):
-        super(AdelSeptoRecorder, self).__init__(group_dus = group_dus, 
+        super(SeptoRustRecorder, self).__init__(group_dus = group_dus, 
                                                 increment = increment)
         columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 
                    'fnl', 'leaf_area', 'leaf_green_area', 
@@ -1332,9 +1332,9 @@ class SeptoRustRecorder:
             if 'lesions' in leaf.properties():
                 for les in leaf.lesions:
                     if les.fungus.name == 'septoria':
-                        surface_septo += les.surface
+                        surface_septo += les.surface_alive
                     elif les.fungus.name == 'brown_rust':
-                        surface_rust += les.surface
+                        surface_rust += les.surface_alive
         
         dict_lf['surface_septo'] = surface_septo
         dict_lf['surface_rust'] = surface_rust
@@ -1421,13 +1421,18 @@ def plot_mean(data, variable = 'severity', xaxis = 'degree_days',
         if len(reps)>0:
             df = pandas.DataFrame()
             for rep in reps:
-                df_rep = data[data['rep']==rep]
-                df_rep = df_rep[pandas.notnull(df_rep.loc[:,variable])].loc[:, [xaxis, variable]]
-                df_mean_rep = df_rep.groupby(xaxis).mean()
+                df_rep = data[data['rep']==rep].reset_index()
+                if xaxis == 'date':
+                    cols = ['date', variable]
+                else:
+                    cols = ['date', xaxis, variable]
+                df_rep = df_rep[pandas.notnull(df_rep.loc[:,variable])].loc[:, cols]
+                df_mean_rep = df_rep.groupby('date').mean()
                 df_mean_rep = df_mean_rep.reset_index()
                 df = pandas.concat([df, df_mean_rep])
-            df_mean = df.groupby(xaxis).mean()
-            ax.plot(df_mean.index, df_mean[variable],
+            df_mean = df.groupby('date').mean()
+            df_mean = df_mean.reset_index()
+            ax.plot(df_mean[xaxis], df_mean[variable],
                         marker = marker, linestyle = linestyle, color = color, alpha=alpha,
                         markerfacecolor = markerfacecolor,  markeredgecolor = color)
         else:

@@ -489,7 +489,8 @@ class BrownRustDispersal:
                             label = 'LeafElement',
                             weather_data = None, **kwds):
         lesions = g.property('lesions')
-        return {vid:sum([l.emission() for l in les if l.is_sporulating]) 
+        return {vid:sum([l.emission() for l in les if l.is_sporulating 
+                        and l.fungus.name.startswith(fungus_name)]) 
                         for vid, les in lesions.iteritems()}
 
     def disperse(self, g, dispersal_units = {}, weather_data = None,

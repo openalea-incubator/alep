@@ -27,9 +27,10 @@ from alinea.astk.TimeControl import (time_filter, IterWithDelays,
                                      
 # Imports for disease
 import alinea.alep
-from alinea.alep.brown_rust import BrownRustFungus, group_duplicates_in_cohort
+from alinea.alep.brown_rust import BrownRustFungus
+from alinea.alep.simulation_tools.simulation_tools import group_duplicates_in_cohort
 from alinea.alep.disease_outputs import BrownRustRecorder
-from alinea.alep.growth_control import GeometricPoissonCompetition
+from alinea.alep.growth_control import GeometricPoissonCompetition, SeptoRustCompetition
 from alinea.alep.inoculation import AirborneContamination
 from alinea.alep.protocol import infect, update, disperse, external_contamination
 from alinea.alep.infection_control import BiotrophDUProbaModel
@@ -49,7 +50,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
     year = int(end_date[:4])    
     wheat_dir = wheat_path(year, variety, nplants, nsect, rep_wheat)
-    g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True)  
+    g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True)
     
     # Manage temporal sequence  
     if start_date is None:
@@ -72,7 +73,8 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
         recorder = BrownRustRecorder()
     else:
         recorder = None
-    growth_controler = GeometricPoissonCompetition()
+#    growth_controler = GeometricPoissonCompetition()
+    growth_controler = SeptoRustCompetition()
     infection_controler = BiotrophDUProbaModel()
     contaminator = AirborneContamination(fungus = fungus,
                                          group_dus = True,
@@ -130,18 +132,18 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
             update(g, rust_iter.dt, growth_controler, label='LeafElement')
         # Disperse disease
         if dispersal_iter and len(geom)>0:
-            disperse(g, dispersor, dispersor,
-                     fungus_name = "brown_rust",
-                     label='LeafElement', 
-                     weather_data=dispersal_iter.value,
-                     domain_area=adel.domain_area)
+            g = disperse(g, dispersor, dispersor,
+                         fungus_name = "brown_rust",
+                         label='LeafElement', 
+                         weather_data=dispersal_iter.value,
+                         domain_area=adel.domain_area)
         # Save outputs
         if rust_iter and record == True:
             date = rust_iter.value.index[-1]
             print date
             recorder.record(g, date, 
                             degree_days = rust_iter.value.degree_days[-1])
-    
+   
     if record == True:
         recorder.post_treatment(variety=variety)
         if output_file is not None:

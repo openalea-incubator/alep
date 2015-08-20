@@ -432,35 +432,7 @@ import collections
 def is_iterable(obj):
     """ Test if object is iterable """
     return isinstance(obj, collections.Iterable)
-    
-def group_duplicates_in_cohort(g):
-    def _get_index_duplicates(seq):
-        from collections import defaultdict
-        dd = defaultdict(list)
-        for i,item in enumerate(seq):
-            dd[item].append(i)
-        dups = [idx for key,idx in dd.iteritems() if len(idx)>1 and key==0.]
-        if len(dups)>0:
-            return dups[-1]
-        else:
-            return []
-    
-    def group_lesions(les):
-        new_l = les[0].fungus.lesion()
-        new_l.position = sum([l.position for l in les], [])
-        return new_l
-    
-    lesions = g.property('lesions')
-    for vid, les in lesions.iteritems():
-        ages = [l.age_tt for l in les]
-        if len(les)!=len(set(ages)):
-            idxs = _get_index_duplicates(ages)
-            if len(idxs)>0:
-                new_les = group_lesions([les[i] for i in idxs])
-                les = les[:idxs[0]]
-                les.append(new_les)
-                lesions[vid] = les
-    
+       
 def get_proba_inf_T(T):
     # Pivonia and Yang
     temp_opt = 15.

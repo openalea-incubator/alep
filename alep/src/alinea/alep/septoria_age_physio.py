@@ -28,7 +28,7 @@ class SeptoriaAgePhysio(Lesion):
         self.status = self.fungus.INCUBATING
         # Age of the center of the lesion
         self.ddday=None
-        self.age_dday = 0.
+        self.age_tt = 0.
         self.age_physio = 0.
         # Status of the periphery of the lesion
         self.status_edge = self.fungus.INCUBATING
@@ -95,7 +95,7 @@ class SeptoriaAgePhysio(Lesion):
             
             if self.ddday > 0.:
                 # Update age in degree days of the lesion
-                self.age_dday += self.ddday        
+                self.age_tt += self.ddday        
                 # Update growth demand and status
                 self.update_status()
                 # Disable growth if edge is necrotic
@@ -177,22 +177,22 @@ class SeptoriaAgePhysio(Lesion):
                 if growth_offer<0:
                     self.surface_dead -= growth_offer                   
                 self.surface_first_ring = max(0, self.surface_first_ring + growth_offer)
-                if self.surface_first_ring == 0. and self.age_dday>self.ddday:
+                if self.surface_first_ring == 0. and self.age_tt>self.ddday:
                     self.disable()
                     return
             else:
 #                growth_offer = min(self.surface_inc)
                 Smin = self._surface_min
                 if self.is_chlorotic() and round(self.surface_first_ring,14) < round(Smin,14):
-                    if self.age_dday - self.ddday < self.fungus.degree_days_to_chlorosis:
+                    if self.age_tt - self.ddday < self.fungus.degree_days_to_chlorosis:
                         if growth_offer <= 0:
                             self.surface_dead -= growth_offer                   
                             self.surface_first_ring = max(0, self.surface_first_ring + growth_offer)
-                            if self.surface_first_ring == 0. and self.age_dday>self.ddday:
+                            if self.surface_first_ring == 0. and self.age_tt>self.ddday:
                                 self.disable()
                                 return
                         else:
-                            diff = self.fungus.degree_days_to_chlorosis - (self.age_dday - self.ddday)
+                            diff = self.fungus.degree_days_to_chlorosis - (self.age_tt - self.ddday)
                             ratio_inc = diff/self.ddday
                             self.surface_first_ring += growth_offer*ratio_inc
                             growth_offer *= (1 - ratio_inc)
@@ -674,35 +674,6 @@ class SeptoriaFungus(Fungus):
 #def is_iterable(obj):
 #    """ Test if object is iterable """
 #    return isinstance(obj, collections.Iterable)
-        
-def group_duplicates_in_cohort(g):
-    def _get_index_duplicates(seq):
-        from collections import defaultdict
-        dd = defaultdict(list)
-        for i,item in enumerate(seq):
-            dd[item].append(i)
-        dups = [idx for key,idx in dd.iteritems() if len(idx)>1 and key==0.]
-        if len(dups)>0:
-            return dups[-1]
-        else:
-            return []
-    
-    def group_lesions(les):
-        new_l = les[0].fungus.lesion()
-        new_l.position = sum([l.position for l in les], [])
-        return new_l
-    
-    lesions = g.property('lesions')
-    for vid, les in lesions.iteritems():
-        ages = [l.age_dday for l in les]
-        if len(les)!=len(set(ages)):
-            idxs = _get_index_duplicates(ages)
-            if len(idxs)>0:
-                new_les = group_lesions([les[i] for i in idxs])
-                les = les[:idxs[0]]
-                les.append(new_les)
-                lesions[vid] = les
-                
     
 class SeptoError(Exception):
     def __init__(self, value):

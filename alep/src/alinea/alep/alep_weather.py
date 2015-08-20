@@ -368,9 +368,9 @@ def plot_wetness_and_temp(weather, start_date="2010-10-15 12:00:00",
     if not 'wetness' in weather.data.columns:
         weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
      
-    if xaxis == 'degree_days':
-        index = weather.data.degree_days
-    elif xaxis == 'date':
+    if xaxis != 'date':
+        index = weather.data[xaxis]
+    else:
         index = weather.data.index  
     
     ax.vlines(index, [0], weather.data.wetness, 'k', alpha=0.05)

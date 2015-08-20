@@ -33,7 +33,7 @@ class SeptoriaWithRings(Lesion):
         ring = SeptoriaRing(lesion=self, status=self.fungus.INCUBATING)
         self.rings.append(ring)
         # Age of the center of the lesion (degree days)
-        self.age_dday = 0.
+        self.age_tt = 0.
         # Delta degree days during time step
         self.ddday = 0.
         # Position of senescence the time step before (Useful in case of senescence
@@ -76,7 +76,7 @@ class SeptoriaWithRings(Lesion):
             ddday = self.ddday_before_senescence
 
         # Update the age of the lesion
-        self.age_dday += ddday
+        self.age_tt += ddday
             
         # Ageing of the rings / create new ones when needed
         nb_rings_initial = len(self.rings)
@@ -224,7 +224,7 @@ class SeptoriaWithRings(Lesion):
         # Completion of the age of the lesion up to the end of time step
         # Note : Age was stopped for update at the time of senescence occurence 
         dday_since_senescence = self.ddday - self.ddday_before_senescence 
-        self.age_dday += dday_since_senescence
+        self.age_tt += dday_since_senescence
         
         # Stop growth
         self.disable_growth()
@@ -456,7 +456,7 @@ class SeptoriaRing(Ring):
         # Surface of the ring
         self.surface = 0.
         # Age of the ring
-        self.age_dday = 0.
+        self.age_tt = 0.
         # Delta degree days of growth during time step
         # self.ddday = 0.
         self.delta_growth = 0.
@@ -516,13 +516,13 @@ class SeptoriaRing(Ring):
         
         f = lesion.fungus
         # Ageing of the ring
-        self.age_dday += ddday
+        self.age_tt += ddday
         if self.is_in_formation(fungus=f):
             # Create new rings if needed
-            if self.age_dday > self.delta_age_ring:
-                self.create_new_rings(ddday=(self.age_dday - self.delta_age_ring), lesion=lesion)
+            if self.age_tt > self.delta_age_ring:
+                self.create_new_rings(ddday=(self.age_tt - self.delta_age_ring), lesion=lesion)
                 # Update delta age of growth
-                self.delta_growth = self.delta_age_ring - (self.age_dday - ddday)
+                self.delta_growth = self.delta_age_ring - (self.age_tt - ddday)
             else:
                 # Update delta age of growth
                 self.delta_growth = ddday
@@ -547,23 +547,23 @@ class SeptoriaRing(Ring):
         # Creation of the first new ring
         new_ring = SeptoriaRing(lesion=lesion, status=f.CHLOROTIC)
         list_of_rings.append(new_ring)
-        list_of_rings[-1].age_dday = ddday 
+        list_of_rings[-1].age_tt = ddday 
         list_of_rings[-1].delta_growth = min(ddday, list_of_rings[-1].delta_age_ring)
         
-        # Creation of the following rings with properties ('age_dday', 'delta_growth', 'delta_age_ring')
-        while list_of_rings[-1].age_dday > list_of_rings[-1].delta_age_ring:
+        # Creation of the following rings with properties ('age_tt', 'delta_growth', 'delta_age_ring')
+        while list_of_rings[-1].age_tt > list_of_rings[-1].delta_age_ring:
             ddday -= list_of_rings[-1].delta_age_ring
             # list_of_rings[-1].delta_age_ring = None
             new_ring = SeptoriaRing(lesion=lesion, status=f.CHLOROTIC)
             list_of_rings.append(new_ring)
-            list_of_rings[-1].age_dday = ddday
+            list_of_rings[-1].age_tt = ddday
             list_of_rings[-1].delta_growth = min(ddday, list_of_rings[-1].delta_age_ring)
             
-        # list_of_rings[-1].delta_age_ring -= list_of_rings[-1].age_dday
+        # list_of_rings[-1].delta_age_ring -= list_of_rings[-1].age_tt
                 
         # Status of new rings
         for ring in list_of_rings:
-            # ring.delta_age_ring -= ring.age_dday 
+            # ring.delta_age_ring -= ring.age_tt 
             ring.stage(lesion=lesion)
         
         # Attach each new ring to the lesion
@@ -629,7 +629,7 @@ class SeptoriaRing(Ring):
         assert self.is_incubating(fungus=f)
         
         # Compute status transition to necrotic
-        if self.age_dday >= time_to_chlorosis:
+        if self.age_tt >= time_to_chlorosis:
             self.status = f.CHLOROTIC
             self.chlorotic(lesion=lesion)
     
@@ -653,7 +653,7 @@ class SeptoriaRing(Ring):
         assert self.is_chlorotic(fungus=f)
 
         # Compute status transition to necrotic
-        if self.age_dday >= time_to_necrosis:
+        if self.age_tt >= time_to_necrosis:
             self.status = f.NECROTIC
             self.necrotic(lesion=lesion)
             
@@ -680,7 +680,7 @@ class SeptoriaRing(Ring):
         assert self.is_necrotic(fungus=f)
         
         # Compute status transition to sporulating
-        if self.age_dday >= time_to_spo:
+        if self.age_tt >= time_to_spo:
             self.status = f.SPORULATING
 
     def sporulating(self, lesion=None, **kwds):

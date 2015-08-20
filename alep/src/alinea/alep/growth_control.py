@@ -380,14 +380,21 @@ class SeptoRustCompetition:
                                                           lengths)
 
                     if leaf_green_area<leaf_area:
-                        max_demand = max(0, leaf_green_area - s_non_prio - s_prio_alive - offer_prio)
-                        demand_non_prio = min(demand_non_prio, max_demand)
+                        max_offer = max(0, leaf_green_area - s_non_prio - s_prio_alive - offer_prio)
+#                        demand_non_prio = min(demand_non_prio, max_demand)
+                        offer_non_prio = min(offer_non_prio, max_offer)
 
-                    offer_non_prio = min(offer_non_prio, demand_non_prio)
+#                    offer_non_prio = min(offer_non_prio, max_offer)
                     if offer_non_prio>0:
+                        offers = 0.
                         for l in non_prio_les:
                             offer_lesion = l.growth_demand * offer_non_prio/demand_non_prio if demand_non_prio>0. else 0.
+                            offers += offer_lesion                            
                             l.control_growth(offer_lesion)
+                            
+                        if sum([l.surface for l in non_prio_les]) > leaf_area:
+                            import pdb
+                            pdb.set_trace()
                     else:
                         offer_non_prio = max(offer_non_prio, -s_non_prio_non_sen)
                         for l in non_prio_les:
