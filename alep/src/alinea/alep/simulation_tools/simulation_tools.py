@@ -5,6 +5,7 @@ Main tools to run a simulation of disease epidemics on wheat
 import os
 import pandas as pd
 import numpy as np
+import random as rd
 
 # Imports for weather
 from alinea.alep.alep_weather import (wetness_rapilly,
@@ -122,7 +123,7 @@ def alep_echap_reconstructions():
     return reconst
     
 def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
-                nplants = 15, nsect = 7, nreps=10, fixed_rep=None):
+                nplants = 15, nsect = 7, nreps=10, fixed_rep=None, delay = 20.):
     """ Simulate and save canopy (prior to simulation). """    
     def make_canopy_one_rep(rep=0):
         reconst = alep_echap_reconstructions()
@@ -147,7 +148,7 @@ def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
     weather = get_weather(start_date=start_date, end_date=end_date)
     seq = pandas.date_range(start=start_date, end=end_date, freq='H')
     TTmodel = DegreeDayModel(Tbase = 0)
-    every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 20.)
+    every_dd = thermal_time_filter(seq, weather, TTmodel, delay=delay)
     canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
 
     # Simulate and save wheat development

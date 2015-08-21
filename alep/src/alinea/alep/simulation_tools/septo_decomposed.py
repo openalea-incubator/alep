@@ -71,7 +71,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
                
     if 'alinea.alep.septoria_age_physio' in sys.modules:
         del(sys.modules['alinea.alep.septoria_age_physio'])
-            
+    
     domain = adel.domain
     domain_area = adel.domain_area
     convUnit = adel.convUnit
@@ -122,7 +122,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
                                     distri_chlorosis, **kwds)
-
+    
     # Prepare saving of outputs
     if record == True:
         recorder = AdelSeptoRecorder()

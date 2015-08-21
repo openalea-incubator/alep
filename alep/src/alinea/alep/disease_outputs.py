@@ -947,7 +947,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                         surface_spo += les.surface_spo
                         surface_empty += les.surface_empty
                         surface_dead += les.surface_dead
-        
+       
         dict_lf['nb_dispersal_units'] = nb_dus
         dict_lf['nb_lesions'] = nb_lesions
         dict_lf['nb_lesions_on_green'] = nb_lesions_on_green

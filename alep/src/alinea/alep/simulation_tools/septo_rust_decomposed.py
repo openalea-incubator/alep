@@ -46,7 +46,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
                variety = 'Mercia', nplants = 15, nsect = 7, 
                sporulating_fraction = 1e-4, Tmin = 0., Tmax = 25., WDmin = 10.,
-               rain_min = 0.2, TT_delay = 20, rust_dispersal_delay = 24,
+               rain_min = 0.2, TT_delay = 20., rust_dispersal_delay = 24,
                recording_delay = 24, record=True, layer_thickness_septo = 0.01,
                layer_thickness_rust = 1., rep_wheat = None, group_dus = True,
                **kwds):

@@ -463,27 +463,29 @@ class BrownRustDispersal:
             center = bbc.result.getCenter()
             centroids[vid] = center
         
-        for vid in leaves:
-            centroid(vid)
+        if len(leaves)>0:
+            for vid in leaves:
+                centroid(vid)
+                
+            # Define grid (horizontal layers)
+            zs = [c[2] for c in centroids.itervalues()]
+            minz = min(zs)
+            maxz = max(zs) + self.layer_thickness
+            layers = {l:[] for l in np.arange(minz, maxz, self.layer_thickness)}
             
-        # Define grid (horizontal layers)
-        zs = [c[2] for c in centroids.itervalues()]
-        minz = min(zs)
-        maxz = max(zs) + self.layer_thickness
-        layers = {l:[] for l in np.arange(minz, maxz, self.layer_thickness)}
-        
-        # Distribute leaves in layers
-        for vid, coords in centroids.iteritems():
-            z = coords[2]
-            ls = layers.keys()
-            i_layer = np.where(map(lambda x: x<=z<x+self.layer_thickness 
-                                    if z!=maxz - self.layer_thickness
-                                    else x<=z<=x+self.layer_thickness , ls))[0]
-            if len(i_layer) > 0. and areas[vid]>1e-10:
-                layers[ls[i_layer]].append(vid)
-        
-        self.layers = layers
-        
+            # Distribute leaves in layers
+            for vid, coords in centroids.iteritems():
+                z = coords[2]
+                ls = layers.keys()
+                i_layer = np.where(map(lambda x: x<=z<x+self.layer_thickness 
+                                        if z!=maxz - self.layer_thickness
+                                        else x<=z<=x+self.layer_thickness , ls))[0]
+                if len(i_layer) > 0. and areas[vid]>1e-10:
+                    layers[ls[i_layer]].append(vid)
+            
+            self.layers = layers
+        else:
+            self.layers = {}
     def get_dispersal_units(self, g, 
                             fungus_name = "brown_rust", 
                             label = 'LeafElement',
