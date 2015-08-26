@@ -197,7 +197,6 @@ def get_fnl_by_plant(data):
     return grps
     
 def add_leaf_dates_to_data(df, correct_leaf_number=True):
-
     def get_date_em(num_leaf_bottom=1, fnl=None):
         return hs_fit.TTemleaf(num_leaf_bottom, nff=fnl)
     def get_date_lig(num_leaf_bottom=1, fnl=None):
@@ -276,7 +275,8 @@ def get_data_sim(fungus = 'brown_rust', year = 2012, variety = 'Tremie12',
     df = pd.read_csv(filename, parse_dates={'datetime':[1]}, index_col=[0])
     df.index.names = ['date']
     df = df.drop('Unnamed: 0', axis=1)
-    df = add_leaf_dates_to_data(df, correct_leaf_number=False)
+    if 'age_leaf' not in df.columns:
+        df = add_leaf_dates_to_data(df, correct_leaf_number=False)
     return df
     
 def plot_simu_results(fungus = 'brown_rust', year = 2012,

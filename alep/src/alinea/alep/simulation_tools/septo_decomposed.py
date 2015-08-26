@@ -35,6 +35,7 @@ from variable_septoria import *
 
 # Temp
 from alinea.alep.disease_outputs import plot_by_leaf
+from alinea.alep.simulation_tools.simulation_tools import add_leaf_dates_to_data
 
 def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
@@ -142,6 +143,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
             set_properties(g,label = 'LeafElement',
                            temperature_sequence = septo_iter.value.temperature_air,
                            wetness_sequence = septo_iter.value.wetness,
+                           relative_humidity_sequence = septo_iter.value.relative_humidity,
                            dd_sequence = septo_iter.value.degree_days)
         if rain_iter:
             set_properties(g,label = 'LeafElement',

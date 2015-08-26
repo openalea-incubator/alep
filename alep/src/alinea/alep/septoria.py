@@ -130,90 +130,6 @@ class SeptoriaDU(DispersalUnit):
                         self.disable()
                         return                
 
-#                for i_wet, wet in enumerate(wets):
-#                    if wet==True:
-#                        count_wet += 1
-#                    else:
-#                        new_temperature_sequence = temps[i_wet:]
-#                        new_wetness_sequence = temps[i_wet:]
-#                        if count_wet >= self.fungus.wd_min:
-#                            temp = np.mean(temps[i_wet-count_wet:i_wet])
-#                            if temp>self.fungus.temp_min and temp<self.fungus.temp_max:
-#                                # Intrinsec proba of infection
-#                                proba_infection = f.proba_inf * self.nb_spores / self.nb_spores
-#                                # Fongicide effect
-#                                if 'global_efficacy' in leaf.properties():
-#                                    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
-#                                # Create lesion
-#                                if f.group_dus:
-#                                    nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
-#                                    if nb_les > 0:
-#                                        self.create_lesion(nb_les, leaf, 
-#                                                       temperature_sequence=new_temperature_sequence)                    
-#                                else:
-#                                    if proba(proba_infection):
-#                                        self.create_lesion(1, leaf,
-#                                                            temperature_sequence=new_temperature_sequence)
-#                        count_wet = 0
-#                        count_dry += 1
-#                        self.temperature_sequence = new_temperature_sequence
-#                        self.wetness_sequence = new_wetness_sequence
-#                self.dry_dt += count_dry
-#                
-#                if self.dry_dt>=f.loss_delay:
-#                    loss_rate = 1.
-#                else:
-#                    loss_rate = 1./(f.loss_delay - self.dry_dt)
-#                # Proba conditionnelle doit se cumuler.
-#                if f.group_dus:
-#                    nb_dead = np.random.binomial(self.nb_dispersal_units, loss_rate)
-#                    self.nb_dispersal_units -= nb_dead                
-#                    if self.nb_dispersal_units == 0.:
-#                        self.disable()
-#                        return
-#                else:
-#                    if proba(loss_rate):
-#                        self.disable()
-#                        return
-                
-                # if leaf_wet.sum() == len(leaf_wet):
-                    # self.cumul_wetness += len(leaf_wet)
-                # else:
-                    # self.cumul_wetness = 0.
-                    # self.dry_dt = min(f.loss_delay-1, 
-                                      # self.dry_dt + len(leaf_wet[leaf_wet==False]))
-                                                              
-                # if self.cumul_wetness >= self.fungus.wd_min :                
-                    # if temp<self.fungus.temp_min or temp>self.fungus.temp_max:
-                        # proba_infection = 0.
-                    # else:
-                        # proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
-                        # # Intrinsec proba of infection
-                        # proba_infection *= f.proba_inf
-                        # # Fongicide effect
-                        # # if 'global_efficacy' in leaf.properties():
-                           # # proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
-                    # if f.group_dus:
-                        # nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
-                        # self.create_lesion(nb_les, leaf)                    
-                    # else:
-                        # if proba(proba_infection):
-                            # self.create_lesion(1, leaf)
-
-                # elif self.cumul_wetness == 0 :
-                    # loss_rate = 1./(f.loss_delay - self.dry_dt)
-                    # # Proba conditionnelle doit se cumuler.
-                    # if f.group_dus:
-                        # nb_dead = np.random.binomial(self.nb_dispersal_units, loss_rate)
-                        # self.nb_dispersal_units -= nb_dead                
-                        # if self.nb_dispersal_units == 0.:
-                            # self.disable()
-                            # return
-                    # else:
-                        # if proba(loss_rate):
-                            # self.disable()
-                            # return
-    
     def set_nb_spores(self, nb_spores=0.):
         """ Set the number of spores in the DU.
         
@@ -279,6 +195,8 @@ septoria_parameters = dict(name='septoria',
                          wd_min = 10.,
                          proba_inf = 1.,
                          loss_delay = 120.,
+                         rh_max=60.,
+                         rh_min=35.,
                          degree_days_to_chlorosis = 220.,
                          degree_days_to_necrosis = 110.,
                          degree_days_to_sporulation = 20.,
@@ -287,7 +205,6 @@ septoria_parameters = dict(name='septoria',
                          Smin = 0.03,
                          Smax = 0.3,
                          growth_rate = 0.0006,
-                         rh_min = 85.,
                          rain_events_to_empty = 3,
                          production_rate = 100000,
                          threshold_spores = 1000,

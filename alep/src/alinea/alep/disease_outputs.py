@@ -1524,7 +1524,7 @@ def get_mean_leaf(data_lf, variable = 'severity', xaxis = 'degree_days'):
             df = pandas.concat([df, df_mean_rep])
     else:
         df = data_lf.reset_index()
-        df = df[pandas.notnull(df.loc[:,variable])].loc[:, cols]
+#        df = df[pandas.notnull(df.loc[:,variable])].loc[:, cols]
     df_mean = df.groupby('date').mean()
     df_mean = df_mean.reset_index()
     return df_mean
@@ -1604,7 +1604,7 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
         num_leaf = 'num_leaf_bottom'
     
     proxy = []
-    labels = []       
+    labels = []
     for lf in leaves:
         if lf in np.unique(df[num_leaf]):
             df_lf = df[(df['axis'].isin(plant_axis)) & (df[num_leaf]==lf)]
@@ -1622,8 +1622,6 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
             labels += ['L%d' %lf]
         
         if legend == True:
-            colors = ax._get_lines.set_color_cycle()
-            colors = ax._get_lines.color_cycle
             ax.legend(proxy, labels, title = 'Leaf\nNumber',
                         loc='center left', bbox_to_anchor=(1, 0.5))
         if return_ax == True:

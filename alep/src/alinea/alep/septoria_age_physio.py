@@ -6,6 +6,7 @@
 from alinea.alep.fungal_objects import *
 from alinea.alep.septoria import SeptoriaDU, septoria_parameters, is_iterable
 import numpy as np
+from scipy.interpolate import interp1d
 from math import floor, ceil
 
 # Lesion ##########################################################################
@@ -120,6 +121,16 @@ class SeptoriaAgePhysio(Lesion):
                 round(self.surface_spo, 14) == 0.):
                     self.disable()
                 
+    def rh_response(self, rh):
+        f = self.fungus
+        if rh > f.rh_max:
+            return 1
+        elif rh > f.rh_min:
+            rh_resp = interp1d([f.rh_min, f.rh_max], [0,1])
+            return rh_resp(rh).tolist()
+        else:
+            return 0.
+                
     def compute_delta_ddays(self, dt=1., leaf=None):
         """ Compute delta degree days in dt.
         
@@ -130,11 +141,14 @@ class SeptoriaAgePhysio(Lesion):
         leaf: Leaf sector node of an MTG 
             A leaf sector with properties (e.g. healthy surface,
             senescence, rain intensity, wetness, temperature, lesions) 
-        """
+        """        
         f = self.fungus
         # Calculation
         if dt != 0.:
             ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in leaf.temperature_sequence])
+            rh_resps = map(self.rh_response, leaf.relative_humidity_sequence.tolist())
+            rh_factor = np.mean(rh_resps)
+            ddday *= rh_factor
             if 'global_efficacy' in leaf.properties():
                 ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
         else:
@@ -678,5 +692,13 @@ class SeptoError(Exception):
     def __str__(self):
         return repr(self.value)
 
-            
-        
+
+# Temp
+def rh_response(x, rh_max=60, rh_min=35):
+    if x > rh_max:
+        return 1
+    elif x > rh_min:
+        f = interp1d([rh_min,rh_max], [0,1])
+        return f(x).tolist()
+    else:
+        return 0.
