@@ -3,7 +3,7 @@
 Run annual loop for the model of septoria in alep on the basis of 'annual_loop_decomposed' in echap
 
 """
-import pandas
+import pandas as pd
 import sys
 
 # Imports for wheat
@@ -17,7 +17,7 @@ from alinea.alep.architecture import set_properties
 
 # Imports for weather
 from simulation_tools import get_weather
-from alinea.alep.alep_time_control import CustomIterWithDelays, septoria_filter
+from alinea.alep.alep_time_control import CustomIterWithDelays, septoria_filter_ddays
 from alinea.astk.TimeControl import (IterWithDelays, rain_filter, time_filter,
                                      thermal_time_filter, DegreeDayModel,
                                      time_control)
@@ -33,9 +33,12 @@ from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.disease_outputs import plot_severity_by_leaf, save_image, AdelSeptoRecorder
 from variable_septoria import *
 
+# Temp
+from alinea.alep.disease_outputs import plot_by_leaf
+
 def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
-          nplants = 30, nsect = 7, disc_level = 5, Tmin = 0., Tmax = 25., WDmin = 10., 
+          nplants = 30, nsect = 7, disc_level = 5, septo_delay_dday = 10.,
           rain_min = 0.2, recording_delay = 24., rep_wheat = None):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy
@@ -52,13 +55,13 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
     # Define the schedule of calls for each model
     if start_date is None:
         start_date = sowing_date
-    seq = pandas.date_range(start = start_date, end = end_date, freq='H')
+    seq = pd.date_range(start = start_date, end = end_date, freq='H')
     TTmodel = DegreeDayModel(Tbase = 0)
     every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 20.)
     every_rain = rain_filter(seq, weather, rain_min = rain_min)
     every_recording = time_filter(seq, delay=recording_delay)
     canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
-    septo_filter = septoria_filter(seq, weather, degree_days = 10., Tmin = Tmin, Tmax = Tmax, WDmin = WDmin, rain_min = rain_min)
+    septo_filter = septoria_filter_ddays(seq, weather, delay = septo_delay_dday, rain_min = rain_min)
     rain_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
     septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
     recorder_timing = IterWithDelays(*time_control(seq, every_recording, weather.data))
@@ -102,22 +105,19 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
 def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
-                      nplants = 15, nsect = 7,
+                      nplants = 15, nsect = 7, septo_delay_dday = 10.,
                       sporulating_fraction = 1e-4, layer_thickness = 0.01, 
                       record = True, output_file = None,
                       save_images = False, reset_reconst = True, 
                       distri_chlorosis = None, rep_wheat = None, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
-    if 'temp_min' in kwds:
-        Tmin = kwds['temp_min']
-    else:
-        Tmin = 0.
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
      wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
                               end_date=str(year)+"-08-01 00:00:00",
                               variety = variety, nplants = nplants,
-                              nsect=nsect, Tmin=Tmin, rep_wheat=rep_wheat)
+                              nsect=nsect, rep_wheat=rep_wheat, 
+                              septo_delay_dday=septo_delay_dday)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 

@@ -3,6 +3,7 @@ Main steps to run a simulation of a complex epidemics of septoria & brown rust
 """
 # General imports
 import pandas as pd
+import numpy as np
 import sys
 
 # Imports for weather and scheduling of simulation
@@ -274,14 +275,16 @@ def plot_septo_rust(fungus = 'septo_rust', year = 2012,
                     legend = True, xlabel = None, ylabel = None, 
                     xlims = None, ylims = None, ax = None,
                     return_ax = False, fig_size = (10,8)):
-   inoc = str(sporulating_fraction)+'_'+str(density_dispersal_units)
-   inoc = inoc.replace('.', '_')
-   data_sim = get_data_sim(fungus=fungus, year=year, variety=variety,
-                           nplants=nplants, inoc=inoc)                           
-   plot_by_leaf(data_sim, variable=variable, xaxis=xaxis, leaves=leaves,
-                from_top=from_top, plant_axis=plant_axis, error_bars=error_bars,
-                error_method=error_method, marker=marker, 
-                empty_marker=empty_marker, linestyle=linestyle, 
-                fixed_color=fixed_color, alpha=alpha, title=title, 
-                legend=legend, xlabel=xlabel, ylabel=ylabel, xlims=xlims,
-                ylims=ylims, ax=ax, return_ax=return_ax, fig_size=fig_size)
+    inoc = str(sporulating_fraction)+'_'+str(density_dispersal_units)
+    inoc = inoc.replace('.', '_')
+    data_sim = get_data_sim(fungus=fungus, year=year, variety=variety,
+                           nplants=nplants, inoc=inoc)
+    if np.isnan(set(data_sim['variety'])[0]):
+        data_sim['variety'] = variety
+    plot_by_leaf(data_sim, variable=variable, xaxis=xaxis, leaves=leaves,
+                 from_top=from_top, plant_axis=plant_axis, error_bars=error_bars,
+                 error_method=error_method, marker=marker, 
+                 empty_marker=empty_marker, linestyle=linestyle, 
+                 fixed_color=fixed_color, alpha=alpha, title=title, 
+                 legend=legend, xlabel=xlabel, ylabel=ylabel, xlims=xlims,
+                 ylims=ylims, ax=ax, return_ax=return_ax, fig_size=fig_size)

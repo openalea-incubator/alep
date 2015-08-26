@@ -48,8 +48,8 @@ def add_notation_dates(data, notation_dates_file):
     df2.ix[dates, :] = 1
     return df2.values == 1
     
-def septoria_filter(seq, weather, degree_days=10., base_temp = 0., 
-                    Tmin = 10., Tmax = 30., WDmin = 10., rain_min = 0.2, start_date=None):
+def septoria_filter_wetness(seq, weather, degree_days=10., base_temp = 0., 
+                        Tmin = 10., Tmax = 30., WDmin = 10., rain_min = 0.2, start_date=None):
     if not 'septo_infection_risk_with_event' in weather.data.columns:
         from alinea.alep.alep_weather import add_septoria_risk_with_event
         weather.check(varnames=['septo_infection_risk_with_event'], 
@@ -94,6 +94,38 @@ def septoria_filter(seq, weather, degree_days=10., base_temp = 0.,
             count_ddays = 0.
         count_ddays += ddays[i]
         if count_ddays >= degree_days and i > df.index[0]:
+            df[i - 1] = True
+            count_ddays = 0.
+    df[df.index[0]] = True
+    return df
+    
+def septoria_filter_ddays(seq, weather, delay=10., base_temp = 0., 
+                          rain_min = 0.2, start_date=None):
+    if not 'septo_degree_days' in weather.data.columns:
+        from alinea.alep.alep_weather import linear_degree_days
+        weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':linear_degree_days}, start_date=start_date, base_temp=base_temp)
+    rain = weather.data.rain[seq]
+    rain[rain <= rain_min] = 0
+    ddays = weather.data.degree_days[seq].diff()
+    ddays.ix[0] = 0.
+    count_rain = 0.
+    count_ddays = 0.
+    df = pandas.Series([False for i in range(len(ddays))], index = ddays.index)
+    for i, row in df.iteritems():
+        if rain[i] > 0:
+            if count_rain == 0.:
+                df[i] = True
+            count_rain += 1
+        else:
+            if count_rain > 0.:
+                df[i] = True
+            count_rain = 0.
+
+    for i, row in df.iteritems():
+        if row == True:
+            count_ddays = 0.
+        count_ddays += ddays[i]
+        if count_ddays >= delay and i > df.index[0]:
             df[i - 1] = True
             count_ddays = 0.
     df[df.index[0]] = True

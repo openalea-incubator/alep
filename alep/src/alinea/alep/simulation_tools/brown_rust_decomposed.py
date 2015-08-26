@@ -90,7 +90,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
 
 def annual_loop_rust(year = 2013, variety = 'Tremie13', 
                      nplants = 15, nsect = 7, sowing_date = '10-15',
-                     density_dispersal_units = 300,
+                     density_dispersal_units = 300, TT_delay=20,
                      record = True, output_file = None, layer_thickness=1.,
                     rep_wheat = True, **kwds):
     """ Simulate an epidemics over the campaign. """
@@ -101,7 +101,7 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
      wheat_is_loaded) = setup_simu(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
                    end_date=str(year)+"-07-30 00:00:00",
                    variety = variety, nplants = nplants, nsect = nsect, 
-                   TT_delay = 20, dispersal_delay = 24, record=record, 
+                   TT_delay = TT_delay, dispersal_delay = 24, record=record, 
                    layer_thickness=layer_thickness, **kwds)
         
     # Simulation loop
@@ -118,7 +118,8 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
         if rust_iter:
             set_properties(g,label = 'LeafElement',
                            temperature_sequence = rust_iter.value.temperature_air,
-                           wetness_sequence = rust_iter.value.wetness)
+                           wetness_sequence = rust_iter.value.wetness,
+                           dd_sequence = rust_iter.value.degree_days)
         # Simulate airborne contamination
         geom = g.property('geometry')
         if dispersal_iter and len(geom)>0:

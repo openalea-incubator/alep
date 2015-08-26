@@ -14,6 +14,7 @@ class BrownRustDU(DispersalUnit):
         self.temperature_sequence = []
         # Cumulation of wetness conditions
         self.wetness_sequence = []
+        self.dry_dt = 0.
         # Number of dispersal_units
         self.nb_dispersal_units = 1
 
@@ -35,7 +36,18 @@ class BrownRustDU(DispersalUnit):
             if leaf.green_area== 0.:
                 self.disable()
                 return
-                
+            
+            # Kill all non viable spores
+            if len(self.temperature_sequence)==0.:
+                nb_dead = np.random.binomial(self.nb_dispersal_units, 1-f.proba_inf)
+                self.nb_dispersal_units -= nb_dead                
+                if self.nb_dispersal_units == 0.:
+                    self.disable()
+                    return
+#            else:
+#                import pdb
+#                pdb.set_trace()
+
             # Accumulate climatic data on the leaf sector during the time step
             self.temperature_sequence += leaf.temperature_sequence.tolist()
             self.wetness_sequence += leaf.wetness_sequence.tolist()
@@ -49,34 +61,49 @@ class BrownRustDU(DispersalUnit):
                 beta = (f.temp_max_inf - f.temp_opt_inf)/(f.temp_opt_inf - f.temp_min_inf)
                 alpha = 1./((f.temp_opt_inf - f.temp_min_inf)*(f.temp_max_inf - f.temp_opt_inf)**beta)
                 temp_factor = max(0., alpha*(temp_mean-f.temp_min_inf)*(f.temp_max_inf - temp_mean)**beta)
-    
+
                 # Response to wetness
                 wet_duration = len([w for w in wets if w == True])
                 wet_factor = np.exp(-f.B_wet_infection * np.exp(-f.k_wet_infection*wet_duration))
                 dry_duration = len(wets) - wet_duration
-                loss_rate = min(1., dry_duration / f.loss_delay if f.loss_delay > 0. else 0.)
-    
+                if dry_duration>=f.loss_delay:
+                    loss_rate = 1.
+                else:
+                    loss_rate = 1./(f.loss_delay - dry_duration)
+                    
+                    
+#                import pdb
+#                pdb.set_trace()    
+#    
+#    
                 # Combination
-                proba_infection = temp_factor * wet_factor * f.proba_inf
+                proba_infection = temp_factor * wet_factor
                 if f.group_dus:
                     init_nb_dus = self.nb_dispersal_units
                     nb_les = np.random.binomial(init_nb_dus, proba_infection)
                     area = leaf.area
                     les_dens = sum([l.nb_lesions for l in leaf.lesions])/area if 'lesions' in leaf.properties() else 0.
-                    nb_les = int(min(nb_les, (f.max_lesion_density-les_dens)*area))
-                    self.create_lesion(nb_les, leaf)
-                    if init_nb_dus > nb_les:
-                        nb_dead = np.random.binomial(init_nb_dus - nb_les, loss_rate)
-                        self.nb_dispersal_units -= nb_dead                
-                        if self.nb_dispersal_units == 0.:
-                            self.disable()
-                            return
+                    if f.max_lesion_density>les_dens:
+                        nb_les = int(min(nb_les, (f.max_lesion_density-les_dens)*area))
+                        self.create_lesion(nb_les, leaf)
+                        if init_nb_dus > nb_les:
+                            nb_dead = np.random.binomial(init_nb_dus - nb_les, loss_rate)
+                            self.nb_dispersal_units -= nb_dead
+                            if self.nb_dispersal_units < 0.:
+                                import pdb
+                                pdb.set_trace()
+                            if self.nb_dispersal_units == 0.:
+                                self.disable()
+                        return
+                    else:
+                        self.disable()
+                        return
                 else:
                     if np.random.random() < proba_infection:
                         self.create_lesion(1, leaf)
                     elif np.random.random() < loss_rate:
                         self.disable()
-                        return
+                    return
 
     def create_lesion(self, nb_lesions = 1, leaf = None, **kwds):
         green_length = leaf.green_length
@@ -98,8 +125,6 @@ class BrownRustDU(DispersalUnit):
                 if self.nb_dispersal_units == 0.:
                     self.disable()
                     return
-        else:
-            self.disable()
     
     def set_status(self, status = 'deposited'):
         self.status = status
@@ -253,11 +278,6 @@ class BrownRustLesion(Lesion):
                 self.surface_spo += f.ratio_spo * growth_offer
             else:
                 alive = self.surface_alive
-                dea = self.surface_dead
-                sink = self.surface_sink
-                chlo = self.surface_chlo
-                spo = self.surface_spo
-                emp = self.surface_empty
                 if alive>0.:
                     self.surface_sink += growth_offer*self.surface_sink/alive
                     self.surface_chlo += growth_offer*self.surface_chlo/alive
@@ -270,14 +290,6 @@ class BrownRustLesion(Lesion):
                     self.surface_spo = 0.
                     self.surface_empty = 0.
                     self.disable_growth = 0.
-                
-                if round(-growth_offer,10) > round(alive, 10):
-                    import pdb
-                    pdb.set_trace()            
-            
-            if self.surface < 0:
-                import pdb
-                pdb.set_trace()
 
             # If lesion has reached max size, disable growth
             if round(self.surface, 4) >= round(self._surface_max, 4):

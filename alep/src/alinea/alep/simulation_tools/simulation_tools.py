@@ -166,6 +166,12 @@ def get_iter_rep_wheats(year = 2013, variety = 'Tremie13',
     else:
         return iter([None for rep in range(nreps)])
         
+def get_missing(numbers, start, end):
+    """ Find missing numbers in list compared to range(start,end) """
+    all_numbers = set(range(start, end))
+    missing = all_numbers - set(numbers)
+    return np.array(list(missing))
+        
 def get_fnl_by_plant(data):
     """ Group plants from data by final leaf number (fnl) 
     
@@ -214,7 +220,7 @@ def add_leaf_dates_to_data(df, correct_leaf_number=True):
     if correct_leaf_number == True:
         df['num_leaf_bottom'][df['fnl']==14] -= 1
         df['fnl'][df['fnl']==14] -= 1
-    hs_fit = HS_fit()[df['variety'][0].title()]
+    hs_fit = HS_fit()[np.unique(df['variety'])[0].title()]
     df = add_dates(df)
     df['age_leaf'] = df['degree_days'] - df['date_emergence_leaf']
     df['age_leaf_lig'] = df['degree_days'] - df['date_ligulation_leaf']

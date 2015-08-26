@@ -1288,10 +1288,13 @@ def get_data_without_death(data, num_leaf = 'num_leaf_bottom'):
     datas = []
     for lf in set(data[num_leaf]):
         df = data[data[num_leaf] == lf]
-        df_count = df.groupby('degree_days').count()
+        df = df.reset_index()
+        df_count = df.groupby('date').count()
         last_date = df_count[df_count['num_plant'] == max(df_count['num_plant'])].index[-1]
-        datas.append(df[df['degree_days']<=last_date])
-    return pandas.concat(datas)
+        datas.append(df[df['date']<=last_date])
+    df = pandas.concat(datas)
+    df = df.sort()
+    return df.reset_index(drop=True)
     
 ###############################################################################
 class SeptoRustRecorder(AdelWheatRecorder):
@@ -1427,7 +1430,7 @@ class SeptoRustRecorder(AdelWheatRecorder):
         self.severity()
         self.severity_on_green()
         if variety is not None:
-            self.add_variety()
+            self.add_variety(variety=variety)
         self.data['axis'] = 'MS'
     
 # Plotting ####################################################################
@@ -1460,75 +1463,7 @@ def conf_int(lst, perc_conf=95):
     c = t.interval(perc_conf * 1.0 / 100, n-1)[1]
     
     return sqrt(v/n) * c
-
-def plot_mean(data, variable = 'severity', xaxis = 'degree_days', 
-              error_bars = False, error_method = 'confidence_interval', 
-              marker = 'd', empty_marker = False, linestyle = '-', color = 'b', 
-              alpha = None, title = None, xlabel = None, ylabel = None,
-              xlims = None, ylims = None, ax = None, return_ax = False):
-    if variable in data.columns:
-        if ax == None:
-            fig, ax = plt.subplots()
-        if empty_marker == False:
-            markerfacecolor = color
-        else:
-            markerfacecolor = 'none'
-        if alpha is None:
-            alpha = 1
-        
-        if 'rep' in data.columns:
-            reps = numpy.unique(data['rep'])
-        else:
-            reps = []
-        
-        if len(reps)>0:
-            df = pandas.DataFrame()
-            for rep in reps:
-                df_rep = data[data['rep']==rep].reset_index()
-                if xaxis == 'date':
-                    cols = ['date', variable]
-                else:
-                    cols = ['date', xaxis, variable]
-                df_rep = df_rep[pandas.notnull(df_rep.loc[:,variable])].loc[:, cols]
-                df_mean_rep = df_rep.groupby('date').mean()
-                df_mean_rep = df_mean_rep.reset_index()
-                df = pandas.concat([df, df_mean_rep])
-            df_mean = df.groupby('date').mean()
-            df_mean = df_mean.reset_index()
-            ax.plot(df_mean[xaxis], df_mean[variable],
-                        marker = marker, linestyle = linestyle, color = color, alpha=alpha,
-                        markerfacecolor = markerfacecolor,  markeredgecolor = color)
-        else:
-            df = data[pandas.notnull(data.loc[:,variable])].loc[:, [xaxis, variable]]
-            df_mean = df.groupby(xaxis).mean()
-            df['nb_plants'] = map(lambda x: df[xaxis].value_counts()[x], df[xaxis])
-            if error_bars == True and len(df['nb_plants'])>0 and min(df['nb_plants'])>1:
-                if error_method == 'confidence_interval':
-                    df_err = df.groupby(xaxis).agg(conf_int)
-                elif error_method == 'std_deviation':
-                    df_err = df.groupby(xaxis).std()
-                else:
-                    raise ValueError("'error_method' unknown: 'try confidence_interval' or 'std_deviation'")
-                ax.errorbar(df_mean.index, df_mean[variable], yerr = df_err[variable].values,
-                            marker = marker, linestyle = linestyle, color = color,
-                            markerfacecolor = markerfacecolor,  markeredgecolor = color)
-            else:
-                ax.plot(df_mean.index, df_mean[variable],
-                        marker = marker, linestyle = linestyle, color = color, alpha=alpha,
-                        markerfacecolor = markerfacecolor,  markeredgecolor = color)
-        if title is not None:
-            ax.set_title(title, fontsize = 18)
-        if xlabel is not None:
-            ax.set_xlabel(xlabel, fontsize = 18)
-        if ylabel is not None:
-            ax.set_ylabel(ylabel, fontsize = 18)
-        if xlims is not None:
-            ax.set_xlim(xlims)
-        if ylims is not None:
-            ax.set_ylim(ylims)
-        if return_ax == True:
-            return ax
-            
+           
 def plot_sum(data, variable = 'severity', xaxis = 'degree_days', 
               marker = 'd', linestyle = '-', color = 'b', alpha = None,
               title = None, xlabel = None, ylabel = None,
@@ -1568,6 +1503,87 @@ def plot_sum(data, variable = 'severity', xaxis = 'degree_days',
         if return_ax == True:
             return ax
 
+def get_mean_leaf(data_lf, variable = 'severity', xaxis = 'degree_days'):
+    if 'rep' in data_lf.columns:
+        reps = numpy.unique(data_lf['rep'])
+    else:
+        reps = []
+    if xaxis != 'date':
+        data_lf[xaxis] = data_lf[xaxis].astype(float)
+    if xaxis == 'date':
+        cols = ['date', variable]
+    else:
+        cols = ['date', xaxis, variable]
+    if len(reps)>0:
+        df = pandas.DataFrame()
+        for rep in reps:
+            df_rep = data_lf[data_lf['rep']==rep].reset_index()
+            df_rep = df_rep[pandas.notnull(df_rep.loc[:,variable])].loc[:, cols]
+            df_mean_rep = df_rep.groupby('date').mean()
+            df_mean_rep = df_mean_rep.reset_index()
+            df = pandas.concat([df, df_mean_rep])
+    else:
+        df = data_lf.reset_index()
+        df = df[pandas.notnull(df.loc[:,variable])].loc[:, cols]
+    df_mean = df.groupby('date').mean()
+    df_mean = df_mean.reset_index()
+    return df_mean
+    
+def get_error(data, variable = 'severity', xaxis = 'degree_days', 
+               error_method = 'confidence_interval'):
+    df = data[pandas.notnull(data.loc[:,variable])].loc[:, [xaxis, variable]]
+    df['nb_plants'] = map(lambda x: df[xaxis].value_counts()[x], df[xaxis])
+    if len(df['nb_plants'])>0 and min(df['nb_plants'])>1:
+        if error_method == 'confidence_interval':
+            df_err = df.groupby(xaxis).agg(conf_int)
+        elif error_method == 'std_deviation':
+            df_err = df.groupby(xaxis).std()
+        else:
+            raise ValueError("'error_method' unknown: 'try confidence_interval' or 'std_deviation'")
+    return df_err
+            
+def plot_mean_leaf(data_lf, variable = 'severity', xaxis = 'degree_days', 
+                  error_bars = False, error_method = 'confidence_interval', 
+                  marker = 'd', empty_marker = False, linestyle = '-', color = 'b', 
+                  alpha = None, title = None, xlabel = None, ylabel = None,
+                  xlims = None, ylims = None, ax = None, return_ax = False):
+    if variable in data_lf.columns:
+        if ax == None:
+            fig, ax = plt.subplots()
+        if empty_marker == False:
+            markerfacecolor = color
+        else:
+            markerfacecolor = 'none'
+        if alpha is None:
+            alpha = 1
+        
+        df = data_lf.reset_index()
+        df_mean = get_mean_leaf(df, variable=variable, xaxis=xaxis)
+        if error_bars == True:
+            assert not 'rep' in data_lf.columns, "Not able to manage repetitions"
+            df_err = get_error(df, variable=variable, xaxis=xaxis,
+                               error_method=error_method)
+            ax.errorbar(df_mean[xaxis], df_mean[variable], yerr = df_err[variable].values,
+                        marker = marker, linestyle = linestyle, color = color,
+                        markerfacecolor = markerfacecolor,  markeredgecolor = color)
+        else:
+            ax.plot(df_mean[xaxis], df_mean[variable],
+                    marker = marker, linestyle = linestyle, color = color, alpha=alpha,
+                    markerfacecolor = markerfacecolor,  markeredgecolor = color)
+
+        if title is not None:
+            ax.set_title(title, fontsize = 18)
+        if xlabel is not None:
+            ax.set_xlabel(xlabel, fontsize = 18)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel, fontsize = 18)
+        if xlims is not None:
+            ax.set_xlim(xlims)
+        if ylims is not None:
+            ax.set_ylim(ylims)
+        if return_ax == True:
+            return ax
+
 def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days', 
                   leaves = range(1, 14), from_top = True, plant_axis = ['MS'],
                   error_bars = False, error_method = 'confidence_interval', 
@@ -1590,27 +1606,28 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
     proxy = []
     labels = []       
     for lf in leaves:
-        df_lf = df[(df['axis'].isin(plant_axis)) & (df[num_leaf]==lf)]
-        if fixed_color == None:
-            color = next(colors)
-        else:
-            color = fixed_color
-        plot_mean(df_lf, variable = variable, xaxis = xaxis, 
-                  error_bars = error_bars, error_method = error_method, 
-                  marker = marker, empty_marker = empty_marker, linestyle = linestyle, 
-                  color = color, alpha = alpha, 
-                  title = title, xlabel = xlabel, ylabel = ylabel,
-                  xlims = xlims, ylims = ylims, ax = ax)
-        proxy += [plt.Line2D((0,1),(0,0), color = color, linestyle ='-')]
-        labels += ['L%d' %lf]
-    
-    if legend == True:
-        colors = ax._get_lines.set_color_cycle()
-        colors = ax._get_lines.color_cycle
-        ax.legend(proxy, labels, title = 'Leaf\nNumber',
-                    loc='center left', bbox_to_anchor=(1, 0.5))
-    if return_ax == True:
-        return ax
+        if lf in np.unique(df[num_leaf]):
+            df_lf = df[(df['axis'].isin(plant_axis)) & (df[num_leaf]==lf)]
+            if fixed_color == None:
+                color = next(colors)
+            else:
+                color = fixed_color
+            plot_mean_leaf(df_lf, variable = variable, xaxis = xaxis, 
+                      error_bars = error_bars, error_method = error_method, 
+                      marker = marker, empty_marker = empty_marker, linestyle = linestyle, 
+                      color = color, alpha = alpha, 
+                      title = title, xlabel = xlabel, ylabel = ylabel,
+                      xlims = xlims, ylims = ylims, ax = ax)
+            proxy += [plt.Line2D((0,1),(0,0), color = color, linestyle ='-')]
+            labels += ['L%d' %lf]
+        
+        if legend == True:
+            colors = ax._get_lines.set_color_cycle()
+            colors = ax._get_lines.color_cycle
+            ax.legend(proxy, labels, title = 'Leaf\nNumber',
+                        loc='center left', bbox_to_anchor=(1, 0.5))
+        if return_ax == True:
+            return ax
         
 import collections
 def is_iterable(obj):

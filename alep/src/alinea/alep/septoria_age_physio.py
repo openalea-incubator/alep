@@ -131,23 +131,20 @@ class SeptoriaAgePhysio(Lesion):
             A leaf sector with properties (e.g. healthy surface,
             senescence, rain intensity, wetness, temperature, lesions) 
         """
-        if self.ddday!=None:
-            f = self.fungus
-            # Calculation
-            if dt != 0.:
-                ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in leaf.temperature_sequence])
-                if 'global_efficacy' in leaf.properties():
-                    ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
-            else:
-                ddday = 0.
-            
-            if ddday > f.degree_days_to_chlorosis or ddday > f.degree_days_to_necrosis or ddday > f.degree_days_to_sporulation:
-                raise SeptoError('Can not handle a dt > minimum stage duration')
-            
-            # Save variable
-            self.ddday = ddday
+        f = self.fungus
+        # Calculation
+        if dt != 0.:
+            ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in leaf.temperature_sequence])
+            if 'global_efficacy' in leaf.properties():
+                ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
         else:
-            self.ddday = 0.
+            ddday = 0.
+        
+        if ddday > f.degree_days_to_chlorosis or ddday > f.degree_days_to_necrosis or ddday > f.degree_days_to_sporulation:
+            raise SeptoError('Can not handle a dt > minimum stage duration')
+        
+        # Save variable
+        self.ddday = ddday
     
     def progress(self, age_threshold=0.):
         """ Compute progress in physiological age according to age_threshold. 

@@ -15,6 +15,7 @@ except ImportError:
 
 from random import random
 import numpy as np
+import pandas as pd
 
 # Dispersal unit #############################################################
 class SeptoriaDU(DispersalUnit):
@@ -35,11 +36,15 @@ class SeptoriaDU(DispersalUnit):
             None
         """
         super(SeptoriaDU, self).__init__(mutable=mutable)
-        self.cumul_wetness = 0.
-        self.cumul_loss_rate = 0.
-        self.dry_dt = -1.     
+        # self.cumul_wetness = 0.
+        # self.cumul_loss_rate = 0.
+        # Cumulation of temperature conditions
+        self.temperature_sequence = []
+        # Cumulation of wetness conditions
+        self.wetness_sequence = []
+        self.dry_dt = 0.       
         # Temp
-        self.nb_spores = 10.
+        self.nb_spores = 10.      
                 
     def infect(self, dt = 1, leaf = None, **kwds):
         """ Compute infection by the dispersal unit of Septoria.
@@ -56,43 +61,63 @@ class SeptoriaDU(DispersalUnit):
         -------
             None
         """
-        f = self.fungus
-        if leaf.green_area == 0.:
-            self.disable()
-
-        if self.nb_dispersal_units == 0. or self.nb_spores == 0.:
-            self.disable()
-            return
-        else:
-            leaf_wet = leaf.wetness_sequence # Wetness sequence on the leaf sector during this time step.
-            temp = leaf.temperature_sequence.mean() # (float) : mean temperature on the leaf sector during the time step (in degree).  
-            
-            if leaf_wet.sum() == len(leaf_wet):
-                self.cumul_wetness += len(leaf_wet)
+        if self.is_active:
+            f = self.fungus
+            if leaf.green_area== 0. or self.nb_dispersal_units == 0. or self.nb_spores == 0.:
+                self.disable()
+                return
             else:
-                self.cumul_wetness = 0.
-                self.dry_dt = min(f.loss_delay-1, 
-                                  self.dry_dt + len(leaf_wet[leaf_wet==False]))
-                    
-            if self.cumul_wetness >= self.fungus.wd_min :                
-                if temp<self.fungus.temp_min or temp>self.fungus.temp_max:
-                    proba_infection = 0.
+                # Accumulate climatic data on the leaf sector during the time step
+                self.temperature_sequence += leaf.temperature_sequence.tolist()
+                self.wetness_sequence += leaf.wetness_sequence.tolist()
+                
+                # Infection success
+                temps = self.temperature_sequence
+                wets = self.wetness_sequence
+                count_wet = 0
+                count_dry = 0
+                for i_wet, wet in enumerate(wets):
+                    if wet==True:
+                        count_wet += 1
+                        temp = np.mean(temps[i_wet-count_wet:i_wet])
+                        if (count_wet >= self.fungus.wd_min and
+                            temp>self.fungus.temp_min and 
+                            temp<self.fungus.temp_max):
+                                new_temperature_sequence = temps[i_wet:]
+                                # Intrinsec proba of infection
+                                proba_infection = f.proba_inf * self.nb_spores / self.nb_spores
+                                # Fongicide effect
+                                if 'global_efficacy' in leaf.properties():
+                                    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))                           
+                                # Create lesion
+                                if f.group_dus:
+                                    nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
+                                    if nb_les > 0:
+                                        self.create_lesion(nb_les, leaf, 
+                                                       temperature_sequence=new_temperature_sequence)
+                                    else:
+                                        self.disable()
+                                    return
+                                else:
+                                    if proba(proba_infection):
+                                        self.create_lesion(1, leaf,
+                                                            temperature_sequence=new_temperature_sequence)
+                                    else:
+                                        self.disable()
+                                    return
+                    else:
+                        new_temperature_sequence = temps[i_wet:]
+                        new_wetness_sequence = wets[i_wet:]
+                        count_wet = 0
+                        count_dry += 1
+                        self.temperature_sequence = new_temperature_sequence
+                        self.wetness_sequence = new_wetness_sequence
+                self.dry_dt += count_dry
+                
+                if self.dry_dt>=f.loss_delay:
+                    loss_rate = 1.
                 else:
-                    proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
-                    # Intrinsec proba of infection
-                    proba_infection *= f.proba_inf
-                    # Fongicide effect
-                    #if 'global_efficacy' in leaf.properties():
-                    #    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
-                if f.group_dus:
-                    nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
-                    self.create_lesion(nb_les, leaf)                    
-                else:
-                    if proba(proba_infection):
-                        self.create_lesion(1, leaf)
-
-            elif self.cumul_wetness == 0 :
-                loss_rate = 1./(f.loss_delay - self.dry_dt)
+                    loss_rate = 1./(f.loss_delay - self.dry_dt)
                 # Proba conditionnelle doit se cumuler.
                 if f.group_dus:
                     nb_dead = np.random.binomial(self.nb_dispersal_units, loss_rate)
@@ -103,7 +128,91 @@ class SeptoriaDU(DispersalUnit):
                 else:
                     if proba(loss_rate):
                         self.disable()
-                        return
+                        return                
+
+#                for i_wet, wet in enumerate(wets):
+#                    if wet==True:
+#                        count_wet += 1
+#                    else:
+#                        new_temperature_sequence = temps[i_wet:]
+#                        new_wetness_sequence = temps[i_wet:]
+#                        if count_wet >= self.fungus.wd_min:
+#                            temp = np.mean(temps[i_wet-count_wet:i_wet])
+#                            if temp>self.fungus.temp_min and temp<self.fungus.temp_max:
+#                                # Intrinsec proba of infection
+#                                proba_infection = f.proba_inf * self.nb_spores / self.nb_spores
+#                                # Fongicide effect
+#                                if 'global_efficacy' in leaf.properties():
+#                                    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
+#                                # Create lesion
+#                                if f.group_dus:
+#                                    nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
+#                                    if nb_les > 0:
+#                                        self.create_lesion(nb_les, leaf, 
+#                                                       temperature_sequence=new_temperature_sequence)                    
+#                                else:
+#                                    if proba(proba_infection):
+#                                        self.create_lesion(1, leaf,
+#                                                            temperature_sequence=new_temperature_sequence)
+#                        count_wet = 0
+#                        count_dry += 1
+#                        self.temperature_sequence = new_temperature_sequence
+#                        self.wetness_sequence = new_wetness_sequence
+#                self.dry_dt += count_dry
+#                
+#                if self.dry_dt>=f.loss_delay:
+#                    loss_rate = 1.
+#                else:
+#                    loss_rate = 1./(f.loss_delay - self.dry_dt)
+#                # Proba conditionnelle doit se cumuler.
+#                if f.group_dus:
+#                    nb_dead = np.random.binomial(self.nb_dispersal_units, loss_rate)
+#                    self.nb_dispersal_units -= nb_dead                
+#                    if self.nb_dispersal_units == 0.:
+#                        self.disable()
+#                        return
+#                else:
+#                    if proba(loss_rate):
+#                        self.disable()
+#                        return
+                
+                # if leaf_wet.sum() == len(leaf_wet):
+                    # self.cumul_wetness += len(leaf_wet)
+                # else:
+                    # self.cumul_wetness = 0.
+                    # self.dry_dt = min(f.loss_delay-1, 
+                                      # self.dry_dt + len(leaf_wet[leaf_wet==False]))
+                                                              
+                # if self.cumul_wetness >= self.fungus.wd_min :                
+                    # if temp<self.fungus.temp_min or temp>self.fungus.temp_max:
+                        # proba_infection = 0.
+                    # else:
+                        # proba_infection = self.nb_spores / self.nb_spores # always equals 1 for now
+                        # # Intrinsec proba of infection
+                        # proba_infection *= f.proba_inf
+                        # # Fongicide effect
+                        # # if 'global_efficacy' in leaf.properties():
+                           # # proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))
+                    # if f.group_dus:
+                        # nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
+                        # self.create_lesion(nb_les, leaf)                    
+                    # else:
+                        # if proba(proba_infection):
+                            # self.create_lesion(1, leaf)
+
+                # elif self.cumul_wetness == 0 :
+                    # loss_rate = 1./(f.loss_delay - self.dry_dt)
+                    # # Proba conditionnelle doit se cumuler.
+                    # if f.group_dus:
+                        # nb_dead = np.random.binomial(self.nb_dispersal_units, loss_rate)
+                        # self.nb_dispersal_units -= nb_dead                
+                        # if self.nb_dispersal_units == 0.:
+                            # self.disable()
+                            # return
+                    # else:
+                        # if proba(loss_rate):
+                            # self.disable()
+                            # return
     
     def set_nb_spores(self, nb_spores=0.):
         """ Set the number of spores in the DU.
@@ -125,25 +234,28 @@ class SeptoriaDU(DispersalUnit):
             self.position = position
 
     def create_lesion(self, nb_lesions = 1, leaf = None, **kwds):
-        green_length = leaf.green_length
-        length = leaf.length
-        if green_length>0 and nb_lesions>0:        
+        if leaf is None:
             les = self.fungus.lesion(mutable = self.mutable)
             les.__dict__.update(kwds)
-            les.set_position([[length - np.random.random()*green_length, 0] 
+            self.disable()
+            return les
+        elif leaf.green_length>0 and nb_lesions>0:        
+            les = self.fungus.lesion(mutable = self.mutable)
+            les.__dict__.update(kwds)
+            les.set_position([[leaf.length - np.random.random()*leaf.green_length, 0] 
                                 for i in range(nb_lesions)])
             self.nb_dispersal_units -= nb_lesions
-            if leaf is None:
+            if 'temperature_sequence' in kwds:
+                temps = np.array(kwds['temperature_sequence'])
+                leaf.temperature_sequence = temps
+                les.update(dt=len(temps), leaf=leaf)
+            try:
+                leaf.lesions.append(les)
+            except:
+                leaf.lesions = [les]
+            if self.nb_dispersal_units == 0.:
                 self.disable()
-                return les
-            else:
-                try:
-                    leaf.lesions.append(les)
-                except:
-                    leaf.lesions = [les]
-                if self.nb_dispersal_units == 0.:
-                    self.disable()
-                    return
+                return
         else:
             self.disable()
     
