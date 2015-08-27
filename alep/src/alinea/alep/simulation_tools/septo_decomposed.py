@@ -326,7 +326,7 @@ def temp2():
                    growth_rate=0.0006, density_dus_emitted_ref=3e3, 
                    nreps=5, suffix='emission')
                    
-def set_canopy_visu(year=2013, variety='Tremie13', nplants=15):
+def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15):
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
      wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
