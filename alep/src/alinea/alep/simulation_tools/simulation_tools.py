@@ -261,17 +261,21 @@ def group_duplicates_in_cohort(g):
         
 # Tools for plotting results ##################################################
 def get_filename(fungus = 'brown_rust', year=2012, variety = 'Tremie12', 
-                 nplants = 15, inoc=300):
+                 nplants = 15, inoc=300, suffix=None):
     inoc = str(inoc)
     inoc = inoc.replace('.', '_')
-    filename= variety+'_'+str(year)+'_'+str(nplants)+'pl_inoc'+inoc+'.csv'
+    if suffix is None:
+        suffix=''
+    else:
+        suffix='_'+suffix
+    filename= variety+'_'+str(year)+'_'+str(nplants)+'pl_inoc'+inoc+suffix+'.csv'
     fungus_path = fungus + '_simulations'
     return str(shared_data(alinea.alep)/fungus_path/filename)   
         
 def get_data_sim(fungus = 'brown_rust', year = 2012, variety = 'Tremie12',
-                 nplants = 15, inoc=150):
+                 nplants = 15, inoc=150, suffix=None):
     filename = get_filename(fungus=fungus, year=year, variety=variety, 
-                            nplants=nplants, inoc=inoc)
+                            nplants=nplants, inoc=inoc, suffix=suffix)
     df = pd.read_csv(filename, parse_dates={'datetime':[1]}, index_col=[0])
     df.index.names = ['date']
     df = df.drop('Unnamed: 0', axis=1)
@@ -289,9 +293,9 @@ def plot_simu_results(fungus = 'brown_rust', year = 2012,
                       fixed_color = None, alpha = None, title = None, 
                       legend = True, xlabel = None, ylabel = None, 
                       xlims = None, ylims = None, ax = None,
-                      return_ax = False, fig_size = (10,8)):
+                      return_ax = False, fig_size = (10,8), suffix=None):
    data_sim = get_data_sim(fungus=fungus, year=year, variety=variety,
-                           nplants=nplants, inoc=inoc)                           
+                           nplants=nplants, inoc=inoc, suffix=suffix)          
    plot_by_leaf(data_sim, variable=variable, xaxis=xaxis, leaves=leaves,
                 from_top=from_top, plant_axis=plant_axis, error_bars=error_bars,
                 error_method=error_method, marker=marker, 
