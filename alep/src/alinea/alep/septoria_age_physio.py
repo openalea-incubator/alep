@@ -147,9 +147,9 @@ class SeptoriaAgePhysio(Lesion):
         if dt != 0.:
             ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in leaf.temperature_sequence])
 #            if self.is_necrotic():
-            rh_resps = map(self.rh_response, leaf.relative_humidity_sequence.tolist())
-            rh_factor = np.mean(rh_resps)
-            ddday *= rh_factor
+#            rh_resps = map(self.rh_response, leaf.relative_humidity_sequence.tolist())
+#            rh_factor = np.mean(rh_resps)
+#            ddday *= rh_factor
 #                if leaf.dd_sequence[-1]>880 and leaf.dd_sequence[-1]<1500:
 #                    import pdb
 #                    pdb.set_trace()
