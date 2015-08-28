@@ -139,7 +139,7 @@ def alep_custom_reconstructions(nplants=30, sowing_density=250.,
     n_emerged = nplants
     tiller_proba = {'T1':1., 'T2':0.5, 'T3':0.5, 'T4':0.3}
     if 'tiller_probability' in kwds:
-        tiller_proba = [max(1, p*kwds['tiller_probability']) for p in tiller_proba]
+        tiller_proba = {k:max(1, p*kwds['tiller_probability']) for k,p in tiller_proba.iteritems()}
     m = pgen_ext.TillerEmission(primary_tiller_probabilities=tiller_proba)
     axp = pgen_ext.AxePop(Emission=m)
     if 'proba_main_nff' in kwds:
