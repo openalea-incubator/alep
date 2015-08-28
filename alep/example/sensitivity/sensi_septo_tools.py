@@ -153,7 +153,7 @@ class SeptoSensiRecorder(AdelWheatRecorder):
             self.add_variety(variety=variety)
             
 def variety_code():
-    return {'Mercia':1, 'Rht3':2, 'Tremie12':3, 'Tremie13':4}
+    return {'Mercia':1, 'Rht3':2, 'Tremie12':3, 'Tremie13':4, 'Custom':5}
     
 def variety_decode():
     return {v:k for k,v in variety_code().iteritems()}

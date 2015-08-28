@@ -23,9 +23,15 @@ from alinea.astk.Weather import Weather
 from alinea.alep.disease_outputs import plot_by_leaf
 
 # Imports for wheat
+from alinea.adel.astk_interface import AdelWheat
+from alinea.adel.Stand import AgronomicStand
+from alinea.adel.AdelR import devCsv
+import alinea.adel.plantgen_extensions as pgen_ext
 from alinea.echap.architectural_reconstructions import (EchapReconstructions, pdict,
                                                         reconstruction_parameters,
-                                                        HS_fit)
+                                                        HS_fit, GL_fits,
+                                                        dimension_fits,
+                                                        leafshape_fits)
 from alinea.adel.newmtg import move_properties
 from alinea.caribu.caribu_star import rain_and_light_star
 
@@ -121,6 +127,44 @@ def alep_echap_reconstructions():
     reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
     reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
     return reconst
+    
+def alep_custom_reconstructions(nplants=30, sowing_density=250.,
+                                plant_density=250., inter_row=0.15,
+                                nsect=7, seed=1, **kwds):
+    parameters = reconstruction_parameters()
+    stand = AgronomicStand(sowing_density=sowing_density,
+                            plant_density=plant_density, 
+                            inter_row=inter_row, noise=0.04, 
+                            density_curve_data = None)       
+    n_emerged = nplants
+    tiller_proba = {'T1':1., 'T2':0.5, 'T3':0.5, 'T4':0.3}
+    if 'tiller_probability' in kwds:
+        tiller_proba = [max(1, p*kwds['tiller_probability']) for p in tiller_proba]
+    m = pgen_ext.TillerEmission(primary_tiller_probabilities=tiller_proba)
+    axp = pgen_ext.AxePop(Emission=m)
+    if 'proba_main_nff' in kwds:
+        axp.MS_probabilities = {'11':1-kwds['proba_main_nff'], '12':kwds['proba_main_nff']}
+    plants = axp.plant_list(n_emerged)
+    HSfit = HS_fit()['Mercia']
+    HSfit.mean_nff = axp.mean_nff()
+    if 'phyllochron' in kwds:
+        HSfit.a_cohort = 1./kwds['phyllochron']
+    GLfit = GL_fits(HS_fit(), **parameters)['Mercia']
+    if 'nb_green_leaves' in kwds:
+        GLfit.GL_flag = kwds['nb_green_leaves']
+    Dimfit = dimension_fits(HS_fit(), **parameters)['Mercia']
+    if 'leaf_dim_factor' in kwds:
+        Dimfit.scale['L_blade'] *= kwds['leaf_dim_factor']
+        Dimfit.scale['W_blade'] *= kwds['leaf_dim_factor']
+    if 'internode_length_factor' in kwds:
+        Dimfit.scale['H_col'] *= kwds['internode_length_factor']
+    pgen = pgen_ext.PlantGen(HSfit=HSfit, GLfit=GLfit, Dimfit=Dimfit)
+    axeT, dimT, phenT = pgen.adelT(plants)
+    axeT = axeT.sort(['id_plt', 'id_cohort', 'N_phytomer'])
+    devT = devCsv(axeT, dimT, phenT)
+    leaves = leafshape_fits(**parameters)['Mercia'] # TODO Create and Take Soisson
+    return AdelWheat(nplants = nplants, nsect=nsect, devT=devT, stand = stand , 
+                    seed=seed, sample='sequence', leaves = leaves)
     
 def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                 nplants = 15, nsect = 7, nreps=10, fixed_rep=None, delay = 20.):

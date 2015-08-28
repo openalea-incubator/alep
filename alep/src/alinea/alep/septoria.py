@@ -67,9 +67,12 @@ class SeptoriaDU(DispersalUnit):
                 self.disable()
                 return
             else:
+                props = leaf.properties()
                 # Accumulate climatic data on the leaf sector during the time step
-                self.temperature_sequence += leaf.temperature_sequence.tolist()
-                self.wetness_sequence += leaf.wetness_sequence.tolist()
+                self.temperature_sequence += props['temperature_sequence']
+                self.wetness_sequence += props['wetness_sequence']
+#                self.temperature_sequence += leaf.temperature_sequence.tolist()
+#                self.wetness_sequence += leaf.wetness_sequence.tolist()
                 
                 # Infection success
                 temps = self.temperature_sequence
@@ -80,15 +83,15 @@ class SeptoriaDU(DispersalUnit):
                     if wet==True:
                         count_wet += 1
                         temp = np.mean(temps[i_wet-count_wet:i_wet])
-                        if (count_wet >= self.fungus.wd_min and
-                            temp>self.fungus.temp_min and 
-                            temp<self.fungus.temp_max):
+                        if (count_wet >=f.wd_min and
+                            temp>f.temp_min and 
+                            temp<f.temp_max):
                                 new_temperature_sequence = temps[i_wet:]
                                 # Intrinsec proba of infection
                                 proba_infection = f.proba_inf * self.nb_spores / self.nb_spores
                                 # Fongicide effect
-                                if 'global_efficacy' in leaf.properties():
-                                    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))                           
+#                                if 'global_efficacy' in leaf.properties():
+#                                    proba_infection *= (1 - max(0, min(1, leaf.global_efficacy['protectant'])))                           
                                 # Create lesion
                                 if f.group_dus:
                                     nb_les = np.random.binomial(self.nb_dispersal_units, proba_infection)
@@ -162,16 +165,14 @@ class SeptoriaDU(DispersalUnit):
                                 for i in range(nb_lesions)])
             self.nb_dispersal_units -= nb_lesions
             if 'temperature_sequence' in kwds:
-                temps = np.array(kwds['temperature_sequence'])
+                temps = kwds['temperature_sequence']
                 leaf.temperature_sequence = temps
                 les.update(dt=len(temps), leaf=leaf)
             try:
                 leaf.lesions.append(les)
             except:
                 leaf.lesions = [les]
-            if self.nb_dispersal_units == 0.:
-                self.disable()
-                return
+            self.disable()
         else:
             self.disable()
     
@@ -213,7 +214,8 @@ septoria_parameters = dict(name='septoria',
                          threshold_spo = 1e-4,
                          nb_rings_by_state = 10,
                          age_physio_switch_senescence=0.,
-                         group_dus = False)
+                         group_dus = False,
+                         rh_effect = False)
                  
 # class SeptoriaParameters(Parameters):
     # model = None

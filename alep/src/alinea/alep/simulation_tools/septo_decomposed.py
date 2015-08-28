@@ -11,6 +11,7 @@ from alinea.alep.simulation_tools.simulation_tools import (wheat_path,
                                                            init_canopy, 
                                                            grow_canopy,
                                                            alep_echap_reconstructions,
+                                                           alep_custom_reconstructions,
                                                            get_iter_rep_wheats,
                                                            get_filename)
 from alinea.alep.architecture import set_properties
@@ -43,12 +44,15 @@ from alinea.alep.simulation_tools.simulation_tools import add_leaf_dates_to_data
 def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
           nplants = 30, nsect = 7, disc_level = 5, septo_delay_dday = 10.,
-          rain_min = 0.2, recording_delay = 24., rep_wheat = None):
+          rain_min = 0.2, recording_delay = 24., rep_wheat = None, **kwds):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy
     it_wheat = 0
-    reconst = alep_echap_reconstructions()
-    adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+    if variety!='Custom':
+        reconst = alep_echap_reconstructions()
+        adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+    else:
+        adel = alep_custom_reconstructions(name=variety, nplants=nplants, nsect=nsect, **kwds)
     year = int(end_date[:4])
     wheat_dir = wheat_path(year, variety, nplants, nsect, rep_wheat)
     g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True) 
@@ -110,7 +114,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
 
 def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       nplants = 15, nsect = 7, septo_delay_dday = 10.,
-                      sporulating_fraction = 1e-4, layer_thickness = 0.01, 
+                      sporulating_fraction = 5e-3, layer_thickness = 0.01, 
                       record = True, output_file = None,
                       save_images = False, reset_reconst = True, 
                       distri_chlorosis = None, rep_wheat = None, **kwds):
@@ -118,10 +122,10 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
      wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
-                              end_date=str(year)+"-08-01 00:00:00",
+                              end_date=str(year)+"-07-30 00:00:00",
                               variety = variety, nplants = nplants,
                               nsect=nsect, rep_wheat=rep_wheat, 
-                              septo_delay_dday=septo_delay_dday)
+                              septo_delay_dday=septo_delay_dday, **kwds)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
@@ -144,10 +148,10 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
         # Get weather for date and add it as properties on leaves
         if septo_iter:
             set_properties(g,label = 'LeafElement',
-                           temperature_sequence = septo_iter.value.temperature_air,
-                           wetness_sequence = septo_iter.value.wetness,
-                           relative_humidity_sequence = septo_iter.value.relative_humidity,
-                           dd_sequence = septo_iter.value.degree_days)
+                           temperature_sequence = septo_iter.value.temperature_air.tolist(),
+                           wetness_sequence = septo_iter.value.wetness.tolist(),
+                           relative_humidity_sequence = septo_iter.value.relative_humidity.tolist(),
+                           dd_sequence = septo_iter.value.degree_days.tolist())
         if rain_iter:
             set_properties(g,label = 'LeafElement',
                            rain_intensity = rain_iter.value.rain.mean(),
@@ -312,11 +316,6 @@ def temp1():
 def temp2():
     run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
                    nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=120., Smin=0.01, proba_inf=0.5,
-                   growth_rate=0.0006, density_dus_emitted_ref=1.79e3,
-                   nreps=5, suffix='proba')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
                    degree_days_to_chlorosis=120., Smin=0.01, proba_inf=1.,
                    growth_rate=0.001, density_dus_emitted_ref=1.79e3, 
                    nreps=5, suffix='rate')
@@ -325,6 +324,47 @@ def temp2():
                    degree_days_to_chlorosis=120., Smin=0.01, proba_inf=1,
                    growth_rate=0.0006, density_dus_emitted_ref=3e3, 
                    nreps=5, suffix='emission')
+
+def temp3():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=120., Smin=0.01, proba_inf=0.5,
+                   growth_rate=0.0006, density_dus_emitted_ref=1.79e3,
+                   nreps=5, suffix='proba')
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=90., degree_days_to_necrosis=90., 
+                   degree_days_to_sporulation=70, Smin=0.01, 
+                   rh_max=85, rh_min=75, nreps=5, rh_effect=True, suffix='rh_effect')
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50, Smin=0.01, 
+                   rh_max=85, rh_min=75, nreps=5, rh_effect=True, suffix='ref')
+                   
+def temp4():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=90., degree_days_to_necrosis=90., 
+                   degree_days_to_sporulation=70, Smin=0.01, 
+                   rh_max=85, rh_min=75, nreps=5, suffix='rh_effect')
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50., Smin=0.01, 
+                   rh_max=85, rh_min=75, nreps=5, suffix='states')
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50., Smin=0.1, 
+                   rh_max=85, rh_min=75, nreps=5, suffix='big_smin')
+                   
+def temp5():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50, Smin=0.01, 
+                   rh_max=85, rh_min=75, nreps=5, suffix='rh_effect')
                    
 def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15):
     (g, adel, weather, seq, rain_timing, 
@@ -334,3 +374,21 @@ def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=
                               variety = variety, nplants = nplants)
     g = adel.setup_canopy(1400)
     adel.plot(g)
+    
+#data_sim_ref = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=5e-3, suffix='ref')
+#data_sim_inoc = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=1e-2, suffix='inoc')
+#data_sim_smin = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=5e-3, suffix='smin')
+#data_sim_rate = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=5e-3, suffix='rate')
+#data_sim_emission = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=5e-3, suffix='emission')
+#plot_one_sim(data_sim_ref, variable, xaxis, axs, leaves, 'b')
+#plot_one_sim(data_sim_inoc, variable, xaxis, axs, leaves, 'r')
+#plot_one_sim(data_sim_smin, variable, xaxis, axs, leaves, 'k')
+#plot_one_sim(data_sim_rate, variable, xaxis, axs, leaves, 'm')
+#plot_one_sim(data_sim_emission, variable, xaxis, axs, leaves, 'c')
+#proxys = [plt.Line2D((0,1),(0,0), 'b'),
+#          plt.Line2D((0,1),(0,0), 'r'),
+#          plt.Line2D((0,1),(0,0), 'k'),
+#          plt.Line2D((0,1),(0,0), 'm'),
+#          plt.Line2D((0,1),(0,0), 'c')]
+#labels = ['ref', 'inoc', 'smin', 'rate', 'emission']
+#axs[2][0].legend(proxys, labels, loc='best')

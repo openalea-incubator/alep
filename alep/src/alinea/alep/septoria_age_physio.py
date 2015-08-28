@@ -143,21 +143,24 @@ class SeptoriaAgePhysio(Lesion):
             senescence, rain intensity, wetness, temperature, lesions) 
         """        
         f = self.fungus
+        props = leaf.properties()
+#        dd = props['dd_sequence']
         # Calculation
         if dt != 0.:
-            ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in leaf.temperature_sequence])
-#            if self.is_necrotic():
-#            rh_resps = map(self.rh_response, leaf.relative_humidity_sequence.tolist())
-#            rh_factor = np.mean(rh_resps)
-#            ddday *= rh_factor
+            ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in props['temperature_sequence']])
+#            ddday = dd[-1]-dd[0] 
+            if self.is_necrotic() and f.rh_effect==True:
+                rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+                rh_factor = np.mean(rh_resps)
+                ddday *= rh_factor
 #                if leaf.dd_sequence[-1]>880 and leaf.dd_sequence[-1]<1500:
 #                    import pdb
 #                    pdb.set_trace()
 #                    print '-----------------------'
 #                    print 'rh_factor %f' %rh_factor
 #                    print '-----------------------'
-            if 'global_efficacy' in leaf.properties():
-                ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
+#            if 'global_efficacy' in leaf.properties():
+#                ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
         else:
             ddday = 0.
         
