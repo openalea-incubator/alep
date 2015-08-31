@@ -148,7 +148,6 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
             it_wheat += 1
             g = grow_canopy(g, adel, canopy_iter, it_wheat,
                         wheat_dir, wheat_is_loaded, rain_and_light=True)
-            print adel.positions
                 
         # Get weather for date and add it as properties on leaves
         if septo_iter:
