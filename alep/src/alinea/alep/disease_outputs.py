@@ -860,21 +860,25 @@ try:
 except:
     import pickle
 from alinea.adel.newmtg import adel_labels
+from alinea.astk.plantgl_utils import get_height
 
 class AdelSeptoRecorder(AdelWheatRecorder):
     """ Record simulation output on every leaf of main stems in a dataframe during simulation """
     def __init__(self, group_dus = True, 
                  fungus_name = 'septoria', 
-                 increment = 1000):
+                 increment = 1000, add_height=False):
         super(AdelSeptoRecorder, self).__init__(group_dus = group_dus, 
                                                 fungus_name = fungus_name,
                                                 increment = increment)
         columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 'leaf_area', 
-                   'leaf_green_area', 'leaf_length', 'leaf_senesced_length', 'fnl', 
+                   'leaf_green_area', 'leaf_length', 'leaf_senesced_length', 'fnl',
                    'nb_dispersal_units', 'nb_lesions', 'nb_lesions_on_green', 
                    'surface_inc', 'surface_chlo', 'surface_nec', 'surface_nec_on_green', 
                    'surface_spo', 'surface_spo_on_green', 'surface_empty', 
                    'surface_empty_on_green', 'surface_dead']
+        self.add_height = add_height
+        if add_height:
+            columns += ['leaf_height_basis', 'leaf_height_top']
         self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(self.increment)], 
                                      columns = columns)
     
@@ -894,6 +898,10 @@ class AdelSeptoRecorder(AdelWheatRecorder):
         dict_lf['num_leaf_bottom'] = int(a_label_splitted[2].split('metamer')[1])
         dict_lf['leaf_area'] = sum([areas[id] for id in id_list])
         dict_lf['leaf_green_area'] = sum([green_areas[id] for id in id_list])
+        if self.add_height:
+            heights = get_height(g.property('geometry'))
+            dict_lf['leaf_height_basis'] = heights[id_list[0]][0]
+            dict_lf['leaf_height_top'] = heights[id_list[-1]][-1]
         dict_lf['leaf_length'] = sum([lengths[id] for id in id_list])
         dict_lf['leaf_senesced_length'] = sum([senesced_lengths[id] for id in id_list])
         dict_lf['fnl'] =  fnls[g.complex_at_scale(id_list[0], 2)]

@@ -50,6 +50,7 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
     it_wheat = 0
     if variety!='Custom':
         reconst = alep_echap_reconstructions()
+        reconst.pars['plant_damages'] = {k:None for k,v in reconst.pars['plant_damages'].iteritems()}
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
     else:
         adel = alep_custom_reconstructions(name=variety, nplants=nplants, nsect=nsect, **kwds)
@@ -109,7 +110,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
     transporter = PopDropsTransport(fungus=fungus, group_dus=True,
                                     domain = domain, domain_area = domain_area,
                                     dh = layer_thickness, convUnit = convUnit,
-                                    compute_star = False)
+                                    compute_star = False, wash=False)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
 def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',

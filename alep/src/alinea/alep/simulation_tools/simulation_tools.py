@@ -10,6 +10,7 @@ import random as rd
 # Imports for weather
 from alinea.alep.alep_weather import (wetness_rapilly,
                                       linear_degree_days,
+                                      plot_rain_and_temp,
                                       plot_wetness_and_temp)
 from alinea.alep.alep_time_control import *
 from alinea.astk.TimeControl import *
@@ -68,14 +69,18 @@ def add_leaf_dates_to_weather(weather, variety='Tremie12'):
 def plot_weather_annual_loop(year = 2012, variety='Tremie12',
                              sowing_date = '10-15', 
                              xlims = [0, 2500], title = None,
-                             xaxis = 'degree_days'):
+                             xaxis = 'degree_days', yaxis='rain_and_temp',
+                             ylims = None):
     sowing_date = str(year-1)+"-"+sowing_date+" 12:00:00"
     end_date = str(year)+"-07-01 00:00:00"
     weather = get_weather(start_date=sowing_date,
                           end_date=end_date)
     if xaxis != 'degree_days':
         add_leaf_dates_to_weather(weather, variety=variety)
-    plot_wetness_and_temp(weather, xaxis=xaxis, xlims=xlims, title=title)
+    if yaxis=='rain_and_temp':
+        plot_rain_and_temp(weather, xaxis=xaxis, xlims=xlims, ylims_rain=ylims, title=title)
+    elif yaxis=='wetness_and_temp':
+        plot_wetness_and_temp(weather, xaxis=xaxis, xlims=xlims, title=title)
 
 # Tools for wheat #############################################################
 def count_available_canopies(year, variety, nplants, nsect):
@@ -163,8 +168,19 @@ def alep_custom_reconstructions(nplants=30, sowing_density=250.,
     axeT = axeT.sort(['id_plt', 'id_cohort', 'N_phytomer'])
     devT = devCsv(axeT, dimT, phenT)
     leaves = leafshape_fits(**parameters)['Mercia'] # TODO Create and Take Soisson
-    return AdelWheat(nplants = nplants, nsect=nsect, devT=devT, stand = stand , 
-                    seed=seed, sample='sequence', leaves = leaves)
+    if 'falling_rate' in kwds:
+        leaves.bins[-1] = 21.
+        leaves.bins = [x/kwds['falling_rate'] if not i_x in [0,1] else x for i_x,x in enumerate(leaves.bins)]
+        print leaves.bins
+    run_adel_pars = {'senescence_leaf_shrink' : 0.5,'startLeaf' : -0.4, 
+                     'endLeaf' : 1.6, 'endLeaf1': 1.6, 'stemLeaf' : 1.2,
+                     'epsillon' : 1e-6, 'HSstart_inclination_tiller': 1,
+                     'rate_inclination_tiller': 30, 'drop_empty':True}
+    if 'stem_elongation_rate' in kwds:
+        run_adel_pars['stemLeaf'] = kwds['stem_elongation_rate']        
+    return AdelWheat(nplants=nplants, nsect=nsect, devT=devT, stand=stand , 
+                    seed=seed, sample='sequence', leaves=leaves, 
+                    run_adel_pars=run_adel_pars)
     
 def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                 nplants = 15, nsect = 7, nreps=10, fixed_rep=None, delay = 20.):
