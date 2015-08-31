@@ -44,14 +44,16 @@ from alinea.alep.simulation_tools.simulation_tools import add_leaf_dates_to_data
 def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
           nplants = 30, nsect = 7, disc_level = 5, septo_delay_dday = 10.,
-          rain_min = 0.2, recording_delay = 24., rep_wheat = None, **kwds):
+          rain_min = 0.2, recording_delay = 24., rep_wheat = None,
+          save_images=False, **kwds):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy
     it_wheat = 0
     if variety!='Custom':
         reconst = alep_echap_reconstructions()
-        reconst.pars['plant_damages'] = {k:None for k,v in reconst.pars['plant_damages'].iteritems()}
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+        if save_images:
+            adel.stand.density_curve=None
     else:
         adel = alep_custom_reconstructions(name=variety, nplants=nplants, nsect=nsect, **kwds)
     year = int(end_date[:4])
@@ -126,7 +128,8 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                               end_date=str(year)+"-07-30 00:00:00",
                               variety = variety, nplants = nplants,
                               nsect=nsect, rep_wheat=rep_wheat, 
-                              septo_delay_dday=septo_delay_dday, **kwds)
+                              septo_delay_dday=septo_delay_dday,
+                              save_images=save_images, **kwds)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
@@ -144,7 +147,8 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
         if canopy_iter:
             it_wheat += 1
             g = grow_canopy(g, adel, canopy_iter, it_wheat,
-                        wheat_dir, wheat_is_loaded, rain_and_light=True)               
+                        wheat_dir, wheat_is_loaded, rain_and_light=True)
+            print adel.positions
                 
         # Get weather for date and add it as properties on leaves
         if septo_iter:
