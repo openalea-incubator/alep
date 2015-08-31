@@ -397,3 +397,13 @@ def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=
 #          plt.Line2D((0,1),(0,0), 'c')]
 #labels = ['ref', 'inoc', 'smin', 'rate', 'emission']
 #axs[2][0].legend(proxys, labels, loc='best')
+    
+def temp_films():
+    g, recorder = annual_loop_septo(year=2013, variety='Rht3', 
+                                    sowing_date='10-15', nplants=30,
+                                    degree_days_to_chlorosis=180., 
+                                    save_images=True)
+    g, recorder = annual_loop_septo(year=2013, variety='Mercia', 
+                                    sowing_date='10-15', nplants=30,
+                                    degree_days_to_chlorosis=180., 
+                                    save_images=True)
