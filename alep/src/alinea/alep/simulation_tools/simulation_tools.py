@@ -81,6 +81,8 @@ def plot_weather_annual_loop(year = 2012, variety='Tremie12',
         plot_rain_and_temp(weather, xaxis=xaxis, xlims=xlims, ylims_rain=ylims, title=title)
     elif yaxis=='wetness_and_temp':
         plot_wetness_and_temp(weather, xaxis=xaxis, xlims=xlims, title=title)
+    elif yaxis=='relative_humidity':
+        plot_relative_humidity(weather, xaxis=xaxis, xlims=xlims, title=title)
 
 # Tools for wheat #############################################################
 def count_available_canopies(year, variety, nplants, nsect):
@@ -150,14 +152,14 @@ def alep_custom_reconstructions(nplants=30, sowing_density=250.,
     if 'proba_main_nff' in kwds:
         axp.MS_probabilities = {'11':1-kwds['proba_main_nff'], '12':kwds['proba_main_nff']}
     plants = axp.plant_list(n_emerged)
-    HSfit = HS_fit()['Mercia']
+    HSfit = HS_fit()['Tremie13']
     HSfit.mean_nff = axp.mean_nff()
     if 'phyllochron' in kwds:
         HSfit.a_cohort = 1./kwds['phyllochron']
-    GLfit = GL_fits(HS_fit(), **parameters)['Mercia']
+    GLfit = GL_fits(HS_fit(), **parameters)['Tremie13']
     if 'nb_green_leaves' in kwds:
         GLfit.GL_flag = kwds['nb_green_leaves']
-    Dimfit = dimension_fits(HS_fit(), **parameters)['Mercia']
+    Dimfit = dimension_fits(HS_fit(), **parameters)['Tremie13']
     if 'leaf_dim_factor' in kwds:
         Dimfit.scale['L_blade'] *= kwds['leaf_dim_factor']
         Dimfit.scale['W_blade'] *= kwds['leaf_dim_factor']

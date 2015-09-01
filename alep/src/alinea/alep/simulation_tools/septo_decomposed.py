@@ -80,7 +80,7 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
             recorder_timing, it_wheat, wheat_dir, wheat_is_loaded)
 
 def septo_disease(adel, sporulating_fraction, layer_thickness,
-                  distri_chlorosis = None, **kwds):
+                  distri_chlorosis = None, competition='poisson', **kwds):
     """ Choose models to assemble the disease model. """
                
     if 'alinea.alep.septoria_age_physio' in sys.modules:
@@ -106,7 +106,12 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
                                              mutable = mutable)
 #    growth_controler = PriorityGrowthControl()
 #    growth_controler = GeometricPoissonCompetition()
-    growth_controler = SeptoRustCompetition()
+    if competition=='poisson':
+        growth_controler = SeptoRustCompetition()
+    elif competition=='simple':
+        growth_controler = PriorityGrowthControl()
+    else:
+        raise ValueError('Unknown competition model')
     infection_controler = BiotrophDUProbaModel()
     emitter = PopDropsEmission(domain=domain, compute_star = False)
     transporter = PopDropsTransport(fungus=fungus, group_dus=True,
@@ -118,9 +123,10 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
 def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       nplants = 15, nsect = 7, septo_delay_dday = 10.,
                       sporulating_fraction = 5e-3, layer_thickness = 0.01, 
-                      record = True, output_file = None,
-                      save_images = False, reset_reconst = True, 
-                      distri_chlorosis = None, rep_wheat = None, **kwds):
+                      record = True, output_file = None, 
+                      competition = 'poisson', save_images = False, 
+                      reset_reconst = True, distri_chlorosis = None, 
+                      rep_wheat = None, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
@@ -133,11 +139,12 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
-                                    distri_chlorosis, **kwds)
+                                    distri_chlorosis, competition=competition,
+                                    **kwds)
     
     # Prepare saving of outputs
     if record == True:
-        recorder = AdelSeptoRecorder()
+        recorder = AdelSeptoRecorder(add_height=True)
     
     for i, controls in enumerate(zip(canopy_timing, rain_timing, 
                                      septo_timing, recorder_timing)):
@@ -364,11 +371,59 @@ def temp4():
                    rh_max=85, rh_min=75, nreps=5, suffix='big_smin')
                    
 def temp5():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                    nplants=15, sporulating_fraction=5e-3,
                    degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
                    degree_days_to_sporulation=50, Smin=0.01, 
-                   rh_max=85, rh_min=75, nreps=5, suffix='rh_effect')
+                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='necrosis',
+                   nreps=5, suffix='rh_1')
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50, Smin=0.01, 
+                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='chlorosis',
+                   nreps=5, suffix='rh_2')
+                   
+def temp6():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50, Smin=0.01, 
+                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='all',
+                   nreps=5, suffix='rh_3')
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=60., degree_days_to_necrosis=95., 
+                   degree_days_to_sporulation=95., Smin=0.01, 
+                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='all',
+                   nreps=5, suffix='rh_4')
+
+def temp7():                
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=2e-2,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50., Smin=0.01, 
+                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='all',
+                   nreps=5, suffix='rh_5')
+                   
+def temp8():                
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=1e-2,
+                   degree_days_to_chlorosis=120., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=30., nreps=5, suffix='rh_6')
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=1e-2,
+                   degree_days_to_chlorosis=120., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=30., nreps=5, 
+                   competition='simple', suffix='rh_7')
+
+def temp9():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50., nreps=5, 
+                   competition='simple', suffix='rh_8')
+
                    
 def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15):
     (g, adel, weather, seq, rain_timing, 

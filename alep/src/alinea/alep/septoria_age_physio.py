@@ -144,15 +144,27 @@ class SeptoriaAgePhysio(Lesion):
         """        
         f = self.fungus
         props = leaf.properties()
-#        dd = props['dd_sequence']
         # Calculation
         if dt != 0.:
             ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in props['temperature_sequence']])
-#            ddday = dd[-1]-dd[0] 
-            if self.is_necrotic() and f.rh_effect==True:
-                rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
-                rh_factor = np.mean(rh_resps)
-                ddday *= rh_factor
+            # TEMP ... et moche
+            if f.rh_effect==True:
+                if f.apply_rh=='all' :
+                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+                    rh_factor = np.mean(rh_resps)
+                    ddday *= rh_factor
+                elif f.apply_rh=='chlorosis' and self.status>=f.CHLOROTIC:
+                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+                    rh_factor = np.mean(rh_resps)
+                    ddday *= rh_factor
+                elif f.apply_rh=='necrosis' and self.status>=f.NECROTIC:
+                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+                    rh_factor = np.mean(rh_resps)
+                    ddday *= rh_factor
+#            if self.is_necrotic() and f.rh_effect==True:
+#                rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+#                rh_factor = np.mean(rh_resps)
+#                ddday *= rh_factor
 #                if leaf.dd_sequence[-1]>880 and leaf.dd_sequence[-1]<1500:
 #                    import pdb
 #                    pdb.set_trace()

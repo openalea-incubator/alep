@@ -64,15 +64,19 @@ def count_du_source_target(deposits, leaves, by_sector=False):
 def test_transport_rain_two_metamers(interleaf=10.,
                                      density = 350.,
                                      layer_thickness=0.01, 
-                                     leaf_sectors = 2,
+                                     leaf_sectors = 7,
                                      density_emitted=1e5,
-                                     by_sector = False):
+                                     by_sector = False,
+                                     display_scene = False):
     g, domain_area, domain, convunit = adel_two_metamers_stand(leaf_sectors=leaf_sectors, 
                                                                density=density,
                                                                interleaf=interleaf,
                                                                leaf_length=20,
                                                                leaf_width=1,
                                                                Einc=0)
+    if display_scene:
+        scene = plot3d(g)
+        Viewer.display(scene)
     weather = sample_weather_with_rain()
     leaves = get_leaf_ids(g)
     DU = emission_source(g, leaves, 

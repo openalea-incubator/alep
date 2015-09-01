@@ -198,7 +198,7 @@ septoria_parameters = dict(name='septoria',
                          loss_delay = 120.,
                          rh_max=85.,
                          rh_min=35.,
-                         degree_days_to_chlorosis = 220.,
+                         degree_days_to_chlorosis = 120.,
                          degree_days_to_necrosis = 110.,
                          degree_days_to_sporulation = 20.,
                          sporulating_capacity = 1.,
@@ -215,7 +215,8 @@ septoria_parameters = dict(name='septoria',
                          nb_rings_by_state = 10,
                          age_physio_switch_senescence=0.,
                          group_dus = False,
-                         rh_effect = False)
+                         rh_effect = False,
+                         apply_rh = 'all')
                  
 # class SeptoriaParameters(Parameters):
     # model = None

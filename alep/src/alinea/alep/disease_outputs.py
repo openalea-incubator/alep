@@ -1050,7 +1050,28 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                     self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
                 else:
                     self.data.loc[ind_data_lf, 'audpc'] = np.nan
-                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan    
+                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan
+                    
+    def get_audpc_500(self, variable='severity'):
+        for pl in set(self.data['num_plant']):
+            df_pl =  self.data[self.data['num_plant'] == pl]
+            for lf in set(df_pl['num_leaf_top']):
+                df_lf = df_pl[df_pl['num_leaf_top'] == lf]
+                ind_data_lf = df_lf.index
+                data = df_lf[variable][df_lf['leaf_green_area']>0]
+                ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
+                if ddays.iloc[-1]>=ddays.iloc[0]+500:
+                    data = data[ddays<ddays.iloc[0]+500]
+                    ddays = ddays[ddays<ddays.iloc[0]+500]
+                    if len(data[data>0])>0:
+                        audpc_500 = simps(data[data>0], ddays[data>0])
+                        if numpy.isnan(audpc_500):
+                            audpc_500 = trapz(data[data>0], ddays[data>0])
+                    else:
+                        audpc_500 = 0.
+                    self.data.loc[ind_data_lf, 'audpc_500'] = audpc_500
+                else:
+                    self.data.loc[ind_data_lf, 'audpc_500'] = np.nan
     
     def post_treatment(self, variety = None):
         self.data = self.data[~pandas.isnull(self.data['date'])]
@@ -1063,6 +1084,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
         self.severity()
         self.severity_on_green()
         self.get_audpc()
+        self.get_audpc_500()
         if variety is not None:
             self.add_variety(variety=variety)
            
