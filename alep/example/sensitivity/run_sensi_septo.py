@@ -24,13 +24,15 @@ import numpy as np
 
 parameters = OrderedDict([('tiller_probability', [0.5, 1.]),
                           ('proba_main_nff', [0.4, 1.]),
-                          ('phyllochron', [55, 165]),
-                          ('nb_green_leaves', [3.5, 5.5]),
+                          ('phyllochron', [85, 135]),
+                          ('nb_green_leaves', [3.7, 5.4]),
                           ('leaf_dim_factor', [0.5, 1.5]),
-                          ('internode_length_factor', [0.5, 1.5])])
+                          ('internode_length_factor', [0.5, 1.5]),
+                          ('falling_rate', [0.1, 2.]),
+                          ('stem_elongation_rate', [0.5, 2.])])
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
-nboots = 5
+nboots = 3
 nb_cpu = cpu_count()
 samples = []
 for i_boot in range(nboots):

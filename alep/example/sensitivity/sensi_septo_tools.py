@@ -164,6 +164,9 @@ def get_stored_rec(variety, year, i_sample, i_boot):
     
 def run_septoria(sample):
     i_sample = sample.pop('i_sample')
+    print '------------------------------'
+    print 'i_sample %d' %i_sample
+    print '------------------------------'
     i_boot = sample.pop('i_boot')
     year = int(sample.pop('year'))
     variety = variety_decode()[sample.pop('variety')]
