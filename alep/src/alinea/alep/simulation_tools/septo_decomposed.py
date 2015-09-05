@@ -45,12 +45,12 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
           nplants = 30, nsect = 7, disc_level = 5, septo_delay_dday = 10.,
           rain_min = 0.2, recording_delay = 24., rep_wheat = None,
-          save_images=False, **kwds):
+          save_images=False, keep_leaves=False, **kwds):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy
     it_wheat = 0
     if variety!='Custom':
-        reconst = alep_echap_reconstructions()
+        reconst = alep_echap_reconstructions(keep_leaves=keep_leaves)
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
         if save_images:
             adel.stand.density_curve=None
@@ -127,7 +127,8 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       record = True, output_file = None, 
                       competition = 'poisson', save_images = False, 
                       reset_reconst = True, distri_chlorosis = None, 
-                      rep_wheat = None, age_infection=False,**kwds):
+                      rep_wheat = None, age_infection=False, keep_leaves=False,
+                      **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
@@ -136,7 +137,8 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                               variety = variety, nplants = nplants,
                               nsect=nsect, rep_wheat=rep_wheat, 
                               septo_delay_dday=septo_delay_dday,
-                              save_images=save_images, **kwds)
+                              save_images=save_images, 
+                              keep_leaves=keep_leaves, **kwds)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
