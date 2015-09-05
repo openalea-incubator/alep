@@ -190,7 +190,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
         # Save images
         if save_images == True:
             if canopy_iter:
-                scene = plot_severity_septo_by_leaf(g)
+                scene = plot_severity_septo_by_leaf(g, senescence=False)
                 if it_wheat < 10 :
                     image_name=variety+'_image0000%d.png' % it_wheat
                 elif it_wheat < 100 :
