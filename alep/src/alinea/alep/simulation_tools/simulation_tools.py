@@ -133,6 +133,11 @@ def alep_echap_reconstructions():
     reconst = EchapReconstructions(reset_data=True, pars=pars)
     reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
     reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
+    for dim in ['L_sheath', 'L_internode', 'H_col']: 
+        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Mercia'].scale[dim]
+        
+    # TEMP
+#    reconst.HS_fit['Tremie13'].a_cohort = 1./100.
     return reconst
     
 def alep_custom_reconstructions(nplants=30, sowing_density=250.,
@@ -173,7 +178,6 @@ def alep_custom_reconstructions(nplants=30, sowing_density=250.,
     if 'falling_rate' in kwds:
         leaves.bins[-1] = 21.
         leaves.bins = [x/kwds['falling_rate'] if not i_x in [0,1] else x for i_x,x in enumerate(leaves.bins)]
-        print leaves.bins
     run_adel_pars = {'senescence_leaf_shrink' : 0.5,'startLeaf' : -0.4, 
                      'endLeaf' : 1.6, 'endLeaf1': 1.6, 'stemLeaf' : 1.2,
                      'epsillon' : 1e-6, 'HSstart_inclination_tiller': 1,

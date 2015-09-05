@@ -524,9 +524,10 @@ def visualize_dispersal_rain(age_canopy = 1400., nplants = 50,
     dispersor = PopDropsTransport(domain=adel.domain, 
                                     domain_area=adel.domain_area,
                                     dh=layer_thickness,
-                                    convUnit=adel.convUnit)
-    dispersor.view_distri_layers(g, nb_dispersal_units)
-    dispersor.plot_distri_layers(g, nb_dispersal_units)
+                                    convUnit=adel.convUnit,
+                                    wash=False)
+    dispersor.view_distri_layers(g, nb_dispersal_units,position_source=position_source)
+    dispersor.plot_distri_layers(g, nb_dispersal_units,position_source=position_source)
     
 def get_output_path(agent='wind', variety='Tremie13', 
                     year = 2013, inoc=50,

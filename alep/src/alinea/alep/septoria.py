@@ -161,6 +161,8 @@ class SeptoriaDU(DispersalUnit):
         elif leaf.green_length>0 and nb_lesions>0:        
             les = self.fungus.lesion(mutable = self.mutable)
             les.__dict__.update(kwds)
+
+            les.age_leaf_infection = leaf.complex_at_scale(4).age
             les.set_position([[leaf.length - np.random.random()*leaf.green_length, 0] 
                                 for i in range(nb_lesions)])
             self.nb_dispersal_units -= nb_lesions

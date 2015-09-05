@@ -8,7 +8,7 @@ import sys
 
 # Imports for weather and scheduling of simulation
 from alinea.alep.simulation_tools.simulation_tools import get_weather
-from alinea.alep.alep_time_control import CustomIterWithDelays, septoria_filter
+from alinea.alep.alep_time_control import CustomIterWithDelays, septoria_filter_ddays
 from alinea.astk.TimeControl import (time_filter, rain_filter, IterWithDelays,
                                      thermal_time_filter, DegreeDayModel,
                                      time_control)
@@ -47,8 +47,9 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
                variety = 'Mercia', nplants = 15, nsect = 7, 
                sporulating_fraction = 1e-4, Tmin = 0., Tmax = 25., WDmin = 10.,
-               rain_min = 0.2, TT_delay = 20., rust_dispersal_delay = 24,
-               recording_delay = 24, record=True, layer_thickness_septo = 0.01,
+               rain_min = 0.2, TT_delay = 20., septo_delay_dday = 10.,
+               rust_dispersal_delay = 24, recording_delay = 24,
+               record=True, layer_thickness_septo = 0.01,
                layer_thickness_rust = 1., rep_wheat = None, group_dus = True,
                **kwds):
     """ Setup the simulation 
@@ -91,13 +92,11 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     every_rain = rain_filter(seq, weather, rain_min = rain_min)
     every_rust_dispersal = time_filter(seq, delay=rust_dispersal_delay)
     every_recording = time_filter(seq, delay=recording_delay)
-    septo_filter = septoria_filter(seq, weather, degree_days = 10., Tmin = Tmin, Tmax = Tmax, WDmin = WDmin, rain_min = rain_min)
-    rust_filter = thermal_time_filter(seq, weather, TTmodel, delay=TT_delay)
+    septo_rust_filter = septoria_filter_ddays(seq, weather, delay = septo_delay_dday, rain_min = rain_min)
     canopy_timing = CustomIterWithDelays(*time_control(seq, every_dd, weather.data), eval_time='end')
     septo_dispersal_timing = IterWithDelays(*time_control(seq, every_rain, weather.data))
     rust_dispersal_timing = IterWithDelays(*time_control(seq, every_rust_dispersal, weather.data))
-    septo_timing = CustomIterWithDelays(*time_control(seq, septo_filter, weather.data), eval_time='end')
-    rust_timing = CustomIterWithDelays(*time_control(seq, rust_filter, weather.data), eval_time='end')
+    septo_rust_timing = CustomIterWithDelays(*time_control(seq, septo_rust_filter, weather.data), eval_time='end')
     recorder_timing = IterWithDelays(*time_control(seq, every_recording, weather.data))
     
     # Set up models
@@ -140,14 +139,14 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                                         domain_area = adel.domain_area,
                                         layer_thickness=layer_thickness_rust)
     return (g, adel, brown_rust, septoria, canopy_timing, septo_dispersal_timing, 
-            rust_dispersal_timing, septo_timing, rust_timing, recorder_timing,
+            rust_dispersal_timing, septo_rust_timing, recorder_timing,
             recorder, growth_controler, infection_controler, septo_inoculum,
             septo_contaminator, rust_contaminator, septo_emitter, 
             septo_transporter, rust_dispersor, it_wheat,
             wheat_dir, wheat_is_loaded)
             
 def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
-                           nplants = 15, nsect = 7, sporulating_fraction = 1e-4, 
+                           nplants = 15, nsect = 7, sporulating_fraction = 5e-3, 
                            density_dispersal_units = 1e5, 
                            layer_thickness_septo = 0.01, layer_thickness_rust = 1.,
                            record = True, output_file = None,
@@ -158,7 +157,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
     else:
         Tmin = 0.
     (g, adel, brown_rust, septoria, canopy_timing, septo_dispersal_timing, 
-    rust_dispersal_timing, septo_timing, rust_timing, recorder_timing,
+    rust_dispersal_timing, septo_rust_timing, recorder_timing,
     recorder, growth_controler, infection_controler, septo_inoculum,
     septo_contaminator, rust_contaminator, septo_emitter, 
     septo_transporter, rust_dispersor, it_wheat,
@@ -171,9 +170,9 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                                               layer_thickness_rust=layer_thickness_rust, **kwds)
 
     for i, controls in enumerate(zip(canopy_timing, septo_dispersal_timing, rust_dispersal_timing,
-                                     septo_timing, rust_timing, recorder_timing)):
+                                     septo_rust_timing, recorder_timing)):
         (canopy_iter, septo_dispersal_iter, rust_dispersal_iter,
-        septo_iter, rust_iter, record_iter) = controls
+        septo_rust_iter, record_iter) = controls
         
         # Grow wheat canopy
         if canopy_iter:
@@ -182,11 +181,12 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                         wheat_dir, wheat_is_loaded,rain_and_light=True)               
                 
         # Get weather for date and add it as properties on leaves
-        if septo_iter or rust_iter:
+        if septo_rust_iter:
             set_properties(g,label = 'LeafElement',
-                           temperature_sequence = septo_iter.value.temperature_air,
-                           wetness_sequence = septo_iter.value.wetness,
-                           dd_sequence = septo_iter.value.degree_days)
+                           temperature_sequence = septo_rust_iter.value.temperature_air.tolist(),
+                           wetness_sequence = septo_rust_iter.value.wetness.tolist(),
+                           relative_humidity_sequence = septo_rust_iter.value.relative_humidity.tolist(),
+                           dd_sequence = septo_rust_iter.value.degree_days.tolist())
         if septo_dispersal_iter:
             set_properties(g,label = 'LeafElement',
                            rain_intensity = septo_dispersal_iter.value.rain.mean(),
@@ -198,21 +198,17 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                                        domain=adel.domain, 
                                        domain_area=adel.domain_area)
         if (rust_dispersal_iter and len(geom)>0 and
-            rust_dispersal_iter.value.index[0] > pd.to_datetime('2013-03-01') and
-            rust_dispersal_iter.value.index[-1] < pd.to_datetime('2013-03-15')):
+            rust_dispersal_iter.value.index[0] > pd.to_datetime(str(year)+'-03-01') and
+            rust_dispersal_iter.value.index[-1] < pd.to_datetime(str(year)+'-03-15')):
             print 'RUST INOC'
             g = external_contamination(g, rust_contaminator, rust_contaminator, 
                                        density_dispersal_units=density_dispersal_units,
                                        domain_area=adel.domain_area)
         # Develop disease (infect for dispersal units and update for lesions)
-        if septo_iter or rust_iter:
-            if septo_iter:
-                dt = septo_iter.dt
-            else:
-                dt = rust_iter.dt
-            infect(g, dt, infection_controler, label='LeafElement')
+        if septo_rust_iter:
+            infect(g, septo_rust_iter.dt, infection_controler, label='LeafElement')
             group_duplicates_in_cohort(g) # Additional optimisation (group identical cohorts)
-            update(g, dt, growth_controler, senescence_model=None, label='LeafElement')            
+            update(g, septo_rust_iter.dt, growth_controler, senescence_model=None, label='LeafElement')            
         # Disperse and wash
         if septo_dispersal_iter and len(geom)>0 and septo_dispersal_iter.value.rain.mean()>0.2:
             g = disperse(g, septo_emitter, septo_transporter, "septoria",

@@ -80,7 +80,8 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
             recorder_timing, it_wheat, wheat_dir, wheat_is_loaded)
 
 def septo_disease(adel, sporulating_fraction, layer_thickness,
-                  distri_chlorosis = None, competition='poisson', **kwds):
+                  distri_chlorosis = None, competition='poisson',
+                  age_infection=False,**kwds):
     """ Choose models to assemble the disease model. """
                
     if 'alinea.alep.septoria_age_physio' in sys.modules:
@@ -112,12 +113,12 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
         growth_controler = PriorityGrowthControl()
     else:
         raise ValueError('Unknown competition model')
-    infection_controler = BiotrophDUProbaModel()
+    infection_controler = BiotrophDUProbaModel(age_infection=age_infection)
     emitter = PopDropsEmission(domain=domain, compute_star = False)
     transporter = PopDropsTransport(fungus=fungus, group_dus=True,
                                     domain = domain, domain_area = domain_area,
                                     dh = layer_thickness, convUnit = convUnit,
-                                    compute_star = False, wash=False)
+                                    compute_star = False, wash=True)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
 def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
@@ -126,7 +127,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       record = True, output_file = None, 
                       competition = 'poisson', save_images = False, 
                       reset_reconst = True, distri_chlorosis = None, 
-                      rep_wheat = None, **kwds):
+                      rep_wheat = None, age_infection=False,**kwds):
     """ Simulate epidemics with canopy saved before simulation """
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
@@ -140,6 +141,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
                                     distri_chlorosis, competition=competition,
+                                    age_infection=age_infection,
                                     **kwds)
     
     # Prepare saving of outputs
@@ -423,6 +425,64 @@ def temp9():
                    degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
                    degree_days_to_sporulation=50., nreps=5, 
                    competition='simple', suffix='rh_8')
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
+                   degree_days_to_sporulation=50., nreps=5, 
+                   competition='simple', suffix='rh_9')
+                   
+def temp10():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=120., degree_days_to_necrosis=110., 
+                   degree_days_to_sporulation=50, 
+                   proba_inf=0.5, nreps=5, suffix='elong_ref')
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=120., degree_days_to_necrosis=110., 
+                   degree_days_to_sporulation=50, Smin=0.01,
+                   proba_inf=0.5, nreps=5, suffix='elong_smin')
+                   
+def temp11():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=1e-3,
+                   degree_days_to_chlorosis=120., degree_days_to_necrosis=110., 
+                   degree_days_to_sporulation=50, proba_inf=0.5, nreps=5, 
+                   suffix='elong_inoc_1')
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=1e-3,
+                   degree_days_to_chlorosis=120., degree_days_to_necrosis=110., 
+                   degree_days_to_sporulation=50, nreps=5, 
+                   suffix='elong_inoc_2')
+                   
+def temp12():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=5e-3,
+                   degree_days_to_chlorosis=150., degree_days_to_necrosis=110., 
+                   degree_days_to_sporulation=20, proba_inf=0.5, nreps=5, 
+                   suffix='elong_states_1')
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=1e-3,
+                   degree_days_to_chlorosis=80., degree_days_to_necrosis=110., 
+                   degree_days_to_sporulation=80, nreps=5, 
+                   suffix='elong_states_2')
+                   
+def temp13():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3,proba_inf=0.3,
+                   density_dus_emitted_ref=5e4, nreps=5, 
+                   suffix='big_emission_1')
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3,proba_inf=0.3,
+                   density_dus_emitted_ref=8e4, nreps=5, 
+                   suffix='big_emission_2')
+
+def temp14():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, sporulating_fraction=5e-3, proba_inf=0.3,
+                   density_dus_emitted_ref=5e4, nreps=5, age_infection=True,
+                   suffix='age_infection')
+
 
                    
 def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15):
@@ -461,3 +521,66 @@ def temp_films():
                                     sowing_date='10-15', nplants=30,
                                     degree_days_to_chlorosis=180., 
                                     save_images=True)
+
+def temp_plot_simu(df, multiply_sev = True):
+    from alinea.echap.disease.alep_septo_evaluation import data_reader, plot_confidence_and_boxplot, plot_one_sim
+    import cPickle as pickle
+    df_sim = df.copy()
+    if df_sim.iloc[-1]['date'].year == 2012:
+        try:
+            f = open('data_obs_2012.pckl')
+            data_obs_2012 = pickle.load(f)
+            f.close()
+            f = open('weather_2012.pckl')
+            weather_2012 = pickle.load(f)
+            f.close()
+        except:
+            data_obs_2012, weather_2012 = data_reader(year = 2012,
+                                                      variety = 'Tremie12',
+                                                      from_file = 'control')
+            f = open('data_obs_2012.pckl', 'w')
+            pickle.dump(data_obs_2012, f)
+            f.close()
+            f = open('weather_2012.pckl', 'w')
+            pickle.dump(weather_2012, f)
+            f.close()
+        (df_mean_obs, df_low, df_high, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
+                                            leaves = range(1,7), variable = 'severity', 
+                                            xaxis = 'degree_days',xlims =[1100, 2200],
+                                            return_fig = True)
+    elif df_sim.iloc[-1]['date'].year == 2013:
+        try:
+            f = open('data_obs_2013.pckl')
+            data_obs_2013 = pickle.load(f)
+            f.close()
+            f = open('weather_2013.pckl')
+            weather_2013 = pickle.load(f)
+            f.close()
+        except:
+            data_obs_2013, weather_2013 = data_reader(year = 2013,
+                                                      variety = 'Tremie13',
+                                                      from_file = 'control')
+            f = open('data_obs_2013.pckl', 'w')
+            pickle.dump(data_obs_2013, f)
+            f.close()
+            f = open('weather_2013.pckl', 'w')
+            pickle.dump(weather_2013, f)
+            f.close()
+            
+        (df_mean_obs, df_low, df_high, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
+                                            leaves = range(1,6), variable = 'severity', 
+                                            xaxis = 'degree_days',xlims =[1100, 2200],
+                                            return_fig = True)
+    else:
+        raise ValueError('Unavailable year')
+        
+    if multiply_sev:
+        df_sim['severity']*=100
+    df_sim['sev_tot'] = df_sim['leaf_disease_area'] *100./ df_sim['leaf_area']
+    plot_one_sim(df_sim, 'severity', 'degree_days', axs, range(1,7), 'm')
+    plot_one_sim(df_sim, 'sev_tot', 'degree_days', axs, range(1,7), 'r')
+    plot_one_sim(df_sim, 'nb_lesions', 'degree_days', axs, range(1,7), 'g')
+    plot_one_sim(df_sim, 'leaf_green_area', 'degree_days', axs, range(1,7), 'y')
+

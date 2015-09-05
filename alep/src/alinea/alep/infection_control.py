@@ -20,9 +20,10 @@ class BiotrophDUProbaModel:
     The probability for it to be on a healthy tissue is computed with 
     the ratio between leaf healthy and total areas.
     """
-    def __init__(self, max_lesion_density=150):
+    def __init__(self, max_lesion_density=150,age_infection=False):
         self.max_lesion_density = max_lesion_density
-        
+        self.age_infection=age_infection
+
     def control(self, g, label='LeafElement'):
         """ Control if the dispersal units can infect at their current position.
         
@@ -51,8 +52,15 @@ class BiotrophDUProbaModel:
         areas = g.property('area')
         green_areas = g.property('green_area')
         lesions = g.property('lesions')
+        
+        # Temp
+        ages = g.property('age')
+#        from alinea.adel.newmtg import adel_labels
+#        a_labs = adel_labels(g)
+        
         for blade in bids:
             leaf = [vid for vid in g.components(blade) if labels[vid].startswith(label)]
+
             leaf_lesions = sum([lesions[lf] for lf in leaf if lf in lesions], []) 
             les_surf = sum([les.surface for les in leaf_lesions])
             leaf_area = sum([areas[lf] for lf in leaf])
@@ -61,6 +69,10 @@ class BiotrophDUProbaModel:
             leaf_green_area = sum([green_areas[lf] for lf in leaf])
             ratio_les_surface = min(1, round(les_surf,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
             ratio_green = min(1, round(leaf_green_area,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
+
+#            if leaf[0] in a_labs and a_labs[leaf[0]]=='plant1_MS_metamer8_blade_LeafElement1':
+#                import pdb
+#                pdb.set_trace()
 
             if (round(ratio_green*(1-ratio_les_surface), 10) == 0. or 
                 lesion_density>=self.max_lesion_density):
@@ -85,6 +97,14 @@ class BiotrophDUProbaModel:
                         else:
                             total_nb_dus = len(dus)
                         nb_on_healthy = int(total_nb_dus*ratio_green*(1-ratio_les_surface))
+                        
+                        # Temp
+                        age_lim = 180.
+                        if self.age_infection and blade in ages and ages[blade]<age_lim:
+                            age_factor = ages[blade]/age_lim
+                            nb_on_healthy *= age_factor
+                            
+                            
                         if nb_on_healthy > 0:
                             if group_dus == True:
                                 dus[0].nb_dispersal_units = nb_on_healthy

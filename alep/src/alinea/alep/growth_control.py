@@ -295,6 +295,12 @@ class SeptoRustCompetition:
         areas = g.property('area')
         senesced_lengths = g.property('senesced_length')
         bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        
+        # Temp
+#        from alinea.adel.newmtg import adel_labels
+#        a_labs = adel_labels(g)
+#        ages = g.property('age')
+        
         for blade in bids:
             leaf = [vid for vid in g.components(blade) 
                     if labels[vid].startswith(label) and vid in geom]
@@ -392,10 +398,17 @@ class SeptoRustCompetition:
                             offers += offer_lesion                            
                             l.control_growth(offer_lesion)
                             
-                        if sum([l.surface for l in non_prio_les]) > leaf_area:
-                            import pdb
-                            pdb.set_trace()
+#                        if sum([l.surface for l in non_prio_les]) > leaf_area:
+#                            import pdb
+#                            pdb.set_trace()
                     else:
+#                                
+#                        if (leaf[0] in a_labs and 
+#                            a_labs[leaf[0]]=='plant1_MS_metamer11_blade_LeafElement1' and
+#                            blade in ages and ages[blade]>265):
+#                            import pdb
+#                            pdb.set_trace()
+#                            
                         offer_non_prio = max(offer_non_prio, -s_non_prio_non_sen)
                         for l in non_prio_les:
                             offer_lesion = offer_non_prio*l.surface_non_senescent/s_non_prio_non_sen if s_non_prio_non_sen>0. else 0.

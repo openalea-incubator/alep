@@ -58,6 +58,10 @@ class SeptoriaAgePhysio(Lesion):
         self.nb_lesions_sen = 0.
         # Potential surface of the lesion if no competition
         self.potential_surface = 0.
+        
+        # Temp
+        self.wetness_seq = []
+        #
 
     def is_incubating(self):
         """ Check if lesion status is incubation. """
@@ -158,9 +162,12 @@ class SeptoriaAgePhysio(Lesion):
                     rh_factor = np.mean(rh_resps)
                     ddday *= rh_factor
                 elif f.apply_rh=='necrosis' and self.status>=f.NECROTIC:
-                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
-                    rh_factor = np.mean(rh_resps)
-                    ddday *= rh_factor
+                    self.wetness_seq += props['relative_humidity_sequence']
+#                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+#                    rh_factor = np.mean(rh_resps)
+#                    ddday *= rh_factor
+                    
+                    
 #            if self.is_necrotic() and f.rh_effect==True:
 #                rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
 #                rh_factor = np.mean(rh_resps)
@@ -312,11 +319,11 @@ class SeptoriaAgePhysio(Lesion):
                 # Calculate exchanges of surfaces between rings 
                 # 1. Reduce the superior limit of ring ages if age_physio in chlorosis
                 if self.is_chlorotic():
-                    rings = rings[:ceil(age_physio/width)+1]
+                    rings = rings[:int(ceil(age_physio/width))+1]
                     rings[-1] = age_physio
                 # 2. Reduce the inferior limit of ring ages if age_edge in chlorosis
                 if self.status_edge==f.CHLOROTIC:
-                    rings = rings[floor(age_edge/width):]
+                    rings = rings[int(floor(age_edge/width)):]
                     rings[0] = age_edge
                 
                 # 3. Get the beginnings and the ends of age classes
@@ -384,10 +391,10 @@ class SeptoriaAgePhysio(Lesion):
                 pass
             elif len(self.surfaces_nec)>0:
                 if self.is_necrotic():
-                    rings = rings[:ceil(age_physio/width)+1]
+                    rings = rings[:int(ceil(age_physio/width))+1]
                     rings[-1] = self.age_physio
                 if self.status_edge==f.NECROTIC:
-                    rings = rings[floor(age_edge/width):]
+                    rings = rings[int(floor(age_edge/width)):]
                     rings[0] = self.age_physio_edge
                 begs = rings[:-1]
                 ends = rings[1:]
@@ -410,8 +417,18 @@ class SeptoriaAgePhysio(Lesion):
                 # Get what passes to next status
                 self.surfaces_nec = np.extract(new_ends<=1, new_surf)
                 surface_to_next_phase = sum(np.extract(new_ends>1, new_surf))
-                self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
-                self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
+#                self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
+#                self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
+                # Temp
+                if f.rh_effect==False:
+                    self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
+                    self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
+                else:
+                    rh_resps = map(self.rh_response, self.wetness_seq)
+                    rh_factor = np.mean(rh_resps)
+                    self.to_sporulation = f.sporulating_capacity * rh_factor * surface_to_next_phase
+                    self.surface_empty += (1 - f.sporulating_capacity) * (1-rh_factor) * surface_to_next_phase
+                #
                 
             # Filling of new rings
             nb_full_rings = int(floor(progress/width))

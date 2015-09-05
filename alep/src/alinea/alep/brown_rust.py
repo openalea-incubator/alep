@@ -49,8 +49,8 @@ class BrownRustDU(DispersalUnit):
 #                pdb.set_trace()
 
             # Accumulate climatic data on the leaf sector during the time step
-            self.temperature_sequence += leaf.temperature_sequence.tolist()
-            self.wetness_sequence += leaf.wetness_sequence.tolist()
+            self.temperature_sequence += leaf.temperature_sequence
+            self.wetness_sequence += leaf.wetness_sequence
     
             # Infection success
             temps = self.temperature_sequence
