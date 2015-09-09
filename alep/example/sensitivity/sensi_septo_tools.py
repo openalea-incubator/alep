@@ -178,6 +178,29 @@ def run_septoria(sample):
     output_file = get_stored_rec(variety, year, i_sample, i_boot)
     annual_loop_septo(year = year, variety = variety, sowing_date=sowing_date,
                         nplants = 15, output_file = output_file, **sample)
+                        
+def run_custom_septoria(sample):
+    i_sample = sample.pop('i_sample')
+    print '------------------------------'
+    print 'i_sample %d' %i_sample
+    print '------------------------------'
+    i_boot = sample.pop('i_boot')
+    year = int(sample.pop('year'))
+    variety = variety_decode()[sample.pop('variety')]
+    sowing_date = '10-15'
+    if year == 2012:
+        sowing_date = '10-21'
+    elif year == 2013:
+        sowing_date = '10-29'
+    output_file = get_stored_rec(variety, year, i_sample, i_boot)
+    annual_loop_septo(year = year, variety = variety, sowing_date=sowing_date,
+                        nplants = 15, output_file = output_file,
+                        proba_inf=0.5, age_infection=True, Smin=0.02, 
+                        density_dus_emitted_ref=1e5, growth_rate=0.0006,
+                        degree_days_to_chlorosis=130., 
+                        degree_days_to_necrosis=110.,
+                        degree_days_to_sporulation=30.,
+                        sporulating_fraction=7e-2, **sample)
 
 def get_septo_morris_path(year = 2012, variety = 'Tremie12'):
     return './septoria/septo_morris_output_'+variety.lower()+'_'+str(year)+'.csv'
@@ -221,22 +244,23 @@ def plot_septo_morris_by_leaf(year = 2012, variety = 'Tremie12',
                              variable = 'normalized_audpc',
                              parameter_range_file = './septoria/septo_param_range.txt',
                              input_file = './septoria/septo_morris_input.txt',
-                             nboots = 5):
+                             nboots = 5, ylims=None):
     output_file = get_septo_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
     plot_morris_by_leaf(df_out, variable=variable,
                         parameter_range_file=parameter_range_file,
-                        input_file=input_file, nboots=nboots)
+                        input_file=input_file, nboots=nboots, ylims=ylims)
 
 def plot_septo_morris_3_leaves(year = 2012, variety = 'Tremie12', 
                                leaves = [10, 5, 1], variable = 'normalized_audpc',
                                parameter_range_file = './septoria/septo_param_range.txt',
-                               input_file = './septoria/septo_morris_input.txt'):
+                               input_file = './septoria/septo_morris_input.txt',
+                               ylims=None):
     output_file = get_septo_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
     plot_morris_3_leaves(df_out, leaves=leaves, variable=variable,
                         parameter_range_file=parameter_range_file,
-                        input_file=input_file)
+                        input_file=input_file, ylims=ylims)
                         
 def septo_scatter_plot_by_leaf(year = 2012, variety = 'Tremie12',
                                 variable = 'normalized_audpc',
@@ -246,8 +270,18 @@ def septo_scatter_plot_by_leaf(year = 2012, variety = 'Tremie12',
     scatter_plot_by_leaf(df_out, variable=variable, parameter=parameter)
     
 def septo_boxplot_by_leaf(year = 2012, variety = 'Tremie12',
-                                variable = 'normalized_audpc',
-                                parameter = 'Smax'):
+                            variable = 'normalized_audpc',
+                            parameter = 'Smax', ylims=None):
     output_file = get_septo_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
-    boxplot_by_leaf(df_out, variable=variable, parameter=parameter)
+    boxplot_by_leaf(df_out, variable=variable, 
+                    parameter=parameter, ylims=ylims)
+    
+def septo_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
+                            variety = 'Tremie12',
+                            variable = 'normalized_audpc',
+                            parameter = 'Smax', ylims=None):
+    output_file = get_septo_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    boxplot_3_leaves(df_out, leaves=leaves, variable=variable,
+                    parameter=parameter, ylims=ylims)

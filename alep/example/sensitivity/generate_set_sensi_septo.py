@@ -20,8 +20,8 @@ from sensi_septo_tools import variety_code
 
 parameters = OrderedDict([('tiller_probability', [0.5, 1.]),
                           ('proba_main_nff', [0.4, 1.]),
-                          ('phyllochron', [85, 115]),
-                          ('nb_green_leaves', [3.7, 5.4]),
+                          ('phyllochron', [85., 120.]),
+                          ('nb_green_leaves', [3.8, 5.4]),
                           ('leaf_dim_factor', [0.5, 1.5]),
                           ('internode_length_factor', [0.2, 1.8]),
                           ('falling_rate', [0.1, 2.]),
@@ -33,10 +33,10 @@ v = variety_code()
              # (2011, v['Rht3']),
              # (2012, v['Tremie12']),
              # (2013, v['Tremie13'])]
-scenarios = [(2013, v['Custom'])]
+scenarios = [(2003, v['Custom'])]
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
-nboots = 3
+nboots = 1
 #generate_parameter_set(parameters,
 #                       scenarios,
 #                       parameter_range_file = './septoria/septo_param_range.txt',
