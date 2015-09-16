@@ -339,7 +339,8 @@ def temp_films():
                                     save_images=True)
 
 def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
-                   leaves=None, only_severity=False, xlims = [800, 2200]):
+                   leaves=None, only_severity=False, xlims = [800, 2200],
+                   display_lesions=False):
     from alinea.echap.disease.alep_septo_evaluation import data_reader, plot_confidence_and_boxplot, plot_one_sim
     from alinea.alep.alep_weather import plot_rain_and_temp
     import cPickle as pickle
@@ -410,15 +411,14 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
         plot_one_sim(df_sim, 'sev_tot', xaxis, axs, leaves, 'r')
         plot_one_sim(df_sim, 'leaf_green_area', xaxis, axs, leaves, 'g')
 #        plot_one_sim(df_sim, 'nec_spo', xaxis, axs, leaves, 'c')
-    fig, axs = plt.subplots(int(ceil(len(leaves)/2.))+1, 2, figsize=(15,10))
-    axs_les = axs[:-1]
-    axs_weather = axs[-1]
-    plot_one_sim(df_sim, 'nb_lesions', xaxis, axs_les, leaves, 'b', xlims)
-    for ax in axs_weather.flat:
-        plot_rain_and_temp(weather, xaxis=xaxis, ax=ax, xlims=xlims, title='')
-#    for i_lf, ax in enumerate(axs_les.flat):
-#        ax_lf = ax.twinx()
-#        plot_one_sim(df_sim, 'leaf_green_area', xaxis, np.array([ax_lf]), [leaves[i_lf]], 'g')
+    if display_lesions:
+        fig, axs = plt.subplots(int(ceil(len(leaves)/2.))+1, 2, figsize=(15,10))
+        axs_les = axs[:-1]
+        axs_weather = axs[-1]
+        plot_one_sim(df_sim, 'nb_lesions', xaxis, axs_les, leaves, 'b', xlims)
+        for ax in axs_weather.flat:
+            plot_rain_and_temp(weather, xaxis=xaxis, ax=ax, xlims=xlims, title='')
+
         
 def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
                       leaves=None, xlims = [1100, 2200]):
@@ -497,6 +497,75 @@ def plot_states_leaf(df, leaf=2):
     plot_one_sim(df_sim, 'surface_nec', xaxis, ax, leaves, nec)
     df_sim['tot_spo'] = df_sim['surface_spo'] + df_sim['surface_empty']
     plot_one_sim(df_sim, 'tot_spo', xaxis, ax, leaves, 'k')
+    
+def temp_plot_simu_by_fnl(df, multiply_sev = True, xaxis='degree_days',
+                   leaves=None, only_severity=False, xlims = [800, 2200],
+                   display_lesions=False):
+    from alinea.echap.disease.alep_septo_evaluation import (data_reader,
+                                                            plot_confidence_and_boxplot_by_fnl,
+                                                            plot_one_sim)
+    import cPickle as pickle
+    import matplotlib.pyplot as plt
+#    from math import ceil
+    df_sim = df.copy()
+    if df_sim.iloc[-1]['date'].year == 2012:
+        try:
+            f = open('data_obs_2012.pckl')
+            data_obs_2012 = pickle.load(f)
+            f.close()
+            f = open('weather_2012.pckl')
+            weather = pickle.load(f)
+            f.close()
+        except:
+            data_obs_2012, weather_2012 = data_reader(year = 2012,
+                                                      variety = 'Tremie12',
+                                                      from_file = 'control')
+            f = open('data_obs_2012.pckl', 'w')
+            pickle.dump(data_obs_2012, f)
+            f.close()
+            f = open('weather_2012.pckl', 'w')
+            pickle.dump(weather, f)
+            f.close()
+        if leaves is None:
+            leaves = range(1,7)
+        axs = plot_confidence_and_boxplot_by_fnl(data_obs_2012, weather, 
+                                            leaves = leaves, variable = 'severity', 
+                                            xaxis = xaxis, xlims=xlims,
+                                            return_ax = True)                        
+    elif df_sim.iloc[-1]['date'].year == 2013:
+        try:
+            f = open('data_obs_2013.pckl')
+            data_obs_2013 = pickle.load(f)
+            f.close()
+            f = open('weather_2013.pckl')
+            weather = pickle.load(f)
+            f.close()
+        except:
+            data_obs_2013, weather_2013 = data_reader(year = 2013,
+                                                      variety = 'Tremie13',
+                                                      from_file = 'control')
+            f = open('data_obs_2013.pckl', 'w')
+            pickle.dump(data_obs_2013, f)
+            f.close()
+            f = open('weather_2013.pckl', 'w')
+            pickle.dump(weather_2013, f)
+            f.close()
+        if leaves is None:
+            leaves = range(1,6)
+        axs = plot_confidence_and_boxplot_by_fnl(data_obs_2013, weather, 
+                                            leaves = leaves, variable = 'severity', 
+                                            xaxis = xaxis, xlims=xlims,
+                                            return_ax = True)
+    else:
+        raise ValueError('Unavailable year')
+        
+    if multiply_sev:
+        df_sim['severity']*=100
+    colors = iter(['b', 'r'])
+    for fnl in np.unique(df_sim['fnl']):
+        df = df_sim[df_sim['fnl']==fnl]
+        plot_one_sim(df, 'severity', xaxis, axs, leaves, next(colors))
+
 
 #for suffix in ['new_calib_age', 'new_calib_smin', 'new_calib_rate', 'new_calib_states', 'new_calib_states_2']:
 #    data_sim_new_calib = get_aggregated_data_sim(variety = 'Tremie12', nplants = 15,

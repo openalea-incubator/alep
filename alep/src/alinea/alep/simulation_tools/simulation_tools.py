@@ -187,7 +187,8 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
         nff = row['HS_final']
         indxs = phenT[(phenT['id_phen']==idp) & (phenT['index_phytomer']==nff-3)].index
         for indx in indxs:
-            phenT.loc[indx,['dTT_em_phytomer', 'dTT_col_phytomer', 'dTT_sen_phytomer', 'dTT_del_phytomer']]-=50.
+            phenT.loc[indx,['dTT_em_phytomer', 'dTT_col_phytomer']]-=50.
+        # Trouver 1.6 dans run_adel_pars
     #
     axeT = axeT.sort(['id_plt', 'id_cohort', 'N_phytomer'])
     devT = devCsv(axeT, dimT, phenT)
