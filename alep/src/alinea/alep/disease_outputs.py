@@ -1052,7 +1052,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                     self.data.loc[ind_data_lf, 'audpc'] = np.nan
                     self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan
                     
-    def get_audpc_500(self, variable='severity'):
+    def get_audpc_400(self, variable='severity'):
         for pl in set(self.data['num_plant']):
             df_pl =  self.data[self.data['num_plant'] == pl]
             for lf in set(df_pl['num_leaf_top']):
@@ -1060,18 +1060,18 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                 ind_data_lf = df_lf.index
                 data = df_lf[variable][df_lf['leaf_green_area']>0]
                 ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
-                if ddays.iloc[-1]>=ddays.iloc[0]+500:
-                    data = data[ddays<ddays.iloc[0]+500]
-                    ddays = ddays[ddays<ddays.iloc[0]+500]
+                if ddays.iloc[-1]>=ddays.iloc[0]+400:
+                    data = data[ddays<ddays.iloc[0]+400]
+                    ddays = ddays[ddays<ddays.iloc[0]+400]
                     if len(data[data>0])>0:
-                        audpc_500 = simps(data[data>0], ddays[data>0])
-                        if numpy.isnan(audpc_500):
-                            audpc_500 = trapz(data[data>0], ddays[data>0])
+                        audpc_400 = simps(data[data>0], ddays[data>0])
+                        if numpy.isnan(audpc_400):
+                            audpc_400 = trapz(data[data>0], ddays[data>0])
                     else:
-                        audpc_500 = 0.
-                    self.data.loc[ind_data_lf, 'audpc_500'] = audpc_500
+                        audpc_400 = 0.
+                    self.data.loc[ind_data_lf, 'audpc_400'] = audpc_400
                 else:
-                    self.data.loc[ind_data_lf, 'audpc_500'] = np.nan
+                    self.data.loc[ind_data_lf, 'audpc_400'] = np.nan
     
     def post_treatment(self, variety = None):
         self.data = self.data[~pandas.isnull(self.data['date'])]
@@ -1084,7 +1084,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
         self.severity()
         self.severity_on_green()
         self.get_audpc()
-        self.get_audpc_500()
+        self.get_audpc_400()
         if variety is not None:
             self.add_variety(variety=variety)
            

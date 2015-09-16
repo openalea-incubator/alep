@@ -133,16 +133,22 @@ def alep_echap_reconstructions(keep_leaves=False):
     if keep_leaves==True:
         pars['pgen_base'] = {'TT_hs_break':None, 'inner_params':{'DELAIS_PHYLL_SEN_DISP':20}}
     reconst = EchapReconstructions(reset_data=True, pars=pars)
-    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
+#    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
+    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:1., 13:0.}
     reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
-    for dim in ['L_sheath', 'L_internode', 'H_col']: 
-        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Mercia'].scale[dim]
+#    for dim in ['L_sheath', 'L_internode', 'H_col']: 
+##        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Mercia'].scale[dim]
+#        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Tremie12'].scale[dim]
+    # Temp        
+#    reconst.dimension_fits['Tremie13'].scale['L_internode'] = 0.001
+#    reconst.dimension_fits['Tremie12'].scale['L_internode'] = 0.001
         
     # TEMP
 #    reconst.HS_fit['Tremie13'].a_cohort = 1./100.
     return reconst
     
-def alep_custom_reconstructions(nplants=30, sowing_density=250.,
+def alep_custom_reconstructions(variety='Tremie13', nplants=30, 
+                                sowing_density=250.,
                                 plant_density=250., inter_row=0.15,
                                 nsect=7, seed=1, **kwds):
     parameters = reconstruction_parameters()
@@ -159,24 +165,33 @@ def alep_custom_reconstructions(nplants=30, sowing_density=250.,
     if 'proba_main_nff' in kwds:
         axp.MS_probabilities = {'11':1-kwds['proba_main_nff'], '12':kwds['proba_main_nff']}
     plants = axp.plant_list(n_emerged)
-    HSfit = HS_fit()['Tremie13']
+    HSfit = HS_fit()[variety]
     HSfit.mean_nff = axp.mean_nff()
     if 'phyllochron' in kwds:
         HSfit.a_cohort = 1./kwds['phyllochron']
-    GLfit = GL_fits(HS_fit(), **parameters)['Tremie13']
+    GLfit = GL_fits(HS_fit(), **parameters)[variety]
     if 'nb_green_leaves' in kwds:
         GLfit.GL_flag = kwds['nb_green_leaves']
-    Dimfit = dimension_fits(HS_fit(), **parameters)['Tremie13']
+    Dimfit = dimension_fits(HS_fit(), **parameters)[variety]
     if 'leaf_dim_factor' in kwds:
         Dimfit.scale['L_blade'] *= kwds['leaf_dim_factor']
         Dimfit.scale['W_blade'] *= kwds['leaf_dim_factor']
     if 'internode_length_factor' in kwds:
-        Dimfit.scale['H_col'] *= kwds['internode_length_factor']
+        Dimfit.scale['L_internode'] *= kwds['internode_length_factor']
     pgen = pgen_ext.PlantGen(HSfit=HSfit, GLfit=GLfit, Dimfit=Dimfit)
     axeT, dimT, phenT = pgen.adelT(plants)
+    # Temp
+    ms = axeT[axeT['id_axis']=='MS'] 
+    for i_row, row in ms.iterrows():
+        idp = row['id_phen']
+        nff = row['HS_final']
+        indxs = phenT[(phenT['id_phen']==idp) & (phenT['index_phytomer']==nff-3)].index
+        for indx in indxs:
+            phenT.loc[indx,['dTT_em_phytomer', 'dTT_col_phytomer', 'dTT_sen_phytomer', 'dTT_del_phytomer']]-=50.
+    #
     axeT = axeT.sort(['id_plt', 'id_cohort', 'N_phytomer'])
     devT = devCsv(axeT, dimT, phenT)
-    leaves = leafshape_fits(**parameters)['Mercia'] # TODO Create and Take Soisson
+    leaves = leafshape_fits(**parameters)['Mercia']
     if 'falling_rate' in kwds:
         leaves.bins[-1] = 21.
         leaves.bins = [x/kwds['falling_rate'] if not i_x in [0,1] else x for i_x,x in enumerate(leaves.bins)]

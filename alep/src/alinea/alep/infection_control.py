@@ -4,6 +4,7 @@
 """
 
 # Imports #########################################################################
+import numpy as np
 
 # Random inoculation ##############################################################
 class BiotrophDUProbaModel:
@@ -70,10 +71,6 @@ class BiotrophDUProbaModel:
             ratio_les_surface = min(1, round(les_surf,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
             ratio_green = min(1, round(leaf_green_area,3)/round(leaf_area,3)) if round(leaf_area,3)>0. else 0.
 
-#            if leaf[0] in a_labs and a_labs[leaf[0]]=='plant1_MS_metamer8_blade_LeafElement1':
-#                import pdb
-#                pdb.set_trace()
-
             if (round(ratio_green*(1-ratio_les_surface), 10) == 0. or 
                 lesion_density>=self.max_lesion_density):
                 for vid in set(leaf) & set(dispersal_units):
@@ -99,10 +96,16 @@ class BiotrophDUProbaModel:
                         nb_on_healthy = int(total_nb_dus*ratio_green*(1-ratio_les_surface))
                         
                         # Temp
-                        age_lim = 180.
+#                        age_lim = 200.
+                        age_lim = 150.
+#                        x0 = 100.
+#                        k = 0.05
                         if self.age_infection and blade in ages and ages[blade]<age_lim:
                             age_factor = ages[blade]/age_lim
+#                            age_factor = 1/(1+np.exp(-k*(ages[blade]-x0)))
                             nb_on_healthy *= age_factor
+#                            if leaf[0] in a_labs and a_labs[leaf[0]].startswith('plant1_MS_metamer12_blade_LeafElement'):
+#                                nb_on_healthy *= 0
                             
                             
                         if nb_on_healthy > 0:

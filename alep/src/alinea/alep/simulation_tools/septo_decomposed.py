@@ -55,7 +55,9 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
         if save_images:
             adel.stand.density_curve=None
     else:
-        adel = alep_custom_reconstructions(name=variety, nplants=nplants, nsect=nsect, **kwds)
+        # Temp : should use Tremie13 as default
+        adel = alep_custom_reconstructions(variety='Tremie12', nplants=nplants, nsect=nsect, **kwds)
+#        adel = alep_custom_reconstructions(variety='Tremie13', nplants=nplants, nsect=nsect, **kwds)
     year = int(end_date[:4])
     wheat_dir = wheat_path(year, variety, nplants, nsect, rep_wheat)
     g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True) 
@@ -187,6 +189,12 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
             g = disperse(g, emitter, transporter, "septoria",
                          label='LeafElement', weather_data=rain_iter.value,
                          domain=adel.domain, domain_area=adel.domain_area)
+        
+        # Temp
+#        lesions = g.property('lesions')
+#        lesions = {k:[l for l in les if l.age_tt>0 and not np.isnan(l.surface) 
+#                    and not round(l.surface)==0] for k,les in lesions.iteritems()}
+        
         # Save images
         if save_images == True:
             if canopy_iter:
@@ -310,182 +318,6 @@ def plot_severity_septo_by_leaf(g, senescence=True,
     Viewer.display(scene)
     return scene
     
-# TEMP
-def temp1():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=120., Smin=0.01, proba_inf=1.,
-                   growth_rate=0.0006, density_dus_emitted_ref=1.79e3,
-                   nreps=5, suffix='ref')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=1e-2,
-                   degree_days_to_chlorosis=120., Smin=0.01, proba_inf=1.,
-                   growth_rate=0.0006, density_dus_emitted_ref=1.79e3, 
-                   nreps=5, suffix='inoc')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=120., Smin=0.03, proba_inf=1.,
-                   growth_rate=0.0006, density_dus_emitted_ref=1.79e3, 
-                   nreps=5, suffix='smin')
-                   
-def temp2():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=120., Smin=0.01, proba_inf=1.,
-                   growth_rate=0.001, density_dus_emitted_ref=1.79e3, 
-                   nreps=5, suffix='rate')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=120., Smin=0.01, proba_inf=1,
-                   growth_rate=0.0006, density_dus_emitted_ref=3e3, 
-                   nreps=5, suffix='emission')
-
-def temp3():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=120., Smin=0.01, proba_inf=0.5,
-                   growth_rate=0.0006, density_dus_emitted_ref=1.79e3,
-                   nreps=5, suffix='proba')
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=90., degree_days_to_necrosis=90., 
-                   degree_days_to_sporulation=70, Smin=0.01, 
-                   rh_max=85, rh_min=75, nreps=5, rh_effect=True, suffix='rh_effect')
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50, Smin=0.01, 
-                   rh_max=85, rh_min=75, nreps=5, rh_effect=True, suffix='ref')
-                   
-def temp4():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=90., degree_days_to_necrosis=90., 
-                   degree_days_to_sporulation=70, Smin=0.01, 
-                   rh_max=85, rh_min=75, nreps=5, suffix='rh_effect')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50., Smin=0.01, 
-                   rh_max=85, rh_min=75, nreps=5, suffix='states')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50., Smin=0.1, 
-                   rh_max=85, rh_min=75, nreps=5, suffix='big_smin')
-                   
-def temp5():
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50, Smin=0.01, 
-                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='necrosis',
-                   nreps=5, suffix='rh_1')
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50, Smin=0.01, 
-                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='chlorosis',
-                   nreps=5, suffix='rh_2')
-                   
-def temp6():
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50, Smin=0.01, 
-                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='all',
-                   nreps=5, suffix='rh_3')
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=60., degree_days_to_necrosis=95., 
-                   degree_days_to_sporulation=95., Smin=0.01, 
-                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='all',
-                   nreps=5, suffix='rh_4')
-
-def temp7():                
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=2e-2,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50., Smin=0.01, 
-                   rh_max=85, rh_min=75, rh_effect=True, apply_rh='all',
-                   nreps=5, suffix='rh_5')
-                   
-def temp8():                
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=1e-2,
-                   degree_days_to_chlorosis=120., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=30., nreps=5, suffix='rh_6')
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=1e-2,
-                   degree_days_to_chlorosis=120., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=30., nreps=5, 
-                   competition='simple', suffix='rh_7')
-
-def temp9():
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50., nreps=5, 
-                   competition='simple', suffix='rh_8')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=100., degree_days_to_necrosis=100., 
-                   degree_days_to_sporulation=50., nreps=5, 
-                   competition='simple', suffix='rh_9')
-                   
-def temp10():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=120., degree_days_to_necrosis=110., 
-                   degree_days_to_sporulation=50, 
-                   proba_inf=0.5, nreps=5, suffix='elong_ref')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=120., degree_days_to_necrosis=110., 
-                   degree_days_to_sporulation=50, Smin=0.01,
-                   proba_inf=0.5, nreps=5, suffix='elong_smin')
-                   
-def temp11():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=1e-3,
-                   degree_days_to_chlorosis=120., degree_days_to_necrosis=110., 
-                   degree_days_to_sporulation=50, proba_inf=0.5, nreps=5, 
-                   suffix='elong_inoc_1')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=1e-3,
-                   degree_days_to_chlorosis=120., degree_days_to_necrosis=110., 
-                   degree_days_to_sporulation=50, nreps=5, 
-                   suffix='elong_inoc_2')
-                   
-def temp12():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=5e-3,
-                   degree_days_to_chlorosis=150., degree_days_to_necrosis=110., 
-                   degree_days_to_sporulation=20, proba_inf=0.5, nreps=5, 
-                   suffix='elong_states_1')
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, sporulating_fraction=1e-3,
-                   degree_days_to_chlorosis=80., degree_days_to_necrosis=110., 
-                   degree_days_to_sporulation=80, nreps=5, 
-                   suffix='elong_states_2')
-                   
-def temp13():
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,proba_inf=0.3,
-                   density_dus_emitted_ref=5e4, nreps=5, 
-                   suffix='big_emission_1')
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3,proba_inf=0.3,
-                   density_dus_emitted_ref=8e4, nreps=5, 
-                   suffix='big_emission_2')
-
-def temp14():
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, sporulating_fraction=5e-3, proba_inf=0.3,
-                   density_dus_emitted_ref=5e4, nreps=5, age_infection=True,
-                   suffix='age_infection')
-
-
                    
 def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15):
     (g, adel, weather, seq, rain_timing, 
@@ -495,25 +327,7 @@ def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=
                               variety = variety, nplants = nplants)
     g = adel.setup_canopy(1400)
     adel.plot(g)
-    
-#data_sim_ref = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=5e-3, suffix='ref')
-#data_sim_inoc = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=1e-2, suffix='inoc')
-#data_sim_smin = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=5e-3, suffix='smin')
-#data_sim_rate = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=5e-3, suffix='rate')
-#data_sim_emission = get_aggregated_data_sim(variety = 'Tremie13', nplants = 15, sporulating_fraction=5e-3, suffix='emission')
-#plot_one_sim(data_sim_ref, variable, xaxis, axs, leaves, 'b')
-#plot_one_sim(data_sim_inoc, variable, xaxis, axs, leaves, 'r')
-#plot_one_sim(data_sim_smin, variable, xaxis, axs, leaves, 'k')
-#plot_one_sim(data_sim_rate, variable, xaxis, axs, leaves, 'm')
-#plot_one_sim(data_sim_emission, variable, xaxis, axs, leaves, 'c')
-#proxys = [plt.Line2D((0,1),(0,0), 'b'),
-#          plt.Line2D((0,1),(0,0), 'r'),
-#          plt.Line2D((0,1),(0,0), 'k'),
-#          plt.Line2D((0,1),(0,0), 'm'),
-#          plt.Line2D((0,1),(0,0), 'c')]
-#labels = ['ref', 'inoc', 'smin', 'rate', 'emission']
-#axs[2][0].legend(proxys, labels, loc='best')
-    
+        
 def temp_films():
     g, recorder = annual_loop_septo(year=2003, variety='Rht3', 
                                     sowing_date='10-15', nplants=30,
@@ -524,10 +338,95 @@ def temp_films():
                                     degree_days_to_chlorosis=150., 
                                     save_images=True)
 
-def temp_plot_simu(df, multiply_sev = True):
+def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
+                   leaves=None, only_severity=False, xlims = [800, 2200]):
     from alinea.echap.disease.alep_septo_evaluation import data_reader, plot_confidence_and_boxplot, plot_one_sim
+    from alinea.alep.alep_weather import plot_rain_and_temp
+    import cPickle as pickle
+    import matplotlib.pyplot as plt
+#    from math import ceil
+    df_sim = df.copy()
+    if df_sim.iloc[-1]['date'].year == 2012:
+        try:
+            f = open('data_obs_2012.pckl')
+            data_obs_2012 = pickle.load(f)
+            f.close()
+            f = open('weather_2012.pckl')
+            weather = pickle.load(f)
+            f.close()
+        except:
+            data_obs_2012, weather_2012 = data_reader(year = 2012,
+                                                      variety = 'Tremie12',
+                                                      from_file = 'control')
+            f = open('data_obs_2012.pckl', 'w')
+            pickle.dump(data_obs_2012, f)
+            f.close()
+            f = open('weather_2012.pckl', 'w')
+            pickle.dump(weather, f)
+            f.close()
+        if leaves is None:
+            leaves = range(1,7)
+        (df_mean_obs, df_low, df_high, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2012, weather, 
+                                            leaves = leaves, variable = 'severity', 
+                                            xaxis = xaxis, xlims=xlims,
+                                            return_fig = True)
+    elif df_sim.iloc[-1]['date'].year == 2013:
+        try:
+            f = open('data_obs_2013.pckl')
+            data_obs_2013 = pickle.load(f)
+            f.close()
+            f = open('weather_2013.pckl')
+            weather = pickle.load(f)
+            f.close()
+        except:
+            data_obs_2013, weather_2013 = data_reader(year = 2013,
+                                                      variety = 'Tremie13',
+                                                      from_file = 'control')
+            f = open('data_obs_2013.pckl', 'w')
+            pickle.dump(data_obs_2013, f)
+            f.close()
+            f = open('weather_2013.pckl', 'w')
+            pickle.dump(weather_2013, f)
+            f.close()
+        if leaves is None:
+            leaves = range(1,6)
+        (df_mean_obs, df_low, df_high, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2013, weather, 
+                                            leaves = leaves, variable = 'severity', 
+                                            xaxis = xaxis, xlims=xlims,
+                                            return_fig = True)
+    else:
+        raise ValueError('Unavailable year')
+        
+    if multiply_sev:
+        df_sim['severity']*=100
+    if only_severity:
+        plot_one_sim(df_sim, 'severity', xaxis, axs, leaves, 'r')
+    else:
+        df_sim['sev_tot'] = df_sim['leaf_disease_area'] *100./ df_sim['leaf_area']
+#        df_sim['nec_spo'] = (df_sim['ratio_nec']+df_sim['ratio_spo']+df_sim['ratio_empty']) *100
+        plot_one_sim(df_sim, 'severity', xaxis, axs, leaves, 'm')
+        plot_one_sim(df_sim, 'sev_tot', xaxis, axs, leaves, 'r')
+        plot_one_sim(df_sim, 'leaf_green_area', xaxis, axs, leaves, 'g')
+#        plot_one_sim(df_sim, 'nec_spo', xaxis, axs, leaves, 'c')
+    fig, axs = plt.subplots(int(ceil(len(leaves)/2.))+1, 2, figsize=(15,10))
+    axs_les = axs[:-1]
+    axs_weather = axs[-1]
+    plot_one_sim(df_sim, 'nb_lesions', xaxis, axs_les, leaves, 'b', xlims)
+    for ax in axs_weather.flat:
+        plot_rain_and_temp(weather, xaxis=xaxis, ax=ax, xlims=xlims, title='')
+#    for i_lf, ax in enumerate(axs_les.flat):
+#        ax_lf = ax.twinx()
+#        plot_one_sim(df_sim, 'leaf_green_area', xaxis, np.array([ax_lf]), [leaves[i_lf]], 'g')
+        
+def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
+                      leaves=None, xlims = [1100, 2200]):
+    from alinea.echap.disease.alep_septo_evaluation import data_reader
+    from alinea.echap.disease.septo_data_treatment import plot_by_leaf as plt_lf
     import cPickle as pickle
     df_sim = df.copy()
+    fig, ax = plt.subplots()
     if df_sim.iloc[-1]['date'].year == 2012:
         try:
             f = open('data_obs_2012.pckl')
@@ -546,11 +445,13 @@ def temp_plot_simu(df, multiply_sev = True):
             f = open('weather_2012.pckl', 'w')
             pickle.dump(weather_2012, f)
             f.close()
-        (df_mean_obs, df_low, df_high, fig, 
-         axs) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
-                                            leaves = range(1,7), variable = 'severity', 
-                                            xaxis = 'degree_days',xlims =[1100, 2200],
-                                            return_fig = True)
+        if leaves is None:
+            leaves = range(1,7)
+        plt_lf(data_obs_2012, weather_2012, xaxis=xaxis, leaves=leaves,
+               xlims=xlims,linestyle='--', ax=ax, minimum_sample_size=15)
+        plt_lf(df_sim, weather_2012, xaxis=xaxis, leaves=leaves,
+               xlims=xlims, linestyle='-', marker=None,
+               ax=ax, minimum_sample_size=15)
     elif df_sim.iloc[-1]['date'].year == 2013:
         try:
             f = open('data_obs_2013.pckl')
@@ -569,20 +470,41 @@ def temp_plot_simu(df, multiply_sev = True):
             f = open('weather_2013.pckl', 'w')
             pickle.dump(weather_2013, f)
             f.close()
-            
-        (df_mean_obs, df_low, df_high, fig, 
-         axs) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
-                                            leaves = range(1,6), variable = 'severity', 
-                                            xaxis = 'degree_days',xlims =[1100, 2200],
-                                            return_fig = True)
+        if leaves is None:
+            leaves = range(1,6)
+        plt_lf(data_obs_2013, weather_2013, xaxis=xaxis, leaves=leaves,
+               xlims=xlims,linestyle='--', ax=ax, minimum_sample_size=15)
+        plt_lf(df_sim, weather_2013, xaxis=xaxis, leaves=leaves,
+               xlims=xlims, linestyle='-', marker=None,
+               ax=ax, minimum_sample_size=15)
     else:
         raise ValueError('Unavailable year')
         
-    if multiply_sev:
-        df_sim['severity']*=100
-    df_sim['sev_tot'] = df_sim['leaf_disease_area'] *100./ df_sim['leaf_area']
-    plot_one_sim(df_sim, 'severity', 'degree_days', axs, range(1,7), 'm')
-    plot_one_sim(df_sim, 'sev_tot', 'degree_days', axs, range(1,7), 'r')
-    plot_one_sim(df_sim, 'nb_lesions', 'degree_days', axs, range(1,7), 'g')
-    plot_one_sim(df_sim, 'leaf_green_area', 'degree_days', axs, range(1,7), 'y')
+def plot_states_leaf(df, leaf=2):
+    from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
+    import matplotlib.pyplot as plt
+    df_sim = df.copy()
+    fig, ax = plt.subplots()
+    ax = np.array([ax])
+    inc = (0, 222/256., 0)
+    nec = (185./256, 93./256, 37./256)
+    xaxis = 'degree_days'
+    leaves = [leaf]
+    plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g')
+    plot_one_sim(df_sim, 'leaf_disease_area', xaxis, ax, leaves, 'r')
+    plot_one_sim(df_sim, 'surface_inc', xaxis, ax, leaves, inc)
+    plot_one_sim(df_sim, 'surface_chlo', xaxis, ax, leaves, 'y')
+    plot_one_sim(df_sim, 'surface_nec', xaxis, ax, leaves, nec)
+    df_sim['tot_spo'] = df_sim['surface_spo'] + df_sim['surface_empty']
+    plot_one_sim(df_sim, 'tot_spo', xaxis, ax, leaves, 'k')
+
+#for suffix in ['new_calib_age', 'new_calib_smin', 'new_calib_rate', 'new_calib_states', 'new_calib_states_2']:
+#    data_sim_new_calib = get_aggregated_data_sim(variety = 'Tremie12', nplants = 15,
+#                                                 sporulating_fraction=7e-2, suffix=suffix)
+#    temp_plot_simu(data_sim_new_calib, multiply_sev = False)
+#    plt.savefig('C:/Users/ggarin/Desktop/20150409_results/'+suffix[10:]+'.png')
+#    plot_by_leaf(data_sim_new_calib, variable='severity')
+#    plt.savefig('C:/Users/ggarin/Desktop/20150409_results/'+suffix[10:]+'_all.png')
+#    plot_by_leaf(data_sim_new_calib, variable='nb_lesions')
+#    plt.savefig('C:/Users/ggarin/Desktop/20150409_results/'+suffix[10:]+'_lesions.png')
 

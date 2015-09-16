@@ -62,7 +62,8 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     nb_lesions = density_lesions * leaf_area
     lesion.set_position([[1] for i in range(int(nb_lesions))])
     leaf.lesions = [lesion]
-    growth_controler = SeptoRustCompetition()
+#    growth_controler = SeptoRustCompetition()
+    growth_controler = NoPriorityGrowthControl()
     surfs = []
     surfs_inc = []
     surfs_chlo = []
@@ -103,4 +104,55 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
         labels = ['Total', 'Incubation', 'Chlorose', 'Necrose', 'Sporulant', 'Vide']
     else:
         labels = ['Total', 'Incubation', 'Chlorose', 'Necrose', 'Sporulant']
+    ax.legend(labels, loc = 'best')
+    
+def scenario_compet(nb_ddays = 1000, leaf_area = 20., **kwds):
+    weather = read_weather_year(2012)
+    df = weather.data
+    df = df.reset_index()
+    df = df[df['degree_days']>1200]
+    g, leaf = get_g_and_one_leaf()
+    leaf.area = leaf_area
+    leaf.green_area = leaf_area
+    septoria = plugin_septoria()
+    lesion = septoria.lesion(mutable = False, group_dus = True, **kwds)
+    nb_lesions_init = 40
+    lesion.set_position([[1] for i in range(int(nb_lesions_init))])
+    leaf.lesions = [lesion]
+    growth_controler = SeptoRustCompetition()
+#    growth_controler = NoPriorityGrowthControl()
+    severity = []
+    nb_lesions = []
+    tt = []
+    count = 0
+    for i, row in df.iterrows():
+         if row['degree_days'] < 1200+nb_ddays:
+            leaf.temperature_sequence = [row['temperature_air']]
+            if row['degree_days'] >= 1450 and count == 0:
+                count += 1
+                nb_new_les = 20                
+                new_les = septoria.lesion(mutable = False, group_dus = True, **kwds)
+                new_les.set_position([[1] for i in range(int(nb_new_les))])
+                leaf.lesions.append(new_les)
+            if row['degree_days'] >= 1550 and count == 1:
+                count += 1
+                nb_new_les = 1000                
+                new_les = septoria.lesion(mutable = False, group_dus = True, **kwds)
+                new_les.set_position([[1] for i in range(int(nb_new_les))])
+                leaf.lesions.append(new_les)
+            for lesion in leaf.lesions:
+                lesion.update(leaf = leaf)
+            growth_controler.control(g)
+            surfs = sum([(l.surface_spo + l.surface_empty) for l in leaf.lesions])
+            severity.append(surfs*100./leaf.area)
+            nb_lesions.append(sum([l.nb_lesions for l in leaf.lesions]))
+            tt.append(row['degree_days'])
+
+    fig, ax = plt.subplots()
+    ax.plot(tt, severity, 'm')
+    ax.plot(tt, nb_lesions, 'g')
+    ax.set_ylim([0,100])
+    ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
+    ax.set_ylabel("Severity", fontsize = 18)
+    labels = ['severity', 'nb_lesions']
     ax.legend(labels, loc = 'best')

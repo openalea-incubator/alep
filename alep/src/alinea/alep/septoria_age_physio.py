@@ -24,7 +24,7 @@ class SeptoriaAgePhysio(Lesion):
         """
         super(SeptoriaAgePhysio, self).__init__(mutable=mutable)
         # Calculate parameter for emission from other parameters
-        self.density_dus_emitted_max = np.array([self.fungus.density_dus_emitted_ref*(self.fungus.reduction_by_rain**ind) for ind in range(self.fungus.rain_events_to_empty)])
+        self.density_dus_emitted_max = np.array([self.fungus.density_dus_emitted_ref*((1-self.fungus.reduction_by_rain)**ind) for ind in range(self.fungus.rain_events_to_empty)])
         # Status of the center of the lesion
         self.status = self.fungus.INCUBATING
         # Age of the center of the lesion
@@ -59,10 +59,6 @@ class SeptoriaAgePhysio(Lesion):
         # Potential surface of the lesion if no competition
         self.potential_surface = 0.
         
-        # Temp
-        self.wetness_seq = []
-        #
-
     def is_incubating(self):
         """ Check if lesion status is incubation. """
         return self.status == self.fungus.INCUBATING
@@ -162,22 +158,10 @@ class SeptoriaAgePhysio(Lesion):
                     rh_factor = np.mean(rh_resps)
                     ddday *= rh_factor
                 elif f.apply_rh=='necrosis' and self.status>=f.NECROTIC:
-                    self.wetness_seq += props['relative_humidity_sequence']
-#                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
-#                    rh_factor = np.mean(rh_resps)
-#                    ddday *= rh_factor
-                    
-                    
-#            if self.is_necrotic() and f.rh_effect==True:
-#                rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
-#                rh_factor = np.mean(rh_resps)
-#                ddday *= rh_factor
-#                if leaf.dd_sequence[-1]>880 and leaf.dd_sequence[-1]<1500:
-#                    import pdb
-#                    pdb.set_trace()
-#                    print '-----------------------'
-#                    print 'rh_factor %f' %rh_factor
-#                    print '-----------------------'
+                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+                    rh_factor = np.mean(rh_resps)
+                    ddday *= rh_factor
+
 #            if 'global_efficacy' in leaf.properties():
 #                ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
         else:
@@ -210,7 +194,7 @@ class SeptoriaAgePhysio(Lesion):
         ----------
         growth_offer: float
             Surface available on the leaf for the ring to grow (cm2)
-        """
+        """      
         if self.growth_is_active:
             # Growth offer is added to surface according to state
             if self.is_incubating():
@@ -253,9 +237,29 @@ class SeptoriaAgePhysio(Lesion):
             # Reset distribution in new rings and growth demand
             self.distribution_new_ring = 0.         
 
+            # Ageing of the periphery of the lesion if growth has been stopped
+            f = self.fungus
+            if round(growth_offer,10)==0. and self.status_edge>0:
+                if self.status_edge==f.CHLOROTIC:
+                    progress=self.progress(age_threshold=f.degree_days_to_necrosis)
+                elif self.status_edge==f.NECROTIC:
+                    progress=self.progress(age_threshold=f.degree_days_to_sporulation)
+                if self.age_physio_edge+progress < 1.:
+                    self.age_physio_edge += progress
+                else:
+                    diff = self.age_physio_edge + progress - 1.
+                    self.ratio_left_edge = diff/progress
+                    self.change_status_edge()
+                    self.reset_age_physio_edge()
+            else:
+                self.age_physio_edge=0.
+
+
             # If lesion has reached max size, disable growth
+#            surf_non_accorded = self.potential_surface - self.surface
+#            if round(self.surface,14) >= round(self._surface_max-surf_non_accorded,14):
             if round(self.surface,14) >= round(self._surface_max,14):
-                self.disable_growth()  
+                self.disable_growth()
 
             self.growth_demand = 0.
     
@@ -325,6 +329,8 @@ class SeptoriaAgePhysio(Lesion):
                 if self.status_edge==f.CHLOROTIC:
                     rings = rings[int(floor(age_edge/width)):]
                     rings[0] = age_edge
+                    while len(self.surfaces_chlo)<len(rings)-1:
+                        self.surfaces_chlo=np.insert(self.surfaces_chlo,0.,0.)
                 
                 # 3. Get the beginnings and the ends of age classes
                 begs = rings[:-1]
@@ -334,8 +340,7 @@ class SeptoriaAgePhysio(Lesion):
                 ends_prog = ends + progress
                 # 5. Find ends of new classes in which surfaces will be distributed after progress
                 new_ends = np.arange(max(width, width*ceil(begs_prog[0]/width)), width*(ceil(ends_prog[-1]/width)+1), width)
-                new_ends = np.round(new_ends, 14)
-                
+                new_ends = np.round(new_ends, 14)               
                 # 6. Loop over this classes to calculate the new distribution in each class
                 new_surf = np.zeros(len(new_ends))
                 for j in range(len(new_ends)):
@@ -396,6 +401,8 @@ class SeptoriaAgePhysio(Lesion):
                 if self.status_edge==f.NECROTIC:
                     rings = rings[int(floor(age_edge/width)):]
                     rings[0] = self.age_physio_edge
+                    while len(self.surfaces_nec)<len(rings)-1:
+                        self.surfaces_nec=np.insert(self.surfaces_nec,0.,0.)
                 begs = rings[:-1]
                 ends = rings[1:]
                 begs_prog = begs + progress
@@ -417,19 +424,9 @@ class SeptoriaAgePhysio(Lesion):
                 # Get what passes to next status
                 self.surfaces_nec = np.extract(new_ends<=1, new_surf)
                 surface_to_next_phase = sum(np.extract(new_ends>1, new_surf))
-#                self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
-#                self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
-                # Temp
-                if f.rh_effect==False:
-                    self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
-                    self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
-                else:
-                    rh_resps = map(self.rh_response, self.wetness_seq)
-                    rh_factor = np.mean(rh_resps)
-                    self.to_sporulation = f.sporulating_capacity * rh_factor * surface_to_next_phase
-                    self.surface_empty += (1 - f.sporulating_capacity) * (1-rh_factor) * surface_to_next_phase
-                #
-                
+                self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
+                self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
+
             # Filling of new rings
             nb_full_rings = int(floor(progress/width))
             surf = np.array([])
@@ -478,18 +475,22 @@ class SeptoriaAgePhysio(Lesion):
 
     def emission(self, density_DU_emitted):
         """ Return number of DUs emitted by the lesion. """
+        # Temp : TODO real debugging
+        if np.isnan(self.surface):
+            self.disable()
+            return 0.
+        #
         if density_DU_emitted>0:       
             f = self.fungus
             density = map(lambda x: min(float(density_DU_emitted),x), self.density_dus_emitted_max)
-            du_factor = map(lambda (x,y): x / y if y>0. else 0., zip(density, self.density_dus_emitted_max))
             emissions = map(lambda x: int(x), self.surfaces_spo * density)
-            
-            delta_spo = self.surfaces_spo*du_factor
-            self.surfaces_spo -= delta_spo
-            self.surfaces_spo[1:] += delta_spo[:-1]
                        
-            if delta_spo[-1]>0.:
-                self.surface_empty += delta_spo[-1]
+            if any(np.isnan(self.surfaces_spo)):
+                import pdb
+                pdb.set_trace()
+            self.surface_empty += self.surfaces_spo[-1]
+            self.surfaces_spo[1:] = self.surfaces_spo[:-1]
+            self.surfaces_spo[0] = 0.
                 
             if (self.status_edge == f.SPORULATING and 
                 round(self.surface_spo,14)<=round(f.threshold_spo*self.nb_lesions,14)):

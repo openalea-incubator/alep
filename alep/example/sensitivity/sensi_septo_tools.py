@@ -255,12 +255,12 @@ def plot_septo_morris_3_leaves(year = 2012, variety = 'Tremie12',
                                leaves = [10, 5, 1], variable = 'normalized_audpc',
                                parameter_range_file = './septoria/septo_param_range.txt',
                                input_file = './septoria/septo_morris_input.txt',
-                               ylims=None):
+                               nboots=5, ylims=None):
     output_file = get_septo_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
     plot_morris_3_leaves(df_out, leaves=leaves, variable=variable,
                         parameter_range_file=parameter_range_file,
-                        input_file=input_file, ylims=ylims)
+                        input_file=input_file, nboots=nboots, ylims=ylims)
                         
 def septo_scatter_plot_by_leaf(year = 2012, variety = 'Tremie12',
                                 variable = 'normalized_audpc',
