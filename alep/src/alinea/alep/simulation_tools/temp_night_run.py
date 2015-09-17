@@ -18,6 +18,10 @@ def awf1():
                        degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
                        sporulating_fraction=inoc, reduction_by_rain=0.,
                        rain_events_to_empty=10, suffix='inoc_'+str(inoc), nreps=1)
+def awf11():
+    inocs = np.arange(0.02, 0.2, 0.02)
+    inocs = np.insert(inocs, 0, 0.005)
+    for inoc in inocs:
         run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                        nplants=15, proba_inf=1, age_infection=False, 
                        growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
@@ -37,6 +41,13 @@ def awf2():
                        degree_days_to_necrosis=state[1], degree_days_to_sporulation=50., 
                        sporulating_fraction=0.1, reduction_by_rain=0.,
                        rain_events_to_empty=10, suffix='states_370_'+str(i_state), nreps=1)
+
+def awf22():
+    ref_states = [160,160]
+    states = []
+    for i in np.arange(-40, 50, 20):
+        states.append([ref_states[0]+i, ref_states[1]-i])
+    for i_state, state in enumerate(states):
         run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                        nplants=15, proba_inf=1, age_infection=False, 
                        growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=state[0], 
@@ -56,6 +67,12 @@ def awf3():
                        degree_days_to_necrosis=state[1], degree_days_to_sporulation=30., 
                        sporulating_fraction=0.1, reduction_by_rain=0.,
                        rain_events_to_empty=10, suffix='states_390_'+str(i_state), nreps=1)
+def awf33():
+    ref_states = [160,160]
+    states = []
+    for i in np.arange(-40, 50, 20):
+        states.append([ref_states[0]+i, ref_states[1]-i])
+    for i_state, state in enumerate(states):
         run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                        nplants=15, proba_inf=1, age_infection=False, 
                        growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=state[0], 
@@ -75,6 +92,12 @@ def awf4():
                        degree_days_to_necrosis=state[1], degree_days_to_sporulation=30., 
                        sporulating_fraction=0.1, reduction_by_rain=0.,
                        rain_events_to_empty=10, suffix='states_350_'+str(i_state), nreps=1)
+def awf44():
+    ref_states = [160,160]
+    states = []
+    for i in np.arange(-40, 50, 20):
+        states.append([ref_states[0]+i, ref_states[1]-i])
+    for i_state, state in enumerate(states):
         run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                        nplants=15, proba_inf=1, age_infection=False, 
                        growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=state[0], 
@@ -106,6 +129,10 @@ def bbich1():
                        degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
                        sporulating_fraction=inoc, reduction_by_rain=0.,
                        rain_events_to_empty=10, suffix='inoc_180_'+str(inoc), nreps=1)
+def bbich11():
+    inocs = np.arange(0.02, 0.2, 0.02)
+    inocs = np.insert(inocs, 0, 0.005)
+    for inoc in inocs:
         run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                        nplants=15, proba_inf=1, age_infection=False, 
                        growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=180., 
@@ -123,6 +150,11 @@ def bbich2():
                        degree_days_to_necrosis=160., degree_days_to_sporulation=70., 
                        sporulating_fraction=inoc, reduction_by_rain=0.,
                        rain_events_to_empty=10, suffix='inoc_70_'+str(inoc), nreps=1)
+
+def bbich22():
+    inocs = np.arange(0.02, 0.2, 0.02)
+    inocs = np.insert(inocs, 0, 0.005)
+    for inoc in inocs:
         run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                        nplants=15, proba_inf=1, age_infection=False, 
                        growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
@@ -137,6 +169,7 @@ def bbich3():
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=10, suffix='smin', nreps=5)
+def bbich33():
     run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                    nplants=15, proba_inf=1, age_infection=False, 
                    growth_rate=0.0006, Smin=0.01, degree_days_to_chlorosis=160., 
@@ -151,6 +184,7 @@ def bbich4():
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=10, suffix='ref', nreps=5)
+def bbich44():
     run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                    nplants=15, proba_inf=1, age_infection=False, 
                    growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
