@@ -471,81 +471,75 @@ def temp36():
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=3, suffix='rain_1', nreps=5)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
+                   sporulating_fraction=0.1, reduction_by_rain=0.,
+                   rain_events_to_empty=5, suffix='rain_2', nreps=5)
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, proba_inf=1, age_infection=False, 
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
+                   sporulating_fraction=0.1, reduction_by_rain=0.,
+                   rain_events_to_empty=5, suffix='rain_2', nreps=5)
                    
 def temp37():
     run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
                    nplants=15, proba_inf=1, age_infection=False,
                    growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-                   sporulating_fraction=0.1, reduction_by_rain=0.,
-                   rain_events_to_empty=5, suffix='rain_2', nreps=5)
+                   sporulating_fraction=0.01, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='inoc_1', nreps=5)
     run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                    nplants=15, proba_inf=1, age_infection=False, 
                    growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-                   sporulating_fraction=0.1, reduction_by_rain=0.,
-                   rain_events_to_empty=5, suffix='rain_2', nreps=5)
-                   
-def temp38():
+                   sporulating_fraction=0.01, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='inoc_1', nreps=5)
     run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
                    nplants=15, proba_inf=1, age_infection=False,
                    growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-                   sporulating_fraction=0.01, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='inoc_1', nreps=5)
+                   sporulating_fraction=0.05, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='inoc_2', nreps=5)
     run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
                    nplants=15, proba_inf=1, age_infection=False, 
                    growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-                   sporulating_fraction=0.01, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='inoc_1', nreps=5)
+                   sporulating_fraction=0.05, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='inoc_2', nreps=5)
+                   
+def temp38():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=250., 
+                   degree_days_to_necrosis=50., degree_days_to_sporulation=100., 
+                   sporulating_fraction=0.1, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='new_states_1', nreps=5)
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, proba_inf=1, age_infection=False, 
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=250., 
+                   degree_days_to_necrosis=50., degree_days_to_sporulation=100., 
+                   sporulating_fraction=0.1, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='new_states_1', nreps=5)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=200., 
+                   degree_days_to_necrosis=100., degree_days_to_sporulation=100., 
+                   sporulating_fraction=0.1, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='new_states_2', nreps=5)
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, proba_inf=1, age_infection=False, 
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=200., 
+                   degree_days_to_necrosis=100., degree_days_to_sporulation=100., 
+                   sporulating_fraction=0.1, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='new_states_2', nreps=5)
                    
 def temp39():
     run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
                    nplants=15, proba_inf=1, age_infection=False,
                    growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
-                   degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-                   sporulating_fraction=0.05, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='inoc_2', nreps=5)
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, proba_inf=1, age_infection=False, 
-                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
-                   degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-                   sporulating_fraction=0.05, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='inoc_2', nreps=5)
-                   
-def temp40():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, proba_inf=1, age_infection=False,
-                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=250., 
-                   degree_days_to_necrosis=50., degree_days_to_sporulation=100., 
-                   sporulating_fraction=0.1, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='new_states_1', nreps=5)
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, proba_inf=1, age_infection=False, 
-                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=250., 
-                   degree_days_to_necrosis=50., degree_days_to_sporulation=100., 
-                   sporulating_fraction=0.1, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='new_states_1', nreps=5)
-                   
-def temp41():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, proba_inf=1, age_infection=False,
-                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=200., 
-                   degree_days_to_necrosis=100., degree_days_to_sporulation=100., 
-                   sporulating_fraction=0.1, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='new_states_2', nreps=5)
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, proba_inf=1, age_infection=False, 
-                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=200., 
-                   degree_days_to_necrosis=100., degree_days_to_sporulation=100., 
-                   sporulating_fraction=0.1, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='new_states_2', nreps=5)
-                   
-def temp42():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
-                   nplants=15, proba_inf=1, age_infection=False,
-                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
                    degree_days_to_necrosis=160., degree_days_to_sporulation=80., 
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=10, suffix='new_states_3', nreps=5)
@@ -555,8 +549,6 @@ def temp42():
                    degree_days_to_necrosis=160., degree_days_to_sporulation=80., 
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=10, suffix='new_states_3', nreps=5)
-                   
-def temp43():
     run_reps_septo(year=2011, variety='Mercia', sowing_date='10-15',
                    nplants=15, proba_inf=1, age_infection=False,
                    growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
@@ -570,7 +562,7 @@ def temp43():
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=10, suffix='calib', nreps=5)
                    
-def temp44():
+def temp40():
     for year in range(1999,2007)+range(2011,2014):
         run_reps_septo(year=2011, variety='Tremie13', sowing_date='10-29',
                        nplants=15, proba_inf=1, age_infection=False,
