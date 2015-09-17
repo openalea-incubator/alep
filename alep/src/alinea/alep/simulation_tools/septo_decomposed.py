@@ -356,7 +356,7 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
             weather = pickle.load(f)
             f.close()
         except:
-            data_obs_2012, weather_2012 = data_reader(year = 2012,
+            data_obs_2012, weather = data_reader(year = 2012,
                                                       variety = 'Tremie12',
                                                       from_file = 'control')
             f = open('data_obs_2012.pckl', 'w')
@@ -381,14 +381,14 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
             weather = pickle.load(f)
             f.close()
         except:
-            data_obs_2013, weather_2013 = data_reader(year = 2013,
+            data_obs_2013, weather = data_reader(year = 2013,
                                                       variety = 'Tremie13',
                                                       from_file = 'control')
             f = open('data_obs_2013.pckl', 'w')
             pickle.dump(data_obs_2013, f)
             f.close()
             f = open('weather_2013.pckl', 'w')
-            pickle.dump(weather_2013, f)
+            pickle.dump(weather, f)
             f.close()
         if leaves is None:
             leaves = range(1,6)
