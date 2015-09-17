@@ -561,12 +561,11 @@ def temp39():
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=10, suffix='calib', nreps=5)
-                   
-def temp40():
-    for year in range(1999,2007)+range(2011,2014):
-        run_reps_septo(year=2011, variety='Tremie13', sowing_date='10-29',
-                       nplants=15, proba_inf=1, age_infection=False,
-                       growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
-                       degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-                       sporulating_fraction=0.1, reduction_by_rain=0.,
-                       rain_events_to_empty=10, suffix='test_'+str(year), nreps=1)
+
+def temp40():                 
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False, 
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
+                   sporulating_fraction=0.1, reduction_by_rain=0.,
+                   rain_events_to_empty=10, suffix='rain_33', nreps=1)

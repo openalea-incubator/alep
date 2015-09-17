@@ -352,11 +352,11 @@ class SeptoriaAgePhysio(Lesion):
                     for ind in indexes:
                         new_surf[j] += round((min(ends_prog[ind], new_ends[j])-
                                               max(begs_prog[ind],new_ends[j]-width))*
-                                              self.surfaces_chlo[ind]/(ends[ind]-begs[ind]), 14)
+                                              self.surfaces_chlo[ind]/(ends[ind]-begs[ind]), 14)  if round(ends[ind]-begs[ind], 14) > 0. else 0.
                 # 7. Update surfaces and calculate what passes to necrosis
                 self.surfaces_chlo = np.extract(new_ends<=1, new_surf)
                 self.to_necrosis = sum(np.extract(new_ends>1, new_surf))
-        
+
         # Ageing of the periphery of the lesion if growth has been stopped
         if self.status_edge==f.CHLOROTIC and not self.growth_is_active :
             if self.age_physio_edge+progress < 1.:
@@ -476,18 +476,15 @@ class SeptoriaAgePhysio(Lesion):
     def emission(self, density_DU_emitted):
         """ Return number of DUs emitted by the lesion. """
         # Temp : TODO real debugging
-        if np.isnan(self.surface):
-            self.disable()
-            return 0.
+#        if np.isnan(self.surface):
+#            self.disable()
+#            return 0.
         #
         if density_DU_emitted>0:       
             f = self.fungus
             density = map(lambda x: min(float(density_DU_emitted),x), self.density_dus_emitted_max)
             emissions = map(lambda x: int(x), self.surfaces_spo * density)
                        
-            if any(np.isnan(self.surfaces_spo)):
-                import pdb
-                pdb.set_trace()
             self.surface_empty += self.surfaces_spo[-1]
             self.surfaces_spo[1:] = self.surfaces_spo[:-1]
             self.surfaces_spo[0] = 0.

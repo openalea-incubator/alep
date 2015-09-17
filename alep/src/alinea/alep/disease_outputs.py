@@ -1126,9 +1126,12 @@ def get_date_threshold(data, variable = 'severity',
                 df_dates.loc[pl,lf] = np.argmax(df_2>threshold)
     return df_dates
     
-def get_synthetic_outputs_by_leaf(data):
+def get_synthetic_outputs_by_leaf(data, return_conf=False):
     leaves = np.unique(data['num_leaf_top'])
     df = pandas.DataFrame(index = range(len(leaves)), 
+                      columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
+                                 'max_severity', 'age_threshold'])
+    df_conf = pandas.DataFrame(index = range(len(leaves)), 
                       columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
                                  'max_severity', 'age_threshold'])
     df_dates = get_date_threshold(data, threshold=0.05)
@@ -1137,15 +1140,27 @@ def get_synthetic_outputs_by_leaf(data):
         idx += 1
         df_lf = data[data['num_leaf_top']==lf]
         audpcs = numpy.unique(df_lf['audpc'])
+        audpcs_400 = numpy.unique(df_lf['audpc_400'])
         n_audpcs = numpy.unique(df_lf['normalized_audpc'])
-        max_sevs = df_lf.groupby('num_plant').max()['severity'].mean()
-        date_t = df_dates[lf].mean()
+        max_sevs = df_lf.groupby('num_plant').max()['severity']
+        date_t = df_dates[lf]
         df.loc[idx, 'num_leaf_top'] = lf
         df.loc[idx, 'audpc'] = np.mean(audpcs)
+        df.loc[idx, 'audpc_400'] = np.mean(audpcs_400)
         df.loc[idx, 'normalized_audpc'] = numpy.mean(n_audpcs)
         df.loc[idx, 'max_severity'] = numpy.mean(max_sevs)
         df.loc[idx, 'age_threshold'] = numpy.mean(date_t)
-    return df    
+        if return_conf==True:
+            df_conf.loc[idx, 'num_leaf_top'] = lf
+            df_conf.loc[idx, 'audpc'] = conf_int(audpcs)
+            df_conf.loc[idx, 'audpc_400'] = conf_int(audpcs_400)
+            df_conf.loc[idx, 'normalized_audpc'] = conf_int(n_audpcs)
+            df_conf.loc[idx, 'max_severity'] = conf_int(max_sevs)
+            df_conf.loc[idx, 'age_threshold'] = conf_int(date_t)
+    if return_conf==True:
+        return df, df_conf
+    else:
+        return df
 
 ###############################################################################
 class BrownRustRecorder(AdelWheatRecorder):
