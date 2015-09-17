@@ -132,6 +132,9 @@ def alep_echap_reconstructions(keep_leaves=False):
     pars['density_tuning']['Tremie13'] = 0.85
     if keep_leaves==True:
         pars['pgen_base'] = {'TT_hs_break':None, 'inner_params':{'DELAIS_PHYLL_SEN_DISP':20}}
+    #CF : ici si tu veux ajuster la duree d'allongement des feuilles, en particulier pour avoir des emergences plus precoces:
+    #    Une feuille emerge (0.8 * leafDuration * phyllochron) dd  avant HS
+    pars['adel_pars']['leafDuration'] = 2. #2 = valeur normale
     reconst = EchapReconstructions(reset_data=True, pars=pars)
 #    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
     reconst.axepop_fits['Tremie12'].MS_probabilities = {12:1., 13:0.}
@@ -178,7 +181,18 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
         Dimfit.scale['W_blade'] *= kwds['leaf_dim_factor']
     if 'internode_length_factor' in kwds:
         Dimfit.scale['L_internode'] *= kwds['internode_length_factor']
-    pgen = pgen_ext.PlantGen(HSfit=HSfit, GLfit=GLfit, Dimfit=Dimfit)
+        
+    # ici : nouveaux parametre:
+    adel_pars = parameters['adel_pars']
+    # Duree 'phyllochronique' feuille , ie change la vitesse leaf + duree emergnce leaf -> ligulation, mais pas HS
+    if 'leafDuration' in kwds:
+        adel_pars['leafDuration'] = kwds['leafDuration']
+    # Duree entrenoeud , ie bouge vitesse allongement tige, sans changer leaf
+    if 'stemDuration' in kwds:
+        # si phyllo bouge, alors il faut compenser
+        adel_pars['stemDuration'] = kwds['stemDuration']     
+        
+    pgen = pgen_ext.PlantGen(HSfit=HSfit, GLfit=GLfit, Dimfit=Dimfit, adel_pars = adel_pars)
     axeT, dimT, phenT = pgen.adelT(plants)
     # Temp
     ms = axeT[axeT['id_axis']=='MS'] 
@@ -202,9 +216,9 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
                      'rate_inclination_tiller': 30, 'drop_empty':True}
     if 'stem_elongation_rate' in kwds:
         run_adel_pars['stemLeaf'] = kwds['stem_elongation_rate']        
-    return AdelWheat(nplants=nplants, nsect=nsect, devT=devT, stand=stand , 
-                    seed=seed, sample='sequence', leaves=leaves, 
-                    run_adel_pars=run_adel_pars)
+    
+    return AdelWheat(nplants = nplants, nsect=nsect, devT=devT, stand = stand , 
+                    seed=seed, sample='sequence', leaves = leaves, run_adel_pars = adel_pars)
     
 def make_canopy(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                 nplants = 15, nsect = 7, nreps=10, fixed_rep=None, delay = 20.):
