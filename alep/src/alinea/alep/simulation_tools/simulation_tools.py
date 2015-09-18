@@ -134,10 +134,9 @@ def alep_echap_reconstructions(keep_leaves=False):
         pars['pgen_base'] = {'TT_hs_break':None, 'inner_params':{'DELAIS_PHYLL_SEN_DISP':20}}
     #CF : ici si tu veux ajuster la duree d'allongement des feuilles, en particulier pour avoir des emergences plus precoces:
     #    Une feuille emerge (0.8 * leafDuration * phyllochron) dd  avant HS
-#    pars['adel_pars']['leafDuration'] = 2. #2 = valeur normale
+    pars['adel_pars']['leafDuration'] = 3. #2 = valeur normale
     reconst = EchapReconstructions(reset_data=True, pars=pars)
-#    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
-    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:1., 13:0.}
+    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
     reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
     for dim in ['L_sheath', 'L_internode', 'H_col']: 
 #        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Mercia'].scale[dim]
@@ -148,12 +147,26 @@ def alep_echap_reconstructions(keep_leaves=False):
         
     # TEMP
 #    reconst.HS_fit['Tremie13'].a_cohort = 1./100.
+        
+    # Temp
+#    ms = axeT[axeT['id_axis']=='MS'] 
+#    for i_row, row in ms.iterrows():
+#        idp = row['id_phen']
+#        nff = row['HS_final']
+#        indxs = phenT[(phenT['id_phen']==idp) & (phenT['index_phytomer']==nff-3)].index
+#        for indx in indxs:
+#            phenT.loc[indx,['dTT_em_phytomer', 'dTT_col_phytomer']]-=50.
+        # Trouver 1.6 dans run_adel_pars
+    #
     return reconst
     
 def alep_custom_reconstructions(variety='Tremie13', nplants=30, 
                                 sowing_density=250.,
                                 plant_density=250., inter_row=0.15,
-                                nsect=7, seed=1, **kwds):
+                                nsect=7, seed=1, scale_HS = 1, 
+                                scale_leafDim = 1, scale_leafRate=1,
+                                scale_stemDim = 1, scale_stemRate=1, 
+                                scale_fallingRate=1, **kwds):
     parameters = reconstruction_parameters()
     stand = AgronomicStand(sowing_density=sowing_density,
                             plant_density=plant_density, 
@@ -168,55 +181,45 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     if 'proba_main_nff' in kwds:
         axp.MS_probabilities = {'11':1-kwds['proba_main_nff'], '12':kwds['proba_main_nff']}
     plants = axp.plant_list(n_emerged)
+    
+    # Modify phyllochron    
     HSfit = HS_fit()[variety]
     HSfit.mean_nff = axp.mean_nff()
+    phyllo_ref = 1./HSfit.a_cohort
     if 'phyllochron' in kwds:
-        HSfit.a_cohort = 1./kwds['phyllochron']
+        scale_HS = kwds['phyllochron']/phyllo_ref
+        HSfit.a_cohort /= scale_HS
+    
+    # Modify leaf dimension and growth rate
+    Dimfit = dimension_fits(HS_fit(), **parameters)[variety]    
+    adel_pars = parameters['adel_pars']
+    leafDuration_ref = adel_pars['leafDuration']
+    adel_pars['leafDuration'] = (scale_leafDim/scale_HS)* \
+                                (leafDuration_ref/scale_leafRate)
+    Dimfit.scale['L_blade'] *= scale_leafDim
+    Dimfit.scale['W_blade'] *= scale_leafDim
+                                    
+    # Modify stem dimension and growth rate
+    stemDuration_ref = adel_pars['stemDuration']
+    adel_pars['stemDuration'] = (scale_stemDim/scale_HS)* \
+                                (stemDuration_ref/scale_stemRate)
+    Dimfit.scale['L_internode'] *= scale_stemDim
+
+    # Modify senescence
     GLfit = GL_fits(HS_fit(), **parameters)[variety]
     if 'nb_green_leaves' in kwds:
         GLfit.GL_flag = kwds['nb_green_leaves']
-    Dimfit = dimension_fits(HS_fit(), **parameters)[variety]
-    if 'leaf_dim_factor' in kwds:
-        Dimfit.scale['L_blade'] *= kwds['leaf_dim_factor']
-        Dimfit.scale['W_blade'] *= kwds['leaf_dim_factor']
-    if 'internode_length_factor' in kwds:
-        Dimfit.scale['L_internode'] *= kwds['internode_length_factor']
-        
-    # ici : nouveaux parametre:
-    adel_pars = parameters['adel_pars']
-    # Duree 'phyllochronique' feuille , ie change la vitesse leaf + duree emergnce leaf -> ligulation, mais pas HS
-    if 'leafDuration' in kwds:
-        adel_pars['leafDuration'] = kwds['leafDuration']
-    # Duree entrenoeud , ie bouge vitesse allongement tige, sans changer leaf
-    if 'stemDuration' in kwds:
-        # si phyllo bouge, alors il faut compenser
-        adel_pars['stemDuration'] = kwds['stemDuration']     
-        
+
+    # Modify falling rate
     pgen = pgen_ext.PlantGen(HSfit=HSfit, GLfit=GLfit, Dimfit=Dimfit, adel_pars = adel_pars)
     axeT, dimT, phenT = pgen.adelT(plants)
-    # Temp
-    ms = axeT[axeT['id_axis']=='MS'] 
-    for i_row, row in ms.iterrows():
-        idp = row['id_phen']
-        nff = row['HS_final']
-        indxs = phenT[(phenT['id_phen']==idp) & (phenT['index_phytomer']==nff-3)].index
-        for indx in indxs:
-            phenT.loc[indx,['dTT_em_phytomer', 'dTT_col_phytomer']]-=50.
-        # Trouver 1.6 dans run_adel_pars
-    #
     axeT = axeT.sort(['id_plt', 'id_cohort', 'N_phytomer'])
     devT = devCsv(axeT, dimT, phenT)
-    leaves = leafshape_fits(**parameters)['Mercia']
-    if 'falling_rate' in kwds:
-        leaves.bins[-1] = 21.
-        leaves.bins = [x/kwds['falling_rate'] if not i_x in [0,1] else x for i_x,x in enumerate(leaves.bins)]
-    run_adel_pars = {'senescence_leaf_shrink' : 0.5,'startLeaf' : -0.4, 
-                     'endLeaf' : 1.6, 'endLeaf1': 1.6, 'stemLeaf' : 1.2,
-                     'epsillon' : 1e-6, 'HSstart_inclination_tiller': 1,
-                     'rate_inclination_tiller': 30, 'drop_empty':True}
-    if 'stem_elongation_rate' in kwds:
-        run_adel_pars['stemLeaf'] = kwds['stem_elongation_rate']        
-    
+    leaves = leafshape_fits(**parameters)[variety]
+    bins_ref = leaves.bins
+    bins_ref[-1] = 21.
+    bins = [x*scale_HS/scale_fallingRate if i_x!=0 else x*scale_HS for i_x,x in enumerate(bins_ref)]
+    leaves.bins = bins
     return AdelWheat(nplants = nplants, nsect=nsect, devT=devT, stand = stand , 
                     seed=seed, sample='sequence', leaves = leaves, run_adel_pars = adel_pars)
     
