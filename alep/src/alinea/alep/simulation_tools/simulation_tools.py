@@ -163,7 +163,7 @@ def alep_echap_reconstructions(keep_leaves=False):
 def alep_custom_reconstructions(variety='Tremie13', nplants=30, 
                                 sowing_density=250.,
                                 plant_density=250., inter_row=0.15,
-                                nsect=7, seed=1, scale_HS = 1, 
+                                nsect=7, seed=1, 
                                 scale_leafDim = 1, scale_leafRate=1,
                                 scale_stemDim = 1, scale_stemRate=1, 
                                 scale_fallingRate=1, **kwds):
@@ -186,6 +186,10 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     HSfit = HS_fit()[variety]
     HSfit.mean_nff = axp.mean_nff()
     phyllo_ref = 1./HSfit.a_cohort
+    
+    scale_HS = 1 # mieux au cas ou tu garde phyllochron en entree, sinon on ne sait pas si c'est scaleHS ou phyllochron qui controle
+    #alternativement, tu peux mettre scale_HS en argument avec 1 par defaut et tu fait HSfit.a_cohort /=  scale_HS. Dans ce cas, tu n'utilise plus le mot clef phyllochron dans kwds
+    # petit commentaire : HS determine date ligulation, modifie en collateral duree emergnce-ligulation et aussi duree de vie verte des feuilles (car le ssi ne bouge pas)
     if 'phyllochron' in kwds:
         scale_HS = kwds['phyllochron']/phyllo_ref
         HSfit.a_cohort /= scale_HS
@@ -194,15 +198,15 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     Dimfit = dimension_fits(HS_fit(), **parameters)[variety]    
     adel_pars = parameters['adel_pars']
     leafDuration_ref = adel_pars['leafDuration']
-    adel_pars['leafDuration'] = (scale_leafDim/scale_HS)* \
-                                (leafDuration_ref/scale_leafRate)
+    adel_pars['leafDuration'] = (scale_leafDim / scale_HS)* \
+                                (leafDuration_ref / scale_leafRate)
     Dimfit.scale['L_blade'] *= scale_leafDim
     Dimfit.scale['W_blade'] *= scale_leafDim
                                     
     # Modify stem dimension and growth rate
     stemDuration_ref = adel_pars['stemDuration']
-    adel_pars['stemDuration'] = (scale_stemDim/scale_HS)* \
-                                (stemDuration_ref/scale_stemRate)
+    adel_pars['stemDuration'] = (scale_stemDim / scale_HS)* \
+                                (stemDuration_ref / scale_stemRate)
     Dimfit.scale['L_internode'] *= scale_stemDim
 
     # Modify senescence
@@ -218,7 +222,7 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     leaves = leafshape_fits(**parameters)[variety]
     bins_ref = leaves.bins
     bins_ref[-1] = 21.
-    bins = [x*scale_HS/scale_fallingRate if i_x!=0 else x*scale_HS for i_x,x in enumerate(bins_ref)]
+    bins = [x * scale_HS / scale_fallingRate if i_x!=0 else x*scale_HS for i_x,x in enumerate(bins_ref)]
     leaves.bins = bins
     return AdelWheat(nplants = nplants, nsect=nsect, devT=devT, stand = stand , 
                     seed=seed, sample='sequence', leaves = leaves, run_adel_pars = adel_pars)
