@@ -32,7 +32,7 @@ parameters = OrderedDict([('tiller_probability', [0.5, 1.]),
                           ('stem_elongation_rate', [0.5, 2.])])
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
-nboots = 1
+nboots = 3
 nb_cpu = cpu_count()
 samples = []
 for i_boot in range(nboots):
@@ -44,5 +44,5 @@ for i_boot in range(nboots):
 # Run disease simulation
 if __name__ == '__main__':
     # pymap(run_septoria, samples, nb_cpu-2)
-    pymap(run_custom_septoria, samples, nb_cpu-1)
+    pymap(run_custom_septoria, samples, nb_cpu-2)
     
