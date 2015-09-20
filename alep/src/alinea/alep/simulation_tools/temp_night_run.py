@@ -169,13 +169,6 @@ def bbich3():
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=10, suffix='smin', nreps=5)
-def bbich33():
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-                   nplants=15, proba_inf=1, age_infection=False, 
-                   growth_rate=0.0006, Smin=0.01, degree_days_to_chlorosis=160., 
-                   degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-                   sporulating_fraction=0.1, reduction_by_rain=0.,
-                   rain_events_to_empty=10, suffix='smin', nreps=5)
                    
 def bbich4():
     run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
@@ -191,3 +184,52 @@ def bbich44():
                    degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
                    sporulating_fraction=0.1, reduction_by_rain=0.,
                    rain_events_to_empty=10, suffix='ref', nreps=5)
+                   
+                   
+def friday1():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+               nplants=15, proba_inf=1, age_infection=False, 
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=180., 
+               degree_days_to_necrosis=140., degree_days_to_sporulation=70., 
+               sporulating_fraction=0.1, reduction_by_rain=0.,
+               rain_events_to_empty=10, suffix='ref_390_HDrop', nreps=5)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+               nplants=15, proba_inf=1, age_infection=False, 
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=180., 
+               degree_days_to_necrosis=140., degree_days_to_sporulation=70., 
+               sporulating_fraction=0.1, reduction_by_rain=0.,
+               rain_events_to_empty=5, suffix='ref_390_HDrop', nreps=5)
+def friday2():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+               nplants=15, proba_inf=1, age_infection=False, 
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=180., 
+               degree_days_to_necrosis=140., degree_days_to_sporulation=70., 
+               sporulating_fraction=0.1, reduction_by_rain=0.,
+               rain_events_to_empty=10, suffix='ref_390', nreps=5)
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-29',
+               nplants=15, proba_inf=1, age_infection=False, 
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=180., 
+               degree_days_to_necrosis=140., degree_days_to_sporulation=70., 
+               sporulating_fraction=0.1, reduction_by_rain=0.,
+               rain_events_to_empty=10, suffix='ref_390', nreps=5)
+def saturday1():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+               nplants=15, proba_inf=1, age_infection=False, 
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=180., 
+               degree_days_to_necrosis=140., degree_days_to_sporulation=70., 
+               sporulating_fraction=0.1, reduction_by_rain=0.,
+               rain_events_to_empty=10, keep_leaves=True, suffix='ref_390', nreps=1)
+def saturday2():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+               nplants=15, proba_inf=1, age_infection=False, 
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=180., 
+               degree_days_to_necrosis=140., degree_days_to_sporulation=70., 
+               sporulating_fraction=0.1, reduction_by_rain=0.,
+               rain_events_to_empty=5, keep_leaves=True, suffix='ref_390_5rain', nreps=1)
+def saturday3():               
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+               nplants=15, proba_inf=1, age_infection=True, 
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=180., 
+               degree_days_to_necrosis=140., degree_days_to_sporulation=70., 
+               sporulating_fraction=0.1, reduction_by_rain=0.,
+               rain_events_to_empty=5, keep_leaves=True, suffix='ref_390_5_rain_ageinf', nreps=1)

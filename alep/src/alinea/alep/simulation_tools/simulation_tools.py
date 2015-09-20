@@ -138,9 +138,9 @@ def alep_echap_reconstructions(keep_leaves=False):
     reconst = EchapReconstructions(reset_data=True, pars=pars)
     reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
     reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
-    for dim in ['L_sheath', 'L_internode', 'H_col']: 
+#    for dim in ['L_sheath', 'L_internode', 'H_col']: 
 #        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Mercia'].scale[dim]
-        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Tremie12'].scale[dim]
+#        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Tremie12'].scale[dim]
     # Temp        
 #    reconst.dimension_fits['Tremie13'].scale['L_internode'] = 0.001
 #    reconst.dimension_fits['Tremie12'].scale['L_internode'] = 0.001

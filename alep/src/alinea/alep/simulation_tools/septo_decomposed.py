@@ -55,9 +55,7 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
         if save_images:
             adel.stand.density_curve=None
     else:
-        # Temp : should use Tremie13 as default
-        adel = alep_custom_reconstructions(variety='Tremie12', nplants=nplants, nsect=nsect, **kwds)
-#        adel = alep_custom_reconstructions(variety='Tremie13', nplants=nplants, nsect=nsect, **kwds)
+        adel = alep_custom_reconstructions(variety='Tremie13', nplants=nplants, nsect=nsect, **kwds)
     year = int(end_date[:4])
     wheat_dir = wheat_path(year, variety, nplants, nsect, rep_wheat)
     g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True) 
@@ -129,7 +127,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       record = True, output_file = None, 
                       competition = 'poisson', save_images = False, 
                       reset_reconst = True, distri_chlorosis = None, 
-                      rep_wheat = None, age_infection=False, keep_leaves=False,
+                      rep_wheat = None, age_infection=False, keep_leaves=True,
                       **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     (g, adel, weather, seq, rain_timing, 
@@ -340,13 +338,17 @@ def temp_films():
 
 def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
                    leaves=None, only_severity=False, xlims = [800, 2200],
-                   display_lesions=False):
+                   display_lesions=False, title=None):
     from alinea.echap.disease.alep_septo_evaluation import data_reader, plot_confidence_and_boxplot, plot_one_sim
     from alinea.alep.alep_weather import plot_rain_and_temp
     import cPickle as pickle
     import matplotlib.pyplot as plt
 #    from math import ceil
     df_sim = df.copy()
+    if title is not None:
+        ttle = False
+    else:
+        ttle = True
     if df_sim.iloc[-1]['date'].year == 2012:
         try:
             f = open('data_obs_2012.pckl')
@@ -369,9 +371,9 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
             leaves = range(1,7)
         (df_mean_obs, df_low, df_high, fig, 
          axs) = plot_confidence_and_boxplot(data_obs_2012, weather, 
-                                            leaves = leaves, variable = 'severity', 
-                                            xaxis = xaxis, xlims=xlims,
-                                            return_fig = True)
+                                            leaves=leaves, variable='severity', 
+                                            xaxis=xaxis, xlims=xlims,
+                                            title=ttle, return_fig=True)
     elif df_sim.iloc[-1]['date'].year == 2013:
         try:
             f = open('data_obs_2013.pckl')
@@ -394,9 +396,9 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
             leaves = range(1,6)
         (df_mean_obs, df_low, df_high, fig, 
          axs) = plot_confidence_and_boxplot(data_obs_2013, weather, 
-                                            leaves = leaves, variable = 'severity', 
-                                            xaxis = xaxis, xlims=xlims,
-                                            return_fig = True)
+                                            leaves=leaves, variable='severity', 
+                                            xaxis=xaxis, xlims=xlims,
+                                            title=ttle, return_fig=True)
     else:
         raise ValueError('Unavailable year')
         
@@ -411,6 +413,11 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
         plot_one_sim(df_sim, 'sev_tot', xaxis, axs, leaves, 'r')
         plot_one_sim(df_sim, 'leaf_green_area', xaxis, axs, leaves, 'g')
 #        plot_one_sim(df_sim, 'nec_spo', xaxis, axs, leaves, 'c')
+        
+    if title is not None:
+        plt.text(0.5, 0.98, title, fontsize=18,
+                 transform=fig.transFigure, horizontalalignment='center')
+                 
     if display_lesions:
         fig, axs = plt.subplots(int(ceil(len(leaves)/2.))+1, 2, figsize=(15,10))
         axs_les = axs[:-1]

@@ -255,7 +255,9 @@ def plot_rain_and_temp(weather, xaxis = 'degree_days', leaf_dates=None,
     elif xaxis == 'date':
         index = weather.data.index
     elif xaxis == 'age_leaf_vs_flag_emg':
-        index = weather.data.age_leaf_vs_flag_emg  
+        index = weather.data.age_leaf_vs_flag_emg
+    elif xaxis == 'age_leaf':
+        index = weather.data.age_leaf
     
     ax.bar(index, weather.data.rain, width = 1, color = 'b')
     ax2 = ax.twinx()

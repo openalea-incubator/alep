@@ -1564,6 +1564,7 @@ def get_mean_leaf(data_lf, variable = 'severity', xaxis = 'degree_days'):
         for rep in reps:
             df_rep = data_lf[data_lf['rep']==rep].reset_index()
             df_rep = df_rep[pandas.notnull(df_rep.loc[:,variable])].loc[:, cols]
+            df_rep = df_rep.convert_objects(convert_numeric=True)
             df_mean_rep = df_rep.groupby('date').mean()
             df_mean_rep = df_mean_rep.reset_index()
             df = pandas.concat([df, df_mean_rep])

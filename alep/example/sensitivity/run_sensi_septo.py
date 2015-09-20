@@ -26,13 +26,14 @@ parameters = OrderedDict([('tiller_probability', [0.5, 1.]),
                           ('proba_main_nff', [0.4, 1.]),
                           ('phyllochron', [85., 120.]),
                           ('nb_green_leaves', [3.8, 5.4]),
-                          ('leaf_dim_factor', [0.5, 1.5]),
-                          ('internode_length_factor', [0.2, 1.8]),
-                          ('falling_rate', [0.1, 2.]),
-                          ('stem_elongation_rate', [0.5, 2.])])
+                          ('scale_leafDim', [0.5, 1.5]),
+                          ('scale_stemDim', [0.5, 1.5]),
+                          ('scale_leafRate', [0.5, 1.5]),
+                          ('scale_stemRate', [0.5, 1.5]),
+                          ('scale_fallingRate', [0.5, 1.5])])
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
-nboots = 3
+nboots = 1
 nb_cpu = cpu_count()
 samples = []
 for i_boot in range(nboots):
