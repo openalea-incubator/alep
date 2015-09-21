@@ -125,7 +125,7 @@ def grow_canopy(g, adel, canopy_iter, it_wheat,
                                 domain=adel.domain, convUnit=adel.convUnit)
         return g
     
-def alep_echap_reconstructions(keep_leaves=False):
+def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.):
     pars = reconstruction_parameters()
     pars['density_tuning'] = pdict(None)
     pars['density_tuning']['Tremie12'] = 0.85
@@ -134,7 +134,7 @@ def alep_echap_reconstructions(keep_leaves=False):
         pars['pgen_base'] = {'TT_hs_break':None, 'inner_params':{'DELAIS_PHYLL_SEN_DISP':20}}
     #CF : ici si tu veux ajuster la duree d'allongement des feuilles, en particulier pour avoir des emergences plus precoces:
     #    Une feuille emerge (0.8 * leafDuration * phyllochron) dd  avant HS
-    pars['adel_pars']['leafDuration'] = 3. #2 = valeur normale
+    pars['adel_pars']['leafDuration'] = leaf_duration #2 = valeur normale
     reconst = EchapReconstructions(reset_data=True, pars=pars)
     reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
     reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
