@@ -178,36 +178,72 @@ def awf6():
 
 def bbich1():
     run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-           nplants=15, proba_inf=1, age_infection=False, 
-           growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
+           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
+           Smin=0.02, degree_days_to_chlorosis=160., 
            degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-           sporulating_fraction=0.1, reduction_by_rain=0.,
-           rain_events_to_empty=10, keep_leaves=False, leaf_duration=2.,
-           suffix='inoc01_lf_dur_2', nreps=5)
+           sporulating_fraction=5e-3, reduction_by_rain=0.,
+           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+           suffix='low_inoc_high_disp', nreps=5)
            
 def bbich2():
     run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-           nplants=15, proba_inf=1, age_infection=False, 
-           growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
+           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
+           Smin=0.02, degree_days_to_chlorosis=160., 
            degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-           sporulating_fraction=0.01, reduction_by_rain=0.,
-           rain_events_to_empty=10, keep_leaves=False, leaf_duration=2.,
-           suffix='inoc001_lf_dur_2', nreps=5)
+           sporulating_fraction=5e-3, reduction_by_rain=0.,
+           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=False,
+           suffix='low_inoc_high_disp_keep', nreps=5)
            
 def bbich3():
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-           nplants=15, proba_inf=1, age_infection=False, 
-           growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
+           Smin=0.02, degree_days_to_chlorosis=160., 
            degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-           sporulating_fraction=0.1, reduction_by_rain=0.,
-           rain_events_to_empty=10, keep_leaves=False, leaf_duration=3.,
-           suffix='inoc01_lf_dur_3', nreps=5)
+           sporulating_fraction=5e-3, reduction_by_rain=0.,
+           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+           suffix='low_inoc_high_disp', nreps=5)
            
 def bbich4():
-    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
-           nplants=15, proba_inf=1, age_infection=False, 
-           growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160., 
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
+           Smin=0.02, degree_days_to_chlorosis=160., 
            degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
-           sporulating_fraction=0.01, reduction_by_rain=0.,
-           rain_events_to_empty=10, keep_leaves=False, leaf_duration=3.,
-           suffix='inoc001_lf_dur_3', nreps=5)
+           sporulating_fraction=5e-3, reduction_by_rain=0.,
+           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=False,
+           suffix='low_inoc_high_disp_keep', nreps=5)
+           
+def bbich5():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
+           Smin=0.02, degree_days_to_chlorosis=140., 
+           degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
+           sporulating_fraction=5e-3, reduction_by_rain=0.,
+           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+           suffix='low_inoc_high_disp_370_140', nreps=5)
+           
+def bbich6():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-21',
+           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
+           Smin=0.02, degree_days_to_chlorosis=140., 
+           degree_days_to_necrosis=160., degree_days_to_sporulation=50., 
+           sporulating_fraction=5e-3, reduction_by_rain=0.,
+           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+           suffix='low_inoc_high_disp_370_140', nreps=5)
+           
+def bbich7():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-21',
+           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
+           Smin=0.02, degree_days_to_chlorosis=160., 
+           degree_days_to_necrosis=160., degree_days_to_sporulation=70., 
+           sporulating_fraction=5e-3, reduction_by_rain=0.,
+           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+           suffix='low_inoc_high_disp_390_160', nreps=5)
+           
+def bbich8():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-21',
+           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
+           Smin=0.02, degree_days_to_chlorosis=160., 
+           degree_days_to_necrosis=160., degree_days_to_sporulation=70., 
+           sporulating_fraction=5e-3, reduction_by_rain=0.,
+           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+           suffix='low_inoc_high_disp_390_160', nreps=5)

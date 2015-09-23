@@ -353,17 +353,17 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
     if df_sim.iloc[-1]['date'].year == 2012:
         try:
             f = open('data_obs_2012.pckl')
-            data_obs_2012 = pickle.load(f)
+            data_obs = pickle.load(f)
             f.close()
             f = open('weather_2012.pckl')
             weather = pickle.load(f)
             f.close()
         except:
-            data_obs_2012, weather = data_reader(year = 2012,
-                                                      variety = 'Tremie12',
-                                                      from_file = 'control')
+            data_obs, weather = data_reader(year = 2012,
+                                              variety = 'Tremie12',
+                                              from_file = 'control')
             f = open('data_obs_2012.pckl', 'w')
-            pickle.dump(data_obs_2012, f)
+            pickle.dump(data_obs, f)
             f.close()
             f = open('weather_2012.pckl', 'w')
             pickle.dump(weather, f)
@@ -371,7 +371,7 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
         if leaves is None:
             leaves = range(1,7)
         (df_mean_obs, df_low, df_high, fig, 
-         axs) = plot_confidence_and_boxplot(data_obs_2012, weather, 
+         axs) = plot_confidence_and_boxplot(data_obs, weather, 
                                             leaves=leaves, variable='severity', 
                                             xaxis=xaxis, xlims=xlims,
                                             title=ttle, return_fig=True)
@@ -384,11 +384,11 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
             weather = pickle.load(f)
             f.close()
         except:
-            data_obs_2013, weather = data_reader(year = 2013,
-                                                      variety = 'Tremie13',
-                                                      from_file = 'control')
+            data_obs, weather = data_reader(year = 2013,
+                                              variety = 'Tremie13',
+                                              from_file = 'control')
             f = open('data_obs_2013.pckl', 'w')
-            pickle.dump(data_obs_2013, f)
+            pickle.dump(data_obs, f)
             f.close()
             f = open('weather_2013.pckl', 'w')
             pickle.dump(weather, f)
@@ -396,7 +396,7 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
         if leaves is None:
             leaves = range(1,6)
         (df_mean_obs, df_low, df_high, fig, 
-         axs) = plot_confidence_and_boxplot(data_obs_2013, weather, 
+         axs) = plot_confidence_and_boxplot(data_obs, weather, 
                                             leaves=leaves, variable='severity', 
                                             xaxis=xaxis, xlims=xlims,
                                             title=ttle, return_fig=True)
@@ -406,7 +406,7 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
     if multiply_sev:
         df_sim['severity']*=100
     if correct_fnl:
-            df_sim = resample_fnl(df_sim, weather, variable='severity')
+            df_sim = resample_fnl(data_obs, df_sim, weather, variable='severity')
     if only_severity:
         plot_one_sim(df_sim, 'severity', xaxis, axs, leaves, 'r')
     else:
@@ -460,7 +460,7 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
         if leaves is None:
             leaves = range(1,7)
         if correct_fnl:
-            df_sim = resample_fnl(df_sim, weather_2012, variable='severity')
+            df_sim = resample_fnl(data_obs_2012, df_sim, weather_2012, variable='severity')
         plt_lf(data_obs_2012, weather_2012, xaxis=xaxis, leaves=leaves,
                xlims=xlims,linestyle='--', ax=ax, minimum_sample_size=15)
         plt_lf(df_sim, weather_2012, xaxis=xaxis, leaves=leaves,
@@ -487,7 +487,7 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
         if leaves is None:
             leaves = range(1,6)
         if correct_fnl:
-            df_sim = resample_fnl(df_sim, weather_2013, variable='severity')
+            df_sim = resample_fnl(data_obs_2013, df_sim, weather_2013, variable='severity')
         plt_lf(data_obs_2013, weather_2013, xaxis=xaxis, leaves=leaves,
                xlims=xlims,linestyle='--', ax=ax, minimum_sample_size=15)
         plt_lf(df_sim, weather_2013, xaxis=xaxis, leaves=leaves,
@@ -619,7 +619,7 @@ def resample_fnl(df_obs, df_sim, weather, variable='severity'):
         df = df.append(pd.Series(line), ignore_index=True)
     df = df.sort('Date')
     for i in range(1, len(df.columns)-1):
-        df.iloc[0,i+1] = df[i][~np.isnan(df[i])].values[0]
+        df.iloc[0,i+1] = df[i][~np.isnan(df[i])].values[0] if len(df[i][~np.isnan(df[i])])>0 else 0.
     for i in range(1, len(df.columns)-1):
         df.iloc[-1,i+1] = df[i][~np.isnan(df[i])].values[-1]
     df = df.interpolate()
@@ -635,7 +635,8 @@ def resample_fnl(df_obs, df_sim, weather, variable='severity'):
                'surface_spo', 'surface_spo_on_green', 'surface_empty', 
                'surface_empty_on_green', 'surface_dead', variable]:
         df_sim[col] *= df_sim['cross_product']
-
+        df_sim[col] = df_sim[col].astype(float)
+    return df_sim
 #for suffix in ['new_calib_age', 'new_calib_smin', 'new_calib_rate', 'new_calib_states', 'new_calib_states_2']:
 #    data_sim_new_calib = get_aggregated_data_sim(variety = 'Tremie12', nplants = 15,
 #                                                 sporulating_fraction=7e-2, suffix=suffix)
