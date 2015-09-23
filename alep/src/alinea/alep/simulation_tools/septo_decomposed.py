@@ -339,7 +339,7 @@ def temp_films():
 
 def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
                    leaves=None, only_severity=False, xlims = [800, 2200],
-                   display_lesions=False, title=None):
+                   display_lesions=False, title=None, correct_fnl=True):
     from alinea.echap.disease.alep_septo_evaluation import data_reader, plot_confidence_and_boxplot, plot_one_sim
     from alinea.alep.alep_weather import plot_rain_and_temp
     import cPickle as pickle
@@ -405,6 +405,8 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
         
     if multiply_sev:
         df_sim['severity']*=100
+    if correct_fnl:
+            df_sim = resample_fnl(df_sim, weather, variable='severity')
     if only_severity:
         plot_one_sim(df_sim, 'severity', xaxis, axs, leaves, 'r')
     else:
@@ -429,12 +431,14 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
 
         
 def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
-                      leaves=None, xlims = [1100, 2200]):
+                      leaves=None, xlims = [1100, 2200], correct_fnl=True):
     from alinea.echap.disease.alep_septo_evaluation import data_reader
     from alinea.echap.disease.septo_data_treatment import plot_by_leaf as plt_lf
     import cPickle as pickle
     df_sim = df.copy()
     fig, ax = plt.subplots()
+    if multiply_sev:
+        df_sim['severity']*=100
     if df_sim.iloc[-1]['date'].year == 2012:
         try:
             f = open('data_obs_2012.pckl')
@@ -455,11 +459,13 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
             f.close()
         if leaves is None:
             leaves = range(1,7)
+        if correct_fnl:
+            df_sim = resample_fnl(df_sim, weather_2012, variable='severity')
         plt_lf(data_obs_2012, weather_2012, xaxis=xaxis, leaves=leaves,
                xlims=xlims,linestyle='--', ax=ax, minimum_sample_size=15)
         plt_lf(df_sim, weather_2012, xaxis=xaxis, leaves=leaves,
                xlims=xlims, linestyle='-', marker=None,
-               ax=ax, minimum_sample_size=15)
+               ax=ax, minimum_sample_size=0)
     elif df_sim.iloc[-1]['date'].year == 2013:
         try:
             f = open('data_obs_2013.pckl')
@@ -480,11 +486,13 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
             f.close()
         if leaves is None:
             leaves = range(1,6)
+        if correct_fnl:
+            df_sim = resample_fnl(df_sim, weather_2013, variable='severity')
         plt_lf(data_obs_2013, weather_2013, xaxis=xaxis, leaves=leaves,
                xlims=xlims,linestyle='--', ax=ax, minimum_sample_size=15)
         plt_lf(df_sim, weather_2013, xaxis=xaxis, leaves=leaves,
                xlims=xlims, linestyle='-', marker=None,
-               ax=ax, minimum_sample_size=15)
+               ax=ax, minimum_sample_size=0)
     else:
         raise ValueError('Unavailable year')
         
@@ -526,8 +534,8 @@ def temp_plot_simu_by_fnl(df, multiply_sev = True, xaxis='degree_days',
             f.close()
         except:
             data_obs_2012, weather = data_reader(year = 2012,
-                                                      variety = 'Tremie12',
-                                                      from_file = 'control')
+                                                  variety = 'Tremie12',
+                                                  from_file = 'control')
             f = open('data_obs_2012.pckl', 'w')
             pickle.dump(data_obs_2012, f)
             f.close()
@@ -550,8 +558,8 @@ def temp_plot_simu_by_fnl(df, multiply_sev = True, xaxis='degree_days',
             f.close()
         except:
             data_obs_2013, weather = data_reader(year = 2013,
-                                                      variety = 'Tremie13',
-                                                      from_file = 'control')
+                                                  variety = 'Tremie13',
+                                                  from_file = 'control')
             f = open('data_obs_2013.pckl', 'w')
             pickle.dump(data_obs_2013, f)
             f.close()
@@ -574,6 +582,59 @@ def temp_plot_simu_by_fnl(df, multiply_sev = True, xaxis='degree_days',
         df = df_sim[df_sim['fnl']==fnl]
         plot_one_sim(df, 'severity', xaxis, axs, leaves, next(colors))
 
+def resample_fnl(df_obs, df_sim, weather, variable='severity'):
+    from alinea.echap.disease.septo_data_reader import get_ratio_fnl
+    
+    def cross_product(date, num_lf, fnl):
+        if fnl == main_fnl:
+            if num_lf in df.columns:
+                ratio_obs = 1-df.loc[np.datetime64(date, 'ns'), num_lf]
+            else:
+                ratio_obs = 1-ratio_obs_default
+            return ratio_obs/(1-ratio_sim)
+        else:
+            if num_lf in df.columns:
+                ratio_obs = df.loc[np.datetime64(date, 'ns'), num_lf]
+            else:
+                ratio_obs = ratio_obs_default
+            return ratio_obs/ratio_sim
+    
+    df = get_ratio_fnl(df_obs, weather, 'severity')
+    if df_sim.iloc[-1]['date'].year == 2012:
+        ratio_sim = 0.33333333333333331
+        ratio_obs_default = 0.21
+        main_fnl = 13
+        df.iloc[[-3,-2,-1], 4] = 0.
+    elif df_sim.iloc[-1]['date'].year == 2013:
+        ratio_sim = 0.28888888888888886
+        ratio_obs_default = 20./43.
+        main_fnl = 11
+
+    df = df.reset_index()
+    for date in set(df_sim['date']):
+        row = df_sim[df_sim['date']==date].iloc[0]
+        line = {'Date':row['date'], 'Degree days':row['degree_days']}
+        for i in range(1,8):
+            line[i] = np.nan
+        df = df.append(pd.Series(line), ignore_index=True)
+    df = df.sort('Date')
+    for i in range(1, len(df.columns)-1):
+        df.iloc[0,i+1] = df[i][~np.isnan(df[i])].values[0]
+    for i in range(1, len(df.columns)-1):
+        df.iloc[-1,i+1] = df[i][~np.isnan(df[i])].values[-1]
+    df = df.interpolate()
+    if df_sim.iloc[-1]['date'].year == 2012:
+        df.loc[:,8][np.isnan(df[8])] = 0.
+    df = df.set_index('Date')
+    
+    fun_resample = np.frompyfunc(cross_product, 3, 1)
+    df_sim['cross_product'] = fun_resample(df_sim['date'], df_sim['num_leaf_top'], df_sim['fnl'])
+    for col in ['leaf_area','leaf_green_area', 'leaf_length', 'leaf_senesced_length', 
+               'nb_dispersal_units', 'nb_lesions', 'nb_lesions_on_green', 
+               'surface_inc', 'surface_chlo', 'surface_nec', 'surface_nec_on_green', 
+               'surface_spo', 'surface_spo_on_green', 'surface_empty', 
+               'surface_empty_on_green', 'surface_dead', variable]:
+        df_sim[col] *= df_sim['cross_product']
 
 #for suffix in ['new_calib_age', 'new_calib_smin', 'new_calib_rate', 'new_calib_states', 'new_calib_states_2']:
 #    data_sim_new_calib = get_aggregated_data_sim(variety = 'Tremie12', nplants = 15,
