@@ -37,7 +37,7 @@ from variable_septoria import *
 # Temp
 import alinea.alep
 from openalea.deploy.shared_data import shared_data
-
+from alinea.echap.disease.alep_septo_evaluation import *
 from alinea.alep.disease_outputs import plot_by_leaf
 from alinea.alep.simulation_tools.simulation_tools import add_leaf_dates_to_data
 
@@ -378,7 +378,7 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
     elif df_sim.iloc[-1]['date'].year == 2013:
         try:
             f = open('data_obs_2013.pckl')
-            data_obs_2013 = pickle.load(f)
+            data_obs = pickle.load(f)
             f.close()
             f = open('weather_2013.pckl')
             weather = pickle.load(f)
@@ -585,9 +585,18 @@ def temp_plot_simu_by_fnl(df, multiply_sev = True, xaxis='degree_days',
 def resample_fnl(df_obs, df_sim, weather, variable='severity'):
     from alinea.echap.disease.septo_data_reader import get_ratio_fnl
     
-    def cross_product(date, num_lf, fnl):
+    def hack_convert(x):
+        if np.isreal(x):
+            return x
+        else:
+            return float(''.join(ch for ch in x if ch.isalnum()))
+    
+    def cross_product(date, num_lf, fnl, sev):
         if fnl == main_fnl:
             if num_lf in df.columns:
+#                if sev>90:
+#                    import pdb
+#                    pdb.set_trace()
                 ratio_obs = 1-df.loc[np.datetime64(date, 'ns'), num_lf]
             else:
                 ratio_obs = 1-ratio_obs_default
@@ -627,15 +636,19 @@ def resample_fnl(df_obs, df_sim, weather, variable='severity'):
         df.loc[:,8][np.isnan(df[8])] = 0.
     df = df.set_index('Date')
     
-    fun_resample = np.frompyfunc(cross_product, 3, 1)
-    df_sim['cross_product'] = fun_resample(df_sim['date'], df_sim['num_leaf_top'], df_sim['fnl'])
+#    fun_resample = np.frompyfunc(cross_product, 3, 1)
+    fun_resample = np.frompyfunc(cross_product, 4, 1)
+    df_sim['cross_product'] = fun_resample(df_sim['date'], df_sim['num_leaf_top'], df_sim['fnl'], df_sim['severity'])
     for col in ['leaf_area','leaf_green_area', 'leaf_length', 'leaf_senesced_length', 
                'nb_dispersal_units', 'nb_lesions', 'nb_lesions_on_green', 
                'surface_inc', 'surface_chlo', 'surface_nec', 'surface_nec_on_green', 
                'surface_spo', 'surface_spo_on_green', 'surface_empty', 
                'surface_empty_on_green', 'surface_dead', variable]:
+        try:
+            df_sim[col] = df_sim[col].astype(float)
+        except:
+            df_sim[col] = df_sim[col].map(hack_convert)
         df_sim[col] *= df_sim['cross_product']
-        df_sim[col] = df_sim[col].astype(float)
     return df_sim
 #for suffix in ['new_calib_age', 'new_calib_smin', 'new_calib_rate', 'new_calib_states', 'new_calib_states_2']:
 #    data_sim_new_calib = get_aggregated_data_sim(variety = 'Tremie12', nplants = 15,
