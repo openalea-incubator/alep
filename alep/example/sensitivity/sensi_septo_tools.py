@@ -52,8 +52,15 @@ def run_custom_septoria(sample):
                         proba_inf=1, Smin=0.02, growth_rate=0.0006,
                         degree_days_to_chlorosis=160., 
                         degree_days_to_necrosis=160.,
-                        degree_days_to_sporulation=70.,
-                        sporulating_fraction=0.1, **sample)
+                        degree_days_to_sporulation=50.,
+                        sporulating_fraction=0.01,
+                        reduction_by_rain=0., 
+                        rain_events_to_empty=5, 
+                        leaf_duration=2.5, 
+                        keep_leaves=True, 
+                        rh_effect=True, apply_rh='chlorosis', 
+                        rh_max=50., rh_min=50.,
+                        **sample)
 
 def get_septo_morris_path(year = 2012, variety = 'Tremie12'):
     return './septoria/septo_morris_output_'+variety.lower()+'_'+str(year)+'.csv'
