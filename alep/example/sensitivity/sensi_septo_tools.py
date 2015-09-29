@@ -110,6 +110,17 @@ def plot_septo_morris_by_leaf(year = 2012, variety = 'Tremie12',
     plot_morris_by_leaf(df_out, variable=variable,
                         parameter_range_file=parameter_range_file,
                         input_file=input_file, nboots=nboots, ylims=ylims)
+                        
+def plot_septo_morris_by_leaf_by_boot(year = 2012, variety = 'Tremie12',
+                             variable = 'normalized_audpc',
+                             parameter_range_file = './septoria/septo_param_range.txt',
+                             input_file = './septoria/septo_morris_input.txt',
+                             nboots = 5, ylims=None):
+    output_file = get_septo_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    plot_morris_by_leaf_by_boot(df_out, variable=variable,
+                        parameter_range_file=parameter_range_file,
+                        input_file=input_file, nboots=nboots, ylims=ylims)
 
 def plot_septo_morris_3_leaves(year = 2012, variety = 'Tremie12', 
                                leaves = [10, 5, 1], variable = 'normalized_audpc',
