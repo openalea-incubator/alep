@@ -22,18 +22,19 @@ import numpy as np
 #                          ('loss_delay', [72., 168.]), 
 #                          ('temp_min', [0., 10.])])
 
-parameters = OrderedDict([('tiller_probability', [0.5, 1.]),
-                          ('proba_main_nff', [0.4, 1.]),
-                          ('phyllochron', [85., 120.]),
-                          ('nb_green_leaves', [3.8, 5.4]),
-                          ('scale_leafDim', [0.5, 1.5]),
-                          ('scale_stemDim', [0.5, 1.5]),
-                          ('scale_leafRate', [0.5, 1.5]),
-                          ('scale_stemRate', [0.5, 1.5]),
-                          ('scale_fallingRate', [0.5, 1.5])])
+parameters = OrderedDict([('tiller_probability', [0.7, 1.3]),
+                          ('proba_main_nff', [0.49, 0.91]),
+                          ('scale_HS', [0.7, 1.3]),
+                          ('scale_leafDim_length', [0.7, 1.3]),
+                          ('scale_leafDim_width', [0.7, 1.3]),
+                          ('scale_leafRate', [0.7, 1.3]),
+                          ('scale_stemDim', [0.7, 1.3]),
+                          ('scale_stemRate', [0.7, 1.3]),
+                          ('scale_fallingRate', [0.7, 1.3]),
+                          ('scale_leafSenescence', [0.7, 1.3]),])
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
-nboots = 1
+nboots = 3
 nb_cpu = cpu_count()
 samples = []
 for i_boot in range(nboots):

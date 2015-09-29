@@ -35,10 +35,10 @@ v = variety_code()
              # (2011, v['Rht3']),
              # (2012, v['Tremie12']),
              # (2013, v['Tremie13'])]
-scenarios = [(2003, v['Custom'])]
+scenarios = [(2013, v['Custom'])]
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
-nboots = 1
+nboots = 3
 #generate_parameter_set(parameters,
 #                       scenarios,
 #                       parameter_range_file = './septoria/septo_param_range.txt',
