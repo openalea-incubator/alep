@@ -141,9 +141,9 @@ def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.):
     # Temp    
     reconst.HS_fit['Tremie12'].TT_hs_0 -= 35
     reconst.HS_fit['Tremie13'].TT_hs_0 -= 35
-    for dim in ['L_sheath', 'L_internode', 'H_col']: 
+#    for dim in ['L_sheath', 'L_internode', 'H_col']: 
 #        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Mercia'].scale[dim]
-        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Tremie12'].scale[dim]
+#        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Tremie12'].scale[dim]*1.1
     # Temp        
 #    reconst.dimension_fits['Tremie13'].scale['L_internode'] = 0.001
 #    reconst.dimension_fits['Tremie12'].scale['L_internode'] = 0.001
@@ -167,9 +167,15 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
                                 sowing_density=250.,
                                 plant_density=250., inter_row=0.15,
                                 nsect=7, seed=1, 
-                                scale_leafDim = 1, scale_leafRate=1,
-                                scale_stemDim = 1, scale_stemRate=1, 
-                                scale_fallingRate=1, **kwds):
+                                scale_HS = 1,
+                                scale_leafDim_length = 1,
+                                scale_leafDim_width = 1,
+                                scale_leafRate=1,
+                                scale_stemDim = 1,
+                                scale_stemRate=1, 
+                                scale_fallingRate=1,
+                                scale_leafSenescence=1,
+                                **kwds):
     parameters = reconstruction_parameters()
     stand = AgronomicStand(sowing_density=sowing_density,
                             plant_density=plant_density, 
@@ -178,7 +184,7 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     n_emerged = nplants
     tiller_proba = {'T1':1., 'T2':0.5, 'T3':0.5, 'T4':0.3}
     if 'tiller_probability' in kwds:
-        tiller_proba = {k:max(1, p*kwds['tiller_probability']) for k,p in tiller_proba.iteritems()}
+        tiller_proba = {k:min(1, p*kwds['tiller_probability']) for k,p in tiller_proba.iteritems()}
     m = pgen_ext.TillerEmission(primary_tiller_probabilities=tiller_proba)
     axp = pgen_ext.AxePop(Emission=m)
     if 'proba_main_nff' in kwds:
@@ -188,14 +194,11 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     # Modify phyllochron    
     HSfit = HS_fit()[variety]
     HSfit.mean_nff = axp.mean_nff()
-    phyllo_ref = 1./HSfit.a_cohort
     
-    scale_HS = 1 # mieux au cas ou tu garde phyllochron en entree, sinon on ne sait pas si c'est scaleHS ou phyllochron qui controle
+    #scale_HS = 1 # mieux au cas ou tu garde phyllochron en entree, sinon on ne sait pas si c'est scaleHS ou phyllochron qui controle
     #alternativement, tu peux mettre scale_HS en argument avec 1 par defaut et tu fait HSfit.a_cohort /=  scale_HS. Dans ce cas, tu n'utilise plus le mot clef phyllochron dans kwds
     # petit commentaire : HS determine date ligulation, modifie en collateral duree emergnce-ligulation et aussi duree de vie verte des feuilles (car le ssi ne bouge pas)
-    if 'phyllochron' in kwds:
-        scale_HS = kwds['phyllochron']/phyllo_ref
-        HSfit.a_cohort /= scale_HS
+    HSfit.a_cohort /= scale_HS
     
     # Modify leaf dimension and growth rate
     Dimfit = dimension_fits(HS_fit(), **parameters)[variety]    
@@ -203,8 +206,8 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     leafDuration_ref = adel_pars['leafDuration']
     adel_pars['leafDuration'] = (scale_leafDim / scale_HS)* \
                                 (leafDuration_ref / scale_leafRate)
-    Dimfit.scale['L_blade'] *= scale_leafDim
-    Dimfit.scale['W_blade'] *= scale_leafDim
+    Dimfit.scale['L_blade'] *= scale_leafDim_length
+    Dimfit.scale['W_blade'] *= scale_leafDim_width
                                     
     # Modify stem dimension and growth rate
     stemDuration_ref = adel_pars['stemDuration']
@@ -213,9 +216,13 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     Dimfit.scale['L_internode'] *= scale_stemDim
 
     # Modify senescence
+    
+    # Scale GL : GL flag, bolting and start_senescence : apply factor
+    # TEST EXTREME WITH LEAF RATE
     GLfit = GL_fits(HS_fit(), **parameters)[variety]
-    if 'nb_green_leaves' in kwds:
-        GLfit.GL_flag = kwds['nb_green_leaves']
+    GLfit.GL_bolting *= scale_leafSenescence
+    GLfit.GL_flag *= scale_leafSenescence
+    GLfit.n0 *= scale_leafSenescence
 
     # Modify falling rate
     pgen = pgen_ext.PlantGen(HSfit=HSfit, GLfit=GLfit, Dimfit=Dimfit, adel_pars = adel_pars)
@@ -304,7 +311,7 @@ def get_fnl_by_plant(data):
                 grps[fnl].append(m)
     return grps
     
-def add_leaf_dates_to_data(df, correct_leaf_number=True):
+def add_leaf_dates_to_data(df, correct_leaf_number=True, force_mean_fnl=False):
     def get_date_em(num_leaf_bottom=1, fnl=None):
         return hs_fit.TTemleaf(num_leaf_bottom, nff=fnl)
     def get_date_lig(num_leaf_bottom=1, fnl=None):
@@ -316,8 +323,12 @@ def add_leaf_dates_to_data(df, correct_leaf_number=True):
         fun_lig = np.frompyfunc(get_date_lig, 2, 1)
         df['date_emergence_leaf'] = fun_em(df['num_leaf_bottom'], df['fnl'])
         df['date_ligulation_leaf'] = fun_lig(df['num_leaf_bottom'], df['fnl'])
-        df['date_emergence_flag_leaf'] = map(lambda fnl: hs_fit.TTemleaf(fnl, nff=fnl), df['fnl'])
-        df['date_ligulation_flag_leaf'] = map(lambda fnl: hs_fit.TTligleaf(fnl, nff=fnl), df['fnl'])
+        if force_mean_fnl==False:
+            df['date_emergence_flag_leaf'] = map(lambda fnl: hs_fit.TTemleaf(fnl, nff=fnl), df['fnl'])
+            df['date_ligulation_flag_leaf'] = map(lambda fnl: hs_fit.TTligleaf(fnl, nff=fnl), df['fnl'])
+        else:
+            df['date_emergence_flag_leaf'] = hs_fit.TTemleaf(hs_fit.mean_nff, nff=None)[0]
+            df['date_ligulation_flag_leaf'] = hs_fit.TTligleaf(hs_fit.mean_nff, nff=None)[0]
         return df
     
     if not 'fnl' in df.columns:

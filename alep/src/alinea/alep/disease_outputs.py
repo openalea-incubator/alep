@@ -983,12 +983,13 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                                          
     def leaf_necrotic_area(self):
         self.data['leaf_necrotic_area'] = self.data['surface_spo'] + \
-                                          self.data['surface_empty']
-        
+                                          self.data['surface_empty']         
 
     def leaf_necrotic_area_on_green(self):
         self.data['leaf_necrotic_area_on_green'] = self.data['surface_spo_on_green'] + \
                                                    self.data['surface_empty_on_green']
+        indx = self.data['leaf_necrotic_area_on_green']>self.data['leaf_green_area']
+        self.data['leaf_necrotic_area_on_green'][indx] = self.data['leaf_green_area'][indx]
 
     def _ratio(self, variable='leaf_necrotic_area', against='leaf_area'):
         r = []
@@ -1507,7 +1508,7 @@ def conf_int(lst, perc_conf=95):
     n, v = len(lst), variance(lst)
     c = t.interval(perc_conf * 1.0 / 100, n-1)[1]
     
-    return sqrt(v/n) * c
+    return sqrt(v/n) * c if n>0 else 0.
            
 def plot_sum(data, variable = 'severity', xaxis = 'degree_days', 
               marker = 'd', linestyle = '-', color = 'b', alpha = None,
@@ -1664,6 +1665,114 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
                       color = color, alpha = alpha, 
                       title = title, xlabel = xlabel, ylabel = ylabel,
                       xlims = xlims, ylims = ylims, ax = ax)
+            proxy += [plt.Line2D((0,1),(0,0), color = color, linestyle ='-')]
+            labels += ['L%d' %lf]
+        
+        if legend == True:
+            ax.legend(proxy, labels, title = 'Leaf\nNumber',
+                        loc='center left', bbox_to_anchor=(1, 0.5))
+        if return_ax == True:
+            return ax
+
+def get_sum_leaf(data_lf, variable = 'severity', xaxis = 'degree_days'):
+    if 'rep' in data_lf.columns:
+        reps = numpy.unique(data_lf['rep'])
+    else:
+        reps = []
+    if xaxis != 'date':
+        data_lf[xaxis] = data_lf[xaxis].astype(float)
+    if xaxis == 'date':
+        cols = ['date', variable]
+    else:
+        cols = ['date', xaxis, variable]
+    if len(reps)>0:
+        df = pandas.DataFrame()
+        for rep in reps:
+            df_rep = data_lf[data_lf['rep']==rep].reset_index()
+            df_rep = df_rep[pandas.notnull(df_rep.loc[:,variable])].loc[:, cols]
+            df_rep = df_rep.convert_objects(convert_numeric=True)
+            df_sum_rep = df_rep.groupby('date').sum()
+            df_mean_rep = df_rep.groupby('date').mean()
+            df_sum_rep[xaxis] = df_mean_rep[xaxis]
+            df_sum_rep = df_sum_rep.reset_index()
+            df = pandas.concat([df, df_sum_rep])
+        df_sum = df.groupby('date').mean()
+        df_sum = df_sum.reset_index()
+        return df_sum
+    else:
+        df = data_lf.reset_index()
+#        df = df[pandas.notnull(df.loc[:,variable])].loc[:, cols]
+        df_sum = df.groupby('date').sum()
+        df_mean = df.groupby('date').mean()
+        df_sum[xaxis] = df_mean[xaxis]
+        df_sum = df_sum.reset_index()
+        return df_sum
+
+def plot_sum_leaf(data_lf, variable = 'severity', xaxis = 'degree_days',
+                  marker = 'd', empty_marker = False, linestyle = '-', color = 'b', 
+                  alpha = None, title = None, xlabel = None, ylabel = None,
+                  xlims = None, ylims = None, ax = None, return_ax = False):
+    if variable in data_lf.columns:
+        if ax == None:
+            fig, ax = plt.subplots()
+        if empty_marker == False:
+            markerfacecolor = color
+        else:
+            markerfacecolor = 'none'
+        if alpha is None:
+            alpha = 1
+        
+        df = data_lf.reset_index()
+        df_sum = get_sum_leaf(df, variable=variable, xaxis=xaxis)
+        ax.plot(df_sum[xaxis], df_sum[variable],
+                    marker = marker, linestyle = linestyle, color = color, alpha=alpha,
+                    markerfacecolor = markerfacecolor,  markeredgecolor = color)
+
+        if title is not None:
+            ax.set_title(title, fontsize = 18)
+        if xlabel is not None:
+            ax.set_xlabel(xlabel, fontsize = 18)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel, fontsize = 18)
+        if xlims is not None:
+            ax.set_xlim(xlims)
+        if ylims is not None:
+            ax.set_ylim(ylims)
+        if return_ax == True:
+            return ax
+
+def plot_sum_by_leaf(data, variable = 'green_area', xaxis = 'degree_days', 
+                      leaves = range(1, 14), from_top = True, plant_axis = ['MS'],
+                      marker = '', empty_marker = False, linestyle = '-', fixed_color = None, 
+                      alpha = None, title = None, legend = True, xlabel = None, ylabel = None,
+                      xlims = None, ylims = None, ax = None, return_ax = False, fig_size = (10,8)):
+    df = data.copy()       
+    if ax == None:
+        fig, ax = plt.subplots(figsize = fig_size)
+    colors = ax._get_lines.set_color_cycle()
+    colors = ax._get_lines.color_cycle
+    if alpha is None:
+        alpha = 1
+        
+    if from_top == True:
+        num_leaf = 'num_leaf_top'
+    else:
+        num_leaf = 'num_leaf_bottom'
+    
+    proxy = []
+    labels = []
+    for lf in leaves:
+        if lf in np.unique(df[num_leaf]):
+            df_lf = df[(df['axis'].isin(plant_axis)) & (df[num_leaf]==lf)]
+            if fixed_color == None:
+                color = next(colors)
+            else:
+                color = fixed_color
+            plot_sum_leaf(df_lf, variable = variable, xaxis = xaxis,
+                          marker = marker, empty_marker = empty_marker, linestyle = linestyle, 
+                          color = color, alpha = alpha, 
+                          title = title, xlabel = xlabel, ylabel = ylabel,
+                          xlims = xlims, ylims = ylims, ax = ax)
             proxy += [plt.Line2D((0,1),(0,0), color = color, linestyle ='-')]
             labels += ['L%d' %lf]
         

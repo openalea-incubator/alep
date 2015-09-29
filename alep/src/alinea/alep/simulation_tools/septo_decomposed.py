@@ -27,7 +27,7 @@ from alinea.astk.TimeControl import (IterWithDelays, rain_filter, time_filter,
 from alinea.alep.protocol import *
 from alinea.alep.septoria import plugin_septoria
 from alinea.alep.simulation_tools.simulation_tools import group_duplicates_in_cohort
-from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum
+from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DEmission
 from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import PriorityGrowthControl,SeptoRustCompetition, GeometricPoissonCompetition
 from alinea.alep.infection_control import BiotrophDUProbaModel
@@ -40,6 +40,7 @@ from openalea.deploy.shared_data import shared_data
 from alinea.echap.disease.alep_septo_evaluation import *
 from alinea.alep.disease_outputs import plot_by_leaf
 from alinea.alep.simulation_tools.simulation_tools import add_leaf_dates_to_data
+from alinea.adel.newmtg import adel_labels
 
 def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
@@ -114,6 +115,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
     else:
         raise ValueError('Unknown competition model')
     infection_controler = BiotrophDUProbaModel(age_infection=age_infection)
+#    emitter = Septo3DEmission(domain=domain)
     emitter = PopDropsEmission(domain=domain, compute_star = False)
     transporter = PopDropsTransport(fungus=fungus, group_dus=True,
                                     domain = domain, domain_area = domain_area,
@@ -140,6 +142,16 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                               save_images=save_images, 
                               keep_leaves=keep_leaves, 
                               leaf_duration=leaf_duration, **kwds)
+#    (g, adel, weather, seq, rain_timing, 
+#     canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
+#     wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
+#                              end_date=str(year)+"-07-30 00:00:00",
+#                              variety = variety, nplants = nplants,
+#                              nsect=nsect, rep_wheat=rep_wheat, 
+#                              septo_delay_dday=septo_delay_dday,
+#                              save_images=save_images, 
+#                              keep_leaves=keep_leaves, 
+#                              leaf_duration=leaf_duration, **kwds)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
@@ -160,6 +172,12 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
             it_wheat += 1
             g = grow_canopy(g, adel, canopy_iter, it_wheat,
                         wheat_dir, wheat_is_loaded, rain_and_light=True)
+                
+        # TEMP: debug
+        g.add_property('a_label')
+        a_labels = g.property('a_label')
+        a_labels.update( adel_labels(g))
+                        
                 
         # Get weather for date and add it as properties on leaves
         if septo_iter:
@@ -188,11 +206,6 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
             g = disperse(g, emitter, transporter, "septoria",
                          label='LeafElement', weather_data=rain_iter.value,
                          domain=adel.domain, domain_area=adel.domain_area)
-        
-        # Temp
-#        lesions = g.property('lesions')
-#        lesions = {k:[l for l in les if l.age_tt>0 and not np.isnan(l.surface) 
-#                    and not round(l.surface)==0] for k,les in lesions.iteritems()}
         
         # Save images
         if save_images == True:
@@ -406,7 +419,7 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
     if multiply_sev:
         df_sim['severity']*=100
     if correct_fnl:
-            df_sim = resample_fnl(data_obs, df_sim, weather, variable='severity')
+        df_sim = resample_fnl(data_obs, df_sim, weather, variable='severity')
     if only_severity:
         plot_one_sim(df_sim, 'severity', xaxis, axs, leaves, 'r')
     else:
@@ -429,9 +442,132 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
         for ax in axs_weather.flat:
             plot_rain_and_temp(weather, xaxis=xaxis, ax=ax, xlims=xlims, title='')
 
+
+def temp_plot_comparison(data_obs_2012, data_sim_2012, weather_2012, 
+                         data_obs_2013, data_sim_2013, weather_2013,
+                         multiply_sev = True, xaxis='age_leaf',
+                         xlims = [0, 1200], title=None, correct_fnl=True):
+    from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot, plot_one_sim
+    import matplotlib.pyplot as plt
+    leaves = range(1,6)
+    if title is not None:
+        ttle = False
+    else:
+        ttle = True
+    (df_mean_obs_2012, df_low_2012, df_high_2012, fig, 
+     axs) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
+                                        leaves=leaves, variable='severity', 
+                                        xaxis=xaxis, xlims=xlims,
+                                        minimum_sample_size=15,
+                                        title=ttle, return_fig=True, 
+                                        fixed_color='b')
+    (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
+     axs) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
+                                        leaves=leaves, variable='severity', 
+                                        xaxis=xaxis, xlims=xlims,
+                                        minimum_sample_size=15,
+                                        title=ttle, return_fig=True, 
+                                        fig=fig, axs=axs,
+                                        fixed_color='r')
+    if multiply_sev:
+        data_sim_2012['severity']*=100
+        data_sim_2013['severity']*=100
+    if correct_fnl:
+        data_sim_2012 = resample_fnl(data_obs_2012, data_sim_2012, weather_2012, variable='severity')
+        data_sim_2013 = resample_fnl(data_obs_2013, data_sim_2013, weather_2013, variable='severity')
+    plot_one_sim(data_sim_2012, 'severity', xaxis, axs, leaves, 'b')
+    plot_one_sim(data_sim_2013, 'severity', xaxis, axs, leaves, 'r')
+    
+    ticks = np.arange(xlims[0], xlims[1], 100)
+    for ax in axs.flat:
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(ticks)
+
+    if title is not None:
+        plt.text(0.5, 0.98, title, fontsize=18,
+                 transform=fig.transFigure, horizontalalignment='center')
+
+def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012, 
+                                 data_obs_2013, data_sim_2013, weather_2013,
+                                 multiply_sev = True, xaxis='degree_days',
+                                 xlims = [800, 2200], correct_fnl=True):
+    from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot, plot_one_sim
+    import matplotlib.pyplot as plt
+    leaves = range(1,6)
+    fig, axs = plt.subplots(len(leaves), 3, figsize=(16.5, 20))
+    axs_left = np.array([[ax[0]] for ax in axs])
+    axs_center = np.array([[ax[1]] for ax in axs])
+    axs_right = np.array([[ax[2]] for ax in axs])
+    
+    # Left column 2012 vs 2013
+    (df_mean_obs_2012, df_low_2012, df_high_2012, fig, 
+     axs_left) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
+                                        leaves=leaves, variable='severity', 
+                                        xaxis=xaxis, xlims=xlims,
+                                        minimum_sample_size=15,
+                                        title=False, return_fig=True, 
+                                        fig=fig, axs=axs_left,
+                                        fixed_color='b', display_legend=False,
+                                        tight_layout=False)
+    (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
+     axs_left) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
+                                        leaves=leaves, variable='severity', 
+                                        xaxis=xaxis, xlims=xlims,
+                                        minimum_sample_size=15,
+                                        title=False, return_fig=True, 
+                                        fig=fig, axs=axs_left,
+                                        fixed_color='r', display_legend=False,
+                                        tight_layout=False)
+    if multiply_sev:
+        data_sim_2012['severity']*=100
+        data_sim_2013['severity']*=100
+    if correct_fnl:
+        data_sim_2012_resampled = resample_fnl(data_obs_2012, data_sim_2012, weather_2012, variable='severity')
+        data_sim_2013_resampled = resample_fnl(data_obs_2013, data_sim_2013, weather_2013, variable='severity')
+        plot_one_sim(data_sim_2012_resampled, 'severity', xaxis, axs_left, leaves, 'b')
+        plot_one_sim(data_sim_2013_resampled, 'severity', xaxis, axs_left, leaves, 'r')
+    else:
+        plot_one_sim(data_sim_2012, 'severity', xaxis, axs_left, leaves, 'b')
+        plot_one_sim(data_sim_2013, 'severity', xaxis, axs_left, leaves, 'r')
+    
+    # Center column fnls for 2012
+    colors = iter([(0.5,0.5,1), (0,0,0.5)])
+    axs_center = plot_confidence_and_boxplot_by_fnl(data_obs_2012, weather_2012, 
+                                            leaves = leaves, variable = 'severity', 
+                                            xaxis = xaxis, xlims=xlims,
+                                            fig=fig, axs=axs_center,
+                                            colors=colors,
+                                            return_ax = True, 
+                                            display_legend=False,
+                                            tight_layout=False)
+    colors = iter([(0.5,0.5,1), (0,0,0.5)])
+    for fnl in np.unique(data_sim_2012['fnl']):
+        df = data_sim_2012[data_sim_2012['fnl']==fnl]
+        plot_one_sim(df, 'severity', xaxis, axs_center, leaves, next(colors))
+    
+    # Right column fnls for 2013
+    colors = iter([(1,0.5,0.5), (0.5,0,0)])
+    axs_right = plot_confidence_and_boxplot_by_fnl(data_obs_2013, weather_2013, 
+                                            leaves = leaves, variable = 'severity', 
+                                            xaxis = xaxis, xlims=xlims,
+                                            fig=fig, axs=axs_right,
+                                            colors=colors,
+                                            return_ax = True, 
+                                            display_legend=False,
+                                            tight_layout=False)
+    colors = iter([(1,0.5,0.5), (0.5,0,0)])
+    for fnl in np.unique(data_sim_2013['fnl']):
+        df = data_sim_2013[data_sim_2013['fnl']==fnl]
+        plot_one_sim(df, 'severity', xaxis, axs_right, leaves, next(colors))
+        
+    # Custom
+    ticks = np.arange(xlims[0], xlims[1], 200)
+    for ax in axs.flat:
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(ticks)
         
 def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
-                      leaves=None, xlims = [1100, 2200], correct_fnl=True):
+                      leaves=None, xlims = [0, 1200], correct_fnl=True):
     from alinea.echap.disease.alep_septo_evaluation import data_reader
     from alinea.echap.disease.septo_data_treatment import plot_by_leaf as plt_lf
     import cPickle as pickle
@@ -463,6 +599,7 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
             df_sim = resample_fnl(data_obs_2012, df_sim, weather_2012, variable='severity')
         plt_lf(data_obs_2012, weather_2012, xaxis=xaxis, leaves=leaves,
                xlims=xlims,linestyle='--', ax=ax, minimum_sample_size=15)
+#        leaves = range(1,10)
         plt_lf(df_sim, weather_2012, xaxis=xaxis, leaves=leaves,
                xlims=xlims, linestyle='-', marker=None,
                ax=ax, minimum_sample_size=0)
@@ -513,6 +650,9 @@ def plot_states_leaf(df, leaf=2):
     plot_one_sim(df_sim, 'surface_nec', xaxis, ax, leaves, nec)
     df_sim['tot_spo'] = df_sim['surface_spo'] + df_sim['surface_empty']
     plot_one_sim(df_sim, 'tot_spo', xaxis, ax, leaves, 'k')
+#    plot_one_sim(df_sim, 'surface_spo', xaxis, ax, leaves, 'm')
+#    plot_one_sim(df_sim, 'surface_non_spo', xaxis, ax, leaves, 'k')
+#    plot_one_sim(df_sim, 'surface_empty', xaxis, ax, leaves, 'c')
     
 def temp_plot_simu_by_fnl(df, multiply_sev = True, xaxis='degree_days',
                    leaves=None, only_severity=False, xlims = [800, 2200],
@@ -591,12 +731,9 @@ def resample_fnl(df_obs, df_sim, weather, variable='severity'):
         else:
             return float(''.join(ch for ch in x if ch.isalnum()))
     
-    def cross_product(date, num_lf, fnl, sev):
+    def cross_product(date, num_lf, fnl):
         if fnl == main_fnl:
             if num_lf in df.columns:
-#                if sev>90:
-#                    import pdb
-#                    pdb.set_trace()
                 ratio_obs = 1-df.loc[np.datetime64(date, 'ns'), num_lf]
             else:
                 ratio_obs = 1-ratio_obs_default
@@ -636,9 +773,9 @@ def resample_fnl(df_obs, df_sim, weather, variable='severity'):
         df.loc[:,8][np.isnan(df[8])] = 0.
     df = df.set_index('Date')
     
-#    fun_resample = np.frompyfunc(cross_product, 3, 1)
-    fun_resample = np.frompyfunc(cross_product, 4, 1)
-    df_sim['cross_product'] = fun_resample(df_sim['date'], df_sim['num_leaf_top'], df_sim['fnl'], df_sim['severity'])
+    fun_resample = np.frompyfunc(cross_product, 3, 1)
+    df_sim['cross_product'] = fun_resample(df_sim['date'], df_sim['num_leaf_top'], df_sim['fnl'])
+    df_sim['cross_product'] = df_sim['cross_product'].astype(float)
     for col in ['leaf_area','leaf_green_area', 'leaf_length', 'leaf_senesced_length', 
                'nb_dispersal_units', 'nb_lesions', 'nb_lesions_on_green', 
                'surface_inc', 'surface_chlo', 'surface_nec', 'surface_nec_on_green', 
@@ -660,3 +797,16 @@ def resample_fnl(df_obs, df_sim, weather, variable='severity'):
 #    plot_by_leaf(data_sim_new_calib, variable='nb_lesions')
 #    plt.savefig('C:/Users/ggarin/Desktop/20150409_results/'+suffix[10:]+'_lesions.png')
 
+def plot_variables_leaf(df, leaf=2, add_leaf_dates=False,
+                        xaxis='age_leaf', xlims=[0,1200]):
+    if add_leaf_dates==True:
+        df = add_leaf_dates_to_data(df)
+    fig, ax = plt.subplots()
+    ax = np.array([ax])
+    plot_one_sim(df, 'leaf_area', xaxis, ax, leaves, 'g', linestyle='-')
+    plot_one_sim(df, 'leaf_green_area', xaxis, ax, leaves, 'g', linestyle='--')
+    plot_one_sim(df, 'leaf_necrotic_area', xaxis, ax, leaves, 'r', linestyle='-')
+    plot_one_sim(df, 'leaf_necrotic_area_on_green', xaxis, ax, leaves, 'r', linestyle='--')
+    ax[0].set_xlim(xlims)
+    ax[0].set_ylabel('Leaf area (cm2)', fontsize=16)
+    ax[0].set_xlabel('Age of leaf (degree days)', fontsize=16)

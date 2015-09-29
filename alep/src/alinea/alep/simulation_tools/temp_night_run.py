@@ -238,12 +238,175 @@ def bbich7():
            sporulating_fraction=5e-3, reduction_by_rain=0.,
            rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
            suffix='low_inoc_high_disp_390_160', nreps=5)
-           
-def bbich8():
-    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-21',
-           nplants=15, proba_inf=1, age_infection=False, growth_rate=0.0006,
-           Smin=0.02, degree_days_to_chlorosis=160., 
-           degree_days_to_necrosis=160., degree_days_to_sporulation=70., 
-           sporulating_fraction=5e-3, reduction_by_rain=0.,
-           rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
-           suffix='low_inoc_high_disp_390_160', nreps=5)
+                  
+def thu1():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21', nplants=15,
+                   proba_inf=1, age_infection=False, growth_rate=0.0006, Smin=0.02, 
+                   degree_days_to_chlorosis=160., degree_days_to_necrosis=160., 
+                   degree_days_to_sporulation=50., sporulating_fraction=0.01, 
+                   reduction_by_rain=0., rain_events_to_empty=5, leaf_duration=2.5, 
+                   keep_leaves=True, rh_effect=True, apply_rh='chlorosis',
+                   rh_max=50, rh_min=49., suffix='inoc01_em10_rh50_Hrop3', nreps=5)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15,
+               proba_inf=1, age_infection=False, growth_rate=0.0006, Smin=0.02, 
+               degree_days_to_chlorosis=160., degree_days_to_necrosis=160., 
+               degree_days_to_sporulation=50., sporulating_fraction=0.01, 
+               reduction_by_rain=0., rain_events_to_empty=5, leaf_duration=2.5, 
+               keep_leaves=True, rh_effect=True, apply_rh='chlorosis',
+               rh_max=50, rh_min=49., suffix='inoc01_em10_rh50_Hrop3', nreps=5)
+
+def thu2():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21', nplants=15,
+                   proba_inf=1, age_infection=False, growth_rate=0.0006, Smin=0.02, 
+                   degree_days_to_chlorosis=160., degree_days_to_necrosis=160., 
+                   degree_days_to_sporulation=50., sporulating_fraction=0.01, 
+                   reduction_by_rain=0., rain_events_to_empty=5, leaf_duration=2.5, 
+                   keep_leaves=True, rh_effect=True, apply_rh='chlorosis',
+                   rh_max=50, rh_min=49., suffix='inoc01_em10_rh50_Hrop28', nreps=5)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15,
+               proba_inf=1, age_infection=False, growth_rate=0.0006, Smin=0.02, 
+               degree_days_to_chlorosis=160., degree_days_to_necrosis=160., 
+               degree_days_to_sporulation=50., sporulating_fraction=0.01, 
+               reduction_by_rain=0., rain_events_to_empty=5, leaf_duration=2.5, 
+               keep_leaves=True, rh_effect=True, apply_rh='chlorosis',
+               rh_max=50, rh_min=49., suffix='inoc01_em10_rh50_Hrop28', nreps=5)
+               
+def thu3():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21', nplants=15,
+                   proba_inf=1, age_infection=False, growth_rate=0.0006, Smin=0.02, 
+                   degree_days_to_chlorosis=160., degree_days_to_necrosis=160., 
+                   degree_days_to_sporulation=50., sporulating_fraction=0.01, 
+                   reduction_by_rain=0., rain_events_to_empty=5, leaf_duration=2.5, 
+                   keep_leaves=True, rh_effect=True, apply_rh='chlorosis',
+                   rh_max=50, rh_min=49., suffix='inoc01_em10_rh50_Hrop26', nreps=5)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15,
+               proba_inf=1, age_infection=False, growth_rate=0.0006, Smin=0.02, 
+               degree_days_to_chlorosis=160., degree_days_to_necrosis=160., 
+               degree_days_to_sporulation=50., sporulating_fraction=0.01, 
+               reduction_by_rain=0., rain_events_to_empty=5, leaf_duration=2.5, 
+               keep_leaves=True, rh_effect=True, apply_rh='chlorosis',
+               rh_max=50, rh_min=49., suffix='inoc01_em10_rh50_Hrop26', nreps=5)               
+               
+def thu4():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21', nplants=15,
+               proba_inf=1, age_infection=False, growth_rate=0.0006, Smin=0.02, 
+               degree_days_to_chlorosis=160., degree_days_to_necrosis=160., 
+               degree_days_to_sporulation=50., sporulating_fraction=0.01, 
+               reduction_by_rain=0., rain_events_to_empty=5, leaf_duration=2.5, 
+               keep_leaves=True, rh_effect=True, apply_rh='all',
+               rh_max=50, rh_min=49., suffix='inoc01_em10_rh50all_Hrop3', nreps=5)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15,
+               proba_inf=1, age_infection=False, growth_rate=0.0006, Smin=0.02, 
+               degree_days_to_chlorosis=160., degree_days_to_necrosis=160., 
+               degree_days_to_sporulation=50., sporulating_fraction=0.01, 
+               reduction_by_rain=0., rain_events_to_empty=5, leaf_duration=2.5, 
+               keep_leaves=True, rh_effect=True, apply_rh='all',
+               rh_max=50, rh_min=49., suffix='inoc01_em10_rh50all_Hrop3', nreps=5)
+               
+def sun1():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.01, reduction_by_rain=0.,
+                   rain_events_to_empty=5, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='sunday2', nreps=1)
+
+def sun2():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.01, reduction_by_rain=0.,
+                   rain_events_to_empty=5, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='sunday2', nreps=1)
+                   
+def mon1():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.01, reduction_by_rain=0.,
+                   rain_events_to_empty=5, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='monday', nreps=3)
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.03, reduction_by_rain=0.,
+                   rain_events_to_empty=5, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='monday', nreps=3)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.01, reduction_by_rain=0.,
+                   rain_events_to_empty=5, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='monday', nreps=1)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.03, reduction_by_rain=0.,
+                   rain_events_to_empty=5, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='monday', nreps=1)
+
+def mon2():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.01, reduction_by_rain=0.,
+                   rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='monday_rain10', nreps=3)
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.03, reduction_by_rain=0.,
+                   rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='monday_rain10', nreps=3)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.01, reduction_by_rain=0.,
+                   rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='monday_rain10', nreps=3)
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+                   nplants=15, proba_inf=1, age_infection=False,
+                   growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+                   degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+                   sporulating_fraction=0.03, reduction_by_rain=0.,
+                   rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+                   rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+                   suffix='monday_rain10', nreps=3)
+                   
+def tue1():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-21',
+               nplants=15, proba_inf=1, age_infection=False,
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+               degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+               sporulating_fraction=0.01, reduction_by_rain=0.,
+               rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+               rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+               density_dus_emitted_ref=5e5, suffix='tuesday', nreps=1)
+def tue2():
+    run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
+               nplants=15, proba_inf=1, age_infection=False,
+               growth_rate=0.0006, Smin=0.02, degree_days_to_chlorosis=160.,
+               degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
+               sporulating_fraction=0.01, reduction_by_rain=0.,
+               rain_events_to_empty=10, leaf_duration=2.5, keep_leaves=True,
+               rh_effect=True, apply_rh='all', rh_max=45., rh_min=44.9,
+               density_dus_emitted_ref=5e5, suffix='tuesday', nreps=1)
+               
