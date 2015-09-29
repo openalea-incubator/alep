@@ -46,5 +46,5 @@ for i_boot in range(nboots):
 # Run disease simulation
 if __name__ == '__main__':
     # pymap(run_septoria, samples, nb_cpu-2)
-    pymap(run_custom_septoria, samples, nb_cpu-2)
+    pymap(run_custom_septoria, samples, nb_cpu)
     

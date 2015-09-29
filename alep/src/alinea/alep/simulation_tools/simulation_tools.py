@@ -204,7 +204,7 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     Dimfit = dimension_fits(HS_fit(), **parameters)[variety]    
     adel_pars = parameters['adel_pars']
     leafDuration_ref = adel_pars['leafDuration']
-    adel_pars['leafDuration'] = (scale_leafDim / scale_HS)* \
+    adel_pars['leafDuration'] = ((scale_leafDim_length*scale_leafDim_width) / scale_HS)* \
                                 (leafDuration_ref / scale_leafRate)
     Dimfit.scale['L_blade'] *= scale_leafDim_length
     Dimfit.scale['W_blade'] *= scale_leafDim_width
