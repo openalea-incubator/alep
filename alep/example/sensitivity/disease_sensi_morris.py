@@ -123,6 +123,33 @@ def plot_morris_by_leaf(df_out, variable = 'normalized_audpc',
         ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
                     xycoords='axes fraction', fontsize=18)
                     
+def plot_morris_by_leaf_by_boot(df_out, variable = 'normalized_audpc',
+                        parameter_range_file = 'param_range_SA.txt',
+                        input_file = 'morris_input.txt',
+                        nboots = 5, ylims=None):
+    problem = read_param_file(parameter_range_file)
+    fig, axs = plt.subplots(6,2, figsize=(15,30))
+    colors = iter(['b', 'g', 'r', 'k', 'm', 'c', 'y'])
+    colors = {b:next(colors) for b in range(nboots)}
+    for i, ax in enumerate(axs.flat):
+        lf = i+1
+        for boot in np.unique(df_out['i_boot']):
+            param_values = np.loadtxt(input_file[:-4]+'_boot'+str(boot)+input_file[-4:])
+            df = df_out[(df_out['i_boot']==boot) & (df_out['num_leaf_top']==lf)]
+            Y = df[variable]
+            Si_bt = morris.analyze(problem, param_values, Y, grid_jump = 5, 
+                                    num_levels = 10, conf_level=0.95, 
+                                    print_to_console=False)
+            for ip, param in enumerate(Si_bt['names']):
+                ax.plot(Si_bt['mu_star'][ip], Si_bt['sigma'][ip], 
+                        color=colors[boot], marker='*')
+                ax.annotate(param, (Si_bt['mu_star'][ip],Si_bt['sigma'][ip]))
+        if ylims is not None:
+            ax.set_ylim(ylims)
+            ax.set_xlim(ylims)
+        ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
+                    xycoords='axes fraction', fontsize=18)
+                    
 def plot_morris_3_leaves(df_out, leaves = [10, 5, 1],
                         variable = 'normalized_audpc',
                         parameter_range_file = 'param_range_SA.txt',
