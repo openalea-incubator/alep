@@ -203,6 +203,7 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     GreenDuration1_ref = axeT['TT_sen_phytomer1'] - axeT['TT_em_phytomer1']
     phenT = phenT.sort(['id_phen', 'index_phytomer'])
     dTTsen_ref = phenT['dTT_sen_phytomer']
+    dTTem_ref = phenT['dTT_em_phytomer']
 
     
     # Modify fits
@@ -247,7 +248,7 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     
     # Modify senescence
     axeT['TT_sen_phytomer1'] = axeT['TT_em_phytomer1'] + scale_leafSenescence * GreenDuration1_ref
-    phenT['dTT_sen_phytomer'] = dTTsen_ref    
+    phenT['dTT_sen_phytomer'] = dTTsen_ref  + (phenT['dTT_em_phytomer'] - dTTem_ref)
     devT = devCsv(axeT, dimT, phenT)
     
     leaves = leafshape_fits(**parameters)[variety]
