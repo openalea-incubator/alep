@@ -191,18 +191,34 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
         axp.MS_probabilities = {'11':1-kwds['proba_main_nff'], '12':kwds['proba_main_nff']}
     plants = axp.plant_list(n_emerged)
     
-    # Modify phyllochron    
+    # Measure and save Green leaf durations on the reference
+    adel_pars = parameters['adel_pars']
     HSfit = HS_fit()[variety]
     HSfit.mean_nff = axp.mean_nff()
+    Dimfit = dimension_fits(HS_fit(), **parameters)[variety]
+    GLfit = GL_fits(HS_fit(), **parameters)[variety]
+    pgen = pgen_ext.PlantGen(HSfit=HSfit, GLfit=GLfit, Dimfit=Dimfit, adel_pars = adel_pars)
+    axeT, dimT, phenT = pgen.adelT(plants)
+    axeT = axeT.sort(['id_plt', 'id_cohort', 'N_phytomer'])
+    GreenDuration1_ref = axeT['TT_sen_phytomer1'] - axeT['TT_em_phytomer1']
+    phenT = phenT.sort(['id_phen', 'index_phytomer'])
+    dTTsen_ref = phenT['dTT_sen_phytomer']
+
     
-    #scale_HS = 1 # mieux au cas ou tu garde phyllochron en entree, sinon on ne sait pas si c'est scaleHS ou phyllochron qui controle
-    #alternativement, tu peux mettre scale_HS en argument avec 1 par defaut et tu fait HSfit.a_cohort /=  scale_HS. Dans ce cas, tu n'utilise plus le mot clef phyllochron dans kwds
-    # petit commentaire : HS determine date ligulation, modifie en collateral duree emergnce-ligulation et aussi duree de vie verte des feuilles (car le ssi ne bouge pas)
+    # Modify fits
+    
+    # HS_fit
+    
+    # petit commentaire : scale_HS determine ligulation rate + emergence rate
+    # la duree emergence-ligulation est impactee du fait de ce changement (inevitable si on impose leaf_rate)
+    # mais aussi en raison de scale_leafRate(non souhaite => compensation ci dessous)
+    HS_ref = HSfit.a_cohort
     HSfit.a_cohort /= scale_HS
+    # on compense en decalant l'emergence des plante
+    HSfit.TT_hs_0 += (1 - adel_pars['fracLeaf']) / HS_ref * (1. / scale_leafRate - 1)
     
-    # Modify leaf dimension and growth rate
-    Dimfit = dimension_fits(HS_fit(), **parameters)[variety]    
-    adel_pars = parameters['adel_pars']
+    
+    # Modify leaf dimension and growth rate  
     leafDuration_ref = adel_pars['leafDuration']
     adel_pars['leafDuration'] = ((scale_leafDim_length*scale_leafDim_width) / scale_HS)* \
                                 (leafDuration_ref / scale_leafRate)
@@ -215,25 +231,31 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
                                 (stemDuration_ref / scale_stemRate)
     Dimfit.scale['L_internode'] *= scale_stemDim
 
-    # Modify senescence
+    
     
     # Scale GL : GL flag, bolting and start_senescence : apply factor
     # TEST EXTREME WITH LEAF RATE
-    GLfit = GL_fits(HS_fit(), **parameters)[variety]
-    GLfit.GL_bolting *= scale_leafSenescence
-    GLfit.GL_flag *= scale_leafSenescence
-    GLfit.n0 *= scale_leafSenescence
+    #GLfit.GL_bolting *= scale_leafSenescence
+    #GLfit.GL_flag *= scale_leafSenescence
+    #GLfit.n0 *= scale_leafSenescence
 
-    # Modify falling rate
+    # Modify  green leaf durations and falling rate
     pgen = pgen_ext.PlantGen(HSfit=HSfit, GLfit=GLfit, Dimfit=Dimfit, adel_pars = adel_pars)
     axeT, dimT, phenT = pgen.adelT(plants)
-    axeT = axeT.sort(['id_plt', 'id_cohort', 'N_phytomer'])
+    axeT = axeT.sort(['id_plt', 'id_cohort', 'N_phytomer'])    
+    phenT = phenT.sort(['id_phen', 'index_phytomer'])
+    
+    # Modify senescence
+    axeT['TT_sen_phytomer1'] = axeT['TT_em_phytomer1'] + scale_leafSenescence * GreenDuration1_ref
+    phenT['dTT_sen_phytomer'] = dTTsen_ref
+    
     devT = devCsv(axeT, dimT, phenT)
     leaves = leafshape_fits(**parameters)[variety]
     bins_ref = leaves.bins
     bins_ref[-1] = 21.
     bins = [x * scale_HS / scale_fallingRate if i_x!=0 else x*scale_HS for i_x,x in enumerate(bins_ref)]
     leaves.bins = bins
+    
     return AdelWheat(nplants = nplants, nsect=nsect, devT=devT, stand = stand , 
                     seed=seed, sample='sequence', leaves = leaves, run_adel_pars = adel_pars)
     
