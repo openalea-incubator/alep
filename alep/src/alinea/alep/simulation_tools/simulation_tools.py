@@ -247,9 +247,9 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     
     # Modify senescence
     axeT['TT_sen_phytomer1'] = axeT['TT_em_phytomer1'] + scale_leafSenescence * GreenDuration1_ref
-    phenT['dTT_sen_phytomer'] = dTTsen_ref
-    
+    phenT['dTT_sen_phytomer'] = dTTsen_ref    
     devT = devCsv(axeT, dimT, phenT)
+    
     leaves = leafshape_fits(**parameters)[variety]
     bins_ref = leaves.bins
     bins_ref[-1] = 21.
