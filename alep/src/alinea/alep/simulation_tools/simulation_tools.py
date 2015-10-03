@@ -135,15 +135,22 @@ def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.):
     #CF : ici si tu veux ajuster la duree d'allongement des feuilles, en particulier pour avoir des emergences plus precoces:
     #    Une feuille emerge (0.8 * leafDuration * phyllochron) dd  avant HS
     pars['adel_pars']['leafDuration'] = leaf_duration #2 = valeur normale
+    # Temp
+#    pars['adel_pars']['dHS_en'] -= 1.
+#    pars['adel_pars']['stemDuration'] += 1.
+    #
     reconst = EchapReconstructions(reset_data=True, pars=pars)
+    
 #    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
 #    reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
+
     # Temp    
     reconst.HS_fit['Tremie12'].TT_hs_0 -= 35
     reconst.HS_fit['Tremie13'].TT_hs_0 -= 35
-#    for dim in ['L_sheath', 'L_internode', 'H_col']: 
+
+    for dim in ['L_sheath', 'L_internode', 'H_col']: 
 #        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Mercia'].scale[dim]
-#        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Tremie12'].scale[dim]*1.1
+        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Tremie12'].scale[dim]*1.1
     # Temp        
 #    reconst.dimension_fits['Tremie13'].scale['L_internode'] = 0.001
 #    reconst.dimension_fits['Tremie12'].scale['L_internode'] = 0.001
@@ -161,6 +168,10 @@ def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.):
 #            phenT.loc[indx,['dTT_em_phytomer', 'dTT_col_phytomer']]-=50.
         # Trouver 1.6 dans run_adel_pars
     #
+        
+    # Temp
+    reconst.GL_fits['Tremie12'].GL_bolting = reconst.GL_fits['Tremie13'].GL_bolting
+#    reconst.GL_fits['Tremie13'].GL_bolting = 3.
     return reconst
     
 def alep_custom_reconstructions(variety='Tremie13', nplants=30, 

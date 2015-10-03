@@ -1033,7 +1033,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
             for lf in set(df_pl['num_leaf_top']):
                 df_lf = df_pl[df_pl['num_leaf_top'] == lf]
                 ind_data_lf = df_lf.index
-                if round(df_lf['leaf_green_area'][pandas.notnull(df_lf['leaf_disease_area'])].iloc[-1],10)==0.:
+                if round(df_lf['leaf_green_area'][pandas.notnull(df_lf[variable])].iloc[-1],10)==0.:
                     data = df_lf[variable][df_lf['leaf_green_area']>0]
                     ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
                     data_ref = numpy.ones(len(data))

@@ -59,6 +59,9 @@ class SeptoriaAgePhysio(Lesion):
         # Potential surface of the lesion if no competition
         self.potential_surface = 0.
         
+        # Temp
+        self.sporulating_capacity = self.fungus.sporulating_capacity
+        
     def is_incubating(self):
         """ Check if lesion status is incubation. """
         return self.status == self.fungus.INCUBATING
@@ -91,6 +94,9 @@ class SeptoriaAgePhysio(Lesion):
             self.senescence_response(leaf.senesced_length)
 
         if self.is_active:
+            # Temp
+            self.a_label = leaf.a_label
+            
             # Compute delta degree days in dt
             self.compute_delta_ddays(dt, leaf)
             
@@ -123,13 +129,22 @@ class SeptoriaAgePhysio(Lesion):
                 
     def rh_response(self, rh):
         f = self.fungus
-        if rh > f.rh_max:
+#        if rh > f.rh_max:
+#            return 1
+#        elif rh > f.rh_min:
+#            rh_resp = interp1d([f.rh_min, f.rh_max], [0,1])
+#            return rh_resp(rh).tolist()
+#        else:
+##            return -1.
+##            import pdb
+##            pdb.set_trace()
+#            return -2.
+        if rh>f.rh_min:
             return 1
-        elif rh > f.rh_min:
-            rh_resp = interp1d([f.rh_min, f.rh_max], [0,1])
-            return rh_resp(rh).tolist()
         else:
-            return 0.
+#            import pdb
+#            pdb.set_trace()
+            return -2.
                 
     def compute_delta_ddays(self, dt=1., leaf=None):
         """ Compute delta degree days in dt.
@@ -149,18 +164,27 @@ class SeptoriaAgePhysio(Lesion):
             ddday = sum([max(0,(temp - f.basis_for_dday)*1/24.) if temp<=f.temp_max else 0. for temp in props['temperature_sequence']])
             # TEMP ... et moche
             if f.rh_effect==True:
-                if f.apply_rh=='all' :
-                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
-                    rh_factor = np.mean(rh_resps)
-                    ddday *= rh_factor
-                elif f.apply_rh=='chlorosis' and self.status>=f.CHLOROTIC:
-                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
-                    rh_factor = np.mean(rh_resps)
-                    ddday *= rh_factor
-                elif f.apply_rh=='necrosis' and self.status>=f.NECROTIC:
-                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
-                    rh_factor = np.mean(rh_resps)
-                    ddday *= rh_factor
+                if any([rh < f.rh_min for rh in props['relative_humidity_sequence']]) and self.is_incubating():
+#                    self.sporulating_capacity -= 0.05
+                    ddday =0.
+##                    
+#                if f.apply_rh=='all':
+#                    if self.is_incubating():
+#                        rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+#                        rh_factor = np.mean(rh_resps)
+#                        if rh_factor != 1:
+#                            import pdb
+#                            pdb.set_trace()
+#                        ddday *= rh_factor
+                        
+#                elif f.apply_rh=='chlorosis' and self.status>=f.CHLOROTIC:
+#                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+#                    rh_factor = np.mean(rh_resps)
+#                    ddday *= rh_factor
+#                elif f.apply_rh=='necrosis' and self.status>=f.NECROTIC:
+#                    rh_resps = map(self.rh_response, props['relative_humidity_sequence'])
+#                    rh_factor = np.mean(rh_resps)
+#                    ddday *= rh_factor
 
 #            if 'global_efficacy' in leaf.properties():
 #                ddday *= (1 - max(0, min(1, leaf.global_efficacy['eradicant'])))
@@ -246,6 +270,9 @@ class SeptoriaAgePhysio(Lesion):
                     progress=self.progress(age_threshold=f.degree_days_to_sporulation)
                 if self.age_physio_edge+progress < 1.:
                     self.age_physio_edge += progress
+                    # Temp
+                    if self.age_physio_edge < 0.:
+                        self.age_physio_edge = 0.
                 else:
                     diff = self.age_physio_edge + progress - 1.
                     self.ratio_left_edge = diff/progress
@@ -361,6 +388,9 @@ class SeptoriaAgePhysio(Lesion):
         if self.status_edge==f.CHLOROTIC and not self.growth_is_active :
             if self.age_physio_edge+progress < 1.:
                 self.age_physio_edge += progress
+                # Temp
+                if self.age_physio_edge < 0.:
+                    self.age_physio_edge = 0.
             else:
                 diff = self.age_physio_edge + progress - 1.
                 self.ratio_left_edge = diff/progress
@@ -424,8 +454,13 @@ class SeptoriaAgePhysio(Lesion):
                 # Get what passes to next status
                 self.surfaces_nec = np.extract(new_ends<=1, new_surf)
                 surface_to_next_phase = sum(np.extract(new_ends>1, new_surf))
-                self.to_sporulation = f.sporulating_capacity * surface_to_next_phase
-                self.surface_empty += (1 - f.sporulating_capacity) * surface_to_next_phase
+                self.to_sporulation = self.sporulating_capacity * surface_to_next_phase
+#                self.surface_empty += (1 - self.sporulating_capacity) * surface_to_next_phase
+                #temp
+#                if self.a_label.startswith('plant1_MS_metamer8_blade_LeafElement'):
+#                    import pdb
+#                    pdb.set_trace()
+                self.surface_dead += (1 - self.sporulating_capacity) * surface_to_next_phase
 
             # Filling of new rings
             nb_full_rings = int(floor(progress/width))
@@ -447,8 +482,14 @@ class SeptoriaAgePhysio(Lesion):
             if self.age_physio_edge==0. and self.ratio_left_edge>0.:
                 self.age_physio_edge += progress*self.ratio_left_edge
                 self.ratio_left_edge = 0.
+                # Temp
+                if self.age_physio_edge < 0.:
+                    self.age_physio_edge = 0.
             elif self.age_physio_edge+progress < 1.:
                 self.age_physio_edge += progress
+                # Temp
+                if self.age_physio_edge < 0.:
+                    self.age_physio_edge = 0.
             else:
                 diff = self.age_physio_edge + progress - 1.
                 self.ratio_left_edge = diff/progress
@@ -468,34 +509,31 @@ class SeptoriaAgePhysio(Lesion):
     def sporulation(self):
         """ Compute production of spores. """
         if sum(self.surfaces_spo) == 0:
-            self.surfaces_spo[0] += self.surface_first_ring
+            self.surfaces_spo[0] += self.surface_first_ring * self.sporulating_capacity
+            self.surface_dead += self.surface_first_ring * (1 - self.sporulating_capacity)
             self.surface_first_ring = 0.
         self.surfaces_spo[0] += self.to_sporulation
         self.to_sporulation = 0.
 
     def emission(self, density_DU_emitted):
         """ Return number of DUs emitted by the lesion. """
-        # Temp : TODO real debugging
-#        if np.isnan(self.surface):
-#            self.disable()
-#            return 0.
-        #
         if density_DU_emitted>0:       
             f = self.fungus
-            density = map(lambda x: min(float(density_DU_emitted),x), self.density_dus_emitted_max)
-            emissions = map(lambda x: int(x), self.surfaces_spo * density)
+            emissions = map(lambda x: int(x), self.surfaces_spo * density_DU_emitted)
+#            density = map(lambda x: min(float(density_DU_emitted),x), self.density_dus_emitted_max)
+#            emissions = map(lambda x: int(x), self.surfaces_spo * density)
                        
             self.surface_empty += self.surfaces_spo[-1]
             self.surfaces_spo[1:] = self.surfaces_spo[:-1]
             self.surfaces_spo[0] = 0.
                 
-            if (self.status_edge == f.SPORULATING and 
-                round(self.surface_spo,14)<=round(f.threshold_spo*self.nb_lesions,14)):
-                # Everything becomes empty and the lesion is disabled
-                self.surface_empty += sum(self.surfaces_spo)
-                self.surfaces_spo = np.zeros(len(self.surfaces_spo))
-                self.change_status()
-                self.disable()
+#            if (self.status_edge == f.SPORULATING and 
+#                round(self.surface_spo,14)<=round(f.threshold_spo*self.nb_lesions,14)):
+#                # Everything becomes empty and the lesion is disabled
+#                self.surface_empty += sum(self.surfaces_spo)
+#                self.surfaces_spo = np.zeros(len(self.surfaces_spo))
+#                self.change_status()
+#                self.disable()
             return sum(emissions)
         else:
             return 0.
@@ -531,7 +569,7 @@ class SeptoriaAgePhysio(Lesion):
                     rings[-1] = age_physio
                 rings = rings[floor(age_edge/width):]
                 rings[0] = age_edge
-                if age_switch>rings[0] and len(self.surfaces_chlo)>0:
+                if age_switch>rings[0] and len(self.surfaces_chlo)>0 and self.age_physio_edge>0:
                     ind_cut = np.where(rings<age_switch)[0][-1]
                     ratio_to_dead = round((age_switch - rings[ind_cut])/(rings[ind_cut+1]-rings[ind_cut]), 14)
                     to_dead_on_cut_ring = self.surfaces_chlo[ind_cut]*ratio_sen*ratio_to_dead
@@ -731,11 +769,11 @@ class SeptoError(Exception):
 
 
 # Temp
-def rh_response(x, rh_max=60, rh_min=35):
-    if x > rh_max:
-        return 1
-    elif x > rh_min:
-        f = interp1d([rh_min,rh_max], [0,1])
-        return f(x).tolist()
-    else:
-        return 0.
+#def rh_response(x, rh_max=60, rh_min=35):
+#    if x > rh_max:
+#        return 1
+#    elif x > rh_min:
+#        f = interp1d([rh_min,rh_max], [0,1])
+#        return f(x).tolist()
+#    else:
+#        return 0.

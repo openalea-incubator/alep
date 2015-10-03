@@ -575,6 +575,33 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
     fig, ax = plt.subplots()
     if multiply_sev:
         df_sim['severity']*=100
+    if df_sim.iloc[-1]['date'].year == 2011:
+        variety = df_sim.iloc[-1]['date'].variety
+        try:
+            f = open('data_obs_2011_'+variety.lower()+'.pckl')
+            data_obs_2011 = pickle.load(f)
+            f.close()
+            f = open('weather_2011.pckl')
+            weather_2011 = pickle.load(f)
+            f.close()
+        except:
+            data_obs_2011, weather_2011 = data_reader(year = 2011,
+                                                      variety = variety,
+                                                      from_file = 'control')
+            f = open('data_obs_2011_'+variety.lower()+'.pckl', 'w')
+            pickle.dump(data_obs_2011, f)
+            f.close()
+            f = open('weather_2011.pckl', 'w')
+            pickle.dump(weather_2011, f)
+            f.close()
+        if leaves is None:
+            leaves = range(1,3)
+        plt_lf(data_obs_2011, weather_2011, xaxis=xaxis, leaves=leaves,
+               xlims=xlims,linestyle='', ax=ax, minimum_sample_size=15)
+#        leaves = range(1,10)
+        plt_lf(df_sim, weather_2011, xaxis=xaxis, leaves=leaves,
+               xlims=xlims, linestyle='-', marker=None,
+               ax=ax, minimum_sample_size=0)
     if df_sim.iloc[-1]['date'].year == 2012:
         try:
             f = open('data_obs_2012.pckl')
@@ -803,6 +830,21 @@ def plot_variables_leaf(df, leaf=2, add_leaf_dates=False,
         df = add_leaf_dates_to_data(df)
     fig, ax = plt.subplots()
     ax = np.array([ax])
+    leaves = [leaf]
+
+    df = df[df['num_leaf_top']==leaf]
+    df_fill1 = get_mean(df, column='leaf_necrotic_area', xaxis=xaxis)
+    df_green = get_mean(df, column='leaf_green_area', xaxis=xaxis)
+    df_fill2 = get_mean(df, column='leaf_green_area', xaxis=xaxis)
+    df_fill2.loc[:, leaf] = max(df_fill2[leaf])
+    df_fill1[df_green==0] = 0.    
+    df_fill2[df_green==0] = 0.
+
+    ax[0].fill_between(df_fill2.index, df_fill2.values.flat, alpha=0.3,
+                        color='None', edgecolor='g', hatch='/')    
+    ax[0].fill_between(df_fill1.index, df_fill1.values.flat, alpha=0.3,
+                        color='None', edgecolor='r', hatch='//')
+
     plot_one_sim(df, 'leaf_area', xaxis, ax, leaves, 'g', linestyle='-')
     plot_one_sim(df, 'leaf_green_area', xaxis, ax, leaves, 'g', linestyle='--')
     plot_one_sim(df, 'leaf_necrotic_area', xaxis, ax, leaves, 'r', linestyle='-')
@@ -810,3 +852,37 @@ def plot_variables_leaf(df, leaf=2, add_leaf_dates=False,
     ax[0].set_xlim(xlims)
     ax[0].set_ylabel('Leaf area (cm2)', fontsize=16)
     ax[0].set_xlabel('Age of leaf (degree days)', fontsize=16)
+
+def plot_3_weathers():
+    import matplotlib.pyplot as plt
+    f = open('weather_2011.pckl')
+    weather_2011 = pickle.load(f)
+    f.close()
+    f = open('weather_2012.pckl')
+    weather_2012 = pickle.load(f)
+    f.close()
+    f = open('weather_2013.pckl')
+    weather_2013 = pickle.load(f)
+    f.close()
+
+    fig, axs = plt.subplots(2,3, figsize=(16,4))
+    years = [2011,2012,2013]
+    for i, w in enumerate([weather_2011, weather_2012, weather_2013]):
+        yr = years[i]
+        if i==0:
+            ylabel = True
+        else:
+            ylabel = False
+        plot_relative_humidity(w, ax = axs[0][i], title=yr, ylims=[0,100],
+                               xlims=[0, 2500],  xlabel=False, ylabel=ylabel)
+        if i==2:
+            ylabel2 = True
+        else:
+            ylabel2 = False
+        plot_rain_and_temp(w, ax = axs[1][i], title='', xlims=[0, 2500],
+                           ylims_rain = [0,10], ylims_temp=[-10, 40],
+                             xlabel=True, ylabel1=ylabel, ylabel2=ylabel2)
+    fig.tight_layout()
+
+
+    
