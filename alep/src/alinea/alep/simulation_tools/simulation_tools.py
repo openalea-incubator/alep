@@ -214,13 +214,14 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     # la duree emergence-ligulation est impactee du fait de ce changement (inevitable si on impose leaf_rate)
     # mais aussi en raison de scale_leafRate(non souhaite => compensation ci dessous)
     HS_ref = HSfit.a_cohort
+    leafDuration_ref = adel_pars['leafDuration']
     HSfit.a_cohort /= scale_HS
     # on compense en decalant l'emergence des plante
-    HSfit.TT_hs_0 += (1 - adel_pars['fracLeaf']) / HS_ref * (1. / scale_leafRate - 1)
+    HSfit.TT_hs_0 += (1 - adel_pars['fracLeaf']) / HS_ref * leafDuration_ref * (float(scale_HS) / scale_leafRate - 1) 
     
     
     # Modify leaf dimension and growth rate  
-    leafDuration_ref = adel_pars['leafDuration']
+    
     adel_pars['leafDuration'] = ((scale_leafDim_length*scale_leafDim_width) / scale_HS)* \
                                 (leafDuration_ref / scale_leafRate)
     Dimfit.scale['L_blade'] *= scale_leafDim_length
