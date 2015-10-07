@@ -6,95 +6,20 @@ from sensi_septo_tools import variety_code
 from alinea.alep.simulation_tools.brown_rust_decomposed import annual_loop_rust
 import numpy as np
 import pandas as pd
-from scipy.integrate import simps
-
-class SensiRustRecorder(AdelSeptoRecorder):
-    """ Record simulation output on every leaf of main stems in a dataframe during simulation """
-    def __init__(self, group_dus = True, fungus_name = 'brown_rust',
-                 increment = 1000):
-        super(AdelSeptoRecorder, self).__init__(group_dus = group_dus, 
-                                                fungus_name = fungus_name,
-                                                increment = increment)
-        columns = ['date', 'degree_days', 'num_plant', 
-                   'num_leaf_bottom', 'fnl',
-                   'leaf_area', 'leaf_disease_area']
-        self.data = pandas.DataFrame(data = [[np.nan for col in columns] 
-                                    for i in range(1000)], columns = columns)
-    
-    def get_values_single_leaf(self, g, date, degree_days, id_list):
-        dict_lf = {}
-        dict_lf['date'] = date
-        dict_lf['degree_days'] = degree_days
-        
-        # Update leaf properties
-        fnls = g.property('nff')
-        areas = g.property('area')
-        a_label_splitted = self.a_labels[id_list[0]].split('_')
-        dict_lf['num_plant'] = int(a_label_splitted[0].split('plant')[1])
-        dict_lf['num_leaf_bottom'] = int(a_label_splitted[2].split('metamer')[1])
-        dict_lf['fnl'] =  fnls[g.complex_at_scale(id_list[0], 2)]
-        dict_lf['leaf_area'] = sum([areas[id] for id in id_list])
-
-        # Update properties of dispersal units and lesions
-        surface = 0.
-        for id in id_list:
-            leaf = g.node(id)
-            if 'lesions' in leaf.properties():
-                for les in leaf.lesions:
-                    if les.fungus.name == self.fungus_name:
-                        surface += les.surface_alive      
-        dict_lf['leaf_disease_area'] = surface
-        return dict_lf
-
-    def severity(self):
-        if not 'leaf_disease_area' in self.data:
-            self.leaf_disease_area()
-        self.data['severity'] = [self.data['surface'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
-    
-    def get_audpc(self, variable='severity'):
-        for pl in set(self.data['num_plant']):
-            df_pl =  self.data[self.data['num_plant'] == pl]
-            for lf in set(df_pl['num_leaf_top']):
-                df_lf = df_pl[df_pl['num_leaf_top'] == lf]
-                ind_data_lf = df_lf.index
-                if round(df_lf['leaf_green_area'][pandas.notnull(df_lf['leaf_disease_area'])].iloc[-1],10)==0.:
-                    data = df_lf[variable][df_lf['leaf_green_area']>0]
-                    ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
-                    data_ref = numpy.ones(len(data))
-                    if len(data[data>0])>0:
-                        audpc = simps(data[data>0], ddays[data>0])
-                        audpc_ref = simps(data_ref[data_ref>0], ddays[data_ref>0])
-                        if numpy.isnan(audpc):
-                            audpc = trapz(data[data>0], ddays[data>0])
-                        if numpy.isnan(audpc_ref):
-                            audpc_ref = trapz(data_ref[data_ref>0], ddays[data_ref>0])
-                    else:
-                        audpc = 0.
-                        audpc_ref = 0.
-                    self.data.loc[ind_data_lf, 'audpc'] = audpc
-                    self.data.loc[ind_data_lf, 'normalized_audpc'] = audpc/audpc_ref if audpc_ref>0. else 0.
-                else:
-                    self.data.loc[ind_data_lf, 'audpc'] = np.nan
-                    self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan 
-    
-    def post_treatment(self, variety = None):
-        self.data = self.data[~pandas.isnull(self.data['date'])]
-        self.add_leaf_numbers()
-        self.severity()
-        self.get_audpc()
-        if variety is not None:
-            self.add_variety(variety=variety)           
 
 def get_stored_rec(variety, year, i_sample, i_boot):
-    return './brown_rust/'+variety.lower()+'_'+ str(year)+ \ 
+    return './brown_rust/'+variety.lower()+'_'+ str(year)+ \
             '_'+str(int(i_sample))+'_boot'+str(int(i_boot))+'.csv'
             
 def run_brown_rust(sample):
     i_sample = sample.pop('i_sample')
+    print '------------------------------'
+    print 'i_sample %d' %i_sample
+    print '------------------------------'
     i_boot = sample.pop('i_boot')
     year = sample.pop('year')
     variety = sample.pop('variety')
-        sowing_date = '10-15'
+    sowing_date = '10-15'
     if year == 2012:
         sowing_date = '10-21'
     elif year == 2013:
@@ -134,7 +59,7 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
         output_file = get_rust_morris_path(year=year, variety=variety, boot=boot)
         df_out.to_csv(output_file)
     
-def plot_septo_morris_by_leaf(year = 2012, variety = 'Tremie12',
+def plot_rust_morris_by_leaf(year = 2012, variety = 'Tremie12',
                              parameter_range_file = './brown_rust/rust_param_range.txt',
                              input_file = './brown_rust/rust_morris_input_full.txt'):
     output_file = get_rust_morris_path(year=year, variety=variety)
@@ -142,3 +67,49 @@ def plot_septo_morris_by_leaf(year = 2012, variety = 'Tremie12',
     plot_morris_by_leaf(df_out, variable=variable,
                         parameter_range_file=parameter_range_file,
                         input_file=input_file)
+                        
+def plot_septo_morris_by_leaf_by_boot(year = 2012, variety = 'Tremie12',
+                             variable = 'audpc',
+                             parameter_range_file = './brown_rust/rust_param_range.txt',
+                             input_file = './brown_rust/rust_morris_input_full.txt',
+                             nboots = 5, ylims=None):
+    output_file = get_rust_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    plot_morris_by_leaf_by_boot(df_out, variable=variable,
+                        parameter_range_file=parameter_range_file,
+                        input_file=input_file, nboots=nboots, ylims=ylims)
+
+def plot_septo_morris_3_leaves(year = 2012, variety = 'Tremie12', 
+                               leaves = [10, 5, 1], variable = 'audpc',
+                               parameter_range_file = './brown_rust/rust_param_range.txt',
+                               input_file = './brown_rust/rust_morris_input_full.txt',
+                               nboots=5, ylims=None):
+    output_file = get_rust_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    plot_morris_3_leaves(df_out, leaves=leaves, variable=variable,
+                        parameter_range_file=parameter_range_file,
+                        input_file=input_file, nboots=nboots, ylims=ylims)
+                        
+def septo_scatter_plot_by_leaf(year = 2012, variety = 'Tremie12',
+                                variable = 'normalized_audpc',
+                                parameter = 'Smax'):
+    output_file = get_rust_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    scatter_plot_by_leaf(df_out, variable=variable, parameter=parameter)
+    
+def septo_boxplot_by_leaf(year = 2012, variety = 'Tremie12',
+                            variable = 'audpc',
+                            parameter = 'Smax', ylims=None):
+    output_file = get_rust_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    boxplot_by_leaf(df_out, variable=variable, 
+                    parameter=parameter, ylims=ylims)
+    
+def septo_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
+                            variety = 'Tremie12',
+                            variable = 'audpc',
+                            parameter = 'Smax', ylims=None):
+    output_file = get_rust_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    boxplot_3_leaves(df_out, leaves=leaves, variable=variable,
+                    parameter=parameter, ylims=ylims)

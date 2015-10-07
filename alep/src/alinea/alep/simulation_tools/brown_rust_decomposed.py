@@ -12,6 +12,7 @@ from alinea.alep.simulation_tools.simulation_tools import (wheat_path,
                                                            init_canopy, 
                                                            grow_canopy,
                                                            alep_echap_reconstructions,
+                                                           alep_custom_reconstructions,
                                                            get_iter_rep_wheats,
                                                            get_filename)
 from alinea.alep.architecture import set_properties
@@ -36,18 +37,27 @@ from alinea.alep.protocol import infect, update, disperse, external_contaminatio
 from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.dispersal_transport import BrownRustDispersal
 
+# Temp
+from alinea.alep.disease_outputs import plot_by_leaf
+
 def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
                variety = 'Mercia', nplants = 30, nsect = 7,
                TT_delay = 20, dispersal_delay = 24,
-               record=True, layer_thickness=1., rep_wheat = None, **kwds):
+               record=True, layer_thickness=1., rep_wheat = None, 
+               leaf_duration=2., **kwds):
     # Get weather
     weather = get_weather(start_date=sowing_date, end_date=end_date)
     
     # Set canopy
     it_wheat = 0
-    reconst = alep_echap_reconstructions()
-    adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+    if variety!='Custom':
+        reconst = alep_echap_reconstructions(leaf_duration=leaf_duration)
+        adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+        if save_images:
+            adel.stand.density_curve=None
+    else:
+        adel = alep_custom_reconstructions(variety='Tremie13', nplants=nplants, nsect=nsect, **kwds)
     year = int(end_date[:4])    
     wheat_dir = wheat_path(year, variety, nplants, nsect, rep_wheat)
     g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True)
@@ -89,10 +99,10 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
             contaminator, dispersor, it_wheat, wheat_dir, wheat_is_loaded)
 
 def annual_loop_rust(year = 2013, variety = 'Tremie13', 
-                     nplants = 15, nsect = 7, sowing_date = '10-15',
-                     density_dispersal_units = 300, TT_delay=20,
+                     nplants = 15, nsect = 7, sowing_date = '10-29',
+                     density_dispersal_units = 150, TT_delay=20,
                      record = True, output_file = None, layer_thickness=1.,
-                    rep_wheat = True, **kwds):
+                     rep_wheat = True, leaf_duration=2., **kwds):
     """ Simulate an epidemics over the campaign. """
     # Setup simu
     (g, adel, fungus, canopy_timing, dispersal_timing, rust_timing, 
@@ -102,7 +112,8 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
                    end_date=str(year)+"-07-30 00:00:00",
                    variety = variety, nplants = nplants, nsect = nsect, 
                    TT_delay = TT_delay, dispersal_delay = 24, record=record, 
-                   layer_thickness=layer_thickness, **kwds)
+                   layer_thickness=layer_thickness, 
+                   leaf_duration=leaf_duration, **kwds)
         
     # Simulation loop
     for i, controls in enumerate(zip(canopy_timing, 
@@ -117,9 +128,9 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
         # Get weather for date and add it as properties on leaves
         if rust_iter:
             set_properties(g,label = 'LeafElement',
-                           temperature_sequence = rust_iter.value.temperature_air,
-                           wetness_sequence = rust_iter.value.wetness,
-                           dd_sequence = rust_iter.value.degree_days)
+                           temperature_sequence = rust_iter.value.temperature_air.tolist(),
+                           wetness_sequence = rust_iter.value.wetness.tolist(),
+                           dd_sequence = rust_iter.value.degree_days.tolist())
         # Simulate airborne contamination
         geom = g.property('geometry')
         if dispersal_iter and len(geom)>0:

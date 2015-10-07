@@ -173,7 +173,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
     septo_contaminator, rust_contaminator, septo_emitter, 
     septo_transporter, rust_dispersor, it_wheat,
     wheat_dir, wheat_is_loaded) = setup_simu(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
-                                              end_date=str(year)+"-08-01 00:00:00",
+                                              end_date=str(year)+"-07-30 00:00:00",
                                               variety = variety, nplants = nplants, nsect=nsect,
                                               sporulating_fraction=sporulating_fraction,
                                               Tmin=Tmin, rep_wheat=rep_wheat, record=record,
@@ -251,6 +251,10 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
     else:
         return g
         
+def concat_inocs(inoc_septo=5e-3, inoc_rust=150.):
+    inoc = str(inoc_septo)+'_'+str(inoc_rust)
+    return inoc.replace('.', '_')
+    
 def run_reps_septo_rust(year = 2013, variety = 'Tremie13', 
                    nplants = 15, nsect = 7, sowing_date = '10-15',
                    sporulating_fraction = 5e-3, density_dispersal_units=150.,
@@ -263,21 +267,22 @@ def run_reps_septo_rust(year = 2013, variety = 'Tremie13',
                                             sowing_date=sowing_date,
                                             nplants=nplants, nsect=nsect,
                                             sporulating_fraction=sporulating_fraction,
+                                            density_dispersal_units=density_dispersal_units,
                                             layer_thickness_septo=layer_thickness_septo, 
                                             layer_thickness_rust=layer_thickness_rust, 
                                             rep_wheat=next(rep_wheats), **kwds)
         df_ = recorder.data
         df_['rep'] = rep
         df = pd.concat([df, df_])
-    inoc = str(sporulating_fraction)+'_'+str(density_dispersal_units)
-    inoc = inoc.replace('.', '_')
+    inoc = concat_inocs(inoc_septo=sporulating_fraction, 
+                        inoc_rust=density_dispersal_units)
     output_file = get_filename(fungus='septo_rust', year=year, variety=variety,
                                nplants=nplants, inoc=inoc, suffix = None)
     df.to_csv(output_file)
     
 def plot_septo_rust(fungus = 'septo_rust', year = 2012,
                     variety = 'Tremie12', nplants = 15,
-                    sporulating_fraction = 5e-4, density_dispersal_units=1e5, 
+                    sporulating_fraction = 5e-4, density_dispersal_units=150., 
                     nreps = 10, variable = 'severity', xaxis = 'degree_days', 
                     leaves = range(1, 14), from_top = True,
                     plant_axis = ['MS'], error_bars = False, 
@@ -287,8 +292,8 @@ def plot_septo_rust(fungus = 'septo_rust', year = 2012,
                     legend = True, xlabel = None, ylabel = None, 
                     xlims = None, ylims = None, ax = None,
                     return_ax = False, fig_size = (10,8)):
-    inoc = str(sporulating_fraction)+'_'+str(density_dispersal_units)
-    inoc = inoc.replace('.', '_')
+    inoc = concat_inocs(inoc_septo=sporulating_fraction, 
+                        inoc_rust=density_dispersal_units)
     data_sim = get_data_sim(fungus=fungus, year=year, variety=variety,
                            nplants=nplants, inoc=inoc)
     if np.isnan(set(data_sim['variety'])[0]):
@@ -300,14 +305,64 @@ def plot_septo_rust(fungus = 'septo_rust', year = 2012,
                  fixed_color=fixed_color, alpha=alpha, title=title, 
                  legend=legend, xlabel=xlabel, ylabel=ylabel, xlims=xlims,
                  ylims=ylims, ax=ax, return_ax=return_ax, fig_size=fig_size)
-                 
+
+def get_aggregated_data_sim(year = 2013, variety = 'Tremie13', nplants = 15, 
+                            sporulating_fraction=5e-3, density_dispersal_units=150.,
+                            num_leaf = 'num_leaf_top', suffix=None):
+    from alinea.alep.simulation_tools.simulation_tools import get_data_sim
+    inoc = concat_inocs(inoc_septo=sporulating_fraction, 
+                        inoc_rust=density_dispersal_units)
+    data_sim = get_data_sim(fungus='septo_rust', year=year,
+                            variety=variety, nplants=nplants,
+                            inoc=inoc, suffix=suffix)
+    data_sim = get_data_without_death(data_sim, num_leaf=num_leaf)
+    data_sim['severity'] *= 100
+    data_sim['severity_on_green'] *= 100
+    return data_sim
+
 def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                     nplants = 15,  sowing_date = '10-15', 
-                    inoc_rust = 150., inoc_septo = 5e-3, 
+                    inoc_septo = 5e-3, inoc_rust = 150.,
                     suffix = None, nreps=10, **kwds):
+#    scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
+    scenarios_inoc = [(inoc_septo, 0)]
     for yr in years:
-        run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
-                            sowing_date=sowing_date,
-                            sporulating_fraction=inoc_septo,
-                            density_dispersal_units=inoc_rust,
-                            nreps=nreps, suffix=suffix, **kwds)
+        for inoc in scenarios_inoc:
+            run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
+                                sowing_date=sowing_date,
+                                sporulating_fraction=inoc[0],
+                                density_dispersal_units=inoc[1],
+                                nreps=nreps, suffix=suffix, **kwds)
+                            
+def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
+                        nplants = 15,  sowing_date = '10-15', 
+                        inoc_rust = 150., inoc_septo = 5e-3, 
+                        suffix = None, nreps=10):
+
+    def plot_variable(df, variable='severity_septo', ax=None):
+        plot_by_leaf(df, variable, xaxis = 'age_leaf_vs_flag_emg', 
+                     ax=ax, ylims=[0, 1], xlims=[0, 1500])
+
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(4,len(years))
+    scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
+    for i_yr, yr in enumerate(years):
+        ax = axs[i_yr]
+        for inoc in scenarios_inoc:
+            data_sim = get_aggregated_data_sim(year=year, variety=variety, 
+                                      nplants=nplants, 
+                                      sporulating_fraction=inoc_septo,
+                                      density_dispersal_units=inoc_rust,
+                                      suffix=suffix)
+            data_sim = add_leaf_dates_to_data(data_sim)
+            df_count = data_sim.groupby(['date', 'num_leaf_top'])
+            df_count = df_count.reset_index()
+            data_sim = data_sim[df_count['severity']==nplants*nreps]
+            if inoc[0]==0:
+                plot_by_leaf(data_sim_yr, variable='severity_rust', ax=ax[1])
+            elif inoc[1]==0:
+                plot_by_leaf(data_sim_yr, variable='severity_septo', ax=ax[0])
+            else:
+                plot_by_leaf(data_sim_yr, variable='severity_septo', ax=ax[2])
+                plot_by_leaf(data_sim_yr, variable='severity_rust', ax=ax[3])
+            

@@ -58,8 +58,8 @@ def run_custom_septoria(sample):
                         rain_events_to_empty=5, 
                         leaf_duration=2.5, 
                         keep_leaves=True, 
-                        rh_effect=True, apply_rh='chlorosis', 
-                        rh_max=50., rh_min=50.,
+                        rh_effect=True, apply_rh='all', 
+                        rh_min=35.,
                         **sample)
 
 def get_septo_morris_path(year = 2012, variety = 'Tremie12'):
