@@ -93,10 +93,7 @@ class SeptoriaAgePhysio(Lesion):
         if any([x[0]<=leaf.senesced_length for x in self.position]):
             self.senescence_response(leaf.senesced_length)
 
-        if self.is_active:
-            # Temp
-            self.a_label = leaf.a_label
-            
+        if self.is_active:           
             # Compute delta degree days in dt
             self.compute_delta_ddays(dt, leaf)
             
@@ -455,11 +452,6 @@ class SeptoriaAgePhysio(Lesion):
                 self.surfaces_nec = np.extract(new_ends<=1, new_surf)
                 surface_to_next_phase = sum(np.extract(new_ends>1, new_surf))
                 self.to_sporulation = self.sporulating_capacity * surface_to_next_phase
-#                self.surface_empty += (1 - self.sporulating_capacity) * surface_to_next_phase
-                #temp
-#                if self.a_label.startswith('plant1_MS_metamer8_blade_LeafElement'):
-#                    import pdb
-#                    pdb.set_trace()
                 self.surface_dead += (1 - self.sporulating_capacity) * surface_to_next_phase
 
             # Filling of new rings

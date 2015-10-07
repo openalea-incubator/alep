@@ -82,7 +82,7 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
 
 def septo_disease(adel, sporulating_fraction, layer_thickness,
                   distri_chlorosis = None, competition='poisson',
-                  age_infection=False,**kwds):
+                  age_infection=False, compute_star=False, **kwds):
     """ Choose models to assemble the disease model. """
                
     if 'alinea.alep.septoria_age_physio' in sys.modules:
@@ -104,7 +104,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
     contaminator = PopDropsSoilContamination(fungus=fungus,
                                              group_dus=True,
                                              domain=domain, domain_area=domain_area, 
-                                             compute_star = False,
+                                             compute_star = compute_star,
                                              mutable = mutable)
 #    growth_controler = PriorityGrowthControl()
 #    growth_controler = GeometricPoissonCompetition()
@@ -116,11 +116,11 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
         raise ValueError('Unknown competition model')
     infection_controler = BiotrophDUProbaModel(age_infection=age_infection)
 #    emitter = Septo3DEmission(domain=domain)
-    emitter = PopDropsEmission(domain=domain, compute_star = False)
+    emitter = PopDropsEmission(domain=domain, compute_star = compute_star)
     transporter = PopDropsTransport(fungus=fungus, group_dus=True,
                                     domain = domain, domain_area = domain_area,
                                     dh = layer_thickness, convUnit = convUnit,
-                                    compute_star = False, wash=True)
+                                    compute_star = compute_star, wash=True)
     return inoculum, contaminator, infection_controler, growth_controler, emitter, transporter
 
 def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
@@ -130,7 +130,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       competition = 'poisson', save_images = False, 
                       reset_reconst = True, distri_chlorosis = None, 
                       rep_wheat = None, age_infection=False, keep_leaves=False,
-                      leaf_duration = 2., **kwds):
+                      leaf_duration = 2., compute_star = False, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
@@ -141,7 +141,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                               septo_delay_dday=septo_delay_dday,
                               save_images=save_images, 
                               keep_leaves=keep_leaves, 
-                              leaf_duration=leaf_duration, **kwds)
+                              leaf_duration=leaf_duration,**kwds)
 #    (g, adel, weather, seq, rain_timing, 
 #     canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
 #     wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
@@ -156,7 +156,8 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
                                     distri_chlorosis, competition=competition,
-                                    age_infection=age_infection,
+                                    age_infection=age_infection, 
+                                    compute_star=compute_star, 
                                     **kwds)
     
     # Prepare saving of outputs
@@ -352,7 +353,7 @@ def temp_films():
 
 def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
                    leaves=None, only_severity=False, xlims = [800, 2200],
-                   display_lesions=False, title=None, correct_fnl=True):
+                   display_lesions=False, title=None, correct_fnl=False):
     from alinea.echap.disease.alep_septo_evaluation import data_reader, plot_confidence_and_boxplot, plot_one_sim
     from alinea.alep.alep_weather import plot_rain_and_temp
     import cPickle as pickle
@@ -445,29 +446,33 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
 
 def temp_plot_comparison(data_obs_2012, data_sim_2012, weather_2012, 
                          data_obs_2013, data_sim_2013, weather_2013,
-                         multiply_sev = True, xaxis='age_leaf',
-                         xlims = [0, 1200], title=None, correct_fnl=True):
+                         multiply_sev = False, xaxis='age_leaf',
+                         xlims = [0, 1200], title=None, correct_fnl=False):
     from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot, plot_one_sim
     import matplotlib.pyplot as plt
-    leaves = range(1,6)
-    if title is not None:
-        ttle = False
-    else:
-        ttle = True
+    leaves = [5,4,3,2,1]
+    fig, axs = plt.subplots(1, len(leaves), figsize=(30., 5.))
     (df_mean_obs_2012, df_low_2012, df_high_2012, fig, 
      axs) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
                                         leaves=leaves, variable='severity', 
                                         xaxis=xaxis, xlims=xlims,
                                         minimum_sample_size=15,
-                                        title=ttle, return_fig=True, 
+                                        linestyle='',
+                                        title=False, return_fig=True, 
+                                        fig=fig, axs=axs,
+                                        display_legend=False,
+                                        tight_layout=False,
                                         fixed_color='b')
     (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
      axs) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
                                         leaves=leaves, variable='severity', 
                                         xaxis=xaxis, xlims=xlims,
                                         minimum_sample_size=15,
-                                        title=ttle, return_fig=True, 
+                                        linestyle='',
+                                        title=False, return_fig=True, 
                                         fig=fig, axs=axs,
+                                        display_legend=False,
+                                        tight_layout=False,
                                         fixed_color='r')
     if multiply_sev:
         data_sim_2012['severity']*=100
@@ -475,22 +480,51 @@ def temp_plot_comparison(data_obs_2012, data_sim_2012, weather_2012,
     if correct_fnl:
         data_sim_2012 = resample_fnl(data_obs_2012, data_sim_2012, weather_2012, variable='severity')
         data_sim_2013 = resample_fnl(data_obs_2013, data_sim_2013, weather_2013, variable='severity')
-    plot_one_sim(data_sim_2012, 'severity', xaxis, axs, leaves, 'b')
-    plot_one_sim(data_sim_2013, 'severity', xaxis, axs, leaves, 'r')
+    plot_one_sim(data_sim_2012, 'severity', xaxis, axs, leaves, 'b', linewidth=2)
+    plot_one_sim(data_sim_2013, 'severity', xaxis, axs, leaves, 'r', linewidth=2)
     
-    ticks = np.arange(xlims[0], xlims[1], 100)
+    ticks = np.arange(xlims[0], xlims[1], 200)
     for ax in axs.flat:
         ax.set_xticks(ticks)
         ax.set_xticklabels(ticks)
+        ax.set_ylabel('')
+        ax.set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=16)
+    axs[0].set_ylabel('Severity (in %)', fontsize=18)
+
+    proxy = [plt.Line2D((0,1),(0,0), color='k', marker='o', linestyle='-'),
+             plt.Rectangle((0,0), 0,0, facecolor='k', alpha=0.3)]
+    labels = ['Mean', 'Confidence\n interval']
+    lgd = axs[-1].legend(proxy, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    locbox = (1.1, 0.7)
+    locim = (1.12, 0.7)
+    txtbox = TextArea('        Distribution', minimumdescent=False)
+    ab1 = AnnotationBbox(txtbox, xy=locbox, xycoords="axes fraction", 
+                         frameon=True, fontsize=32, box_alignment=(0., 0.5))
+    axs[-1].add_artist(ab1)
+    try:
+        img = read_png('box.png')
+        imagebox = OffsetImage(img, zoom=.25)
+        ab2 = AnnotationBbox(imagebox, xy=locim, 
+                             xycoords="axes fraction", frameon=False)         
+        axs[-1].add_artist(ab2)
+    except:
+        pass
+
+    proxy2 = [plt.Rectangle((0,0), 0,0, facecolor='b', alpha=0.3),
+              plt.Rectangle((0,0), 0,0, facecolor='r', alpha=0.3)]
+    labels2 = ['2012', '2013']
+    lgd2 = axs[-2].legend(proxy2, labels2, bbox_to_anchor=(2.6, 0.4), loc='lower right', borderaxespad=0.)
 
     if title is not None:
         plt.text(0.5, 0.98, title, fontsize=18,
                  transform=fig.transFigure, horizontalalignment='center')
+    fig.savefig('comparison', bbox_extra_artists=(lgd,ab1,ab2,lgd2), bbox_inches='tight')
+#    plt.tight_layout()
 
 def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012, 
                                  data_obs_2013, data_sim_2013, weather_2013,
                                  multiply_sev = True, xaxis='degree_days',
-                                 xlims = [800, 2200], correct_fnl=True):
+                                 xlims = [800, 2200], correct_fnl=False):
     from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot, plot_one_sim
     import matplotlib.pyplot as plt
     leaves = range(1,6)
@@ -507,6 +541,7 @@ def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012,
                                         minimum_sample_size=15,
                                         title=False, return_fig=True, 
                                         fig=fig, axs=axs_left,
+                                        linestyle='',
                                         fixed_color='b', display_legend=False,
                                         tight_layout=False)
     (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
@@ -516,6 +551,7 @@ def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012,
                                         minimum_sample_size=15,
                                         title=False, return_fig=True, 
                                         fig=fig, axs=axs_left,
+                                        linestyle='',
                                         fixed_color='r', display_legend=False,
                                         tight_layout=False)
     if multiply_sev:
@@ -531,22 +567,23 @@ def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012,
         plot_one_sim(data_sim_2013, 'severity', xaxis, axs_left, leaves, 'r')
     
     # Center column fnls for 2012
-    colors = iter([(0.5,0.5,1), (0,0,0.5)])
+    colors = iter([(51/255.,204/255.,51/255.), (0,0,0.5)])
     axs_center = plot_confidence_and_boxplot_by_fnl(data_obs_2012, weather_2012, 
                                             leaves = leaves, variable = 'severity', 
                                             xaxis = xaxis, xlims=xlims,
                                             fig=fig, axs=axs_center,
-                                            colors=colors,
+                                            colors=colors, linestyles=iter(['','']),
                                             return_ax = True, 
                                             display_legend=False,
                                             tight_layout=False)
-    colors = iter([(0.5,0.5,1), (0,0,0.5)])
+#    colors = iter([(0.5,0.5,1), (0,0,0.5)])
+    colors = iter([(51/255.,204/255.,51/255.), (0,0,0.5)])
     for fnl in np.unique(data_sim_2012['fnl']):
         df = data_sim_2012[data_sim_2012['fnl']==fnl]
         plot_one_sim(df, 'severity', xaxis, axs_center, leaves, next(colors))
     
     # Right column fnls for 2013
-    colors = iter([(1,0.5,0.5), (0.5,0,0)])
+    colors = iter([(1,102/255.,0.), (0.5,0,0)])
     axs_right = plot_confidence_and_boxplot_by_fnl(data_obs_2013, weather_2013, 
                                             leaves = leaves, variable = 'severity', 
                                             xaxis = xaxis, xlims=xlims,
@@ -555,7 +592,8 @@ def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012,
                                             return_ax = True, 
                                             display_legend=False,
                                             tight_layout=False)
-    colors = iter([(1,0.5,0.5), (0.5,0,0)])
+#    colors = iter([(1,0.5,0.5), (0.5,0,0)])
+    colors =iter([(1,102/255.,0.), (0.5,0,0)])
     for fnl in np.unique(data_sim_2013['fnl']):
         df = data_sim_2013[data_sim_2013['fnl']==fnl]
         plot_one_sim(df, 'severity', xaxis, axs_right, leaves, next(colors))
@@ -566,8 +604,36 @@ def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012,
         ax.set_xticks(ticks)
         ax.set_xticklabels(ticks)
         
+    proxy = [plt.Line2D((0,1),(0,0), color='k', marker='o', linestyle='-'),
+             plt.Rectangle((0,0), 0,0, facecolor='k', alpha=0.3)]
+    labels = ['Mean', 'Confidence\n interval']
+    lgd = axs[0][-1].legend(proxy, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    locbox = (1.1, 0.7)
+    locim = (1.12, 0.7)
+    txtbox = TextArea('        Distribution', minimumdescent=False)
+    ab1 = AnnotationBbox(txtbox, xy=locbox, xycoords="axes fraction", 
+                         frameon=True, fontsize=32, box_alignment=(0., 0.5))
+    axs[0][-1].add_artist(ab1)
+    try:
+        img = read_png('box.png')
+        imagebox = OffsetImage(img, zoom=.25)
+        ab2 = AnnotationBbox(imagebox, xy=locim, 
+                             xycoords="axes fraction", frameon=False)         
+        axs[0][-1].add_artist(ab2)
+    except:
+        pass
+    proxy2 = [plt.Rectangle((0,0), 0,0, facecolor='b', alpha=0.3),
+              plt.Rectangle((0,0), 0,0, facecolor='r', alpha=0.3),
+              plt.Rectangle((0,0), 0,0, facecolor=(51/255.,204/255.,51/255.), alpha=0.3),
+              plt.Rectangle((0,0), 0,0, facecolor=(0,0,0.5), alpha=0.3),
+              plt.Rectangle((0,0), 0,0, facecolor=(1,102/255.,0.), alpha=0.3),
+              plt.Rectangle((0,0), 0,0, facecolor=(0.5,0,0), alpha=0.3)]
+    labels2 = ['total 2012', 'total 2013', 'FNL12 2012', 'FNL13 2012', 'FNL11 2013', 'FNL12 2013']
+    lgd2 = axs[1][-1].legend(proxy2, labels2, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    fig.savefig('complete', bbox_extra_artists=(lgd,ab1,ab2,lgd2), bbox_inches='tight')
+  
 def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
-                      leaves=None, xlims = [0, 1200], correct_fnl=True):
+                      leaves=None, xlims = [800, 2200], correct_fnl=False):
     from alinea.echap.disease.alep_septo_evaluation import data_reader
     from alinea.echap.disease.septo_data_treatment import plot_by_leaf as plt_lf
     import cPickle as pickle
@@ -575,8 +641,9 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
     fig, ax = plt.subplots()
     if multiply_sev:
         df_sim['severity']*=100
+        df_sim['severity_on_green']*=100
     if df_sim.iloc[-1]['date'].year == 2011:
-        variety = df_sim.iloc[-1]['date'].variety
+        variety = df_sim.iloc[-1]['variety']
         try:
             f = open('data_obs_2011_'+variety.lower()+'.pckl')
             data_obs_2011 = pickle.load(f)
@@ -595,14 +662,15 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
             pickle.dump(weather_2011, f)
             f.close()
         if leaves is None:
-            leaves = range(1,3)
-        plt_lf(data_obs_2011, weather_2011, xaxis=xaxis, leaves=leaves,
-               xlims=xlims,linestyle='', ax=ax, minimum_sample_size=15)
-#        leaves = range(1,10)
-        plt_lf(df_sim, weather_2011, xaxis=xaxis, leaves=leaves,
+            leaves = range(1,10)
+        plt_lf(df_sim, weather_2011, variable='severity_on_green',
+               xaxis=xaxis, leaves=leaves,
                xlims=xlims, linestyle='-', marker=None,
                ax=ax, minimum_sample_size=0)
-    if df_sim.iloc[-1]['date'].year == 2012:
+        plt_lf(data_obs_2011, weather_2011, variable='septo_green', 
+               xaxis=xaxis, leaves=leaves, error_bars=True,
+               xlims=xlims,linestyle='', ax=ax, minimum_sample_size=15)
+    elif df_sim.iloc[-1]['date'].year == 2012:
         try:
             f = open('data_obs_2012.pckl')
             data_obs_2012 = pickle.load(f)
@@ -659,7 +727,36 @@ def temp_plot_by_leaf(df, multiply_sev = True, xaxis='degree_days',
                ax=ax, minimum_sample_size=0)
     else:
         raise ValueError('Unavailable year')
-        
+
+def temp_plot_comparison_2011(data_obs_mercia, data_sim_mercia,
+                             data_obs_rht3, data_sim_rht3, weather_2011,
+                             multiply_sev = True, xaxis='age_leaf_vs_flag_emg',
+                             xlims = [200, 1200]):
+    from alinea.echap.disease.septo_data_treatment import plot_by_leaf as plt_lf
+    fig, axs = plt.subplots(1,2, figsize = (10,5))
+    leaves = [1,2,3]
+    plt_lf(data_sim_mercia, weather_2011, variable='severity_on_green',
+           xaxis=xaxis, leaves=leaves,
+           xlims=xlims, linestyle='-', marker=None, title='', legend=False,
+           ax=axs[0], minimum_sample_size=0, with_brewer=True)
+    plt_lf(data_obs_mercia, weather_2011, variable='septo_green', 
+           xaxis=xaxis, leaves=leaves, error_bars=True, title='Mercia',
+           xlims=xlims,linestyle='', ax=axs[0], marker='d', legend=False, 
+           minimum_sample_size=15, with_brewer=True)
+    plt_lf(data_sim_rht3, weather_2011, variable='severity_on_green',
+           xaxis=xaxis, leaves=leaves, title='',
+           xlims=xlims, linestyle='-', marker=None,
+           ax=axs[1], minimum_sample_size=0, with_brewer=True)
+    plt_lf(data_obs_rht3, weather_2011, variable='septo_green', 
+           xaxis=xaxis, leaves=leaves, error_bars=True, title='Rht3',
+           xlims=xlims,linestyle='', ax=axs[1], marker='d', 
+           minimum_sample_size=15, with_brewer=True)
+    for ax in axs:
+        ax.set_xlabel('Thermal time since\nflag leaf emergence ($^\circ$Cd)', fontsize=16)
+    axs[0].set_ylabel('Severity (% of green leaf area)', fontsize=18)
+    axs[1].set_ylabel('')
+    fig.savefig('Mercia_Rht3', bbox_inches='tight')
+    
 def plot_states_leaf(df, leaf=2):
     from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
     import matplotlib.pyplot as plt
@@ -825,33 +922,39 @@ def resample_fnl(df_obs, df_sim, weather, variable='severity'):
 #    plt.savefig('C:/Users/ggarin/Desktop/20150409_results/'+suffix[10:]+'_lesions.png')
 
 def plot_variables_leaf(df, leaf=2, add_leaf_dates=False,
-                        xaxis='age_leaf', xlims=[0,1200]):
+                        xaxis='age_leaf', xlims=[0,1400]):
     if add_leaf_dates==True:
         df = add_leaf_dates_to_data(df)
-    fig, ax = plt.subplots()
-    ax = np.array([ax])
+    fig, axs = plt.subplots(1,2, figsize=(15,6))
     leaves = [leaf]
-
     df = df[df['num_leaf_top']==leaf]
-    df_fill1 = get_mean(df, column='leaf_necrotic_area', xaxis=xaxis)
+    plot_one_sim(df, 'leaf_area', xaxis, np.array(axs[0]), leaves, 'g', linestyle='-')
+    plot_one_sim(df, 'leaf_green_area', xaxis, np.array(axs[0]), leaves, 'g', linestyle='--')
+    plot_one_sim(df, 'leaf_necrotic_area', xaxis, np.array(axs[0]), leaves, 'r', linestyle='-')
+    plot_one_sim(df, 'leaf_necrotic_area_on_green', xaxis, np.array(axs[0]), leaves, 'r', linestyle='--')
+
+    df['ratio_green'] = 0.
+    df['ratio_green'][df['leaf_area']>0] = df['leaf_green_area'][df['leaf_area']>0]*100./df['leaf_area'][df['leaf_area']>0]
+    plot_one_sim(df, 'ratio_green', xaxis, np.array(axs[1]), leaves, 'g', linestyle='-')
+    plot_one_sim(df, 'severity', xaxis, np.array(axs[1]), leaves, 'r', linestyle='-')
+    df_fill1 = get_mean(df, column='severity', xaxis=xaxis)
     df_green = get_mean(df, column='leaf_green_area', xaxis=xaxis)
-    df_fill2 = get_mean(df, column='leaf_green_area', xaxis=xaxis)
-    df_fill2.loc[:, leaf] = max(df_fill2[leaf])
-    df_fill1[df_green==0] = 0.    
-    df_fill2[df_green==0] = 0.
-
-    ax[0].fill_between(df_fill2.index, df_fill2.values.flat, alpha=0.3,
-                        color='None', edgecolor='g', hatch='/')    
-    ax[0].fill_between(df_fill1.index, df_fill1.values.flat, alpha=0.3,
+    date_end_sen = df_green[df_green[leaf]>0].index[-1]
+    df_fill1[df_fill1.index>date_end_sen+210.] = 0. 
+    axs[1].fill_between(df_fill1.index, df_fill1.values.flat, alpha=0.3,
                         color='None', edgecolor='r', hatch='//')
-
-    plot_one_sim(df, 'leaf_area', xaxis, ax, leaves, 'g', linestyle='-')
-    plot_one_sim(df, 'leaf_green_area', xaxis, ax, leaves, 'g', linestyle='--')
-    plot_one_sim(df, 'leaf_necrotic_area', xaxis, ax, leaves, 'r', linestyle='-')
-    plot_one_sim(df, 'leaf_necrotic_area_on_green', xaxis, ax, leaves, 'r', linestyle='--')
-    ax[0].set_xlim(xlims)
-    ax[0].set_ylabel('Leaf area (cm2)', fontsize=16)
-    ax[0].set_xlabel('Age of leaf (degree days)', fontsize=16)
+    
+    axs[0].set_xlim(xlims)
+    axs[1].set_xlim(xlims)
+    axs[0].set_ylim([0,max(df_green[leaf])*1.05])
+    axs[1].set_ylim([0,105])
+    axs[0].set_ylabel('Leaf area (cm2)', fontsize=18)
+    axs[1].set_ylabel('Severity (%)', fontsize=18)
+    axs[0].set_xlabel('Age of leaf (degree days)', fontsize=18)
+    axs[1].set_xlabel('Age of leaf (degree days)', fontsize=18)
+    axs[0].legend(['Total leaf', 'Green leaf', 'Sporulating', 'Sporulating\nin green'], loc='best')
+    axs[1].legend(['% Green leaf', '% Sporulating'], loc='best')
+    plt.tight_layout()
 
 def plot_3_weathers():
     import matplotlib.pyplot as plt
@@ -884,5 +987,14 @@ def plot_3_weathers():
                              xlabel=True, ylabel1=ylabel, ylabel2=ylabel2)
     fig.tight_layout()
 
-
-    
+def get_rmse(data_obs, data_sim):
+    def get_mean_add_doy(df):
+        df = get_mean(df, column='severity', xaxis='date')
+        df['doy'] = [d.dayofyear for d in df.index]
+        return df
+    df_mean_obs, df_mean_sim = map(lambda df: get_mean_add_doy(df), 
+                                   (data_obs, data_sim))
+    df_mean_sim = df_mean_sim[df_mean_obs.columns][df_mean_sim['doy'].isin(df_mean_obs['doy'])]
+    df_mean_sim.index = df_mean_obs.index
+    df_mean_obs, df_mean_sim = map(lambda df: df.drop('doy',1), (df_mean_obs, df_mean_sim))
+    return np.sqrt((df_mean_sim - df_mean_obs) ** 2).mean().mean()

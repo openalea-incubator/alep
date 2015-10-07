@@ -37,12 +37,19 @@ from alinea.alep.simulation_tools.simulation_tools import (wheat_path,
                                                            init_canopy, 
                                                            grow_canopy,
                                                            alep_echap_reconstructions,
+                                                           alep_custom_reconstructions,
                                                            get_iter_rep_wheats,
                                                            get_filename,
                                                            get_data_sim)
 from alinea.alep.architecture import set_properties
 from alinea.alep.disease_outputs import plot_by_leaf
-                                     
+
+# Temp
+from alinea.echap.disease.alep_septo_evaluation import *
+from alinea.alep.disease_outputs import plot_by_leaf
+from alinea.alep.simulation_tools.simulation_tools import add_leaf_dates_to_data
+from alinea.adel.newmtg import adel_labels
+
 def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
                variety = 'Mercia', nplants = 15, nsect = 7, 
@@ -51,7 +58,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                rust_dispersal_delay = 24, recording_delay = 24,
                record=True, layer_thickness_septo = 0.01,
                layer_thickness_rust = 1., rep_wheat = None, group_dus = True,
-               **kwds):
+               leaf_duration = 2., **kwds):
     """ Setup the simulation 
     
     Note : kwds are used to modify disease parameters, if same name of parameter for septoria and 
@@ -74,8 +81,11 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     
     # Set canopy
     it_wheat = 0
-    reconst = alep_echap_reconstructions()
-    adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+    if variety!='Custom':
+        reconst = alep_echap_reconstructions(leaf_duration=leaf_duration)
+        adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+    else:
+        adel = alep_custom_reconstructions(variety='Tremie13', nplants=nplants, nsect=nsect, **kwds)
     year = int(end_date[:4])    
     wheat_dir = wheat_path(year, variety, nplants, nsect, rep_wheat)
     g, wheat_is_loaded = init_canopy(adel, wheat_dir, rain_and_light=True)
@@ -147,10 +157,11 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
             
 def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                            nplants = 15, nsect = 7, sporulating_fraction = 5e-3, 
-                           density_dispersal_units = 1e5, 
+                           density_dispersal_units = 150, 
                            layer_thickness_septo = 0.01, layer_thickness_rust = 1.,
                            record = True, output_file = None,
-                           reset_reconst = True, rep_wheat = None, **kwds):
+                           reset_reconst = True, rep_wheat = None, 
+                           leaf_duration = 2., date_flag_leaf=1000., **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     if 'temp_min' in kwds:
         Tmin = kwds['temp_min']
@@ -167,7 +178,8 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                                               sporulating_fraction=sporulating_fraction,
                                               Tmin=Tmin, rep_wheat=rep_wheat, record=record,
                                               layer_thickness_septo=layer_thickness_septo,
-                                              layer_thickness_rust=layer_thickness_rust, **kwds)
+                                              layer_thickness_rust=layer_thickness_rust,
+                                              leaf_duration=leaf_duration, **kwds)
 
     for i, controls in enumerate(zip(canopy_timing, septo_dispersal_timing, rust_dispersal_timing,
                                      septo_rust_timing, recorder_timing)):
@@ -197,17 +209,21 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
             g = external_contamination(g, septo_inoculum, septo_contaminator, septo_dispersal_iter.value,
                                        domain=adel.domain, 
                                        domain_area=adel.domain_area)
-        if (rust_dispersal_iter and len(geom)>0 and
-            rust_dispersal_iter.value.index[0] > pd.to_datetime(str(year)+'-03-01') and
-            rust_dispersal_iter.value.index[-1] < pd.to_datetime(str(year)+'-03-15')):
-            print 'RUST INOC'
+#        if (rust_dispersal_iter and len(geom)>0 and
+#            rust_dispersal_iter.value.index[0] > pd.to_datetime(str(year)+'-03-01') and
+#            rust_dispersal_iter.value.index[-1] < pd.to_datetime(str(year)+'-03-15')):
+#        if (rust_dispersal_iter and len(geom)>0 and
+#            rust_dispersal_iter.value.degree_days.tolist()[-1] > date_flag_leaf and
+#            rust_dispersal_iter.value.degree_days.tolist()[-1] < date_flag_leaf+500):
+#            print 'RUST INOC'
+        if (rust_dispersal_iter and len(geom)>0):
             g = external_contamination(g, rust_contaminator, rust_contaminator, 
                                        density_dispersal_units=density_dispersal_units,
                                        domain_area=adel.domain_area)
         # Develop disease (infect for dispersal units and update for lesions)
         if septo_rust_iter:
             infect(g, septo_rust_iter.dt, infection_controler, label='LeafElement')
-            group_duplicates_in_cohort(g) # Additional optimisation (group identical cohorts)
+#            group_duplicates_in_cohort(g) # Additional optimisation (group identical cohorts)
             update(g, septo_rust_iter.dt, growth_controler, senescence_model=None, label='LeafElement')            
         # Disperse and wash
         if septo_dispersal_iter and len(geom)>0 and septo_dispersal_iter.value.rain.mean()>0.2:
@@ -237,9 +253,9 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
         
 def run_reps_septo_rust(year = 2013, variety = 'Tremie13', 
                    nplants = 15, nsect = 7, sowing_date = '10-15',
-                   sporulating_fraction = 5e-4, density_dispersal_units=1e5,
+                   sporulating_fraction = 5e-3, density_dispersal_units=150.,
                    layer_thickness_septo = 0.01, layer_thickness_rust = 1.,
-                   nreps = 10, **kwds):
+                   nreps = 10, suffix = None, **kwds):
     df = pd.DataFrame()
     rep_wheats = get_iter_rep_wheats(year, variety, nplants, nsect, nreps)
     for rep in range(nreps):
@@ -256,7 +272,7 @@ def run_reps_septo_rust(year = 2013, variety = 'Tremie13',
     inoc = str(sporulating_fraction)+'_'+str(density_dispersal_units)
     inoc = inoc.replace('.', '_')
     output_file = get_filename(fungus='septo_rust', year=year, variety=variety,
-                               nplants=nplants, inoc=inoc)
+                               nplants=nplants, inoc=inoc, suffix = None)
     df.to_csv(output_file)
     
 def plot_septo_rust(fungus = 'septo_rust', year = 2012,
@@ -284,3 +300,14 @@ def plot_septo_rust(fungus = 'septo_rust', year = 2012,
                  fixed_color=fixed_color, alpha=alpha, title=title, 
                  legend=legend, xlabel=xlabel, ylabel=ylabel, xlims=xlims,
                  ylims=ylims, ax=ax, return_ax=return_ax, fig_size=fig_size)
+                 
+def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
+                    nplants = 15,  sowing_date = '10-15', 
+                    inoc_rust = 150., inoc_septo = 5e-3, 
+                    suffix = None, nreps=10, **kwds):
+    for yr in years:
+        run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
+                            sowing_date=sowing_date,
+                            sporulating_fraction=inoc_septo,
+                            density_dispersal_units=inoc_rust,
+                            nreps=nreps, suffix=suffix, **kwds)

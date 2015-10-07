@@ -1053,27 +1053,27 @@ class AdelSeptoRecorder(AdelWheatRecorder):
                     self.data.loc[ind_data_lf, 'audpc'] = np.nan
                     self.data.loc[ind_data_lf, 'normalized_audpc'] = np.nan
                     
-    def get_audpc_400(self, variable='severity'):
+    def get_audpc_long(self, variable='severity', latency_after_inc=210.):
         for pl in set(self.data['num_plant']):
             df_pl =  self.data[self.data['num_plant'] == pl]
             for lf in set(df_pl['num_leaf_top']):
                 df_lf = df_pl[df_pl['num_leaf_top'] == lf]
                 ind_data_lf = df_lf.index
-                data = df_lf[variable][df_lf['leaf_green_area']>0]
-                ddays = df_lf['degree_days'][df_lf['leaf_green_area']>0]
-                if ddays.iloc[-1]>=ddays.iloc[0]+400:
-                    data = data[ddays<ddays.iloc[0]+400]
-                    ddays = ddays[ddays<ddays.iloc[0]+400]
+                date_end_sen = df_lf['degree_days'][df_lf['leaf_green_area']>0].values[-1]
+                if (round(df_lf['leaf_green_area'][pandas.notnull(df_lf[variable])].iloc[-1],10)==0. and
+                    max(df_lf['degree_days']) >= date_end_sen+latency_after_inc):
+                    data = df_lf[variable][df_lf['degree_days']<date_end_sen+latency_after_inc]
+                    ddays = df_lf['degree_days'][df_lf['degree_days']<date_end_sen+latency_after_inc]
                     if len(data[data>0])>0:
-                        audpc_400 = simps(data[data>0], ddays[data>0])
-                        if numpy.isnan(audpc_400):
-                            audpc_400 = trapz(data[data>0], ddays[data>0])
+                        audpc = simps(data[data>0], ddays[data>0])
+                        if numpy.isnan(audpc):
+                            audpc = trapz(data[data>0], ddays[data>0])
                     else:
-                        audpc_400 = 0.
-                    self.data.loc[ind_data_lf, 'audpc_400'] = audpc_400
+                        audpc = 0.
+                    self.data.loc[ind_data_lf, 'audpc_long'] = audpc
                 else:
-                    self.data.loc[ind_data_lf, 'audpc_400'] = np.nan
-    
+                    self.data.loc[ind_data_lf, 'audpc_long'] = np.nan
+                    
     def post_treatment(self, variety = None):
         self.data = self.data[~pandas.isnull(self.data['date'])]
         self.add_leaf_numbers()
@@ -1085,7 +1085,7 @@ class AdelSeptoRecorder(AdelWheatRecorder):
         self.severity()
         self.severity_on_green()
         self.get_audpc()
-        self.get_audpc_400()
+        self.get_audpc_long()
         if variety is not None:
             self.add_variety(variety=variety)
            
@@ -1141,20 +1141,20 @@ def get_synthetic_outputs_by_leaf(data, return_conf=False):
         idx += 1
         df_lf = data[data['num_leaf_top']==lf]
         audpcs = numpy.unique(df_lf['audpc'])
-        audpcs_400 = numpy.unique(df_lf['audpc_400'])
+        audpcs_500 = numpy.unique(df_lf['audpc_500'])
         n_audpcs = numpy.unique(df_lf['normalized_audpc'])
         max_sevs = df_lf.groupby('num_plant').max()['severity']
         date_t = df_dates[lf]
         df.loc[idx, 'num_leaf_top'] = lf
         df.loc[idx, 'audpc'] = np.mean(audpcs)
-        df.loc[idx, 'audpc_400'] = np.mean(audpcs_400)
+        df.loc[idx, 'audpc_500'] = np.mean(audpcs_500)
         df.loc[idx, 'normalized_audpc'] = numpy.mean(n_audpcs)
         df.loc[idx, 'max_severity'] = numpy.mean(max_sevs)
         df.loc[idx, 'age_threshold'] = numpy.mean(date_t)
         if return_conf==True:
             df_conf.loc[idx, 'num_leaf_top'] = lf
             df_conf.loc[idx, 'audpc'] = conf_int(audpcs)
-            df_conf.loc[idx, 'audpc_400'] = conf_int(audpcs_400)
+            df_conf.loc[idx, 'audpc_500'] = conf_int(audpcs_500)
             df_conf.loc[idx, 'normalized_audpc'] = conf_int(n_audpcs)
             df_conf.loc[idx, 'max_severity'] = conf_int(max_sevs)
             df_conf.loc[idx, 'age_threshold'] = conf_int(date_t)

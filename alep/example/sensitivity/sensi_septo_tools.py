@@ -83,6 +83,9 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
         for i_sample in i_samples:
             stored_rec = get_stored_rec(variety, year, i_sample, boot)
             df_reco = pd.read_csv(stored_rec)
+            cols_to_del = np.unique([col for col in df_reco.columns if col.startswith('Unnamed')]) #UGLY HACK
+            for col in cols_to_del:
+                df_reco = df_reco.drop(col, 1)
             df_s = get_synthetic_outputs_by_leaf(df_reco)
             for lf in np.unique(df_reco['num_leaf_top']):
                 df_reco_lf = df_reco[(df_reco['num_leaf_top']==lf)]
@@ -92,7 +95,7 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
                     output[col] = df_in.loc[i_sample, col]
                 output['normalized_audpc'] = df_reco_lf.normalized_audpc.mean()
                 output['audpc'] = df_reco_lf.audpc.mean()
-                output['audpc_400'] = df_reco_lf.audpc_400.mean()
+                output['audpc_500'] = df_reco_lf.audpc_500.mean()
                 output['max_severity'] = df_s[df_s['num_leaf_top']==lf].max_severity.astype(float).values[0]
                 df_out_b = df_out_b.append(output, ignore_index = True)
         df_out_b['i_boot'] = boot
