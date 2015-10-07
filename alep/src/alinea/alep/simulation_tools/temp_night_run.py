@@ -13,7 +13,7 @@ def wed1():
                nplants=15, proba_inf=1, age_infection=False,
                growth_rate=0.0006, Smin=0.03, degree_days_to_chlorosis=160.,
                degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
-               sporulating_fraction=0.007, reduction_by_rain=0.,
+               sporulating_fraction=0.005, reduction_by_rain=0.,
                rain_events_to_empty=10, leaf_duration=3., keep_leaves=False,
                rh_effect=True, apply_rh='all', rh_max=35., rh_min=35.,
                suffix='wednesday', nreps=1)
@@ -22,7 +22,7 @@ def wed2():
                nplants=15, proba_inf=1, age_infection=False,
                growth_rate=0.0006, Smin=0.03, degree_days_to_chlorosis=160.,
                degree_days_to_necrosis=160., degree_days_to_sporulation=50.,
-               sporulating_fraction=0.007, reduction_by_rain=0.,
+               sporulating_fraction=0.005, reduction_by_rain=0.,
                rain_events_to_empty=10, leaf_duration=3., keep_leaves=False,
                rh_effect=True, apply_rh='all', rh_max=35., rh_min=35.,
                suffix='wednesday', nreps=1)
