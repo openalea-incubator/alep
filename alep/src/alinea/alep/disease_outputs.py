@@ -1353,7 +1353,8 @@ class SeptoRustRecorder(AdelWheatRecorder):
         columns = ['date', 'degree_days', 'num_plant', 'num_leaf_bottom', 
                    'fnl', 'leaf_area', 'leaf_green_area', 'nb_dus_septo',
                    'nb_dus_rust', 'nb_lesions_septo', 'nb_lesions_rust',
-                   'surface_septo', 'surface_septo_on_green', 'surface_rust', 'severity_rust_spo']
+                   'surface_septo', 'surface_septo_spo', 
+                   'surface_septo_on_green', 'surface_rust', 'severity_rust_spo']
         self.data = pandas.DataFrame(data = [[np.nan for col in columns] for i in range(1000)], 
                                      columns = columns)
     
@@ -1380,6 +1381,7 @@ class SeptoRustRecorder(AdelWheatRecorder):
         nb_lesions_septo = 0
         nb_lesions_rust = 0
         surface_septo = 0.
+        surface_septo_spo = 0.
         surface_septo_on_green = 0.
         surface_rust = 0.
         surface_rust_spo = 0.
@@ -1407,13 +1409,13 @@ class SeptoRustRecorder(AdelWheatRecorder):
                             nb_les_on_green = les.nb_lesions_non_sen
                             nb_lesions_septo += nb_les
                             ratio_green = float(nb_les_on_green)/nb_les if nb_les>0. else 0.
-#                            surface_les = les.surface_spo + les.surface_empty
                             surface_les = les.surface_chlo + les.surface_nec + les.surface_spo + les.surface_empty
                             surface_septo += surface_les
+                            surface_septo_spo += les.surface_spo + les.surface_empty
                             surface_septo_on_green += surface_les*ratio_green
                         else:
                             nb_lesions_septo += 1
-#                            surface_septo += (les.surface_spo + les.surface_empty)
+                            surface_septo_spo += (les.surface_spo + les.surface_empty)
                             surface_septo += les.surface_alive
                             if les.position[0][0]>leaf.senesced_length:
 #                                surface_septo_on_green += (les.surface_spo + les.surface_empty)
@@ -1424,7 +1426,6 @@ class SeptoRustRecorder(AdelWheatRecorder):
                         else:
                             nb_lesions_rust += 1
                         surface_rust += les.surface_alive
-#                        surface_rust += les.surface_spo
                         surface_rust_spo += les.surface_spo
 
         dict_lf['nb_dus_septo'] = nb_dus_septo
@@ -1432,6 +1433,7 @@ class SeptoRustRecorder(AdelWheatRecorder):
         dict_lf['nb_lesions_septo'] = nb_lesions_septo
         dict_lf['nb_lesions_rust'] = nb_lesions_rust
         dict_lf['surface_septo'] = surface_septo
+        dict_lf['surface_septo_spo'] = surface_septo_spo
         if green_area>0:
             dict_lf['surface_septo_on_green'] = surface_septo_on_green
         else:
@@ -1454,6 +1456,7 @@ class SeptoRustRecorder(AdelWheatRecorder):
             self.leaf_disease_area()
         self.data['severity'] = [self.data['leaf_disease_area'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
         self.data['severity_septo'] = [self.data['surface_septo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
+        self.data['severity_septo_spo'] = [self.data['surface_septo_spo'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
         self.data['severity_rust'] = [self.data['surface_rust'][ind]/self.data['leaf_area'][ind] if self.data['leaf_area'][ind]>0. else 0. for ind in self.data.index]
     
     def severity_on_green(self):

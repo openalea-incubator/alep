@@ -385,7 +385,6 @@ class SeptoriaAgePhysio(Lesion):
         if self.status_edge==f.CHLOROTIC and not self.growth_is_active :
             if self.age_physio_edge+progress < 1.:
                 self.age_physio_edge += progress
-                # Temp
                 if self.age_physio_edge < 0.:
                     self.age_physio_edge = 0.
             else:
@@ -545,45 +544,56 @@ class SeptoriaAgePhysio(Lesion):
             age_switch = f.age_physio_switch_senescence
             age_physio = self.age_physio
             age_edge = self.age_physio_edge
-            if self.status < f.CHLOROTIC:
-                self.surface_dead += self.surface_first_ring * ratio_sen
-                self.surface_first_ring = self.surface_first_ring * (1-ratio_sen)
-            elif self.is_chlorotic() and age_switch >= age_physio:
-                self.surface_dead += self.surface_first_ring * ratio_sen + sum(self.surfaces_chlo * ratio_sen)
-                self.surface_first_ring = self.surface_first_ring * (1-ratio_sen)
-                self.surfaces_chlo *= (1-ratio_sen)
-                self.surfaces_chlo = self.surfaces_chlo[self.surfaces_chlo>0.]
-            elif self.status_edge == f.CHLOROTIC and age_switch > age_edge and self.surface_chlo > 0.:
-                default_nb_rings = f.nb_rings_by_state
-                (rings, width) = np.linspace(0,1, default_nb_rings+1, retstep=True)
-                if self.is_chlorotic():
-                    rings = rings[:ceil(age_physio/width)+1]
-                    rings[-1] = age_physio
-                rings = rings[floor(age_edge/width):]
-                rings[0] = age_edge
-                if age_switch>rings[0] and len(self.surfaces_chlo)>0 and self.age_physio_edge>0:
-                    ind_cut = np.where(rings<age_switch)[0][-1]
-                    ratio_to_dead = round((age_switch - rings[ind_cut])/(rings[ind_cut+1]-rings[ind_cut]), 14)
-                    to_dead_on_cut_ring = self.surfaces_chlo[ind_cut]*ratio_sen*ratio_to_dead
-                    self.surface_dead += to_dead_on_cut_ring # In the ring which is cut
-                    self.surface_dead += sum(self.surfaces_chlo[:ind_cut]*ratio_sen) # In older rings
-                    self.surfaces_chlo[:ind_cut] *= (1 - ratio_sen)
-                    self.surfaces_chlo[ind_cut] -= to_dead_on_cut_ring
-                    
-                if nb_new_sen==self.nb_lesions_non_sen:
-                    if age_switch==1 or len(self.surfaces_chlo>0.)==0:
-                        self.age_physio_edge = 0.
-                        self.change_status_edge()
+            if f.apply_sen == 'incubation':
+                if self.is_incubating():
+                    age_les_switch = f.degree_days_to_chlorosis*age_switch
+                    if age_les_switch>self.age_tt:
+                        self.surface_dead += self.surface_first_ring * ratio_sen
+                        self.surface_first_ring = self.surface_first_ring * (1-ratio_sen)
                     else:
-                        self.age_physio_edge = age_switch
-                elif any([x==0. for x in self.surfaces_chlo]):
-                    rings = rings[self.surfaces_chlo>0.]
-                    if len(rings)>0:
-                        self.age_physio_edge = rings[0]
-                    else:
-                        self.age_physio_edge = 0.
-                        self.change_status_edge()
-                self.surfaces_chlo = self.surfaces_chlo[self.surfaces_chlo>0.]
+                        ratio_sen *= f.degree_days_to_chlorosis*age_switch/self.age_tt
+                        self.surface_dead += self.surface_first_ring * ratio_sen
+                        self.surface_first_ring = self.surface_first_ring * (1-ratio_sen)
+            else:
+                if self.status < f.CHLOROTIC:
+                    self.surface_dead += self.surface_first_ring * ratio_sen
+                    self.surface_first_ring = self.surface_first_ring * (1-ratio_sen)
+                elif self.is_chlorotic() and age_switch >= age_physio:
+                    self.surface_dead += self.surface_first_ring * ratio_sen + sum(self.surfaces_chlo * ratio_sen)
+                    self.surface_first_ring = self.surface_first_ring * (1-ratio_sen)
+                    self.surfaces_chlo *= (1-ratio_sen)
+                    self.surfaces_chlo = self.surfaces_chlo[self.surfaces_chlo>0.]
+                elif self.status_edge == f.CHLOROTIC and age_switch > age_edge and self.surface_chlo > 0.:
+                    default_nb_rings = f.nb_rings_by_state
+                    (rings, width) = np.linspace(0,1, default_nb_rings+1, retstep=True)
+                    if self.is_chlorotic():
+                        rings = rings[:ceil(age_physio/width)+1]
+                        rings[-1] = age_physio
+                    rings = rings[floor(age_edge/width):]
+                    rings[0] = age_edge
+                    if age_switch>rings[0] and len(self.surfaces_chlo)>0 and self.age_physio_edge>0:
+                        ind_cut = np.where(rings<age_switch)[0][-1]
+                        ratio_to_dead = round((age_switch - rings[ind_cut])/(rings[ind_cut+1]-rings[ind_cut]), 14)
+                        to_dead_on_cut_ring = self.surfaces_chlo[ind_cut]*ratio_sen*ratio_to_dead
+                        self.surface_dead += to_dead_on_cut_ring # In the ring which is cut
+                        self.surface_dead += sum(self.surfaces_chlo[:ind_cut]*ratio_sen) # In older rings
+                        self.surfaces_chlo[:ind_cut] *= (1 - ratio_sen)
+                        self.surfaces_chlo[ind_cut] -= to_dead_on_cut_ring
+                        
+                    if nb_new_sen==self.nb_lesions_non_sen:
+                        if age_switch==1 or len(self.surfaces_chlo>0.)==0:
+                            self.age_physio_edge = 0.
+                            self.change_status_edge()
+                        else:
+                            self.age_physio_edge = age_switch
+                    elif any([x==0. for x in self.surfaces_chlo]):
+                        rings = rings[self.surfaces_chlo>0.]
+                        if len(rings)>0:
+                            self.age_physio_edge = rings[0]
+                        else:
+                            self.age_physio_edge = 0.
+                            self.change_status_edge()
+                    self.surfaces_chlo = self.surfaces_chlo[self.surfaces_chlo>0.]
 
             # Update number of lesions in senescence
             self.nb_lesions_sen += nb_new_sen         
@@ -593,7 +603,8 @@ class SeptoriaAgePhysio(Lesion):
 
             # Stop growth when last lesion of cohort is reached
             if self.nb_lesions_non_sen==0.:
-                if self.is_incubating() or (self.is_chlorotic() and age_switch >= age_physio):
+                if ((self.is_incubating() and f.apply_sen == 'incubation' and age_switch >= age_physio)
+                    or (f.apply_sen != 'incubation' and self.is_chlorotic() and age_switch >= age_physio)):
                     self.senescence_response_completed=True
                     self.disable()
                 else:
@@ -732,8 +743,12 @@ class SeptoriaAgePhysio(Lesion):
             f = self.fungus
             age_switch = f.age_physio_switch_senescence
             ratio_non_sen = self.nb_lesions_non_sen / self.nb_lesions
-            return self.surface_inc + ratio_non_sen*(age_switch*self.surface_chlo +\
-                    self.surface_nec + self.surface_spo + self.surface_empty)
+            if f.apply_sen=='incubation':
+                return ratio_non_sen*(age_switch*self.surface_inc + self.surface_chlo +\
+                        self.surface_nec + self.surface_spo + self.surface_empty)
+            else:
+                return self.surface_inc + ratio_non_sen*(age_switch*self.surface_chlo +\
+                        self.surface_nec + self.surface_spo + self.surface_empty)
         else:
             return self.surface - self.surface_dead
             

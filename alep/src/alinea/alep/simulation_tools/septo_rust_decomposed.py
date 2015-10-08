@@ -161,7 +161,8 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                            layer_thickness_septo = 0.01, layer_thickness_rust = 1.,
                            record = True, output_file = None,
                            reset_reconst = True, rep_wheat = None, 
-                           leaf_duration = 2., date_flag_leaf=1000., **kwds):
+                           leaf_duration = 2., date_inoc_rust=1000., 
+                           length_inoc_rust=300., **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     if 'temp_min' in kwds:
         Tmin = kwds['temp_min']
@@ -213,8 +214,8 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
 #            rust_dispersal_iter.value.index[0] > pd.to_datetime(str(year)+'-03-01') and
 #            rust_dispersal_iter.value.index[-1] < pd.to_datetime(str(year)+'-03-15')):
 #        if (rust_dispersal_iter and len(geom)>0 and
-#            rust_dispersal_iter.value.degree_days.tolist()[-1] > date_flag_leaf and
-#            rust_dispersal_iter.value.degree_days.tolist()[-1] < date_flag_leaf+500):
+#            rust_dispersal_iter.value.degree_days.tolist()[-1] > date_inoc_rust and
+#            rust_dispersal_iter.value.degree_days.tolist()[-1] < date_inoc_rust+length_inoc_rust):
 #            print 'RUST INOC'
         if (rust_dispersal_iter and len(geom)>0):
             g = external_contamination(g, rust_contaminator, rust_contaminator, 
@@ -322,18 +323,21 @@ def get_aggregated_data_sim(year = 2013, variety = 'Tremie13', nplants = 15,
 
 def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                     nplants = 15,  sowing_date = '10-15', 
-                    inoc_septo = 5e-3, inoc_rust = 150.,
+                    inoc_septo = 5e-3, inoc_rust = 5000.,
                     suffix = None, nreps=10, **kwds):
-#    scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
-    scenarios_inoc = [(inoc_septo, 0)]
+    scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
     for yr in years:
         for inoc in scenarios_inoc:
-            run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
-                                sowing_date=sowing_date,
-                                sporulating_fraction=inoc[0],
-                                density_dispersal_units=inoc[1],
-                                nreps=nreps, suffix=suffix, **kwds)
-                            
+            if yr==2003 and inoc in [(inoc_septo, 0), (0, inoc_rust)]:
+                print 'pass'
+                pass
+            else:
+                run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
+                                    sowing_date=sowing_date,
+                                    sporulating_fraction=inoc[0],
+                                    density_dispersal_units=inoc[1],
+                                    nreps=nreps, suffix=suffix, **kwds)
+                                
 def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                         nplants = 15,  sowing_date = '10-15', 
                         inoc_rust = 150., inoc_septo = 5e-3, 
@@ -341,28 +345,27 @@ def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
 
     def plot_variable(df, variable='severity_septo', ax=None):
         plot_by_leaf(df, variable, xaxis = 'age_leaf_vs_flag_emg', 
-                     ax=ax, ylims=[0, 1], xlims=[0, 1500])
+                     ax=ax, ylims=[0, 1], xlims=[0, 1500], legend=False)
 
     import matplotlib.pyplot as plt
     fig, axs = plt.subplots(4,len(years))
     scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
     for i_yr, yr in enumerate(years):
-        ax = axs[i_yr]
         for inoc in scenarios_inoc:
-            data_sim = get_aggregated_data_sim(year=year, variety=variety, 
+            data_sim = get_aggregated_data_sim(year=yr, variety=variety, 
                                       nplants=nplants, 
-                                      sporulating_fraction=inoc_septo,
-                                      density_dispersal_units=inoc_rust,
+                                      sporulating_fraction=inoc[0],
+                                      density_dispersal_units=inoc[1],
                                       suffix=suffix)
             data_sim = add_leaf_dates_to_data(data_sim)
-            df_count = data_sim.groupby(['date', 'num_leaf_top'])
-            df_count = df_count.reset_index()
-            data_sim = data_sim[df_count['severity']==nplants*nreps]
+#            df_count = data_sim.groupby(['date', 'num_leaf_top']).count()
+#            df_count = df_count.reset_index()
+#            data_sim = data_sim[df_count['severity']==nplants*nreps]
             if inoc[0]==0:
-                plot_by_leaf(data_sim_yr, variable='severity_rust', ax=ax[1])
+                plot_variable(data_sim, variable='severity_rust', ax=axs[1][i_yr])
             elif inoc[1]==0:
-                plot_by_leaf(data_sim_yr, variable='severity_septo', ax=ax[0])
+                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[0][i_yr])
             else:
-                plot_by_leaf(data_sim_yr, variable='severity_septo', ax=ax[2])
-                plot_by_leaf(data_sim_yr, variable='severity_rust', ax=ax[3])
+                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[2][i_yr])
+                plot_variable(data_sim, variable='severity_rust', ax=axs[3][i_yr])
             

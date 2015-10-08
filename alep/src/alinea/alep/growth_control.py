@@ -325,6 +325,7 @@ class SeptoRustCompetition:
                 nb_non_prio = 0.
                 for l in leaf_lesions:
                     if l.fungus.name=='septoria' and l.status >= l.fungus.CHLOROTIC:
+#                    if l.fungus.name=='septoria' and l.status > l.fungus.CHLOROTIC:
                         s_prio += l.surface
                         s_prio_alive += l.surface_alive
                         s_prio_non_sen += l.surface_non_senescent
@@ -339,7 +340,12 @@ class SeptoRustCompetition:
                         non_prio_les.append(l)
                         demand_non_prio += l.growth_demand
                         nb_non_prio += l.nb_lesions_non_sen
-                                
+                            
+                # Temp
+#                if round(s_prio_alive, 10)>leaf_area:
+#                    import pdb
+#                    pdb.set_trace()
+                            
                 if nb_prio>0:
                     if round(s_prio_non_sen, 16) < round(leaf_green_area, 16):
                         true_area_prio = self.true_area_impacted(nb_prio,
@@ -360,6 +366,10 @@ class SeptoRustCompetition:
                                                           lengths)
 
                     offer_prio = max(0., min(offer_prio, demand_prio))
+                    # Temp
+#                    if round(s_prio_alive+offer_prio, 10)>leaf_area:
+#                        import pdb
+#                        pdb.set_trace()
                     for l in prio_les:
                         offer_lesion = l.growth_demand*offer_prio/demand_prio if demand_prio>0. else 0.
                         l.control_growth(offer_lesion)
@@ -406,8 +416,6 @@ class SeptoRustCompetition:
 #                        if (leaf[0] in a_labs and 
 #                            a_labs[leaf[0]]=='plant1_MS_metamer11_blade_LeafElement1' and
 #                            blade in ages and ages[blade]>265):
-#                            import pdb
-#                            pdb.set_trace()
 #                            
                         offer_non_prio = max(offer_non_prio, -s_non_prio_non_sen)
                         for l in non_prio_les:

@@ -49,7 +49,7 @@ def get_one_leaf():
     return g.node(leaves[0])
 
 def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
-                    leaf_area = 1., **kwds):
+                    leaf_area = 1., senescence_date = 5000, **kwds):
     weather = read_weather_year(2012)
     df = weather.data
     df = df.reset_index()
@@ -74,9 +74,13 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     cum_tt = 0.
     count = 0.
     for i, row in df.iterrows():
-         if count < nb_steps:
+        if count == senescence_date:
+#            leaf.green_area = 0.
+            leaf.senesced_length = 3.
+        if count < nb_steps:
             count += 1
             leaf.temperature_sequence = [row['temperature_air']]
+            leaf.relative_humidity_sequence = [row['relative_humidity']]
             lesion.update(leaf = leaf)
             if with_compet == False:
                 lesion.control_growth(growth_offer = lesion.growth_demand)
@@ -99,6 +103,7 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     ax.plot(tt, surfs_spo, 'r')
     ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
     ax.set_ylabel("Surface d'une lesion (cm2)", fontsize = 18)
+    ax.set_ylim([0,0.31*density_lesions])
     if sum(surfs_empty)>0:
         ax.plot(tt, surfs_empty, 'k--')
         labels = ['Total', 'Incubation', 'Chlorose', 'Necrose', 'Sporulant', 'Vide']

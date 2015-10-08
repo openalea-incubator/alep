@@ -218,7 +218,8 @@ septoria_parameters = dict(name='septoria',
                          age_physio_switch_senescence=0.,
                          group_dus = False,
                          rh_effect = True,
-                         apply_rh = 'all')
+                         apply_rh = 'all',
+                         apply_sen = 'chlorosis')
                  
 # class SeptoriaParameters(Parameters):
     # model = None
