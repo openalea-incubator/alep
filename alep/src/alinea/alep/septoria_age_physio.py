@@ -260,7 +260,7 @@ class SeptoriaAgePhysio(Lesion):
 
             # Ageing of the periphery of the lesion if growth has been stopped
             f = self.fungus
-            if round(growth_offer,10)==0. and self.status_edge>0:
+            if round(growth_offer,10)==0. and self.status_edge>0 and self.status_edge<3:
                 if self.status_edge==f.CHLOROTIC:
                     progress=self.progress(age_threshold=f.degree_days_to_necrosis)
                 elif self.status_edge==f.NECROTIC:
@@ -551,7 +551,7 @@ class SeptoriaAgePhysio(Lesion):
                         self.surface_dead += self.surface_first_ring * ratio_sen
                         self.surface_first_ring = self.surface_first_ring * (1-ratio_sen)
                     else:
-                        ratio_sen *= f.degree_days_to_chlorosis*age_switch/self.age_tt
+                        ratio_sen *= f.degree_days_to_chlorosis*age_switch/self.age_tt if self.age_tt>0. else 1.
                         self.surface_dead += self.surface_first_ring * ratio_sen
                         self.surface_first_ring = self.surface_first_ring * (1-ratio_sen)
             else:
