@@ -54,8 +54,6 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     if variety!='Custom':
         reconst = alep_echap_reconstructions(leaf_duration=leaf_duration)
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
-        if save_images:
-            adel.stand.density_curve=None
     else:
         adel = alep_custom_reconstructions(variety='Tremie13', nplants=nplants, nsect=nsect, **kwds)
     year = int(end_date[:4])    

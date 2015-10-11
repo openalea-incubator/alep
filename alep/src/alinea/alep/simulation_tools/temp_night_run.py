@@ -17,7 +17,7 @@ def sun1():
                rain_events_to_empty=10, leaf_duration=3., keep_leaves=False,
                rh_effect=True, apply_rh='all', rh_max=35., rh_min=35.,
                apply_sen='incubation', age_physio_switch_senescence=100/250.,
-               suffix='sunday_100_250_350', nreps=1)
+               suffix='sunday_100_250_350', nreps=10)
 def sun2():
     run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-29',
                nplants=15, proba_inf=1, age_infection=False,
@@ -27,7 +27,7 @@ def sun2():
                rain_events_to_empty=10, leaf_duration=3., keep_leaves=False,
                rh_effect=True, apply_rh='all', rh_max=35., rh_min=35.,
                apply_sen='incubation', age_physio_switch_senescence=100/250.,
-               suffix='sunday_100_250_350', nreps=1)
+               suffix='sunday_100_250_350', nreps=10)
 def sun3():
     run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
                nplants=15, proba_inf=1, age_infection=False,
@@ -37,7 +37,7 @@ def sun3():
                rain_events_to_empty=10, leaf_duration=3., keep_leaves=False,
                rh_effect=True, apply_rh='all', rh_max=35., rh_min=35.,
                apply_sen='incubation', age_physio_switch_senescence=100/250.,
-               suffix='sunday_100_220_330', nreps=1)
+               suffix='sunday_100_220_330', nreps=10)
 def sun4():
     run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-29',
                nplants=15, proba_inf=1, age_infection=False,
@@ -47,7 +47,7 @@ def sun4():
                rain_events_to_empty=10, leaf_duration=3., keep_leaves=False,
                rh_effect=True, apply_rh='all', rh_max=35., rh_min=35.,
                apply_sen='incubation', age_physio_switch_senescence=100/220.,
-               suffix='sunday_100_220_330', nreps=1)
+               suffix='sunday_100_220_330', nreps=10)
 
 #suffixes = ['friday_100_250_350', 'friday_100_220_330']
 #from matplotlib.pyplot import savefig
