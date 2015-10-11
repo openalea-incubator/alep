@@ -55,7 +55,7 @@ def get_one_leaf():
 #    return EchapReconstructions()
 
 def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
-                    leaf_area = 1., **kwds):
+                    leaf_area = 1., plot_empty = False,**kwds):
     weather = read_weather_year(2012)
     df = weather.data
     df = df.reset_index()
@@ -101,11 +101,11 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     ax.plot(tt, surfs_spo, 'g')
     ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
     ax.set_ylabel("Surface d'une lesion (cm2)", fontsize = 18)
-    if sum(surfs_empty)>0:
+    if plot_empty==True:
         ax.plot(tt, surfs_empty, 'y')
-        labels = ['Total', 'Puits', 'Chlorose', 'Sporulant', 'Necrose']
+        labels = ['Total', 'Asymptomatique', 'Chlorotique', 'Sporulant', 'Necrose']
     else:
-        labels = ['Total', 'Puits', 'Chlorose', 'Sporulant']
+        labels = ['Total', 'Asymptomatique', 'Chlorotique', 'Sporulant']
         f = lesion.fungus
         start_spo = 0.05*f.Smax*f.ratio_spo
         ax.plot(tt, [start_spo for t in tt], 'k--')

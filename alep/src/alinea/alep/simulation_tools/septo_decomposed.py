@@ -774,6 +774,10 @@ def plot_states_leaf(df, leaf=2):
     plot_one_sim(df_sim, 'surface_nec', xaxis, ax, leaves, nec)
     df_sim['tot_spo'] = df_sim['surface_spo'] + df_sim['surface_empty']
     plot_one_sim(df_sim, 'tot_spo', xaxis, ax, leaves, 'k')
+#    df_sim['non_prio'] = df_sim['surface_inc'] + df_sim['surface_chlo']
+#    df_sim['prio'] = df_sim['surface_nec'] + df_sim['surface_spo'] + df_sim['surface_empty']
+#    plot_one_sim(df_sim, 'non_prio', xaxis, ax, leaves, 'm')
+#    plot_one_sim(df_sim, 'prio', xaxis, ax, leaves, 'c')
 #    plot_one_sim(df_sim, 'surface_spo', xaxis, ax, leaves, 'm')
 #    plot_one_sim(df_sim, 'surface_non_spo', xaxis, ax, leaves, 'k')
 #    plot_one_sim(df_sim, 'surface_empty', xaxis, ax, leaves, 'c')
