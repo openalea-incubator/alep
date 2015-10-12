@@ -107,12 +107,13 @@ def plot_septo_morris_by_leaf(year = 2012, variety = 'Tremie12',
                              variable = 'normalized_audpc',
                              parameter_range_file = './septoria/septo_param_range.txt',
                              input_file = './septoria/septo_morris_input.txt',
-                             nboots = 5, ylims=None):
+                             nboots = 5, ylims=None, force_rename={}):
     output_file = get_septo_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
     plot_morris_by_leaf(df_out, variable=variable,
                         parameter_range_file=parameter_range_file,
-                        input_file=input_file, nboots=nboots, ylims=ylims)
+                        input_file=input_file, nboots=nboots, 
+                        ylims=ylims, force_rename=force_rename)
                         
 def plot_septo_morris_by_leaf_by_boot(year = 2012, variety = 'Tremie12',
                              variable = 'normalized_audpc',
@@ -129,12 +130,13 @@ def plot_septo_morris_3_leaves(year = 2012, variety = 'Tremie12',
                                leaves = [10, 5, 1], variable = 'normalized_audpc',
                                parameter_range_file = './septoria/septo_param_range.txt',
                                input_file = './septoria/septo_morris_input.txt',
-                               nboots=5, ylims=None):
+                               nboots=5, ylims=None, force_rename={}, axs=None):
     output_file = get_septo_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
     plot_morris_3_leaves(df_out, leaves=leaves, variable=variable,
                         parameter_range_file=parameter_range_file,
-                        input_file=input_file, nboots=nboots, ylims=ylims)
+                        input_file=input_file, nboots=nboots, ylims=ylims,
+                        force_rename=force_rename, axs=axs)
                         
 def septo_scatter_plot_by_leaf(year = 2012, variety = 'Tremie12',
                                 variable = 'normalized_audpc',
@@ -159,3 +161,46 @@ def septo_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
     df_out = pd.read_csv(output_file)
     boxplot_3_leaves(df_out, leaves=leaves, variable=variable,
                     parameter=parameter, ylims=ylims)
+                    
+def force_rename_SA_wheat():
+    return {'tiller_probability':r"$\mathit{Tiller}",
+            'proba_main_nff':r"$\mathit{FNL}$",
+            'scale_HS':r"$\mathit{Earliness}_{leaf}$",
+            'scale_leafDim_length':r"$\mathit{Length}_{leaf}$", 
+            'scale_leafDim_width':r"$\mathit{Width}_{leaf}$",
+            'scale_leafRate':r"$\mathit{Elongation}_{leaf}$",
+            'scale_stemDim':r"$\mathit{Length}_{stem}$",
+            'scale_stemRate':r"$\mathit{Elongation}_{stem}$",
+            'scale_fallingRate':r"$\mathit{Curvature}_{leaf}$",
+            'scale_leafSenescence':r"$\mathit{Senescence}_{leaf}$"}
+            
+def plot_morris_3_leaves_2_years(years=[2011, 2013], variety = 'Custom', 
+                               leaves = [10, 5, 1], variable = 'audpc',
+                               parameter_range_file = './septo_wheat/2011/septo_param_range.txt',
+                               input_files = ['./septo_wheat/2011/septo_morris_input.txt',
+                                              './septo_wheat/2013/septo_morris_input.txt'],
+                               nboots=5, ylims=None, force_rename={},
+                               axs=None, save_fig=True):
+    fig, axs = plt.subplots(2,3, figsize=(10,6))
+    for yr, ax, input_file in zip(years, axs, input_files):
+        df_out = pd.read_csv(get_septo_morris_path(year=yr, variety='Custom'))
+        sfx = '- %d' %yr
+        plot_morris_3_leaves(df_out, leaves=leaves, variable=variable,
+                            parameter_range_file=parameter_range_file,
+                            input_file=input_file, nboots=nboots, ylims=ylims,
+                            force_rename=force_rename, 
+                            axs=ax, annotation_suffix=sfx)
+    if save_fig:
+        fig.savefig('morris_3_leaves_2_years', bbox_inches='tight')
+        
+def septo_boxplot_3_leaves_3_params(year = 2013, leaves = [10, 5, 1],
+                                    variety = 'Custom',
+                                    variable = 'audpc',
+                                    parameters = ['scale_HS', 'scale_leafSenescence', 'scale_stemRate'], 
+                                    ylims=None):
+    fig, axs = plt.subplots(3,3, figsize=(15,6))
+    output_file = get_septo_morris_path(year=year, variety=variety)
+    df_out = pd.read_csv(output_file)
+    for parameter, ax in zip(parameters, axs):
+        boxplot_3_leaves(df_out, leaves=leaves, variable=variable,
+                        parameter=parameter, ylims=ylims, axs=ax)

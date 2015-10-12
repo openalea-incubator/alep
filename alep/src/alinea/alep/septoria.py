@@ -215,11 +215,11 @@ septoria_parameters = dict(name='septoria',
                          reduction_by_rain = 0.0,
                          threshold_spo = 1e-4,
                          nb_rings_by_state = 10,
-                         age_physio_switch_senescence=0.,
+                         age_physio_switch_senescence=100./220,
                          group_dus = False,
                          rh_effect = True,
                          apply_rh = 'all',
-                         apply_sen = 'chlorosis')
+                         apply_sen = 'incubation')
                  
 # class SeptoriaParameters(Parameters):
     # model = None

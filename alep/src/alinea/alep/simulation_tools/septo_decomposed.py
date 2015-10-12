@@ -142,16 +142,6 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                               save_images=save_images, 
                               keep_leaves=keep_leaves, 
                               leaf_duration=leaf_duration,**kwds)
-#    (g, adel, weather, seq, rain_timing, 
-#     canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
-#     wheat_is_loaded) = setup(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
-#                              end_date=str(year)+"-07-30 00:00:00",
-#                              variety = variety, nplants = nplants,
-#                              nsect=nsect, rep_wheat=rep_wheat, 
-#                              septo_delay_dday=septo_delay_dday,
-#                              save_images=save_images, 
-#                              keep_leaves=keep_leaves, 
-#                              leaf_duration=leaf_duration, **kwds)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
@@ -1002,3 +992,33 @@ def get_rmse(data_obs, data_sim):
     df_mean_sim.index = df_mean_obs.index
     df_mean_obs, df_mean_sim = map(lambda df: df.drop('doy',1), (df_mean_obs, df_mean_sim))
     return np.sqrt((df_mean_sim - df_mean_obs) ** 2).mean().mean()
+    
+def explore_scenarios(years = range(2000,2007), nplants=15, 
+                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':1.1,
+                                    'scale_stemDim':1.1, 'scale_stemRate':1.1}):
+    parameters['reference']=1.
+    for param in parameters:
+        kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
+        for yr in years:
+            run_reps_septo(year=yr, variety='Custom', sowing_date='10-29',
+                   nplants=nplants, proba_inf=1, sporulating_fraction=5e-3,
+                   scale_leafRate=1.5, apply_sen='incubation', 
+                   age_physio_switch_senescence=100/250.,
+                   suffix='scenario_'+param+'_'+str(yr), nreps=1, **kwds)
+                   
+def plot_explore_scenarios(years = range(2000,2007), nplants=15, variable='audpc', 
+                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':1.1,
+                                    'scale_stemDim':1.1, 'scale_stemRate':1.1}):
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots()
+    parameters['reference']=1.
+    color_list = [next(ax._get_lines.color_cycle) for par in parameters]
+    for param, color in zip(parameters, color_list):
+        for yr in years:
+            suffix='scenario_'+param+'_'+str(yr)
+            df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                             sporulating_fraction=5e-3,
+                                             suffix=suffix)
+            df = get_synthetic_outputs_by_leaf(df_sim)
+            y = df[df['num_leaf_top']==1]['audpc'].values[0]
+            ax.plot([yr, yr+1], [y, y], color=color)

@@ -90,7 +90,8 @@ def read_sensitivity_outputs(filename = 'septo_morris_output_mercia_2004.csv'):
 def plot_morris_by_leaf(df_out, variable = 'normalized_audpc',
                         parameter_range_file = 'param_range_SA.txt',
                         input_file = 'morris_input.txt',
-                        nboots = 5, ylims=None):
+                        nboots = 5, ylims=None, force_rename={}):
+    plt.rcParams['text.usetex']=True
     problem = read_param_file(parameter_range_file)
     fig, axs = plt.subplots(6,2, figsize=(15,30))
     for i, ax in enumerate(axs.flat):
@@ -114,14 +115,20 @@ def plot_morris_by_leaf(df_out, variable = 'normalized_audpc',
         # ax.errorbar(mu_star, sigma, yerr=sigma_conf, xerr=mu_star_conf,
                     # color='b', marker='*', linestyle='')
         ax.plot(mu_star, sigma, 'b*')
+        import pdb
+        pdb.set_trace()
         tags = iter(df_mu_lf.columns)
         for x,y in zip(mu_star, sigma):
-            ax.annotate(tags.next(), (x,y))
+            tag = tags.next()
+            if tag in force_rename:
+                tag = force_rename[tag]
+            ax.annotate(tag, (x,y))
         if ylims is not None:
             ax.set_ylim(ylims)
             ax.set_xlim(ylims)
         ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
                     xycoords='axes fraction', fontsize=18)
+    plt.rcParams['text.usetex']=False
                     
 def plot_morris_by_leaf_by_boot(df_out, variable = 'normalized_audpc',
                         parameter_range_file = 'param_range_SA.txt',
@@ -154,9 +161,12 @@ def plot_morris_3_leaves(df_out, leaves = [10, 5, 1],
                         variable = 'normalized_audpc',
                         parameter_range_file = 'param_range_SA.txt',
                         input_file = 'morris_input.txt',
-                        nboots=5, ylims=None):
+                        nboots=5, ylims=None, 
+                        force_rename={}, axs=None, annotation_suffix=''):
+    plt.rcParams['text.usetex']=True
     problem = read_param_file(parameter_range_file)
-    fig, axs = plt.subplots(1,3, figsize=(18,6))
+    if axs is None:
+        fig, axs = plt.subplots(1,3, figsize=(18,6))
     leaves = iter(leaves)
     for i, ax in enumerate(axs.flat):
         lf = leaves.next()
@@ -181,15 +191,19 @@ def plot_morris_3_leaves(df_out, leaves = [10, 5, 1],
         ax.plot(mu_star, sigma, 'b*')
         tags = iter(df_mu_lf.columns)
         for x,y in zip(mu_star, sigma):
-            ax.annotate(tags.next(), (x,y))
+            tag = tags.next()
+            if tag in force_rename:
+                tag = force_rename[tag]
+            ax.annotate(tag, (x,y))
         if ylims is not None:
             ax.set_ylim(ylims)
             ax.set_xlim(ylims)
-        ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
-                    xycoords='axes fraction', fontsize=18)
-        ax.set_ylabel('Sigma', fontsize=18)
-        ax.set_xlabel('Mu_star', fontsize=18)
-    # plt.tight_layout()
+        ax.annotate('Leaf %d ' % lf +annotation_suffix, xy=(0.05, 0.85), 
+                    xycoords='axes fraction', fontsize=14)
+        ax.set_ylabel(r"$\sigma$", fontsize=18)
+        ax.set_xlabel(r"$\mu^\ast$", fontsize=18)
+    plt.tight_layout()
+    plt.rcParams['text.usetex']=True
 
 def scatter_plot_by_leaf(df_out, variable = 'normalized_audpc', 
                             parameter = 'Smax', ylims=None):
@@ -224,8 +238,9 @@ def boxplot_by_leaf(df_out, variable = 'normalized_audpc',
                     
 def boxplot_3_leaves(df_out, leaves = [10, 5, 1],
                     variable = 'normalized_audpc',
-                    parameter = 'Smax', ylims=None):
-    fig, axs = plt.subplots(1,3, figsize=(18,6))
+                    parameter = 'Smax', ylims=None, axs=None):
+    if axs is None:
+        fig, axs = plt.subplots(1,3, figsize=(18,6))
     leaves = iter(leaves)
     for i, ax in enumerate(axs.flat):
         lf = leaves.next()

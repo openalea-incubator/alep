@@ -322,13 +322,13 @@ def get_aggregated_data_sim(year = 2013, variety = 'Tremie13', nplants = 15,
     return data_sim
 
 def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
-                    nplants = 15,  sowing_date = '10-15', 
-                    inoc_septo = 5e-3, inoc_rust = 5000.,
-                    suffix = None, nreps=10, **kwds):
+                    nplants = 15,  sowing_date = '10-29', 
+                    inoc_septo = 5e-3, inoc_rust = 150.,
+                    suffix = None, nreps=3, **kwds):
     scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
     for yr in years:
         for inoc in scenarios_inoc:
-            if yr==2003 and inoc in [(inoc_septo, 0), (0, inoc_rust)]:
+            if yr!=2003 and not inoc in [(inoc_septo, 0), (0, inoc_rust)]:
                 print 'pass'
                 pass
             else:
@@ -341,7 +341,7 @@ def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
 def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                         nplants = 15,  sowing_date = '10-15', 
                         inoc_rust = 150., inoc_septo = 5e-3, 
-                        suffix = None, nreps=10):
+                        suffix = None, nreps=3):
 
     def plot_variable(df, variable='severity_septo', ax=None):
         plot_by_leaf(df, variable, xaxis = 'age_leaf_vs_flag_emg', 
