@@ -993,7 +993,7 @@ def get_rmse(data_obs, data_sim):
     df_mean_obs, df_mean_sim = map(lambda df: df.drop('doy',1), (df_mean_obs, df_mean_sim))
     return np.sqrt((df_mean_sim - df_mean_obs) ** 2).mean().mean()
     
-def explore_scenarios(years = range(2000,2007), nplants=15, 
+def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':1.1,
                                     'scale_stemDim':1.1, 'scale_stemRate':1.1}):
     parameters['reference']=1.
@@ -1004,7 +1004,7 @@ def explore_scenarios(years = range(2000,2007), nplants=15,
                    nplants=nplants, proba_inf=1, sporulating_fraction=5e-3,
                    scale_leafRate=1.5, apply_sen='incubation', 
                    age_physio_switch_senescence=100/250.,
-                   suffix='scenario_'+param+'_'+str(yr), nreps=1, **kwds)
+                   suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
                    
 def plot_explore_scenarios(years = range(2000,2007), nplants=15, variable='audpc', 
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':1.1,
