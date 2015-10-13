@@ -994,8 +994,8 @@ def get_rmse(data_obs, data_sim):
     return np.sqrt((df_mean_sim - df_mean_obs) ** 2).mean().mean()
     
 def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
-                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':1.1,
-                                    'scale_stemDim':1.1, 'scale_stemRate':1.1}):
+                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
+                                    'scale_stemDim':1.3, 'scale_stemRate':1.1}):
     parameters['reference']=1.
     for param in parameters:
         kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
@@ -1007,18 +1007,23 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                    suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
                    
 def plot_explore_scenarios(years = range(2000,2007), nplants=15, variable='audpc', 
-                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':1.1,
-                                    'scale_stemDim':1.1, 'scale_stemRate':1.1}):
+                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
+                                    'scale_stemDim':1.3, 'scale_stemRate':1.1}):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
     parameters['reference']=1.
     color_list = [next(ax._get_lines.color_cycle) for par in parameters]
+    labels = []
+    proxys = []
     for param, color in zip(parameters, color_list):
         for yr in years:
             suffix='scenario_'+param+'_'+str(yr)
             df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                              sporulating_fraction=5e-3,
-                                             suffix=suffix)
+                                             suffix=suffix, forced_year=yr)
             df = get_synthetic_outputs_by_leaf(df_sim)
-            y = df[df['num_leaf_top']==1]['audpc'].values[0]
+            y = df[df['num_leaf_top']==1][variable].values[0]
             ax.plot([yr, yr+1], [y, y], color=color)
+        labels += [param]
+        proxys += [plt.Line2D((0,1),(0,0), color=color)]
+    ax.legend(proxys, labels)

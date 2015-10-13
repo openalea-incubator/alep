@@ -362,7 +362,10 @@ def add_leaf_dates_to_data(df, correct_leaf_number=True, force_mean_fnl=False):
     if correct_leaf_number == True:
         df['num_leaf_bottom'][df['fnl']==14] -= 1
         df['fnl'][df['fnl']==14] -= 1
-    hs_fit = HS_fit()[np.unique(df['variety'])[0].title()]
+    variety = np.unique(df['variety'])[0].title()
+    if variety=='Custom':
+        variety='Tremie13'
+    hs_fit = HS_fit()[variety]
     df = add_dates(df)
     df['age_leaf'] = df['degree_days'] - df['date_emergence_leaf']
     df['age_leaf_lig'] = df['degree_days'] - df['date_ligulation_leaf']

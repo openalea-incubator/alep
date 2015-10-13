@@ -364,8 +364,10 @@ def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
             if inoc[0]==0:
                 plot_variable(data_sim, variable='severity_rust', ax=axs[1][i_yr])
             elif inoc[1]==0:
-                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[0][i_yr])
+#                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[0][i_yr])
+                plot_variable(data_sim, variable='severity_septo', ax=axs[0][i_yr])
             else:
-                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[2][i_yr])
+#                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[2][i_yr])
+                plot_variable(data_sim, variable='severity_septo', ax=axs[2][i_yr])
                 plot_variable(data_sim, variable='severity_rust', ax=axs[3][i_yr])
             
