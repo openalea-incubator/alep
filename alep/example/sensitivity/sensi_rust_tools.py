@@ -64,19 +64,22 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
                 df_out_b = df_out_b.append(output, ignore_index = True)
         df_out_b['i_boot'] = boot
         df_out = pd.concat([df_out, df_out_b])
-    output_file = get_septo_morris_path(year=year, variety=variety)
+    output_file = get_rust_morris_path(year=year, variety=variety)
     df_out.to_csv(output_file)
     
 def plot_rust_morris_by_leaf(year = 2012, variety = 'Tremie12',
+                             variable = 'audpc', 
                              parameter_range_file = './brown_rust/rust_param_range.txt',
-                             input_file = './brown_rust/rust_morris_input_full.txt'):
+                             input_file = './brown_rust/rust_morris_input_full.txt',
+                             nboots = 5, ylims=None, force_rename={}):
     output_file = get_rust_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
     plot_morris_by_leaf(df_out, variable=variable,
                         parameter_range_file=parameter_range_file,
-                        input_file=input_file)
+                        input_file=input_file, nboots=nboots, 
+                        ylims=ylims, force_rename=force_rename)
                         
-def plot_septo_morris_by_leaf_by_boot(year = 2012, variety = 'Tremie12',
+def plot_rust_morris_by_leaf_by_boot(year = 2012, variety = 'Tremie12',
                              variable = 'audpc',
                              parameter_range_file = './brown_rust/rust_param_range.txt',
                              input_file = './brown_rust/rust_morris_input_full.txt',

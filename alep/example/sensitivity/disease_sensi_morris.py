@@ -115,8 +115,6 @@ def plot_morris_by_leaf(df_out, variable = 'normalized_audpc',
         # ax.errorbar(mu_star, sigma, yerr=sigma_conf, xerr=mu_star_conf,
                     # color='b', marker='*', linestyle='')
         ax.plot(mu_star, sigma, 'b*')
-        import pdb
-        pdb.set_trace()
         tags = iter(df_mu_lf.columns)
         for x,y in zip(mu_star, sigma):
             tag = tags.next()
