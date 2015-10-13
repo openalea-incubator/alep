@@ -1341,7 +1341,36 @@ def get_data_without_death(data, num_leaf = 'num_leaf_bottom'):
     df = pandas.concat(datas)
     df = df.sort()
     return df.reset_index(drop=True)
-    
+
+def get_synthetic_outputs_by_leaf_rust(data, return_conf=False):
+    leaves = np.unique(data['num_leaf_top'])
+    df = pandas.DataFrame(index = range(len(leaves)), 
+                      columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
+                                 'max_severity'])
+    df_conf = pandas.DataFrame(index = range(len(leaves)), 
+                      columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
+                                 'max_severity'])
+    df_dates = get_date_threshold(data, threshold=0.05)
+    idx = -1
+    for lf in leaves:
+        idx += 1
+        df_lf = data[data['num_leaf_top']==lf]
+        audpcs = numpy.unique(df_lf['audpc'])
+        n_audpcs = numpy.unique(df_lf['normalized_audpc'])
+        max_sevs = df_lf.groupby('num_plant').max()['severity']
+        df.loc[idx, 'num_leaf_top'] = lf
+        df.loc[idx, 'audpc'] = np.mean(audpcs)
+        df.loc[idx, 'normalized_audpc'] = numpy.mean(n_audpcs)
+        df.loc[idx, 'max_severity'] = numpy.mean(max_sevs)
+        if return_conf==True:
+            df_conf.loc[idx, 'num_leaf_top'] = lf
+            df_conf.loc[idx, 'audpc'] = conf_int(audpcs)
+            df_conf.loc[idx, 'normalized_audpc'] = conf_int(n_audpcs)
+            df_conf.loc[idx, 'max_severity'] = conf_int(max_sevs)
+    if return_conf==True:
+        return df, df_conf
+    else:
+        return df
 ###############################################################################
 class SeptoRustRecorder(AdelWheatRecorder):
     """ Record simulation output on every leaf of main stems in a dataframe 
