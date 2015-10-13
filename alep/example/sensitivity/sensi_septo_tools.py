@@ -93,9 +93,9 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
                 output['num_leaf_top'] = lf
                 for col in df_in.columns:
                     output[col] = df_in.loc[i_sample, col]
-                output['normalized_audpc'] = df_reco_lf.normalized_audpc.mean()
-                output['audpc'] = df_reco_lf.audpc.mean()
-                output['audpc_500'] = df_reco_lf.audpc_500.mean()
+                output['normalized_audpc'] = df_s[df_s['num_leaf_top']==lf].normalized_audpc.astype(float).values[0]
+                output['audpc'] = df_s[df_s['num_leaf_top']==lf].audpc.astype(float).values[0]
+                # output['audpc_500'] = df_reco_lf.audpc_500.mean()
                 output['max_severity'] = df_s[df_s['num_leaf_top']==lf].max_severity.astype(float).values[0]
                 df_out_b = df_out_b.append(output, ignore_index = True)
         df_out_b['i_boot'] = boot

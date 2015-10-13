@@ -35,7 +35,7 @@ v = variety_code()
              # (2011, v['Rht3']),
              # (2012, v['Tremie12']),
              # (2013, v['Tremie13'])]
-scenarios = [(2013, v['Custom'])]
+scenarios = [(2011, v['Custom'])]
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
 nboots = 3

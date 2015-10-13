@@ -1,8 +1,8 @@
 """ Functions used for sensitivity analysis of septoria model
 """
 from disease_sensi_morris import *
-from alinea.alep.disease_outputs import AdelSeptoRecorder
-from sensi_septo_tools import variety_code
+from alinea.alep.disease_outputs import AdelSeptoRecorder, get_synthetic_outputs_by_leaf_rust
+from sensi_septo_tools import variety_code, variety_decode
 from alinea.alep.simulation_tools.brown_rust_decomposed import annual_loop_rust
 import numpy as np
 import pandas as pd
@@ -17,8 +17,8 @@ def run_brown_rust(sample):
     print 'i_sample %d' %i_sample
     print '------------------------------'
     i_boot = sample.pop('i_boot')
-    year = sample.pop('year')
-    variety = sample.pop('variety')
+    year = int(sample.pop('year'))
+    variety = variety_decode()[sample.pop('variety')]
     sowing_date = '10-15'
     if year == 2012:
         sowing_date = '10-21'
@@ -26,9 +26,9 @@ def run_brown_rust(sample):
         sowing_date = '10-29'
     output_file = get_stored_rec(variety, year, i_sample, i_boot)
     annual_loop_rust(year = year, variety = variety, sowing_date=sowing_date,
-                    nplants = 5, output_file = output_file, **kwds)
+                    nplants = 15, output_file = output_file)
 
-def get_rust_morris_path(year = 2012, variety = 'Tremie12', nboots = 5):
+def get_rust_morris_path(year = 2012, variety = 'Tremie12'):
     return './brown_rust/rust_morris_output_'+variety.lower()+'_'+str(year)+'.csv'
                     
 def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
@@ -37,6 +37,7 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
                              nboots = 5):
     parameter_names = pd.read_csv(parameter_range_file, header=None, sep = ' ')[0].values.tolist()
     list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameter_names
+    df_out = pd.DataFrame()
     for boot in range(nboots):
         input_boot = input_file[:-9]+'_boot'+str(boot)+input_file[-9:]
         df_in = pd.read_csv(input_boot, sep=' ',
@@ -44,20 +45,27 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
         vc = variety_code()
         df_in = df_in[(df_in['year']==year) & (df_in['variety']==vc[variety])]
         i_samples = df_in.index
-        df_out = pd.DataFrame(columns = ['num_leaf_top'] + list(df_in.columns) + ['normalized_audpc'])
+        df_out_b = pd.DataFrame(columns = ['num_leaf_top'] + list(df_in.columns) + ['normalized_audpc', 'audpc', 'max_severity'])
         for i_sample in i_samples:
             stored_rec = get_stored_rec(variety, year, i_sample, boot)
             df_reco = pd.read_csv(stored_rec)
+            cols_to_del = np.unique([col for col in df_reco.columns if col.startswith('Unnamed')]) #UGLY HACK
+            for col in cols_to_del:
+                df_reco = df_reco.drop(col, 1)
+            df_s = get_synthetic_outputs_by_leaf_rust(df_reco)
             for lf in np.unique(df_reco['num_leaf_top']):
-                df_reco_lf = df_reco[(df_reco['num_leaf_top']==lf)]
                 output = {}
                 output['num_leaf_top'] = lf
                 for col in df_in.columns:
                     output[col] = df_in.loc[i_sample, col]
-                output['normalized_audpc'] = df_reco_lf.normalized_audpc.mean()
-                df_out = df_out.append(output, ignore_index = True)
-        output_file = get_rust_morris_path(year=year, variety=variety, boot=boot)
-        df_out.to_csv(output_file)
+                output['normalized_audpc'] = df_s[df_s['num_leaf_top']==lf]['normalized_audpc'].values[0]
+                output['audpc'] = df_s[df_s['num_leaf_top']==lf]['audpc'].values[0]
+                output['max_severity'] = df_s[df_s['num_leaf_top']==lf]['max_severity'].values[0]
+                df_out_b = df_out_b.append(output, ignore_index = True)
+        df_out_b['i_boot'] = boot
+        df_out = pd.concat([df_out, df_out_b])
+    output_file = get_septo_morris_path(year=year, variety=variety)
+    df_out.to_csv(output_file)
     
 def plot_rust_morris_by_leaf(year = 2012, variety = 'Tremie12',
                              parameter_range_file = './brown_rust/rust_param_range.txt',
