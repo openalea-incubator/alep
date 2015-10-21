@@ -182,3 +182,19 @@ def run_reps_rust(year = 2013, variety = 'Tremie13',
     output_file = get_filename(fungus='brown_rust', year=year, variety=variety,
                                nplants=nplants, inoc=density_dispersal_units)
     df.to_csv(output_file)
+    
+def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
+                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
+                                    'scale_stemDim':1.3, 'scale_stemRate':1.1,
+                                    'tiller_probability':0.8, 'scale_leafDim_length':1.2,
+                                    'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
+                                    'scale_fallingRate':0.8}):
+    parameters['reference']=1.
+    for param in parameters:
+        kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
+        scale_leafRate = 1.5*kwds.pop('scale_leafRate')
+        for yr in years:
+            run_reps_rust(year=yr, variety='Custom', sowing_date='10-29',
+                   nplants=nplants, proba_inf=1, density_dispersal_units = 150,
+                   scale_leafRate=1.5, 
+                   suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
