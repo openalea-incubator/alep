@@ -166,7 +166,7 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
 def run_reps_rust(year = 2013, variety = 'Tremie13', 
                   nplants = 15, nsect = 7, sowing_date = '10-15',
                   density_dispersal_units = 150, 
-                  layer_thickness = 1., nreps = 5, **kwds):
+                  layer_thickness = 1., nreps = 5, suffix = None, **kwds):
     df = pd.DataFrame()
     rep_wheats = get_iter_rep_wheats(year, variety, nplants, nsect, nreps)
     for rep in range(nreps):
@@ -180,7 +180,8 @@ def run_reps_rust(year = 2013, variety = 'Tremie13',
         df_['rep'] = rep
         df = pd.concat([df, df_])
     output_file = get_filename(fungus='brown_rust', year=year, variety=variety,
-                               nplants=nplants, inoc=density_dispersal_units)
+                               nplants=nplants, inoc=density_dispersal_units,
+                               suffix=suffix)
     df.to_csv(output_file)
     
 def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
