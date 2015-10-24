@@ -193,9 +193,8 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
     parameters['reference']=1.
     for param in parameters:
         kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
-        scale_leafRate = 1.5*kwds.pop('scale_leafRate')
+        # scale_leafRate = 1.5*kwds.pop('scale_leafRate')
         for yr in years:
             run_reps_rust(year=yr, variety='Custom', sowing_date='10-29',
-                   nplants=nplants, proba_inf=1, density_dispersal_units = 150,
-                   scale_leafRate=1.5, 
+                   nplants=nplants, density_dispersal_units = 150,
                    suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
