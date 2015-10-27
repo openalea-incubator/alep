@@ -434,172 +434,237 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
             plot_rain_and_temp(weather, xaxis=xaxis, ax=ax, xlims=xlims, title='')
 
 
-def temp_plot_comparison(data_obs_2012, data_sim_2012, weather_2012, 
+def temp_plot_comparison(data_obs_mercia, data_sim_mercia, weather_2011,
+                         data_obs_rht3, data_sim_rht3,
+                         data_obs_2012, data_sim_2012, weather_2012, 
                          data_obs_2013, data_sim_2013, weather_2013,
-                         multiply_sev = False, xaxis='age_leaf',
-                         xlims = [0, 1200], title=None, correct_fnl=False):
+                         multiply_sev = False, xaxes=['degree_days', 'age_leaf'],
+                         alpha=0.2, xlimits=[[800,2250], [-200,1250]],
+                         title=None, correct_fnl=False):
     from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot, plot_one_sim
     import matplotlib.pyplot as plt
-    leaves = [5,4,3,2,1]
-    fig, axs = plt.subplots(1, len(leaves), figsize=(30., 5.))
-    (df_mean_obs_2012, df_low_2012, df_high_2012, fig, 
-     axs) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
-                                        leaves=leaves, variable='severity', 
-                                        xaxis=xaxis, xlims=xlims,
-                                        minimum_sample_size=15,
-                                        linestyle='',
-                                        title=False, return_fig=True, 
-                                        fig=fig, axs=axs,
-                                        display_legend=False,
-                                        tight_layout=False,
-                                        fixed_color='b')
-    (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
-     axs) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
-                                        leaves=leaves, variable='severity', 
-                                        xaxis=xaxis, xlims=xlims,
-                                        minimum_sample_size=15,
-                                        linestyle='',
-                                        title=False, return_fig=True, 
-                                        fig=fig, axs=axs,
-                                        display_legend=False,
-                                        tight_layout=False,
-                                        fixed_color='r')
     if multiply_sev:
+        data_sim_mercia['severity']*=100
+        data_sim_rht3['severity']*=100
         data_sim_2012['severity']*=100
         data_sim_2013['severity']*=100
+    data_sim_mercia['severity'][data_sim_mercia['leaf_green_area']<0.5*data_sim_mercia['leaf_area']]=np.nan
+    data_sim_rht3['severity'][data_sim_rht3['leaf_green_area']<0.5*data_sim_rht3['leaf_area']]=np.nan
+    data_sim_mercia['severity'][data_sim_mercia['num_leaf_top'].isin([4,5])]=np.nan
+    data_sim_rht3['severity'][data_sim_rht3['num_leaf_top'].isin([4,5])]=np.nan
     if correct_fnl:
         data_sim_2012 = resample_fnl(data_obs_2012, data_sim_2012, weather_2012, variable='severity')
         data_sim_2013 = resample_fnl(data_obs_2013, data_sim_2013, weather_2013, variable='severity')
-    plot_one_sim(data_sim_2012, 'severity', xaxis, axs, leaves, 'b', linewidth=2)
-    plot_one_sim(data_sim_2013, 'severity', xaxis, axs, leaves, 'r', linewidth=2)
+    leaves=[5,4,3,2,1]    
+    fig, axes = plt.subplots(2, len(leaves), figsize=(30., 10.))
+    for xaxis, axs, xlims in zip(xaxes, axes, xlimits):
+        (df_mean_obs_mercia, df_low_mercia, df_high_mercia, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_mercia, weather_2011, 
+                                            leaves=leaves, variable='septo_green', 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='',
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='y', alpha=alpha,
+                                            delaxes=False)
+        (df_mean_obs_rht3, df_low_rht3, df_high_rht3, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_rht3, weather_2011, 
+                                            leaves=leaves, variable='septo_green', 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='',
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='g', alpha=alpha,
+                                            delaxes=False)
+        (df_mean_obs_2012, df_low_2012, df_high_2012, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
+                                            leaves=leaves, variable='severity', 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='',
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='b', alpha=alpha)
+        (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
+                                            leaves=leaves, variable='severity', 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='',
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='r', alpha=alpha)
+
+        plot_one_sim(data_sim_mercia, 'severity', xaxis, axs, leaves, 'y', linewidth=2)
+        plot_one_sim(data_sim_rht3, 'severity', xaxis, axs, leaves, 'g', linewidth=2)
+        plot_one_sim(data_sim_2012, 'severity', xaxis, axs, leaves, 'b', linewidth=2)
+        plot_one_sim(data_sim_2013, 'severity', xaxis, axs, leaves, 'r', linewidth=2)
     
-    ticks = np.arange(xlims[0], xlims[1], 200)
-    for ax in axs.flat:
-        ax.set_xticks(ticks)
-        ax.set_xticklabels(ticks)
-        ax.set_ylabel('')
-        ax.set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=16)
-    axs[0].set_ylabel('Severity (in %)', fontsize=18)
+        ticks = np.arange(xlims[0], xlims[1], 200)
+        for ax in axs.flat:
+            ax.set_xticks(ticks)
+            ax.set_xticklabels(ticks)
+            ax.set_ylabel('')
+            if axs in axes[0]:
+                ax.set_xlabel('$^\circ$Cd since sowing', fontsize=16)
+            else:
+                ax.set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=16)
+        axs[0].set_ylabel('Severity (in %)', fontsize=18)
 
-    proxy = [plt.Line2D((0,1),(0,0), color='k', marker='o', linestyle='-'),
-             plt.Rectangle((0,0), 0,0, facecolor='k', alpha=0.3)]
-    labels = ['Mean', 'Confidence\n interval']
-    lgd = axs[-1].legend(proxy, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    locbox = (1.1, 0.7)
-    locim = (1.12, 0.7)
-    txtbox = TextArea('        Distribution', minimumdescent=False)
-    ab1 = AnnotationBbox(txtbox, xy=locbox, xycoords="axes fraction", 
-                         frameon=True, fontsize=32, box_alignment=(0., 0.5))
-    axs[-1].add_artist(ab1)
-    try:
-        img = read_png('box.png')
-        imagebox = OffsetImage(img, zoom=.25)
-        ab2 = AnnotationBbox(imagebox, xy=locim, 
-                             xycoords="axes fraction", frameon=False)         
-        axs[-1].add_artist(ab2)
-    except:
-        pass
-
-    proxy2 = [plt.Rectangle((0,0), 0,0, facecolor='b', alpha=0.3),
-              plt.Rectangle((0,0), 0,0, facecolor='r', alpha=0.3)]
-    labels2 = ['2012', '2013']
-    lgd2 = axs[-2].legend(proxy2, labels2, bbox_to_anchor=(2.6, 0.4), loc='lower right', borderaxespad=0.)
+        if axs in axes[0]:
+            proxy = [plt.Line2D((0,1),(0,0), color='k', marker='o', linestyle='-'),
+                     plt.Rectangle((0,0), 0,0, facecolor='k', alpha=alpha)]
+            labels = ['Mean', 'Confidence\n interval']
+            lgd = axs[-1].legend(proxy, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+            locbox = (1.1, 0.65)
+            locim = (1.12, 0.65)
+            txtbox = TextArea('        Distribution', minimumdescent=False)
+            ab1 = AnnotationBbox(txtbox, xy=locbox, xycoords="axes fraction", 
+                                 frameon=True, fontsize=32, box_alignment=(0., 0.5))
+            axs[-1].add_artist(ab1)
+            try:
+                img = read_png('box.png')
+                imagebox = OffsetImage(img, zoom=.25)
+                ab2 = AnnotationBbox(imagebox, xy=locim, 
+                                     xycoords="axes fraction", frameon=False)         
+                axs[-1].add_artist(ab2)
+            except:
+                pass
+        
+            proxy2 = [plt.Rectangle((0,0), 0,0, facecolor='y', alpha=alpha),
+                      plt.Rectangle((0,0), 0,0, facecolor='g', alpha=alpha),
+                      plt.Rectangle((0,0), 0,0, facecolor='b', alpha=alpha),
+                      plt.Rectangle((0,0), 0,0, facecolor='r', alpha=alpha)]
+            labels2 = ['2011 Mercia', '2011 Rht3', '2012 Tremie', '2013 Tremie']
+            lgd2 = axs[-2].legend(proxy2, labels2, bbox_to_anchor=(2.75, 0.2), loc='lower right', borderaxespad=0.)
 
     if title is not None:
         plt.text(0.5, 0.98, title, fontsize=18,
                  transform=fig.transFigure, horizontalalignment='center')
     fig.savefig('comparison', bbox_extra_artists=(lgd,ab1,ab2,lgd2), bbox_inches='tight')
 #    plt.tight_layout()
-
-def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012, 
+    
+def temp_plot_comparison_by_fnl(data_obs_2012, data_sim_2012, weather_2012, 
                                  data_obs_2013, data_sim_2013, weather_2013,
-                                 multiply_sev = True, xaxis='degree_days',
-                                 xlims = [800, 2200], correct_fnl=False):
+                                 multiply_sev = True, xaxes=['degree_days', 'age_leaf'],
+                                 xlimits = [[800,2200], [0,1250]], alpha=0.2):
     from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot, plot_one_sim
     import matplotlib.pyplot as plt
-    leaves = range(1,6)
-    fig, axs = plt.subplots(len(leaves), 3, figsize=(16.5, 20))
+#    leaves = range(1,6)
+    leaves = [2,4,5]
+    fig, axs = plt.subplots(len(leaves), 4, figsize=(16.5, 20))
     axs_left = np.array([[ax[0]] for ax in axs])
-    axs_center = np.array([[ax[1]] for ax in axs])
-    axs_right = np.array([[ax[2]] for ax in axs])
-    
-    # Left column 2012 vs 2013
-    (df_mean_obs_2012, df_low_2012, df_high_2012, fig, 
-     axs_left) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
-                                        leaves=leaves, variable='severity', 
-                                        xaxis=xaxis, xlims=xlims,
-                                        minimum_sample_size=15,
-                                        title=False, return_fig=True, 
-                                        fig=fig, axs=axs_left,
-                                        linestyle='',
-                                        fixed_color='b', display_legend=False,
-                                        tight_layout=False)
-    (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
-     axs_left) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
-                                        leaves=leaves, variable='severity', 
-                                        xaxis=xaxis, xlims=xlims,
-                                        minimum_sample_size=15,
-                                        title=False, return_fig=True, 
-                                        fig=fig, axs=axs_left,
-                                        linestyle='',
-                                        fixed_color='r', display_legend=False,
-                                        tight_layout=False)
+    axs_center_left = np.array([[ax[1]] for ax in axs])
+    axs_center_right = np.array([[ax[2]] for ax in axs])
+    axs_right = np.array([[ax[3]] for ax in axs])
+
     if multiply_sev:
         data_sim_2012['severity']*=100
         data_sim_2013['severity']*=100
-    if correct_fnl:
-        data_sim_2012_resampled = resample_fnl(data_obs_2012, data_sim_2012, weather_2012, variable='severity')
-        data_sim_2013_resampled = resample_fnl(data_obs_2013, data_sim_2013, weather_2013, variable='severity')
-        plot_one_sim(data_sim_2012_resampled, 'severity', xaxis, axs_left, leaves, 'b')
-        plot_one_sim(data_sim_2013_resampled, 'severity', xaxis, axs_left, leaves, 'r')
-    else:
-        plot_one_sim(data_sim_2012, 'severity', xaxis, axs_left, leaves, 'b')
-        plot_one_sim(data_sim_2013, 'severity', xaxis, axs_left, leaves, 'r')
     
-    # Center column fnls for 2012
-    colors = iter([(51/255.,204/255.,51/255.), (0,0,0.5)])
-    axs_center = plot_confidence_and_boxplot_by_fnl(data_obs_2012, weather_2012, 
+    # Left column fnls for 2012 against ddays sowing date
+#    colors = iter([(51/255.,204/255.,51/255.), (0,0,0.5)])
+    colors = iter(['g', 'b'])
+    axs_left = plot_confidence_and_boxplot_by_fnl(data_obs_2012, weather_2012, 
                                             leaves = leaves, variable = 'severity', 
-                                            xaxis = xaxis, xlims=xlims,
-                                            fig=fig, axs=axs_center,
+                                            xaxis = xaxes[0], xlims=xlimits[0],
+                                            fig=fig, axs=axs_left,
                                             colors=colors, linestyles=iter(['','']),
                                             return_ax = True, 
                                             display_legend=False,
-                                            tight_layout=False)
+                                            tight_layout=False, alpha=alpha)
 #    colors = iter([(0.5,0.5,1), (0,0,0.5)])
-    colors = iter([(51/255.,204/255.,51/255.), (0,0,0.5)])
+    colors = iter(['g', 'b'])
     for fnl in np.unique(data_sim_2012['fnl']):
         df = data_sim_2012[data_sim_2012['fnl']==fnl]
-        plot_one_sim(df, 'severity', xaxis, axs_center, leaves, next(colors))
-    
-    # Right column fnls for 2013
-    colors = iter([(1,102/255.,0.), (0.5,0,0)])
-    axs_right = plot_confidence_and_boxplot_by_fnl(data_obs_2013, weather_2013, 
+        plot_one_sim(df, 'severity', xaxes[0], axs_left, leaves, next(colors))
+        
+    # Center left column fnls for 2012 against age leaf
+    colors = iter(['g', 'b'])
+    axs_center_left = plot_confidence_and_boxplot_by_fnl(data_obs_2012, weather_2012, 
                                             leaves = leaves, variable = 'severity', 
-                                            xaxis = xaxis, xlims=xlims,
-                                            fig=fig, axs=axs_right,
-                                            colors=colors,
+                                            xaxis = xaxes[1], xlims=xlimits[1],
+                                            fig=fig, axs=axs_center_left,
+                                            colors=colors, linestyles=iter(['','']),
                                             return_ax = True, 
                                             display_legend=False,
-                                            tight_layout=False)
-#    colors = iter([(1,0.5,0.5), (0.5,0,0)])
-    colors =iter([(1,102/255.,0.), (0.5,0,0)])
+                                            tight_layout=False, alpha=alpha)
+    colors = iter(['g', 'b'])
+    for fnl in np.unique(data_sim_2012['fnl']):
+        df = data_sim_2012[data_sim_2012['fnl']==fnl]
+        plot_one_sim(df, 'severity', xaxes[1], axs_center_left, leaves, next(colors))
+    
+    # Center Right column fnls for 2013 against ddays sowing date
+#    colors = iter([(1,102/255.,0.), (0.5,0,0)])
+    colors = iter(['y', 'r'])
+    axs_center_right = plot_confidence_and_boxplot_by_fnl(data_obs_2013, weather_2013, 
+                                            leaves = leaves, variable = 'severity', 
+                                            xaxis = xaxes[0], xlims=xlimits[0],
+                                            fig=fig, axs=axs_center_right,
+                                            colors=colors,linestyles=iter(['','']),
+                                            return_ax = True, 
+                                            display_legend=False,
+                                            tight_layout=False, alpha=alpha)
+    colors = iter(['y', 'r'])
     for fnl in np.unique(data_sim_2013['fnl']):
         df = data_sim_2013[data_sim_2013['fnl']==fnl]
-        plot_one_sim(df, 'severity', xaxis, axs_right, leaves, next(colors))
+        plot_one_sim(df, 'severity', xaxes[0], axs_center_right, leaves, next(colors))
+        
+    # Right column fnls for 2013 against age leaf
+    colors = iter(['y', 'r'])
+    axs_right = plot_confidence_and_boxplot_by_fnl(data_obs_2013, weather_2013, 
+                                            leaves = leaves, variable = 'severity', 
+                                            xaxis = xaxes[1], xlims=xlimits[1],
+                                            fig=fig, axs=axs_right,
+                                            colors=colors,linestyles=iter(['','']),
+                                            return_ax = True, 
+                                            display_legend=False,
+                                            tight_layout=False, alpha=alpha)
+    colors = iter(['y', 'r'])
+    for fnl in np.unique(data_sim_2013['fnl']):
+        df = data_sim_2013[data_sim_2013['fnl']==fnl]
+        plot_one_sim(df, 'severity', xaxes[1], axs_right, leaves, next(colors))
         
     # Custom
-    ticks = np.arange(xlims[0], xlims[1], 200)
-    for ax in axs.flat:
+    ticks = np.arange(xlimits[0][0], xlimits[0][1], 400)
+    for ax in axs_left.flat:
         ax.set_xticks(ticks)
         ax.set_xticklabels(ticks)
+        ax.set_ylabel('Severity (in %)', fontsize=14)
+    for ax in axs_center_right.flat:
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(ticks)
+        ax.set_ylabel('', fontsize=14)
+    ticks = np.arange(xlimits[1][0], xlimits[1][1], 200)
+    for ax in axs_center_left.flat:
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(ticks)
+        ax.set_ylabel('', fontsize=14)
+    for ax in axs_right.flat:
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(ticks)
+        ax.set_ylabel('', fontsize=14)
+    axs_left[-1][0].set_xlabel('$^\circ$Cd since sowing', fontsize=14)
+    axs_center_left[-1][0].set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=14)
+    axs_center_right[-1][0].set_xlabel('$^\circ$Cd since sowing', fontsize=14)
+    axs_right[-1][0].set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=14)
         
     proxy = [plt.Line2D((0,1),(0,0), color='k', marker='o', linestyle='-'),
              plt.Rectangle((0,0), 0,0, facecolor='k', alpha=0.3)]
     labels = ['Mean', 'Confidence\n interval']
     lgd = axs[0][-1].legend(proxy, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    locbox = (1.1, 0.7)
-    locim = (1.12, 0.7)
+    locbox = (1.1, 0.2)
+    locim = (1.12, 0.2)
     txtbox = TextArea('        Distribution', minimumdescent=False)
     ab1 = AnnotationBbox(txtbox, xy=locbox, xycoords="axes fraction", 
                          frameon=True, fontsize=32, box_alignment=(0., 0.5))
@@ -612,13 +677,11 @@ def temp_plot_comparison_complete(data_obs_2012, data_sim_2012, weather_2012,
         axs[0][-1].add_artist(ab2)
     except:
         pass
-    proxy2 = [plt.Rectangle((0,0), 0,0, facecolor='b', alpha=0.3),
-              plt.Rectangle((0,0), 0,0, facecolor='r', alpha=0.3),
-              plt.Rectangle((0,0), 0,0, facecolor=(51/255.,204/255.,51/255.), alpha=0.3),
-              plt.Rectangle((0,0), 0,0, facecolor=(0,0,0.5), alpha=0.3),
+    proxy2 = [plt.Rectangle((0,0), 0,0, facecolor='g', alpha=0.3),
+              plt.Rectangle((0,0), 0,0, facecolor='b', alpha=0.3),
               plt.Rectangle((0,0), 0,0, facecolor=(1,102/255.,0.), alpha=0.3),
-              plt.Rectangle((0,0), 0,0, facecolor=(0.5,0,0), alpha=0.3)]
-    labels2 = ['total 2012', 'total 2013', 'FNL12 2012', 'FNL13 2012', 'FNL11 2013', 'FNL12 2013']
+              plt.Rectangle((0,0), 0,0, facecolor='r', alpha=0.3)]
+    labels2 = ['FNL12 2012', 'FNL13 2012', 'FNL11 2013', 'FNL12 2013']
     lgd2 = axs[1][-1].legend(proxy2, labels2, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     fig.savefig('complete', bbox_extra_artists=(lgd,ab1,ab2,lgd2), bbox_inches='tight')
   
@@ -970,8 +1033,9 @@ def plot_3_weathers():
             ylabel = True
         else:
             ylabel = False
-        plot_relative_humidity(w, ax = axs[0][i], title=yr, ylims=[0,100],
-                               xlims=[0, 2500],  xlabel=False, ylabel=ylabel)
+        plot_relative_humidity(w, ax = axs[0][i], title=yr, ylims=[20,100],
+                               xlims=[0, 2500],  xlabel=False, ylabel=ylabel,
+                                vertical_line=[800,1700])
         if i==2:
             ylabel2 = True
         else:
@@ -995,7 +1059,10 @@ def get_rmse(data_obs, data_sim):
     
 def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
-                                    'scale_stemDim':1.3, 'scale_stemRate':1.1}):
+                                    'scale_stemDim':1.3, 'scale_stemRate':1.1,
+                                    'tiller_probability':0.8, 'scale_leafDim_length':1.2,
+                                    'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
+                                    'scale_fallingRate':0.8}):
     parameters['reference']=1.
     for param in parameters:
         kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
@@ -1005,25 +1072,140 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                    scale_leafRate=1.5, apply_sen='incubation', 
                    age_physio_switch_senescence=100/250.,
                    suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
-                   
-def plot_explore_scenarios(years = range(2000,2007), nplants=15, variable='audpc', 
+
+def force_rename_wheat_params():
+    return {'tiller_probability':r"$\mathit{Tiller}$",
+            'proba_main_nff':r"$\mathit{FNL}$",
+            'scale_HS':r"$\mathit{Earliness}$",
+            'scale_leafDim_length':r"$\mathit{Length}_{leaf}$", 
+            'scale_leafDim_width':r"$\mathit{Width}_{leaf}$",
+            'scale_leafRate':r"$\mathit{Elongation}_{leaf}$",
+            'scale_stemDim':r"$\mathit{Length}_{stem}$",
+            'scale_stemRate':r"$\mathit{Elongation}_{stem}$",
+            'scale_fallingRate':r"$\mathit{Curvature}_{leaf}$",
+            'scale_leafSenescence':r"$\mathit{Senescence}_{leaf}$"}
+
+def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_severity', 
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
-                                    'scale_stemDim':1.3, 'scale_stemRate':1.1}):
+                                    'scale_stemDim':1.3, 'scale_stemRate':1.1,
+                                    'tiller_probability':0.8, 'scale_leafDim_length':1.2,
+                                    'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
+                                    'scale_fallingRate':0.8},
+                                    force_rename={}, title='quanti_septo'):
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots()
+    import matplotlib.gridspec as gridspec
+    gs = gridspec.GridSpec(3, 2, height_ratios=[0.5, 0.5, 3])
+    fig = plt.figure(figsize=(16,8))
+    ax = fig.add_subplot(gs[:,0])
+    axRef = fig.add_subplot(gs[2,1])
+    axLength = fig.add_subplot(gs[1,1])
+    axHS = fig.add_subplot(gs[0,1])
     parameters['reference']=1.
-    color_list = [next(ax._get_lines.color_cycle) for par in parameters]
+    markers = {'reference':'o', 
+                  'scale_HS':'x',
+                  'scale_leafSenescence':'^',
+                  'scale_stemDim':'s',
+                  'scale_stemRate':'p',
+                  'tiller_probability':'*',
+                  'scale_leafDim_length':'d',
+                  'scale_leafDim_width':'D', 
+                  'scale_leafRate':'h',
+                  'scale_fallingRate':'H'}
+    colors = {'reference':'b', 
+              'scale_HS':'r',
+              'scale_leafSenescence':(182/255., 91./255, 22/255.),
+              'scale_stemDim':'m',
+              'scale_stemRate':'m',
+              'tiller_probability':'k',
+              'scale_leafDim_length':'g',
+              'scale_leafDim_width':'g', 
+              'scale_leafRate':'c',
+              'scale_fallingRate':'y'}
     labels = []
     proxys = []
-    for param, color in zip(parameters, color_list):
-        for yr in years:
-            suffix='scenario_'+param+'_'+str(yr)
-            df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
-                                             sporulating_fraction=5e-3,
-                                             suffix=suffix, forced_year=yr)
-            df = get_synthetic_outputs_by_leaf(df_sim)
-            y = df[df['num_leaf_top']==1][variable].values[0]
-            ax.plot([yr, yr+1], [y, y], color=color)
-        labels += [param]
-        proxys += [plt.Line2D((0,1),(0,0), color=color)]
-    ax.legend(proxys, labels)
+    refs = {}
+    for yr in years:
+        suffix='scenario_reference_'+str(yr)
+        df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                         sporulating_fraction=5e-3,
+                                         suffix=suffix, forced_year=yr)
+        df = get_synthetic_outputs_by_leaf(df_ref)
+        refs[yr] = df[df['num_leaf_top']==1][variable].values[0]
+        del df_ref
+        del df
+    
+    for use_ref in [False, True]:
+        for param in sorted(parameters.keys()):
+            color = colors[param]
+            marker = markers[param]
+            for yr in years:
+                suffix='scenario_'+param+'_'+str(yr)
+                df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                                 sporulating_fraction=5e-3,
+                                                 suffix=suffix, forced_year=yr)
+                df = get_synthetic_outputs_by_leaf(df_sim)
+                y = df[df['num_leaf_top']==1][variable].values[0]
+                if use_ref==False:
+                    ax.plot([yr], [y], color=color, marker=marker, markersize=8)
+                else:
+                    y = y/refs[yr] if refs[yr]>0 else 1.
+                    if param=='scale_leafDim_length' and yr==2006:
+                        axLength.plot([yr], [y], color=color, marker=marker, markersize=8)
+                    elif param=='scale_HS' and yr==2006:
+                        axHS.plot([yr], [y], color=color, marker=marker, markersize=8)
+                    else:
+                        axRef.plot([yr], [y], color=color, marker=marker, markersize=8)
+                del df_sim
+                del df
+            if param in force_rename:
+                labels += [force_rename[param]]
+            elif param=='reference':
+                labels += [r"$\mathit{Reference}$"]
+            else:
+                labels += [param]
+            if use_ref==False:
+                proxys += [plt.Line2D((0,1),(0,0), color=color, 
+                                      marker=marker, linestyle='None')]
+        
+    # Customize Right plot
+    axRef.set_ylim([0,1.5])
+    axLength.set_ylim([2.1,2.41])
+    axLength.set_yticks([2.2, 2.4])
+    axLength.set_xlim([years[0]-1, years[-1]+1])
+    axHS.set_ylim([3.9,4.31])
+    axHS.set_yticks([4., 4.2])
+    axHS.set_xlim([years[0]-1, years[-1]+1])
+    axLength.spines['bottom'].set_visible(False)
+    axHS.spines['bottom'].set_visible(False)
+    axRef.spines['top'].set_visible(False)
+    axLength.spines['top'].set_visible(False)
+    axLength.set_xticklabels([])
+    axHS.set_xticklabels([])
+    ax.set_ylabel('Maximum severity (%)', fontsize=16)
+    axRef.set_ylabel('Variation of maximum severity', fontsize=16)
+    axRef.yaxis.set_label_coords(0.52, 0.5, transform=fig.transFigure)
+    axRef.grid(alpha=0.5)
+    axLength.grid(alpha=0.5)
+    axHS.grid(alpha=0.5)
+    d = 0.015
+    kwargs = dict(transform=axHS.transAxes, color='k', clip_on=False)
+    axHS.plot((-d,+d),(-d,+d), **kwargs)
+    axHS.plot((1-d,1+d),(-d,+d), **kwargs)   
+    kwargs = dict(transform=axLength.transAxes, color='k', clip_on=False)
+    axLength.plot((-d,+d),(-d,+d), **kwargs)
+    axLength.plot((1-d,1+d),(-d,+d), **kwargs)
+    axLength.plot((-d,+d),(1-d,1+d), **kwargs)
+    axLength.plot((1-d,1+d),(1-d,1+d), **kwargs)
+    axRef.plot((-d,+d),(-0.15-d,-0.15+d), **kwargs)
+    axRef.plot((1-d,1+d),(-0.15-d,-0.15+d), **kwargs)
+
+    axRef.set_xlim([years[0]-1, years[-1]+1])
+    axRef.set_xticklabels(['']+[str(x) for x in years]+[''])
+    ax.set_xlim([years[0]-1, years[-1]+1])
+    ax.set_xticklabels(['']+[str(x) for x in years]+[''])
+    ax.grid(alpha=0.5)
+    lgd = axHS.legend(proxys, labels, numpoints=1, 
+                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+    plt.subplots_adjust(hspace=0.05)
+    fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    return fig, ax, lgd

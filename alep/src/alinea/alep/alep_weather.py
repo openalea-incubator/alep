@@ -294,7 +294,7 @@ def plot_rain_and_temp(weather, xaxis = 'degree_days', leaf_dates=None,
     
 def plot_relative_humidity(weather, xaxis = 'degree_days', 
                               ax = None, xlims=None, ylims = None, linestyle = '-', color = 'b',
-                              title = None, xlabel = True, plot_line=None):
+                              title = None, xlabel = True, horizontal_line=None, vertical_line=None):
     """ Plot relative humidity (%) """
     if ax == None:
         fig, ax = plt.subplots(figsize=(8,1.8))
@@ -305,8 +305,11 @@ def plot_relative_humidity(weather, xaxis = 'degree_days',
         index = weather.data.index  
     
     ax.plot(index, weather.data.relative_humidity, color = color, linestyle = linestyle)
-    if plot_line is not None:
+    if horizontal_line is not None:
         ax.plot([index[0], index[-1]], [plot_line, plot_line], 'k--')
+    if vertical_line is not None:
+        for v in vertical_line:
+            ax.plot([v, v], [0, 100], 'k--')
     
     if title == None:
         ax.set_title(str(weather.data.index[0].year)+'-'+str(weather.data.index[-1].year))

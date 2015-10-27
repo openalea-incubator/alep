@@ -163,9 +163,9 @@ def septo_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
                     parameter=parameter, ylims=ylims)
                     
 def force_rename_SA_wheat():
-    return {'tiller_probability':r"$\mathit{Tiller}",
+    return {'tiller_probability':r"$\mathit{Tiller}$",
             'proba_main_nff':r"$\mathit{FNL}$",
-            'scale_HS':r"$\mathit{Earliness}_{leaf}$",
+            'scale_HS':r"$\mathit{Earliness}$",
             'scale_leafDim_length':r"$\mathit{Length}_{leaf}$", 
             'scale_leafDim_width':r"$\mathit{Width}_{leaf}$",
             'scale_leafRate':r"$\mathit{Elongation}_{leaf}$",

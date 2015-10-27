@@ -38,7 +38,7 @@ from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.dispersal_transport import BrownRustDispersal
 
 # Temp
-from alinea.alep.disease_outputs import plot_by_leaf
+from alinea.alep.disease_outputs import plot_by_leaf, get_data_without_death, get_synthetic_outputs_by_leaf
 
 def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                end_date="2001-05-25 01:00:00", 
@@ -183,6 +183,18 @@ def run_reps_rust(year = 2013, variety = 'Tremie13',
                                nplants=nplants, inoc=density_dispersal_units,
                                suffix=suffix)
     df.to_csv(output_file)
+
+def get_aggregated_data_sim(year = 2013, variety = 'Tremie13', nplants = 15, 
+                            density_dispersal_units=150.,
+                            num_leaf = 'num_leaf_top', suffix=None):
+    from alinea.alep.simulation_tools.simulation_tools import get_data_sim
+    data_sim = get_data_sim(fungus='brown_rust', year=year,
+                            variety=variety, nplants=nplants,
+                            inoc=density_dispersal_units,
+                            suffix=suffix)
+    data_sim = get_data_without_death(data_sim, num_leaf=num_leaf)
+    data_sim['severity'] *= 100
+    return data_sim    
     
 def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
@@ -198,3 +210,88 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
             run_reps_rust(year=yr, variety='Custom', sowing_date='10-29',
                    nplants=nplants, density_dispersal_units = 150,
                    suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
+
+def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_severity', 
+                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
+                                    'scale_stemDim':1.3, 'scale_stemRate':1.1,
+                                    'tiller_probability':0.8, 'scale_leafDim_length':1.2,
+                                    'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
+                                    'scale_fallingRate':0.8},
+                                    force_rename={}, title='quanti_rust'):
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(1,2, figsize=(16,8))
+    axSev = axs[0]
+    axRef = axs[1]
+    parameters['reference']=1.
+    markers = {'reference':'o', 
+                  'scale_HS':'x',
+                  'scale_leafSenescence':'^',
+                  'scale_stemDim':'s',
+                  'scale_stemRate':'p',
+                  'tiller_probability':'*',
+                  'scale_leafDim_length':'d',
+                  'scale_leafDim_width':'D', 
+                  'scale_leafRate':'h',
+                  'scale_fallingRate':'H'}
+    colors = {'reference':'b', 
+              'scale_HS':'r',
+              'scale_leafSenescence':(182/255., 91./255, 22/255.),
+              'scale_stemDim':'m',
+              'scale_stemRate':'m',
+              'tiller_probability':'k',
+              'scale_leafDim_length':'g',
+              'scale_leafDim_width':'g', 
+              'scale_leafRate':'c',
+              'scale_fallingRate':'y'}
+    labels = []
+    proxys = []
+    refs = {}
+    for yr in years:
+        suffix='scenario_sd_reference_'+str(yr)
+        df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                         density_dispersal_units=150,
+                                         suffix=suffix, year=yr)
+        df = get_synthetic_outputs_by_leaf(df_ref)
+        refs[yr] = df[df['num_leaf_top']==1][variable].values[0]
+        del df_ref
+        del df
+    
+    for use_ref in [False, True]:
+        for param in sorted(parameters.keys()):
+            color = colors[param]
+            marker = markers[param]
+            for yr in years:
+                suffix='scenario_sd_'+param+'_'+str(yr)
+                df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                                 density_dispersal_units=150,
+                                                 suffix=suffix, year=yr)
+                df = get_synthetic_outputs_by_leaf(df_sim)
+                y = df[df['num_leaf_top']==1][variable].values[0]
+                if use_ref==False:
+                    axSev.plot([yr], [y], color=color, marker=marker, markersize=8)
+                else:
+                    y = y/refs[yr] if refs[yr]>0 else 1.
+                    axRef.plot([yr], [y], color=color, marker=marker, markersize=8)
+                del df_sim
+                del df
+            if param in force_rename:
+                labels += [force_rename[param]]
+            elif param=='reference':
+                labels += [r"$\mathit{Reference}$"]
+            else:
+                labels += [param]
+            if use_ref==False:
+                proxys += [plt.Line2D((0,1),(0,0), color=color, 
+                                      marker=marker, linestyle='None')]
+
+    axRef.set_xlim([years[0]-1, years[-1]+1])
+    axRef.set_xticklabels(['']+[str(x) for x in years]+[''])
+    axSev.set_xlim([years[0]-1, years[-1]+1])
+    axSev.set_xticklabels(['']+[str(x) for x in years]+[''])
+    axRef.grid(alpha=0.5)
+    axSev.grid(alpha=0.5)
+    lgd = axRef.legend(proxys, labels, numpoints=1, 
+                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+#    plt.subplots_adjust(hspace=0.05)
+    fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    return fig, axs, lgd

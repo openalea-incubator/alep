@@ -251,7 +251,7 @@ class BrownRustLesion(Lesion):
         if self.surface_sink > 0.:
             f = self.fungus
             a_spo = self.age_sporulation
-            nb_les = sum([l.nb_lesions_non_sen for l in leaf.lesions])
+            nb_les = sum([l.nb_lesions_non_sen for l in leaf.lesions if l.fungus.name=='brown_rust'])
             dens = nb_les/leaf.green_area if leaf.green_area > 0 else 0.
             ratio_empty = gompertz_necro(a_spo, dens)-gompertz_necro(a_spo-self.dtt, dens)
             ratio_les = self.nb_lesions_non_sen/float(nb_les)            

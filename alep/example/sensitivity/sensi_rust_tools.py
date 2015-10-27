@@ -2,7 +2,7 @@
 """
 from disease_sensi_morris import *
 from alinea.alep.disease_outputs import AdelSeptoRecorder, get_synthetic_outputs_by_leaf_rust
-from sensi_septo_tools import variety_code, variety_decode
+from sensi_septo_tools import variety_code, variety_decode, force_rename_SA_wheat
 from alinea.alep.simulation_tools.brown_rust_decomposed import annual_loop_rust
 import numpy as np
 import pandas as pd
@@ -90,7 +90,7 @@ def plot_rust_morris_by_leaf_by_boot(year = 2012, variety = 'Tremie12',
                         parameter_range_file=parameter_range_file,
                         input_file=input_file, nboots=nboots, ylims=ylims)
 
-def plot_septo_morris_3_leaves(year = 2012, variety = 'Tremie12', 
+def plot_rust_morris_3_leaves(year = 2012, variety = 'Tremie12', 
                                leaves = [10, 5, 1], variable = 'audpc',
                                parameter_range_file = './brown_rust/rust_param_range.txt',
                                input_file = './brown_rust/rust_morris_input_full.txt',
@@ -101,14 +101,14 @@ def plot_septo_morris_3_leaves(year = 2012, variety = 'Tremie12',
                         parameter_range_file=parameter_range_file,
                         input_file=input_file, nboots=nboots, ylims=ylims)
                         
-def septo_scatter_plot_by_leaf(year = 2012, variety = 'Tremie12',
+def rust_scatter_plot_by_leaf(year = 2012, variety = 'Tremie12',
                                 variable = 'normalized_audpc',
                                 parameter = 'Smax'):
     output_file = get_rust_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
     scatter_plot_by_leaf(df_out, variable=variable, parameter=parameter)
     
-def septo_boxplot_by_leaf(year = 2012, variety = 'Tremie12',
+def rust_boxplot_by_leaf(year = 2012, variety = 'Tremie12',
                             variable = 'audpc',
                             parameter = 'Smax', ylims=None):
     output_file = get_rust_morris_path(year=year, variety=variety)
@@ -116,7 +116,7 @@ def septo_boxplot_by_leaf(year = 2012, variety = 'Tremie12',
     boxplot_by_leaf(df_out, variable=variable, 
                     parameter=parameter, ylims=ylims)
     
-def septo_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
+def rust_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
                             variety = 'Tremie12',
                             variable = 'audpc',
                             parameter = 'Smax', ylims=None):
@@ -124,3 +124,23 @@ def septo_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
     df_out = pd.read_csv(output_file)
     boxplot_3_leaves(df_out, leaves=leaves, variable=variable,
                     parameter=parameter, ylims=ylims)
+                    
+            
+def plot_morris_3_leaves_2_years(years=[2003, 2013], variety = 'Custom', 
+                               leaves = [3,2,1], variable = 'audpc',
+                               parameter_range_file = './rust_wheat/2003/rust_param_range.txt',
+                               input_files = ['./rust_wheat/2003/rust_morris_input.txt',
+                                              './rust_wheat/2013/rust_morris_input.txt'],
+                               nboots=3, ylims=None, force_rename={},
+                               axs=None, save_fig=True):
+    fig, axs = plt.subplots(2,3, figsize=(10,6))
+    for yr, ax, input_file in zip(years, axs, input_files):
+        df_out = pd.read_csv(get_rust_morris_path(year=yr, variety='Custom'))
+        sfx = '- %d' %yr
+        plot_morris_3_leaves(df_out, leaves=leaves, variable=variable,
+                            parameter_range_file=parameter_range_file,
+                            input_file=input_file, nboots=nboots, ylims=ylims,
+                            force_rename=force_rename, 
+                            axs=ax, annotation_suffix=sfx)
+    if save_fig:
+        fig.savefig('rust_morris_3_leaves_2_years', bbox_inches='tight')

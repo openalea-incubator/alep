@@ -125,7 +125,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     else:
         recorder = None
     growth_controler = SeptoRustCompetition()
-    infection_controler = BiotrophDUProbaModel()
+    infection_controler = BiotrophDUProbaModel(fungus=['brown_rust', 'septoria'])
     septo_inoculum = SoilInoculum(fungus=septoria, 
                                   sporulating_fraction=sporulating_fraction,
                                   domain_area=domain_area)
@@ -226,7 +226,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
             infect(g, septo_rust_iter.dt, infection_controler, label='LeafElement')
 #            group_duplicates_in_cohort(g) # Additional optimisation (group identical cohorts)
             update(g, septo_rust_iter.dt, growth_controler, senescence_model=None, label='LeafElement')            
-        # Disperse and wash
+#         Disperse and wash
         if septo_dispersal_iter and len(geom)>0 and septo_dispersal_iter.value.rain.mean()>0.2:
             g = disperse(g, septo_emitter, septo_transporter, "septoria",
                          label='LeafElement', weather_data=septo_dispersal_iter.value,
@@ -278,7 +278,7 @@ def run_reps_septo_rust(year = 2013, variety = 'Tremie13',
     inoc = concat_inocs(inoc_septo=sporulating_fraction, 
                         inoc_rust=density_dispersal_units)
     output_file = get_filename(fungus='septo_rust', year=year, variety=variety,
-                               nplants=nplants, inoc=inoc, suffix = None)
+                               nplants=nplants, inoc=inoc, suffix = suffix)
     df.to_csv(output_file)
     
 def plot_septo_rust(fungus = 'septo_rust', year = 2012,
@@ -323,32 +323,31 @@ def get_aggregated_data_sim(year = 2013, variety = 'Tremie13', nplants = 15,
 
 def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                     nplants = 15,  sowing_date = '10-29', 
-                    inoc_septo = 5e-3, inoc_rust = 150.,
+                    inoc_septo = 2.5e-3, inoc_rust = 300.,
                     suffix = None, nreps=3, **kwds):
     scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
     for yr in years:
         for inoc in scenarios_inoc:
-            if yr!=2003 and not inoc in [(inoc_septo, 0), (0, inoc_rust)]:
-                print 'pass'
-                pass
-            else:
-                run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
-                                    sowing_date=sowing_date,
-                                    sporulating_fraction=inoc[0],
-                                    density_dispersal_units=inoc[1],
-                                    nreps=nreps, suffix=suffix, **kwds)
+            run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
+                                sowing_date=sowing_date,
+                                sporulating_fraction=inoc[0],
+                                density_dispersal_units=inoc[1],
+                                nreps=nreps, suffix=suffix, **kwds)
                                 
 def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
-                        nplants = 15,  sowing_date = '10-15', 
-                        inoc_rust = 150., inoc_septo = 5e-3, 
+                        nplants = 15,  sowing_date = '10-29', 
+                        inoc_rust = 300., inoc_septo = 2.5e-3, 
                         suffix = None, nreps=3):
 
     def plot_variable(df, variable='severity_septo', ax=None):
+        legend = False
+        if ax==axs[0][-1]:
+            legend=True
         plot_by_leaf(df, variable, xaxis = 'age_leaf_vs_flag_emg', 
-                     ax=ax, ylims=[0, 1], xlims=[0, 1500], legend=False)
+                     ax=ax, ylims=[0, 100], xlims=[0, 1500], legend=legend)
 
     import matplotlib.pyplot as plt
-    fig, axs = plt.subplots(4,len(years))
+    fig, axs = plt.subplots(4,len(years), figsize=(10, 16))
     scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
     for i_yr, yr in enumerate(years):
         for inoc in scenarios_inoc:
@@ -358,6 +357,8 @@ def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                                       density_dispersal_units=inoc[1],
                                       suffix=suffix)
             data_sim = add_leaf_dates_to_data(data_sim)
+            data_sim['severity_septo']*=100
+            data_sim['severity_rust']*=100
 #            df_count = data_sim.groupby(['date', 'num_leaf_top']).count()
 #            df_count = df_count.reset_index()
 #            data_sim = data_sim[df_count['severity']==nplants*nreps]
@@ -370,4 +371,27 @@ def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
 #                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[2][i_yr])
                 plot_variable(data_sim, variable='severity_septo', ax=axs[2][i_yr])
                 plot_variable(data_sim, variable='severity_rust', ax=axs[3][i_yr])
+                
+    for ax in axs.flat:
+        ax.grid(alpha=0.5)
+        if ax in axs[-1]:
+            ax.set_xlabel('Degree days since flag emergence', fontsize=14)
+    axs[0][0].set_ylabel('Severity septoria alone', fontsize=14)
+    axs[1][0].set_ylabel('Severity rust alone', fontsize=14)
+    axs[2][0].set_ylabel('Severity septoria complex', fontsize=14)
+    axs[3][0].set_ylabel('Severity rust complex', fontsize=14)
             
+def plot_states_leaf(df, leaf=2):
+    from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
+    import matplotlib.pyplot as plt
+    df_sim = df.copy()
+    fig, ax = plt.subplots()
+    ax = np.array([ax])
+    xaxis = 'degree_days'
+    leaves = [leaf]
+#    plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g')
+#    plot_one_sim(df_sim, 'surface_septo', xaxis, ax, leaves, 'b')
+#    plot_one_sim(df_sim, 'surface_rust', xaxis, ax, leaves, 'r')
+    plot_one_sim(df_sim, 'nb_dus_septo', xaxis, ax, leaves, 'b')
+    plot_one_sim(df_sim, 'nb_lesions_septo', xaxis, ax, leaves, 'r')
+    plot_one_sim(df_sim, 'nb_dus_rust', xaxis, ax, leaves, 'k')
