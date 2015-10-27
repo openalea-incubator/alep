@@ -26,7 +26,8 @@ def run_brown_rust(sample):
         sowing_date = '10-29'
     output_file = get_stored_rec(variety, year, i_sample, i_boot)
     annual_loop_rust(year = year, variety = variety, sowing_date=sowing_date,
-                    nplants = 15, output_file = output_file)
+                    nplants = 15, output_file = output_file, 
+                    sowing_density=0.85*250, plant_density=0.85*250)
 
 def get_rust_morris_path(year = 2012, variety = 'Tremie12'):
     return './brown_rust/rust_morris_output_'+variety.lower()+'_'+str(year)+'.csv'
