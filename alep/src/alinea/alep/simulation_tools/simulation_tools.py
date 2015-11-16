@@ -148,19 +148,8 @@ def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.):
 #    reconst.HS_fit['Tremie12'].TT_hs_0 -= 35
 #    reconst.HS_fit['Tremie13'].TT_hs_0 -= 35
 
-#    for dim in ['L_sheath', 'L_internode', 'H_col']: 
-#        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Mercia'].scale[dim]
-#        reconst.dimension_fits['Tremie13'].scale[dim] = reconst.dimension_fits['Tremie12'].scale[dim]*1.1
-
     # Temp
-    reconst.GL_fits['Tremie12'].GL_bolting = reconst.GL_fits['Tremie13'].GL_bolting
-#    reconst.GL_fits['Tremie13'].GL_bolting = 4.
-    
-    # TEMP
-#    reconst.GL_fits['Tremie13'].GL_bolting *= 1.25
-#    reconst.GL_fits['Tremie13'].GL_flag *= 1.25
-#    reconst.GL_fits['Tremie13'].n0 *= 1.25    
-    
+    reconst.GL_fits['Tremie12'].GL_bolting = reconst.GL_fits['Tremie13'].GL_bolting   
     return reconst
     
 def alep_custom_reconstructions(variety='Tremie13', nplants=30, 

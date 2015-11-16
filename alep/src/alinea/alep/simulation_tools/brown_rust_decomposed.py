@@ -83,7 +83,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
         recorder = None
 #    growth_controler = GeometricPoissonCompetition()
     growth_controler = SeptoRustCompetition()
-    infection_controler = BiotrophDUProbaModel()
+    infection_controler = BiotrophDUProbaModel(fungus=['brown_rust'])
     contaminator = AirborneContamination(fungus = fungus,
                                          group_dus = True,
                                          domain_area = adel.domain_area,
@@ -205,11 +205,12 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
     parameters['reference']=1.
     for param in parameters:
         kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
-        # scale_leafRate = 1.5*kwds.pop('scale_leafRate')
+        scale_leafRate = 1.5*kwds.pop('scale_leafRate')
         for yr in years:
             run_reps_rust(year=yr, variety='Custom', sowing_date='10-29',
-                   nplants=nplants, density_dispersal_units = 150,
-                   suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
+                   nplants=nplants, density_dispersal_units = 75.,
+                   scale_leafRate = scale_leafRate,
+                   suffix='scenario_last'+param+'_'+str(yr), nreps=10, **kwds)
 
 def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_severity', 
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
@@ -256,11 +257,14 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
         del df_ref
         del df
     
+    sort_refs = sorted([(value,key) for (key,value) in refs.items()], reverse=True)
+    rank_years = {ref[1]:x for x, ref in enumerate(sort_refs)}
     for use_ref in [False, True]:
         for param in sorted(parameters.keys()):
             color = colors[param]
             marker = markers[param]
             for yr in years:
+                x = rank_years[yr]
                 suffix='scenario_sd_'+param+'_'+str(yr)
                 df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                                  density_dispersal_units=150,
@@ -268,10 +272,10 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                 df = get_synthetic_outputs_by_leaf(df_sim)
                 y = df[df['num_leaf_top']==1][variable].values[0]
                 if use_ref==False:
-                    axSev.plot([yr], [y], color=color, marker=marker, markersize=8)
+                    axSev.plot([x], [y], color=color, marker=marker, markersize=8)
                 else:
                     y = y/refs[yr] if refs[yr]>0 else 1.
-                    axRef.plot([yr], [y], color=color, marker=marker, markersize=8)
+                    axRef.plot([x], [y], color=color, marker=marker, markersize=8)
                 del df_sim
                 del df
             if param in force_rename:
@@ -284,12 +288,17 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                 proxys += [plt.Line2D((0,1),(0,0), color=color, 
                                       marker=marker, linestyle='None')]
 
-    axRef.set_xlim([years[0]-1, years[-1]+1])
-    axRef.set_xticklabels(['']+[str(x) for x in years]+[''])
-    axSev.set_xlim([years[0]-1, years[-1]+1])
-    axSev.set_xticklabels(['']+[str(x) for x in years]+[''])
+    str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.iteritems()}.items())]    
+    axRef.set_xlim([-1, len(years)])
+    axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
+    axRef.set_xticklabels(['']+str_ranked_years+[''])
+    axSev.set_xlim([-1, len(years)])
+    axSev.set_xticks([-1] + range(len(years))+ [len(years)+1])
+    axSev.set_xticklabels(['']+str_ranked_years+[''])
     axRef.grid(alpha=0.5)
     axSev.grid(alpha=0.5)
+    axSev.set_ylabel('Maximum severity (%)', fontsize=16)
+    axRef.set_ylabel('Variation of maximum severity', fontsize=16)
     lgd = axRef.legend(proxys, labels, numpoints=1, 
                         bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
 #    plt.subplots_adjust(hspace=0.05)

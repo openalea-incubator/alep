@@ -114,7 +114,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
         growth_controler = PriorityGrowthControl()
     else:
         raise ValueError('Unknown competition model')
-    infection_controler = BiotrophDUProbaModel(age_infection=age_infection)
+    infection_controler = BiotrophDUProbaModel(age_infection=age_infection, fungus=['septoria'])
 #    emitter = Septo3DEmission(domain=domain)
     emitter = PopDropsEmission(domain=domain, compute_star = compute_star)
     transporter = PopDropsTransport(fungus=fungus, group_dus=True,
@@ -1134,11 +1134,14 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
         del df_ref
         del df
     
+    sort_refs = sorted([(value,key) for (key,value) in refs.items()], reverse=True)
+    rank_years = {ref[1]:x for x, ref in enumerate(sort_refs)}
     for use_ref in [False, True]:
         for param in sorted(parameters.keys()):
             color = colors[param]
             marker = markers[param]
             for yr in years:
+                x = rank_years[yr]
                 suffix='scenario_'+param+'_'+str(yr)
                 df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                                  sporulating_fraction=5e-3,
@@ -1146,15 +1149,15 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                 df = get_synthetic_outputs_by_leaf(df_sim)
                 y = df[df['num_leaf_top']==1][variable].values[0]
                 if use_ref==False:
-                    ax.plot([yr], [y], color=color, marker=marker, markersize=8)
+                    ax.plot([x], [y], color=color, marker=marker, markersize=8)
                 else:
                     y = y/refs[yr] if refs[yr]>0 else 1.
                     if param=='scale_leafDim_length' and yr==2006:
-                        axLength.plot([yr], [y], color=color, marker=marker, markersize=8)
+                        axLength.plot([x], [y], color=color, marker=marker, markersize=8)
                     elif param=='scale_HS' and yr==2006:
-                        axHS.plot([yr], [y], color=color, marker=marker, markersize=8)
+                        axHS.plot([x], [y], color=color, marker=marker, markersize=8)
                     else:
-                        axRef.plot([yr], [y], color=color, marker=marker, markersize=8)
+                        axRef.plot([x], [y], color=color, marker=marker, markersize=8)
                 del df_sim
                 del df
             if param in force_rename:
@@ -1168,13 +1171,18 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                                       marker=marker, linestyle='None')]
         
     # Customize Right plot
+    axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
+    axLength.set_xticks([-1] + range(len(years))+ [len(years)+1])
+    axHS.set_xticks([-1] + range(len(years))+ [len(years)+1])
+    ax.set_xticks([-1] + range(len(years))+ [len(years)+1])
+    
     axRef.set_ylim([0,1.5])
     axLength.set_ylim([2.1,2.41])
     axLength.set_yticks([2.2, 2.4])
-    axLength.set_xlim([years[0]-1, years[-1]+1])
+    axLength.set_xlim([-1, len(years)])
     axHS.set_ylim([3.9,4.31])
     axHS.set_yticks([4., 4.2])
-    axHS.set_xlim([years[0]-1, years[-1]+1])
+    axHS.set_xlim([-1, len(years)])
     axLength.spines['bottom'].set_visible(False)
     axHS.spines['bottom'].set_visible(False)
     axRef.spines['top'].set_visible(False)
@@ -1199,10 +1207,11 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
     axRef.plot((-d,+d),(-0.15-d,-0.15+d), **kwargs)
     axRef.plot((1-d,1+d),(-0.15-d,-0.15+d), **kwargs)
 
-    axRef.set_xlim([years[0]-1, years[-1]+1])
-    axRef.set_xticklabels(['']+[str(x) for x in years]+[''])
-    ax.set_xlim([years[0]-1, years[-1]+1])
-    ax.set_xticklabels(['']+[str(x) for x in years]+[''])
+    axRef.set_xlim([-1, len(years)])
+    str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.iteritems()}.items())]
+    axRef.set_xticklabels(['']+str_ranked_years+[''])
+    ax.set_xlim([-1, len(years)])
+    ax.set_xticklabels(['']+str_ranked_years+[''])
     ax.grid(alpha=0.5)
     lgd = axHS.legend(proxys, labels, numpoints=1, 
                         bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
