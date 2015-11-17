@@ -208,9 +208,10 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
         scale_leafRate = 1.5*kwds.pop('scale_leafRate')
         for yr in years:
             run_reps_rust(year=yr, variety='Custom', sowing_date='10-29',
-                   nplants=nplants, density_dispersal_units = 75.,
+                   nplants=nplants, density_dispersal_units = 50.,
                    scale_leafRate = scale_leafRate,
-                   suffix='scenario_last'+param+'_'+str(yr), nreps=10, **kwds)
+                   sowing_density=0.85*250., plant_density=0.85*250.,
+                   suffix='scenario_20151611_'+param+'_'+str(yr), nreps=nreps, **kwds)
 
 def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_severity', 
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
