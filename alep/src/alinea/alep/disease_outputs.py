@@ -1130,10 +1130,10 @@ def get_date_threshold(data, variable = 'severity',
 def get_synthetic_outputs_by_leaf(data, return_conf=False):
     leaves = np.unique(data['num_leaf_top'])
     df = pandas.DataFrame(index = range(len(leaves)), 
-                      columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
+                      columns = ['num_leaf_top', 'audpc',
                                  'max_severity', 'age_threshold'])
     df_conf = pandas.DataFrame(index = range(len(leaves)), 
-                      columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
+                      columns = ['num_leaf_top', 'audpc',
                                  'max_severity', 'age_threshold'])
     df_dates = get_date_threshold(data, threshold=0.05)
     idx = -1
@@ -1142,20 +1142,20 @@ def get_synthetic_outputs_by_leaf(data, return_conf=False):
         df_lf = data[data['num_leaf_top']==lf]
         audpcs = numpy.unique(df_lf['audpc'])
 #        audpcs_500 = numpy.unique(df_lf['audpc_500'])
-        n_audpcs = numpy.unique(df_lf['normalized_audpc'])
-        max_sevs = df_lf.groupby('num_plant').max()['severity']
+        max_sevs = df_lf.groupby(['rep', 'num_plant']).max()['severity']
+        max_sevs = max_sevs.reset_index()
+        max_sevs = max_sevs.groupby('rep').mean()['severity']
+        audpcs = df_lf.groupby(['rep', 'num_plant']).max()['audpc']
+        audpcs = audpcs.reset_index()
+        audpcs = audpcs.groupby('rep').mean()['audpc']
         date_t = df_dates[lf]
         df.loc[idx, 'num_leaf_top'] = lf
         df.loc[idx, 'audpc'] = np.mean(audpcs)
-#        df.loc[idx, 'audpc_500'] = np.mean(audpcs_500)
-        df.loc[idx, 'normalized_audpc'] = numpy.mean(n_audpcs)
         df.loc[idx, 'max_severity'] = numpy.mean(max_sevs)
         df.loc[idx, 'age_threshold'] = numpy.mean(date_t)
         if return_conf==True:
             df_conf.loc[idx, 'num_leaf_top'] = lf
             df_conf.loc[idx, 'audpc'] = conf_int(audpcs)
-#            df_conf.loc[idx, 'audpc_500'] = conf_int(audpcs_500)
-            df_conf.loc[idx, 'normalized_audpc'] = conf_int(n_audpcs)
             df_conf.loc[idx, 'max_severity'] = conf_int(max_sevs)
             df_conf.loc[idx, 'age_threshold'] = conf_int(date_t)
     if return_conf==True:
