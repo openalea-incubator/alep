@@ -164,6 +164,7 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
                                 scale_stemRate=1, 
                                 scale_fallingRate=1,
                                 scale_leafSenescence=1,
+                                scale_tillering=1,
                                 **kwds):
     parameters = reconstruction_parameters()
     stand = AgronomicStand(sowing_density=sowing_density,
@@ -171,13 +172,25 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
                             inter_row=inter_row, noise=0.04, 
                             density_curve_data = None)       
     n_emerged = nplants
+    
+    MS_leaves_number_probabilities={'11': 0.3, '12': 0.7}
     tiller_proba = {'T1':1., 'T2':0.5, 'T3':0.5, 'T4':0.3}
+    ears_per_plant = 2.5
+    
     if 'tiller_probability' in kwds:
         tiller_proba = {k:min(1, p*kwds['tiller_probability']) for k,p in tiller_proba.iteritems()}
-    m = pgen_ext.TillerEmission(primary_tiller_probabilities=tiller_proba)
-    axp = pgen_ext.AxePop(Emission=m)
+
     if 'proba_main_nff' in kwds:
-        axp.MS_probabilities = {'11':1-kwds['proba_main_nff'], '12':kwds['proba_main_nff']}
+        MS_leaves_number_probabilities = {'11':1-kwds['proba_main_nff'], '12':kwds['proba_main_nff']}
+    
+    # scale _tillering
+    tiller_proba = {k:min(1, p * scale_tillering) for k,p in tiller_proba.iteritems()}
+    em = pgen_ext.TillerEmission(primary_tiller_probabilities=tiller_proba)
+    reg = pgen_ext.TillerRegression(ears_per_plant = ears_per_plant * scale_tillering)
+    
+    #generate plants
+    axp = pgen_ext.AxePop(MS_leaves_number_probabilities = MS_leaves_number_probabilities,
+                          Emission=em, Regression=reg)
     plants = axp.plant_list(n_emerged)
     
     # Measure and save Green leaf durations on the reference
