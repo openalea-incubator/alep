@@ -30,7 +30,7 @@ from alinea.astk.TimeControl import (time_filter, IterWithDelays,
 import alinea.alep
 from alinea.alep.brown_rust import BrownRustFungus
 from alinea.alep.simulation_tools.simulation_tools import group_duplicates_in_cohort
-from alinea.alep.disease_outputs import BrownRustRecorder
+from alinea.alep.disease_outputs import save_image, BrownRustRecorder
 from alinea.alep.growth_control import GeometricPoissonCompetition, SeptoRustCompetition
 from alinea.alep.inoculation import AirborneContamination
 from alinea.alep.protocol import infect, update, disperse, external_contamination
@@ -45,15 +45,17 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
                variety = 'Mercia', nplants = 30, nsect = 7,
                TT_delay = 20, dispersal_delay = 24,
                record=True, layer_thickness=1., rep_wheat = None, 
-               leaf_duration=2., **kwds):
+               save_images=False, keep_leaves=False, leaf_duration=2., **kwds):
     # Get weather
     weather = get_weather(start_date=sowing_date, end_date=end_date)
     
     # Set canopy
     it_wheat = 0
     if variety!='Custom':
-        reconst = alep_echap_reconstructions(leaf_duration=leaf_duration)
+        reconst = alep_echap_reconstructions(keep_leaves=keep_leaves, leaf_duration=leaf_duration)
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
+        if save_images:
+            adel.stand.density_curve=None
     else:
         adel = alep_custom_reconstructions(variety='Tremie13', nplants=nplants, nsect=nsect, **kwds)
     year = int(end_date[:4])    
@@ -100,6 +102,7 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
                      nplants = 15, nsect = 7, sowing_date = '10-29',
                      density_dispersal_units = 150, TT_delay=20,
                      record = True, output_file = None, layer_thickness=1.,
+                     save_images = False, keep_leaves=False, 
                      rep_wheat = True, leaf_duration=2., **kwds):
     """ Simulate an epidemics over the campaign. """
     # Setup simu
@@ -110,7 +113,9 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
                    end_date=str(year)+"-07-30 00:00:00",
                    variety = variety, nplants = nplants, nsect = nsect, 
                    TT_delay = TT_delay, dispersal_delay = 24, record=record, 
-                   layer_thickness=layer_thickness, 
+                   layer_thickness=layer_thickness,                   
+                   save_images=save_images, 
+                   keep_leaves=keep_leaves, 
                    leaf_duration=leaf_duration, **kwds)
         
     # Simulation loop
@@ -147,6 +152,23 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
                          label='LeafElement', 
                          weather_data=dispersal_iter.value,
                          domain_area=adel.domain_area)
+        # Save images
+        if save_images == True:
+            if canopy_iter:
+                scene = plot_severity_rust_by_leaf(g, senescence=False)
+                if it_wheat < 10 :
+                    image_name=variety+'_image0000%d.png' % it_wheat
+                elif it_wheat < 100 :
+                    image_name=variety+'_image000%d.png' % it_wheat
+                elif it_wheat < 1000 :
+                    image_name=variety+'_image00%d.png' % it_wheat
+                elif it_wheat < 10000 :
+                    image_name=variety+'_image0%d.png' % it_wheat
+                else :
+                    image_name='image%d.png' % it_wheat
+                image_name = str(shared_data(alinea.alep)/'images_rust'/image_name)
+                save_image(scene, image_name=image_name)        
+        
         # Save outputs
         if rust_iter and record == True:
             date = rust_iter.value.index[-1]
@@ -195,7 +217,82 @@ def get_aggregated_data_sim(year = 2013, variety = 'Tremie13', nplants = 15,
     data_sim = get_data_without_death(data_sim, num_leaf=num_leaf)
     data_sim['severity'] *= 100
     return data_sim    
+
+def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15):
+    (g, adel, fungus, canopy_timing, dispersal_timing, rust_timing, 
+     recorder, growth_controler, infection_controler, 
+     contaminator, dispersor, it_wheat, wheat_dir,
+     wheat_is_loaded) = setup_simu(sowing_date=str(year-1)+"-"+sowing_date+" 12:00:00", 
+                              end_date=str(year)+"-08-01 00:00:00",
+                              variety = variety, nplants = nplants)
+    g = adel.setup_canopy(1400)
+    adel.plot(g)
+
+def plot_severity_rust_by_leaf(g, senescence=True,
+                                transparency=None, 
+                                label='LeafElement'):
+    """ Display the MTG with colored leaves according to disease severity 
     
+    Parameters
+    ----------
+    g: MTG
+        MTG representing the canopy
+    senescence: bool
+        True if senescence must be displayed, False otherwise
+    transparency: float[0:1]
+        Transparency of the part of the MTG without lesion
+    label: str
+        Label of the part of the MTG concerned by the calculation
+        
+    Returns
+    -------
+    scene:
+        Scene containing the MTG attacked by the disease
+    
+    """
+    from alinea.alep.architecture import set_property_on_each_id, get_leaves
+    from alinea.alep.alep_color import alep_colormap, green_yellow_red
+    from alinea.adel.mtg_interpreter import plot3d
+    from alinea.alep.disease_outputs import plot3d_transparency
+    from openalea.plantgl.all import Viewer
+    # Visualization
+    lesions = g.property('lesions')
+    leaves = get_leaves(g, label=label)
+    severity_by_leaf = {}
+    for lf in leaves:
+        if lf in lesions:
+            leaf = g.node(lf)
+            severity_by_leaf[lf] = sum([l.surface_spo for l in leaf.lesions])*100./leaf.area if leaf.area>0 else 0.
+        else:
+            severity_by_leaf[lf] = 0.
+    set_property_on_each_id(g, 'severity', severity_by_leaf, label=label)
+    g = alep_colormap(g, 'severity', cmap=green_yellow_red(levels=100),
+                      lognorm=False, zero_to_one=False, vmax=100)
+
+    if senescence==True:
+        leaves = get_leaves(g, label=label)
+        sen_lengths = g.property('senesced_length')
+        green_lengths = g.property('green_length')
+        for leaf in leaves:
+            if sen_lengths[leaf]>0. and round(green_lengths[leaf],15)==0.:
+                g.node(leaf).color = (157, 72, 7)
+    
+    if transparency!=None:
+        for id in g:           
+            if not id in severity_by_leaf:
+                g.node(id).color = (255,255,255)
+                g.node(id).transparency = 0.9
+            elif severity_by_leaf[id]==0.:
+                g.node(id).color = (255,255,255)
+                g.node(id).transparency = transparency
+            else:
+                g.node(id).transparency = 0.
+        scene = plot3d_transparency(g)
+    else:
+        scene = plot3d_transparency(g)
+    Viewer.display(scene)
+    return scene
+
 def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
                                     'scale_stemDim':1.3, 'scale_stemRate':1.1,
@@ -249,9 +346,9 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
     proxys = []
     refs = {}
     for yr in years:
-        suffix='scenario_sd_reference_'+str(yr)
+        suffix='scenario_20151611_reference_'+str(yr)
         df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
-                                         density_dispersal_units=150,
+                                         density_dispersal_units=50.,
                                          suffix=suffix, year=yr)
         df = get_synthetic_outputs_by_leaf(df_ref)
         refs[yr] = df[df['num_leaf_top']==1][variable].values[0]
@@ -266,9 +363,9 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
             marker = markers[param]
             for yr in years:
                 x = rank_years[yr]
-                suffix='scenario_sd_'+param+'_'+str(yr)
+                suffix='scenario_20151611_'+param+'_'+str(yr)
                 df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
-                                                 density_dispersal_units=150,
+                                                 density_dispersal_units=50.,
                                                  suffix=suffix, year=yr)
                 df = get_synthetic_outputs_by_leaf(df_sim)
                 y = df[df['num_leaf_top']==1][variable].values[0]
@@ -291,6 +388,7 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
 
     str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.iteritems()}.items())]    
     axRef.set_xlim([-1, len(years)])
+    axRef.set_ylim([0,1.8])
     axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
     axRef.set_xticklabels(['']+str_ranked_years+[''])
     axSev.set_xlim([-1, len(years)])
@@ -298,10 +396,63 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
     axSev.set_xticklabels(['']+str_ranked_years+[''])
     axRef.grid(alpha=0.5)
     axSev.grid(alpha=0.5)
-    axSev.set_ylabel('Maximum severity (%)', fontsize=16)
-    axRef.set_ylabel('Variation of maximum severity', fontsize=16)
+    if variable=='max_severity':
+        axSev.set_ylabel('Maximum severity (%)', fontsize=16)
+        axRef.set_ylabel('Variation of maximum severity', fontsize=16)
+    elif variable=='audpc':
+        axSev.set_ylabel('AUDPC', fontsize=16)
+        axRef.set_ylabel('Variation of AUDPC', fontsize=16)
     lgd = axRef.legend(proxys, labels, numpoints=1, 
                         bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
 #    plt.subplots_adjust(hspace=0.05)
     fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
     return fig, axs, lgd
+    
+def plot_states_leaf(df, leaf=2):
+    from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
+    import matplotlib.pyplot as plt
+    import numpy as np
+    df_sim = df.copy()
+    fig, ax = plt.subplots()
+    ax = np.array([ax])
+    sink = (0, 222/256., 0)
+    nec = (185./256, 93./256, 37./256)
+    xaxis = 'age_leaf'
+    leaves = [leaf]
+    plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g')
+    plot_one_sim(df_sim, 'surface_sink', xaxis, ax, leaves, sink)
+    plot_one_sim(df_sim, 'surface_chlo', xaxis, ax, leaves, 'y')
+    plot_one_sim(df_sim, 'surface_spo', xaxis, ax, leaves, 'r')
+    plot_one_sim(df_sim, 'surface_empty', xaxis, ax, leaves, nec)
+    ax[0].legend(['Green leaf', 'Asymptomatic',
+               'Chlorotic', 'Sporulating', 'Necrotic'], loc='best')
+    ax[0].grid()
+    ax[0].set_ylabel('Surface (cm2)', fontsize=16)
+    ax[0].set_xlabel('Leaf age since emergence (Cd)', fontsize=16)
+
+def plot_explain_audpc(df, leaf=2, xaxis='age_leaf', xlims=[0,1400]):
+    from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from alinea.echap.disease.septo_data_treatment import get_mean
+    fig, ax = plt.subplots()
+    ax = np.array([ax])
+    leaves = [leaf]
+    df['ratio_green'] = 0.
+    df['ratio_green'][df['leaf_area']>0] = df['leaf_green_area'][df['leaf_area']>0]*100./df['leaf_area'][df['leaf_area']>0]
+    plot_one_sim(df, 'ratio_green', xaxis, ax, leaves, 'g', linestyle='-')
+    plot_one_sim(df, 'severity', xaxis, ax, leaves, 'r', linestyle='-')
+    df = df[df['num_leaf_top']==leaf]    
+    df_fill1 = get_mean(df, column='severity', xaxis=xaxis)
+    df_green = get_mean(df, column='leaf_green_area', xaxis=xaxis)
+    date_end_sen = df_green[df_green[leaf]>0].index[-1]
+    df_fill1[df_fill1.index>date_end_sen] = 0. 
+    ax[0].fill_between(df_fill1.index, df_fill1.values.flat, alpha=0.3,
+                        color='None', edgecolor='r', hatch='//')
+    
+    ax[0].set_xlim(xlims)
+    ax[0].set_ylim([0,105])
+    ax[0].set_ylabel('Leaf area (cm2)', fontsize=18)
+    ax[0].set_ylabel('Severity (%)', fontsize=18)
+    ax[0].set_xlabel('Age of leaf (degree days)', fontsize=18)
+    ax[0].legend(['% Green leaf', '% Sporulating'], loc='best')
