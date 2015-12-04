@@ -337,14 +337,15 @@ def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
 def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                         nplants = 15,  sowing_date = '10-29', 
                         inoc_rust = 300., inoc_septo = 2.5e-3, 
-                        suffix = None, nreps=3):
+                        suffix = None, nreps=3, linewidth=2):
 
     def plot_variable(df, variable='severity_septo', ax=None):
         legend = False
         if ax==axs[0][-1]:
             legend=True
         plot_by_leaf(df, variable, xaxis = 'age_leaf_vs_flag_emg', 
-                     ax=ax, ylims=[0, 100], xlims=[0, 1500], legend=legend)
+                     ax=ax, ylims=[0, 100], xlims=[0, 1500], legend=legend,
+                     linewidth=linewidth)
 
     import matplotlib.pyplot as plt
     fig, axs = plt.subplots(4,len(years), figsize=(10, 16))

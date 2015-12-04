@@ -262,7 +262,7 @@ def plot_severity_rust_by_leaf(g, senescence=True,
     for lf in leaves:
         if lf in lesions:
             leaf = g.node(lf)
-            severity_by_leaf[lf] = sum([l.surface_spo for l in leaf.lesions])*100./leaf.area if leaf.area>0 else 0.
+            severity_by_leaf[lf] = sum([l.surface for l in leaf.lesions])*100./leaf.area if leaf.area>0 else 0.
         else:
             severity_by_leaf[lf] = 0.
     set_property_on_each_id(g, 'severity', severity_by_leaf, label=label)
@@ -311,6 +311,7 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                    suffix='scenario_20151611_'+param+'_'+str(yr), nreps=nreps, **kwds)
 
 def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_severity', 
+                           leaf=1, error_bar=False,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
                                     'scale_stemDim':1.3, 'scale_stemRate':1.1,
                                     'tiller_probability':0.8, 'scale_leafDim_length':1.2,
@@ -345,13 +346,15 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
     labels = []
     proxys = []
     refs = {}
+    refs_conf = {}
     for yr in years:
         suffix='scenario_20151611_reference_'+str(yr)
         df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                          density_dispersal_units=50.,
                                          suffix=suffix, year=yr)
-        df = get_synthetic_outputs_by_leaf(df_ref)
-        refs[yr] = df[df['num_leaf_top']==1][variable].values[0]
+        df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
+        refs[yr] = df[df['num_leaf_top']==leaf][variable].values[0]
+        refs_conf[yr] = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
         del df_ref
         del df
     
@@ -367,13 +370,21 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                 df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                                  density_dispersal_units=50.,
                                                  suffix=suffix, year=yr)
-                df = get_synthetic_outputs_by_leaf(df_sim)
-                y = df[df['num_leaf_top']==1][variable].values[0]
+                df, df_conf = get_synthetic_outputs_by_leaf(df_sim, return_conf=True)
+                y = df[df['num_leaf_top']==leaf][variable].values[0]
+                y_err = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
                 if use_ref==False:
-                    axSev.plot([x], [y], color=color, marker=marker, markersize=8)
+                    if error_bar==False:
+                        axSev.plot([x], [y], color=color, marker=marker, markersize=8)
+                    else:
+                        axSev.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
                 else:
                     y = y/refs[yr] if refs[yr]>0 else 1.
-                    axRef.plot([x], [y], color=color, marker=marker, markersize=8)
+                    y_err = y_err/refs[yr] if refs[yr]>0 else 1.
+                    if error_bar==False:
+                        axRef.plot([x], [y], color=color, marker=marker, markersize=8)
+                    else:
+                        axRef.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
                 del df_sim
                 del df
             if param in force_rename:
@@ -388,6 +399,9 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
 
     str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.iteritems()}.items())]    
     axRef.set_xlim([-1, len(years)])
+    axRef.set_ylim([0,1.8])
+    if variable=='max_severity':
+        axSev.set_ylim([0, 100])
     axRef.set_ylim([0,1.8])
     axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
     axRef.set_xticklabels(['']+str_ranked_years+[''])
@@ -419,16 +433,18 @@ def plot_states_leaf(df, leaf=2):
     nec = (185./256, 93./256, 37./256)
     xaxis = 'age_leaf'
     leaves = [leaf]
-    plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g')
-    plot_one_sim(df_sim, 'surface_sink', xaxis, ax, leaves, sink)
-    plot_one_sim(df_sim, 'surface_chlo', xaxis, ax, leaves, 'y')
-    plot_one_sim(df_sim, 'surface_spo', xaxis, ax, leaves, 'r')
-    plot_one_sim(df_sim, 'surface_empty', xaxis, ax, leaves, nec)
+    plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g', linewidth=2)
+    plot_one_sim(df_sim, 'surface_sink', xaxis, ax, leaves, sink, linewidth=2)
+    plot_one_sim(df_sim, 'surface_chlo', xaxis, ax, leaves, 'y', linewidth=2)
+    plot_one_sim(df_sim, 'surface_spo', xaxis, ax, leaves, 'r', linewidth=2)
+    plot_one_sim(df_sim, 'surface_empty', xaxis, ax, leaves, nec, linewidth=2)
     ax[0].legend(['Green leaf', 'Asymptomatic',
-               'Chlorotic', 'Sporulating', 'Necrotic'], loc='best')
+               'Chlorotic', 'Sporulating', 'Necrotic'], loc='best', fontsize=18)
     ax[0].grid()
-    ax[0].set_ylabel('Surface (cm2)', fontsize=16)
-    ax[0].set_xlabel('Leaf age since emergence (Cd)', fontsize=16)
+    ax[0].set_ylabel('Surface (cm2)', fontsize=20)
+    ax[0].set_xlabel('Age de la feuille (Cd)', fontsize=20)
+#    ax[0].set_xlabel('Leaf age since emergence (Cd)', fontsize=20)
+    ax[0].tick_params(axis='both', labelsize=18)
 
 def plot_explain_audpc(df, leaf=2, xaxis='age_leaf', xlims=[0,1400]):
     from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
