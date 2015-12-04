@@ -1067,7 +1067,7 @@ def get_rmse(data_obs, data_sim):
 def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
                                     'scale_stemDim':1.3, 'scale_stemRate':1.1,
-                                    'tiller_probability':0.8, 'scale_leafDim_length':1.2,
+                                    'scale_tillering':0.8, 'scale_leafDim_length':1.2,
                                     'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
                                     'scale_fallingRate':0.8}):
     parameters['reference']=1.
@@ -1099,7 +1099,7 @@ def rain_scenarios(years = range(1999,2007)):
 
 
 def force_rename_wheat_params():
-    return {'tiller_probability':r"$\mathit{Tiller}$",
+    return {'scale_tillering':r"$\mathit{Tiller}$",
             'proba_main_nff':r"$\mathit{FNL}$",
             'scale_HS':r"$\mathit{Earliness}$",
             'scale_leafDim_length':r"$\mathit{Length}_{leaf}$", 
@@ -1114,7 +1114,7 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
                            leaf=1, variable='max_severity', error_bar=False,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
                                     'scale_stemDim':1.3, 'scale_stemRate':1.1,
-                                    'tiller_probability':0.8, 'scale_leafDim_length':1.2,
+                                    'scale_tillering':0.8, 'scale_leafDim_length':1.2,
                                     'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
                                     'scale_fallingRate':0.8},
                                     force_rename={}, title='quanti_septo', custom_axis=False):
