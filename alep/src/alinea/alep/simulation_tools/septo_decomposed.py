@@ -455,7 +455,7 @@ def temp_plot_comparison(data_obs_mercia, data_sim_mercia, weather_2011,
     if correct_fnl:
         data_sim_2012 = resample_fnl(data_obs_2012, data_sim_2012, weather_2012, variable='severity')
         data_sim_2013 = resample_fnl(data_obs_2013, data_sim_2013, weather_2013, variable='severity')
-    leaves=[5,4,3,2,1]    
+    leaves=[5,4,3,2,1]
     fig, axes = plt.subplots(2, len(leaves), figsize=(30., 10.))
     for xaxis, axs, xlims in zip(xaxes, axes, xlimits):
         (df_mean_obs_mercia, df_low_mercia, df_high_mercia, fig, 
@@ -504,7 +504,7 @@ def temp_plot_comparison(data_obs_mercia, data_sim_mercia, weather_2011,
                                             display_legend=False,
                                             tight_layout=False,
                                             fixed_color='r', alpha=alpha)
-
+#
         plot_one_sim(data_sim_mercia, 'severity', xaxis, axs, leaves, 'y', linewidth=2)
         plot_one_sim(data_sim_rht3, 'severity', xaxis, axs, leaves, 'g', linewidth=2)
         plot_one_sim(data_sim_2012, 'severity', xaxis, axs, leaves, 'b', linewidth=2)
@@ -546,12 +546,13 @@ def temp_plot_comparison(data_obs_mercia, data_sim_mercia, weather_2011,
                       plt.Rectangle((0,0), 0,0, facecolor='b', alpha=alpha),
                       plt.Rectangle((0,0), 0,0, facecolor='r', alpha=alpha)]
             labels2 = ['2011 Mercia', '2011 Rht3', '2012 Tremie', '2013 Tremie']
-            lgd2 = axs[-2].legend(proxy2, labels2, bbox_to_anchor=(2.75, 0.2), loc='lower right', borderaxespad=0.)
+            lgd2 = axs[-2].legend(proxy2, labels2, bbox_to_anchor=(2.8, 0.2), loc='lower right', borderaxespad=0.)
+#            lgd2 = axs[-2].legend(proxy2, labels2, bbox_to_anchor=(2.6, 0.2), loc='lower right', borderaxespad=0.)
 
     if title is not None:
         plt.text(0.5, 0.98, title, fontsize=18,
                  transform=fig.transFigure, horizontalalignment='center')
-    fig.savefig('comparison', bbox_extra_artists=(lgd,ab1,ab2,lgd2), bbox_inches='tight')
+    fig.savefig('comparison_', bbox_extra_artists=(lgd,ab1,ab2,lgd2), bbox_inches='tight')
 #    plt.tight_layout()
     
 def temp_plot_comparison_by_fnl(data_obs_2012, data_sim_2012, weather_2012, 
@@ -818,15 +819,15 @@ def plot_states_leaf(df, leaf=2):
     ax = np.array([ax])
     inc = (0, 222/256., 0)
     nec = (185./256, 93./256, 37./256)
-    xaxis = 'degree_days'
+    xaxis = 'age_leaf'
     leaves = [leaf]
-    plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g')
-    plot_one_sim(df_sim, 'leaf_disease_area', xaxis, ax, leaves, 'r')
-    plot_one_sim(df_sim, 'surface_inc', xaxis, ax, leaves, inc)
-    plot_one_sim(df_sim, 'surface_chlo', xaxis, ax, leaves, 'y')
-    plot_one_sim(df_sim, 'surface_nec', xaxis, ax, leaves, nec)
+    plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g', linewidth=2)
+#    plot_one_sim(df_sim, 'leaf_disease_area', xaxis, ax, leaves, 'r', linewidth=2)
+    plot_one_sim(df_sim, 'surface_inc', xaxis, ax, leaves, inc, linewidth=2)
+    plot_one_sim(df_sim, 'surface_chlo', xaxis, ax, leaves, 'y', linewidth=2)
+    plot_one_sim(df_sim, 'surface_nec', xaxis, ax, leaves, nec, linewidth=2)
     df_sim['tot_spo'] = df_sim['surface_spo'] + df_sim['surface_empty']
-    plot_one_sim(df_sim, 'tot_spo', xaxis, ax, leaves, 'k')
+    plot_one_sim(df_sim, 'tot_spo', xaxis, ax, leaves, 'r', linewidth=2)
 #    df_sim['non_prio'] = df_sim['surface_inc'] + df_sim['surface_chlo']
 #    df_sim['prio'] = df_sim['surface_nec'] + df_sim['surface_spo'] + df_sim['surface_empty']
 #    plot_one_sim(df_sim, 'non_prio', xaxis, ax, leaves, 'm')
@@ -834,6 +835,12 @@ def plot_states_leaf(df, leaf=2):
 #    plot_one_sim(df_sim, 'surface_spo', xaxis, ax, leaves, 'm')
 #    plot_one_sim(df_sim, 'surface_non_spo', xaxis, ax, leaves, 'k')
 #    plot_one_sim(df_sim, 'surface_empty', xaxis, ax, leaves, 'c')
+    ax[0].legend(['Green leaf', 'Green',
+               'Chlorotic', 'Necrotic', 'Sporulating'], loc='best', fontsize=18)
+    ax[0].grid()
+    ax[0].set_ylabel('Surface (cm2)', fontsize=20)
+    ax[0].set_xlabel('Age de la feuille (Cd)', fontsize=20)
+    ax[0].tick_params(axis='both', labelsize=18)
     
 def temp_plot_simu_by_fnl(df, multiply_sev = True, xaxis='degree_days',
                    leaves=None, only_severity=False, xlims = [800, 2200],
@@ -997,7 +1004,7 @@ def plot_variables_leaf(df, leaf=2, add_leaf_dates=False,
     df_fill1 = get_mean(df, column='severity', xaxis=xaxis)
     df_green = get_mean(df, column='leaf_green_area', xaxis=xaxis)
     date_end_sen = df_green[df_green[leaf]>0].index[-1]
-    df_fill1[df_fill1.index>date_end_sen+210.] = 0. 
+    df_fill1[df_fill1.index>date_end_sen] = 0. 
     axs[1].fill_between(df_fill1.index, df_fill1.values.flat, alpha=0.3,
                         color='None', edgecolor='r', hatch='//')
     
@@ -1066,12 +1073,30 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
     parameters['reference']=1.
     for param in parameters:
         kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
+        scale_leafRate = 1.5*kwds.pop('scale_leafRate')
         for yr in years:
             run_reps_septo(year=yr, variety='Custom', sowing_date='10-29',
                    nplants=nplants, proba_inf=1, sporulating_fraction=5e-3,
-                   scale_leafRate=1.5, apply_sen='incubation', 
+                   scale_leafRate=scale_leafRate, apply_sen='incubation', 
                    age_physio_switch_senescence=100/250.,
                    suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
+                   
+def rain_scenarios(years = range(1999,2007)):
+    df_rain = pd.DataFrame(columns=['year', 'rain_cum', 'mean_rain_interruption'])
+    indx=0
+    for yr in years:
+        sowing_date=str(yr-1)+"-10-21 12:00:00"
+        end_date=str(yr)+"-08-01 00:00:00"
+        weather = get_weather(start_date = sowing_date, end_date = end_date)
+        df_rain.loc[indx, 'year'] = yr
+        df = weather.data[datetime(yr, 1, 1):datetime(yr, 7, 1)]
+        df_rain.loc[indx, 'rain_cum'] =df.rain.sum()
+#        df_rain.loc[indx, 'rain_cum'] = weather.data[datetime(yr, 1, 1):].rain.sum()
+        len_holes = [len(list(g)) for k, g in itertools.groupby(df.rain, lambda x: x==0) if k]
+        df_rain.loc[indx, 'mean_rain_interruption'] = mean(len_holes)
+        indx += 1
+    return df_rain
+
 
 def force_rename_wheat_params():
     return {'tiller_probability':r"$\mathit{Tiller}$",
@@ -1085,21 +1110,27 @@ def force_rename_wheat_params():
             'scale_fallingRate':r"$\mathit{Curvature}_{leaf}$",
             'scale_leafSenescence':r"$\mathit{Senescence}_{leaf}$"}
 
-def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_severity', 
+def plot_explore_scenarios(years = range(1999,2007), nplants=15, 
+                           leaf=1, variable='max_severity', error_bar=False,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
                                     'scale_stemDim':1.3, 'scale_stemRate':1.1,
                                     'tiller_probability':0.8, 'scale_leafDim_length':1.2,
                                     'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
                                     'scale_fallingRate':0.8},
-                                    force_rename={}, title='quanti_septo'):
+                                    force_rename={}, title='quanti_septo', custom_axis=False):
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
-    gs = gridspec.GridSpec(3, 2, height_ratios=[0.5, 0.5, 3])
-    fig = plt.figure(figsize=(16,8))
-    ax = fig.add_subplot(gs[:,0])
-    axRef = fig.add_subplot(gs[2,1])
-    axLength = fig.add_subplot(gs[1,1])
-    axHS = fig.add_subplot(gs[0,1])
+    if variable=='max_severity' and leaf==1 and custom_axis==True:
+        gs = gridspec.GridSpec(3, 2, height_ratios=[0.5, 0.5, 3])
+        fig = plt.figure(figsize=(16,8))
+        ax = fig.add_subplot(gs[:,0])
+        axRef = fig.add_subplot(gs[2,1])
+        axLength = fig.add_subplot(gs[1,1])
+        axHS = fig.add_subplot(gs[0,1])
+    else:
+        fig, axs = plt.subplots(1, 2, figsize=(16,8))
+        ax = axs[0]
+        axRef = axs[1]
     parameters['reference']=1.
     markers = {'reference':'o', 
                   'scale_HS':'x',
@@ -1124,13 +1155,15 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
     labels = []
     proxys = []
     refs = {}
+    refs_conf = {}
     for yr in years:
-        suffix='scenario_reference_'+str(yr)
+        suffix='scenario_sen0_reference_'+str(yr)
         df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                          sporulating_fraction=5e-3,
                                          suffix=suffix, forced_year=yr)
-        df = get_synthetic_outputs_by_leaf(df_ref)
-        refs[yr] = df[df['num_leaf_top']==1][variable].values[0]
+        df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
+        refs[yr] = df[df['num_leaf_top']==leaf][variable].values[0]
+        refs_conf[yr] = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
         del df_ref
         del df
     
@@ -1142,22 +1175,42 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
             marker = markers[param]
             for yr in years:
                 x = rank_years[yr]
-                suffix='scenario_'+param+'_'+str(yr)
+                suffix='scenario_sen0_'+param+'_'+str(yr)
                 df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                                  sporulating_fraction=5e-3,
                                                  suffix=suffix, forced_year=yr)
-                df = get_synthetic_outputs_by_leaf(df_sim)
-                y = df[df['num_leaf_top']==1][variable].values[0]
+                df, df_conf = get_synthetic_outputs_by_leaf(df_sim, return_conf=True)
+                y = df[df['num_leaf_top']==leaf][variable].values[0]
+                y_err = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
                 if use_ref==False:
-                    ax.plot([x], [y], color=color, marker=marker, markersize=8)
+                    if error_bar==False:
+                        ax.plot([x], [y], color=color, marker=marker, markersize=8)
+                    else:
+                        ax.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
                 else:
                     y = y/refs[yr] if refs[yr]>0 else 1.
-                    if param=='scale_leafDim_length' and yr==2006:
-                        axLength.plot([x], [y], color=color, marker=marker, markersize=8)
-                    elif param=='scale_HS' and yr==2006:
-                        axHS.plot([x], [y], color=color, marker=marker, markersize=8)
+                    y_err = y_err/refs[yr] if refs[yr]>0 else 1.
+                    if variable=='max_severity' and leaf==1 and custom_axis==True:
+                        if param=='scale_leafDim_length' and yr==2006:
+                            if error_bar==False:
+                                axLength.plot([x], [y], color=color, marker=marker, markersize=8)
+                            else:
+                                axLength.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                        elif param=='scale_HS' and yr==2006:
+                            if error_bar==False:
+                                axHS.plot([x], [y], color=color, marker=marker, markersize=8)
+                            else:
+                                axHS.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                        else:
+                            if error_bar==False:
+                                axRef.plot([x], [y], color=color, marker=marker, markersize=8)
+                            else:
+                                axRef.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
                     else:
-                        axRef.plot([x], [y], color=color, marker=marker, markersize=8)
+                        if error_bar==False:
+                            axRef.plot([x], [y], color=color, marker=marker, markersize=8)
+                        else:
+                            axRef.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
                 del df_sim
                 del df
             if param in force_rename:
@@ -1171,50 +1224,60 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                                       marker=marker, linestyle='None')]
         
     # Customize Right plot
-    axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
-    axLength.set_xticks([-1] + range(len(years))+ [len(years)+1])
-    axHS.set_xticks([-1] + range(len(years))+ [len(years)+1])
     ax.set_xticks([-1] + range(len(years))+ [len(years)+1])
-    
-    axRef.set_ylim([0,1.5])
-    axLength.set_ylim([2.1,2.41])
-    axLength.set_yticks([2.2, 2.4])
-    axLength.set_xlim([-1, len(years)])
-    axHS.set_ylim([3.9,4.31])
-    axHS.set_yticks([4., 4.2])
-    axHS.set_xlim([-1, len(years)])
-    axLength.spines['bottom'].set_visible(False)
-    axHS.spines['bottom'].set_visible(False)
-    axRef.spines['top'].set_visible(False)
-    axLength.spines['top'].set_visible(False)
-    axLength.set_xticklabels([])
-    axHS.set_xticklabels([])
-    ax.set_ylabel('Maximum severity (%)', fontsize=16)
-    axRef.set_ylabel('Variation of maximum severity', fontsize=16)
-    axRef.yaxis.set_label_coords(0.52, 0.5, transform=fig.transFigure)
+    axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
     axRef.grid(alpha=0.5)
-    axLength.grid(alpha=0.5)
-    axHS.grid(alpha=0.5)
-    d = 0.015
-    kwargs = dict(transform=axHS.transAxes, color='k', clip_on=False)
-    axHS.plot((-d,+d),(-d,+d), **kwargs)
-    axHS.plot((1-d,1+d),(-d,+d), **kwargs)   
-    kwargs = dict(transform=axLength.transAxes, color='k', clip_on=False)
-    axLength.plot((-d,+d),(-d,+d), **kwargs)
-    axLength.plot((1-d,1+d),(-d,+d), **kwargs)
-    axLength.plot((-d,+d),(1-d,1+d), **kwargs)
-    axLength.plot((1-d,1+d),(1-d,1+d), **kwargs)
-    axRef.plot((-d,+d),(-0.15-d,-0.15+d), **kwargs)
-    axRef.plot((1-d,1+d),(-0.15-d,-0.15+d), **kwargs)
-
     axRef.set_xlim([-1, len(years)])
     str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.iteritems()}.items())]
     axRef.set_xticklabels(['']+str_ranked_years+[''])
     ax.set_xlim([-1, len(years)])
     ax.set_xticklabels(['']+str_ranked_years+[''])
     ax.grid(alpha=0.5)
-    lgd = axHS.legend(proxys, labels, numpoints=1, 
-                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
-    plt.subplots_adjust(hspace=0.05)
+
+    if variable=='max_severity' and leaf==1 and custom_axis==True:
+        axRef.set_ylim([0,1.5])
+        axLength.set_xticks([-1] + range(len(years))+ [len(years)+1])
+        axHS.set_xticks([-1] + range(len(years))+ [len(years)+1])
+        axLength.set_ylim([2.2,2.61])
+        axLength.set_yticks([2.3, 2.5])
+        axLength.set_xlim([-1, len(years)])
+        axHS.set_ylim([3.9,4.31])
+        axHS.set_yticks([4., 4.2])
+        axHS.set_xlim([-1, len(years)])
+        axRef.spines['top'].set_visible(False)
+        axLength.spines['bottom'].set_visible(False)
+        axHS.spines['bottom'].set_visible(False)
+        axLength.spines['top'].set_visible(False)
+        axLength.set_xticklabels([])
+        axHS.set_xticklabels([])
+        axRef.yaxis.set_label_coords(0.52, 0.5, transform=fig.transFigure)
+        d = 0.015
+        kwargs = dict(transform=axHS.transAxes, color='k', clip_on=False)
+        axHS.plot((-d,+d),(-d,+d), **kwargs)
+        axHS.plot((1-d,1+d),(-d,+d), **kwargs)   
+        kwargs = dict(transform=axLength.transAxes, color='k', clip_on=False)
+        axLength.plot((-d,+d),(-d,+d), **kwargs)
+        axLength.plot((1-d,1+d),(-d,+d), **kwargs)
+        axLength.plot((-d,+d),(1-d,1+d), **kwargs)
+        axLength.plot((1-d,1+d),(1-d,1+d), **kwargs)
+        axRef.plot((-d,+d),(-0.15-d,-0.15+d), **kwargs)
+        axRef.plot((1-d,1+d),(-0.15-d,-0.15+d), **kwargs)
+        axLength.grid(alpha=0.5)
+        axHS.grid(alpha=0.5)
+        
+    if variable=='max_severity':
+        ax.set_ylabel('Maximum severity (%)', fontsize=16)
+        axRef.set_ylabel('Variation of maximum severity', fontsize=16)
+    elif variable=='audpc':
+        ax.set_ylabel('AUDPC', fontsize=16)
+        axRef.set_ylabel('Variation of AUDPC', fontsize=16)
+    
+    if variable=='max_severity' and leaf==1 and custom_axis==True:
+        lgd = axHS.legend(proxys, labels, numpoints=1, 
+                            bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+        plt.subplots_adjust(hspace=0.05)
+    else:
+        lgd = axRef.legend(proxys, labels, numpoints=1, 
+                    bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
     fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
     return fig, ax, lgd
