@@ -1157,7 +1157,7 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
     refs = {}
     refs_conf = {}
     for yr in years:
-        suffix='scenario_sen0_reference_'+str(yr)
+        suffix='scenario_reference_'+str(yr)
         df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                          sporulating_fraction=5e-3,
                                          suffix=suffix, forced_year=yr)
@@ -1175,7 +1175,7 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
             marker = markers[param]
             for yr in years:
                 x = rank_years[yr]
-                suffix='scenario_sen0_'+param+'_'+str(yr)
+                suffix='scenario_'+param+'_'+str(yr)
                 df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                                  sporulating_fraction=5e-3,
                                                  suffix=suffix, forced_year=yr)
