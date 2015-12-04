@@ -1624,7 +1624,7 @@ def get_error(data, variable = 'severity', xaxis = 'degree_days',
 def plot_mean_leaf(data_lf, variable = 'severity', xaxis = 'degree_days', 
                   error_bars = False, error_method = 'confidence_interval', 
                   marker = 'd', empty_marker = False, linestyle = '-', color = 'b', 
-                  alpha = None, title = None, xlabel = None, ylabel = None,
+                  linewidth=1, alpha = None, title = None, xlabel = None, ylabel = None,
                   xlims = None, ylims = None, ax = None, return_ax = False):
     if variable in data_lf.columns:
         if ax == None:
@@ -1644,11 +1644,13 @@ def plot_mean_leaf(data_lf, variable = 'severity', xaxis = 'degree_days',
                                error_method=error_method)
             ax.errorbar(df_mean[xaxis], df_mean[variable], yerr = df_err[variable].values,
                         marker = marker, linestyle = linestyle, color = color,
-                        markerfacecolor = markerfacecolor,  markeredgecolor = color)
+                        markerfacecolor = markerfacecolor,  markeredgecolor = color, 
+                        linewidth=linewidth)
         else:
             ax.plot(df_mean[xaxis], df_mean[variable],
                     marker = marker, linestyle = linestyle, color = color, alpha=alpha,
-                    markerfacecolor = markerfacecolor,  markeredgecolor = color)
+                    markerfacecolor = markerfacecolor,  markeredgecolor = color, 
+                    linewidth=linewidth)
 
         if title is not None:
             ax.set_title(title, fontsize = 18)
@@ -1668,7 +1670,8 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
                   error_bars = False, error_method = 'confidence_interval', 
                   marker = '', empty_marker = False, linestyle = '-', fixed_color = None, 
                   alpha = None, title = None, legend = True, xlabel = None, ylabel = None,
-                  xlims = None, ylims = None, ax = None, return_ax = False, fig_size = (10,8)):
+                  xlims = None, ylims = None, linewidth=1, 
+                  ax = None, return_ax = False, fig_size = (10,8)):
     df = data.copy()       
     if ax == None:
         fig, ax = plt.subplots(figsize = fig_size)
@@ -1696,7 +1699,7 @@ def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days',
                       marker = marker, empty_marker = empty_marker, linestyle = linestyle, 
                       color = color, alpha = alpha, 
                       title = title, xlabel = xlabel, ylabel = ylabel,
-                      xlims = xlims, ylims = ylims, ax = ax)
+                      xlims = xlims, ylims = ylims, linewidth=linewidth, ax = ax)
             proxy += [plt.Line2D((0,1),(0,0), color = color, linestyle ='-')]
             labels += ['L%d' %lf]
         
