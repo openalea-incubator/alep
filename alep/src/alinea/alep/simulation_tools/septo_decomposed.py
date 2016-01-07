@@ -433,6 +433,183 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
         for ax in axs_weather.flat:
             plot_rain_and_temp(weather, xaxis=xaxis, ax=ax, xlims=xlims, title='')
 
+def temp_plot_comparison_single_leaf_data_obs(data_obs_mercia, weather_2011,
+                                             data_obs_rht3, 
+                                             data_obs_2012, weather_2012, 
+                                             data_obs_2013, weather_2013,
+                                             leaf = 2, 
+                                             multiply_sev = False, xaxis='degree_days',
+                                             alpha=0.2, xlims=[800,2250],
+                                             title=None):
+    from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(10., 10.))
+    axs = np.array([ax])
+    (df_mean_obs_mercia, df_low_mercia, df_high_mercia, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_mercia, weather_2011, 
+                                            leaves=[leaf], variable='septo_green', 
+                                            display_box = False, 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='', markersize=10,
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='m', alpha=alpha,
+                                            delaxes=False)
+    (df_mean_obs_rht3, df_low_rht3, df_high_rht3, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_rht3, weather_2011, 
+                                            leaves=[leaf], variable='septo_green', 
+                                            display_box = False, 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='', markersize=10,
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='g', alpha=alpha,
+                                            delaxes=False)
+    (df_mean_obs_2012, df_low_2012, df_high_2012, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
+                                            leaves=[leaf], variable='severity', 
+                                            display_box = False, 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='',  markersize=10,
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='b', alpha=alpha)
+    (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
+                                            leaves=[leaf], variable='severity',
+                                            display_box = False, 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='', markersize=10,
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='r', alpha=alpha)
+    
+    ticks = np.arange(xlims[0], xlims[1], 200)
+    ax.set_xticks(ticks)
+    ax.set_xticklabels(ticks)
+    ax.set_ylabel('')
+    if xaxis=='degree_days':
+        ax.set_xlabel('$^\circ$Cd since sowing', fontsize=20)
+    elif xaxis=='age_leaf':
+        ax.set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=20)
+    ax.set_ylabel('Severity (in %)', fontsize=20)
+    ax.tick_params(axis='both', labelsize=18)
+    ax.grid()
+    
+    if title is not None:
+        plt.text(0.5, 0.98, title, fontsize=18,
+             transform=fig.transFigure, horizontalalignment='center')
+    fig.savefig('comparison_single_leaf', bbox_inches='tight')
+
+def temp_plot_comparison_leaves_data_obs(data_obs_mercia, weather_2011,
+                                         data_obs_rht3, 
+                                         data_obs_2012, weather_2012, 
+                                         data_obs_2013, weather_2013,
+                                         data_sim_mercia=None,
+                                         data_sim_rht3=None,
+                                         data_sim_2012=None,
+                                         data_sim_2013=None,                                        
+                                         leaves=[3,2,1], 
+                                         multiply_sev = False, xaxis='degree_days',
+                                         alpha=0.2, xlims=[800,2250],
+                                         title=None):
+    from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(1, len(leaves), figsize=(10.*len(leaves), 10.))
+    (df_mean_obs_mercia, df_low_mercia, df_high_mercia, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_mercia, weather_2011, 
+                                            leaves=leaves, variable='septo_green', 
+                                            display_box = False, 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='', markersize=10,
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='m', alpha=alpha,
+                                            delaxes=False)
+    (df_mean_obs_rht3, df_low_rht3, df_high_rht3, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_rht3, weather_2011, 
+                                            leaves=leaves, variable='septo_green', 
+                                            display_box = False, 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='', markersize=10,
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='g', alpha=alpha,
+                                            delaxes=False)
+    (df_mean_obs_2012, df_low_2012, df_high_2012, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2012, weather_2012, 
+                                            leaves=leaves, variable='severity', 
+                                            display_box = False, 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='',  markersize=10,
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='b', alpha=alpha,
+                                            delaxes = False)
+    (df_mean_obs_2013, df_low_2013, df_high_2013, fig, 
+         axs) = plot_confidence_and_boxplot(data_obs_2013, weather_2013, 
+                                            leaves=leaves, variable='severity',
+                                            display_box = False, 
+                                            xaxis=xaxis, xlims=xlims,
+                                            minimum_sample_size=15,
+                                            linestyle='', markersize=10,
+                                            title=False, return_fig=True, 
+                                            fig=fig, axs=axs,
+                                            display_legend=False,
+                                            tight_layout=False,
+                                            fixed_color='r', alpha=alpha,
+                                            delaxes=False)
+    if data_sim_mercia is not None:
+        data_sim_mercia['severity'][data_sim_mercia['leaf_green_area']<0.5*data_sim_mercia['leaf_area']]=np.nan
+        data_sim_mercia['severity'][data_sim_mercia['num_leaf_top'].isin([4,5])]=np.nan
+        plot_one_sim(data_sim_mercia, 'severity', xaxis, axs, leaves, 'm', linewidth=2)
+    if data_sim_rht3 is not None:
+        data_sim_rht3['severity'][data_sim_rht3['leaf_green_area']<0.5*data_sim_rht3['leaf_area']]=np.nan
+        data_sim_rht3['severity'][data_sim_rht3['num_leaf_top'].isin([4,5])]=np.nan
+        plot_one_sim(data_sim_rht3, 'severity', xaxis, axs, leaves, 'g', linewidth=2)
+    if data_sim_2012 is not None:
+        plot_one_sim(data_sim_2012, 'severity', xaxis, axs, leaves, 'b', linewidth=2)
+    if data_sim_2013 is not None:
+        plot_one_sim(data_sim_2013, 'severity', xaxis, axs, leaves, 'r', linewidth=2)
+        
+    ticks = np.arange(xlims[0], xlims[1], 200)
+    for ax in axs:
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(ticks)
+        ax.set_ylabel('')
+        if xaxis=='degree_days':
+            ax.set_xlabel('$^\circ$Cd since sowing', fontsize=20)
+        elif xaxis=='age_leaf':
+            ax.set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=20)
+        ax.set_ylabel('Severity (in %)', fontsize=20)
+        ax.tick_params(axis='both', labelsize=18)
+        ax.grid()
+    
+    if title is not None:
+        plt.text(0.5, 0.98, title, fontsize=18,
+             transform=fig.transFigure, horizontalalignment='center')
+    fig.savefig('comparison_3_leaves_3', bbox_inches='tight')
 
 def temp_plot_comparison(data_obs_mercia, data_sim_mercia, weather_2011,
                          data_obs_rht3, data_sim_rht3,
@@ -811,7 +988,7 @@ def temp_plot_comparison_2011(data_obs_mercia, data_sim_mercia,
     axs[1].set_ylabel('')
     fig.savefig('Mercia_Rht3', bbox_inches='tight')
     
-def plot_states_leaf(df, leaf=2):
+def plot_states_leaf(df, leaf=2, xaxis = 'age_leaf', xlims=None, ylims=None):
     from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
     import matplotlib.pyplot as plt
     df_sim = df.copy()
@@ -819,7 +996,6 @@ def plot_states_leaf(df, leaf=2):
     ax = np.array([ax])
     inc = (0, 222/256., 0)
     nec = (185./256, 93./256, 37./256)
-    xaxis = 'age_leaf'
     leaves = [leaf]
     plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g', linewidth=2)
 #    plot_one_sim(df_sim, 'leaf_disease_area', xaxis, ax, leaves, 'r', linewidth=2)
@@ -838,6 +1014,10 @@ def plot_states_leaf(df, leaf=2):
     ax[0].legend(['Green leaf', 'Green',
                'Chlorotic', 'Necrotic', 'Sporulating'], loc='best', fontsize=18)
     ax[0].grid()
+    if xlims is not None:
+        ax[0].set_xlim(xlims)
+    if ylims is not None:
+        ax[0].set_ylim(ylims)
     ax[0].set_ylabel('Surface (cm2)', fontsize=20)
     ax[0].set_xlabel('Age de la feuille (Cd)', fontsize=20)
     ax[0].tick_params(axis='both', labelsize=18)
@@ -1097,7 +1277,6 @@ def rain_scenarios(years = range(1999,2007)):
         indx += 1
     return df_rain
 
-
 def force_rename_wheat_params():
     return {'scale_tillering':r"$\mathit{Tiller}$",
             'proba_main_nff':r"$\mathit{FNL}$",
@@ -1110,6 +1289,113 @@ def force_rename_wheat_params():
             'scale_fallingRate':r"$\mathit{Curvature}_{leaf}$",
             'scale_leafSenescence':r"$\mathit{Senescence}_{leaf}$"}
 
+def markers_scenarios():
+    return {'reference':'o', 'scale_HS':'x', 'scale_leafSenescence':'^',
+            'scale_stemDim':'s', 'scale_stemRate':'p', 'scale_tillering':'*',
+            'scale_leafDim_length':'d', 'scale_leafDim_width':'D', 
+            'scale_leafRate':'h', 'scale_fallingRate':'H'}
+      
+def colors_scenarios():
+    return {'reference':'b', 'scale_HS':'r', 
+            'scale_leafSenescence':(182/255., 91./255, 22/255.),
+            'scale_stemDim':'m', 'scale_stemRate':'m', 'scale_tillering':'k',
+            'scale_leafDim_length':'g', 'scale_leafDim_width':'g', 
+            'scale_leafRate':'c', 'scale_fallingRate':'y'}
+
+def markers_years():
+    return {1999:'o', 2000:'^', 2001:'s', 2002:'p', 2003:'*',
+            2004:'d', 2005:'h', 2006:'D'}
+            
+def colors_years():
+    return {1999:'b', 2000:'g', 2001:'r', 2002:'k', 2003:'m',
+            2004:'c', 2005:'y', 2006:'b'}
+
+def plot_explore_scenarios_single_param(years = range(1999,2007), nplants=15, 
+                           variable='max_severity', leaves=range(1,13),
+                           error_bar=False, markersize=8, force_rename={},
+                           parameter={'scale_leafSenescence':0.9}, 
+                           ylims=None, leaf_ref=1):
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    param = parameter.keys()[0]
+    marker = markers_scenarios()[param]
+    fig, ax = plt.subplots(figsize=(10,10))
+#    color_list = iter([next(ax._get_lines.color_cycle) for lf in leaves])
+    ht = cm.get_cmap('hot')
+    color_list = iter([ht(float(lf)/len(leaves)) for lf in leaves])
+    labels = []
+    proxys = []
+    refs = {}
+    refs_conf = {}
+
+    for yr in years:
+        suffix='scenario_reference_'+str(yr)
+        df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                         sporulating_fraction=5e-3,
+                                         suffix=suffix, forced_year=yr)
+        df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
+        refs[yr] = df[df['num_leaf_top']==leaf_ref][variable].values[0]
+        refs_conf[yr] = df_conf[df_conf['num_leaf_top']==leaf_ref][variable].values[0]
+        del df_ref
+        del df
+    
+    sort_refs = sorted([(value,key) for (key,value) in refs.items()], reverse=True)
+    rank_years = {ref[1]:x for x, ref in enumerate(sort_refs)}
+
+    for leaf in leaves:
+        color = next(color_list)
+        xs = []        
+        ys = []
+        y_errs = []
+        refs = {}
+        refs_conf = {}
+        for yr in years:
+            xs.append(rank_years[yr])
+            suffix='scenario_reference_'+str(yr)
+            df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                             sporulating_fraction=5e-3,
+                                             suffix=suffix, forced_year=yr)
+            df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
+            refs[yr] = df[df['num_leaf_top']==leaf][variable].values[0]
+            refs_conf[yr] = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
+            del df_ref
+            del df
+
+            suffix='scenario_'+param+'_'+str(yr)
+            df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                             sporulating_fraction=5e-3,
+                                             suffix=suffix, forced_year=yr)
+            df, df_conf = get_synthetic_outputs_by_leaf(df_sim, return_conf=True)
+            y = df[df['num_leaf_top']==leaf][variable].values[0] / refs[yr] if refs[yr]>0 else 1.
+#            y = df[df['num_leaf_top']==leaf][variable].values[0]
+            y_err = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0] /refs[yr] if refs[yr]>0 else 1.
+            ys.append(y)
+            y_errs.append(y_err)
+            del df_sim
+            del df
+        if error_bar==False:
+            ax.plot(xs, ys, color=color, linestyle='',
+                       marker=marker, markersize=markersize)
+        else:
+            ax.errorbar(xs, ys, yerr=y_errs, color=color, linestyle='',
+                           marker=marker, markersize=markersize)
+        labels += ['L%d' % leaf]
+        proxys += [plt.Line2D((0,1),(0,0), color=color, 
+                               marker=marker, linestyle='None')]
+
+    ax.plot([-1, len(years)+1], [1, 1], 'k--')    
+    ax.set_xticks([-1] + range(len(years))+ [len(years)+1])
+#    ax.set_xlim([years[0]-1, years[-1]+1])
+#    ax.set_xticklabels(['']+[str(yr) for yr in years]+[''], rotation=30)
+    str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.iteritems()}.items())]
+    ax.set_xticklabels(['']+str_ranked_years+[''], rotation=30)
+    ax.grid(alpha=0.5)
+    if ylims is not None:
+        ax.set_ylim(ylims)
+    ax.tick_params(axis='both', labelsize=18)
+    lgd = ax.legend(proxys, labels, numpoints=1, 
+                bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+
 def plot_explore_scenarios(years = range(1999,2007), nplants=15, 
                            leaf=1, variable='max_severity', error_bar=False,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
@@ -1117,7 +1403,9 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
                                     'scale_tillering':0.8, 'scale_leafDim_length':1.2,
                                     'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
                                     'scale_fallingRate':0.8},
-                                    force_rename={}, title='quanti_septo', custom_axis=False):
+                                    force_rename={}, title='quanti_septo',
+                                 custom_axis=False, ylims=None,
+                                 markersize=8):
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     if variable=='max_severity' and leaf==1 and custom_axis==True:
@@ -1132,26 +1420,8 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
         ax = axs[0]
         axRef = axs[1]
     parameters['reference']=1.
-    markers = {'reference':'o', 
-                  'scale_HS':'x',
-                  'scale_leafSenescence':'^',
-                  'scale_stemDim':'s',
-                  'scale_stemRate':'p',
-                  'tiller_probability':'*',
-                  'scale_leafDim_length':'d',
-                  'scale_leafDim_width':'D', 
-                  'scale_leafRate':'h',
-                  'scale_fallingRate':'H'}
-    colors = {'reference':'b', 
-              'scale_HS':'r',
-              'scale_leafSenescence':(182/255., 91./255, 22/255.),
-              'scale_stemDim':'m',
-              'scale_stemRate':'m',
-              'tiller_probability':'k',
-              'scale_leafDim_length':'g',
-              'scale_leafDim_width':'g', 
-              'scale_leafRate':'c',
-              'scale_fallingRate':'y'}
+    markers = markers_scenarios()
+    colors = colors_scenarios()
     labels = []
     proxys = []
     refs = {}
@@ -1184,33 +1454,41 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
                 y_err = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
                 if use_ref==False:
                     if error_bar==False:
-                        ax.plot([x], [y], color=color, marker=marker, markersize=8)
+                        ax.plot([x], [y], color=color, marker=marker, markersize=markersize)
                     else:
-                        ax.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                        ax.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=markersize)
                 else:
                     y = y/refs[yr] if refs[yr]>0 else 1.
                     y_err = y_err/refs[yr] if refs[yr]>0 else 1.
                     if variable=='max_severity' and leaf==1 and custom_axis==True:
                         if param=='scale_leafDim_length' and yr==2006:
                             if error_bar==False:
-                                axLength.plot([x], [y], color=color, marker=marker, markersize=8)
+                                axLength.plot([x], [y], color=color,
+                                              marker=marker, markersize=markersize)
                             else:
-                                axLength.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                                axLength.errorbar([x], [y], yerr=y_err, color=color,
+                                                  marker=marker, markersize=markersize)
                         elif param=='scale_HS' and yr==2006:
                             if error_bar==False:
-                                axHS.plot([x], [y], color=color, marker=marker, markersize=8)
+                                axHS.plot([x], [y], color=color, marker=marker,
+                                          markersize=markersize)
                             else:
-                                axHS.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                                axHS.errorbar([x], [y], yerr=y_err, color=color,
+                                              marker=marker, markersize=markersize)
                         else:
                             if error_bar==False:
-                                axRef.plot([x], [y], color=color, marker=marker, markersize=8)
+                                axRef.plot([x], [y], color=color,
+                                           marker=marker, markersize=markersize)
                             else:
-                                axRef.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                                axRef.errorbar([x], [y], yerr=y_err, color=color,
+                                               marker=marker, markersize=markersize)
                     else:
                         if error_bar==False:
-                            axRef.plot([x], [y], color=color, marker=marker, markersize=8)
+                            axRef.plot([x], [y], color=color, 
+                                       marker=marker, markersize=markersize)
                         else:
-                            axRef.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                            axRef.errorbar([x], [y], yerr=y_err, color=color,
+                                           marker=marker, markersize=markersize)
                 del df_sim
                 del df
             if param in force_rename:
@@ -1228,11 +1506,16 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
     axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
     axRef.grid(alpha=0.5)
     axRef.set_xlim([-1, len(years)])
-    str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.iteritems()}.items())]
-    axRef.set_xticklabels(['']+str_ranked_years+[''])
+    str_ranked_years = [str(t[1]) for t in 
+                        sorted({v:k for k,v in rank_years.iteritems()}.items())]
+    axRef.set_xticklabels(['']+str_ranked_years+[''], rotation=30)
     ax.set_xlim([-1, len(years)])
-    ax.set_xticklabels(['']+str_ranked_years+[''])
+    ax.set_xticklabels(['']+str_ranked_years+[''], rotation=30)
     ax.grid(alpha=0.5)
+    if ylims is not None:
+        ax.set_ylim(ylims)
+    ax.tick_params(axis='both', labelsize=18)
+    axRef.tick_params(axis='both', labelsize=18)
 
     if variable=='max_severity' and leaf==1 and custom_axis==True:
         axRef.set_ylim([0,1.5])
@@ -1264,20 +1547,70 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
         axRef.plot((1-d,1+d),(-0.15-d,-0.15+d), **kwargs)
         axLength.grid(alpha=0.5)
         axHS.grid(alpha=0.5)
+        axLength.tick_params(axis='both', labelsize=18)
+        axHS.tick_params(axis='both', labelsize=18)
         
     if variable=='max_severity':
-        ax.set_ylabel('Maximum severity (%)', fontsize=16)
-        axRef.set_ylabel('Variation of maximum severity', fontsize=16)
+        ax.set_ylabel('Maximum severity (%)', fontsize=20)
+        axRef.set_ylabel('Variation of maximum severity', fontsize=20)
     elif variable=='audpc':
-        ax.set_ylabel('AUDPC', fontsize=16)
-        axRef.set_ylabel('Variation of AUDPC', fontsize=16)
+        ax.set_ylabel('AUDPC', fontsize=20)
+        axRef.set_ylabel('Variation of AUDPC', fontsize=20)
     
-    if variable=='max_severity' and leaf==1 and custom_axis==True:
-        lgd = axHS.legend(proxys, labels, numpoints=1, 
-                            bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
-        plt.subplots_adjust(hspace=0.05)
-    else:
-        lgd = axRef.legend(proxys, labels, numpoints=1, 
-                    bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+#    if variable=='max_severity' and leaf==1 and custom_axis==True:
+#        lgd = axHS.legend(proxys, labels, numpoints=1, 
+#                            bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+#        plt.subplots_adjust(hspace=0.05)
+#    else:
+#        lgd = axRef.legend(proxys, labels, numpoints=1, 
+#                    bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+#    fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    fig.savefig(title)
+    return fig, ax
+#    return fig, ax, lgd
+
+def rank_audpc_severity_by_scenario(years=range(1999,2007), nplants=15, 
+                                    leaves=range(1,12), markersize=10,
+                                    title='comparison_rank_ref_septo'):
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(4,3, figsize=(20,20))
+    markers = markers_years()
+    colors = colors_years()
+    labels = []
+    proxys = []
+    audpcs = {lf:{} for lf in leaves}
+    sevs = {lf:{} for lf in leaves}
+    for yr in years:
+        suffix='scenario_reference_'+str(yr)
+        df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                         sporulating_fraction=5e-3,
+                                         suffix=suffix, forced_year=yr)
+        df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
+        for lf in leaves:
+            audpcs[lf][yr] = df[df['num_leaf_top']==lf]['audpc'].values[0]
+            sevs[lf][yr] = df[df['num_leaf_top']==lf]['max_severity'].values[0]
+        del df_ref
+        del df
+        labels += [yr]
+        proxys += [plt.Line2D((0,1),(0,0), color=colors[yr], 
+                  marker=markers[yr], linestyle='None')]
+            
+    iter_axs = axs.flat
+    for lf in leaves:
+        ax = iter_axs.next()
+        sorted_audpcs = {yr:rank for rank,yr in 
+                    enumerate(sorted(audpcs[lf], key=audpcs[lf].get, reverse=True), 1)}
+        sorted_sevs = {yr:rank for rank,yr in 
+                   enumerate(sorted(sevs[lf], key=sevs[lf].get, reverse=True), 1)}
+        for yr in years:
+            ax.plot(sorted_sevs[yr], sorted_audpcs[yr], linestyle='', 
+                    marker=markers[yr], color=colors[yr], markersize=markersize)
+        ax.plot(range(1, len(years)+1), range(1, len(years)+1), 'k--')
+        ax.grid(alpha=0.5)
+        ax.set_ylabel('Rank in AUDPC', fontsize=20)
+        ax.set_xlabel('Rank in severity', fontsize=20)
+        ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
+                    xycoords='axes fraction', fontsize=18)
+
+    lgd = axs[0][-1].legend(proxys, labels, numpoints=1, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
     fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
-    return fig, ax, lgd

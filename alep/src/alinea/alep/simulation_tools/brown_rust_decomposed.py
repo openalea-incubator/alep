@@ -310,6 +310,19 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                    sowing_density=0.85*250., plant_density=0.85*250.,
                    suffix='scenario_20151611_'+param+'_'+str(yr), nreps=nreps, **kwds)
 
+def markers_scenarios():
+    return {'reference':'o', 'scale_HS':'x', 'scale_leafSenescence':'^',
+            'scale_stemDim':'s', 'scale_stemRate':'p', 'scale_tillering':'*',
+            'scale_leafDim_length':'d', 'scale_leafDim_width':'D', 
+            'scale_leafRate':'h', 'scale_fallingRate':'H'}
+      
+def colors_scenarios():
+    return {'reference':'b', 'scale_HS':'r', 
+            'scale_leafSenescence':(182/255., 91./255, 22/255.),
+            'scale_stemDim':'m', 'scale_stemRate':'m', 'scale_tillering':'k',
+            'scale_leafDim_length':'g', 'scale_leafDim_width':'g', 
+            'scale_leafRate':'c', 'scale_fallingRate':'y'}
+      
 def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_severity', 
                            leaf=1, error_bar=False,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
@@ -317,32 +330,15 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                                     'tiller_probability':0.8, 'scale_leafDim_length':1.2,
                                     'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
                                     'scale_fallingRate':0.8},
-                                    force_rename={}, title='quanti_rust'):
+                                    force_rename={}, title='quanti_rust',
+                            ylims=None, markersize=8):
     import matplotlib.pyplot as plt
     fig, axs = plt.subplots(1,2, figsize=(16,8))
     axSev = axs[0]
     axRef = axs[1]
     parameters['reference']=1.
-    markers = {'reference':'o', 
-                  'scale_HS':'x',
-                  'scale_leafSenescence':'^',
-                  'scale_stemDim':'s',
-                  'scale_stemRate':'p',
-                  'tiller_probability':'*',
-                  'scale_leafDim_length':'d',
-                  'scale_leafDim_width':'D', 
-                  'scale_leafRate':'h',
-                  'scale_fallingRate':'H'}
-    colors = {'reference':'b', 
-              'scale_HS':'r',
-              'scale_leafSenescence':(182/255., 91./255, 22/255.),
-              'scale_stemDim':'m',
-              'scale_stemRate':'m',
-              'tiller_probability':'k',
-              'scale_leafDim_length':'g',
-              'scale_leafDim_width':'g', 
-              'scale_leafRate':'c',
-              'scale_fallingRate':'y'}
+    markers = markers_scenarios()
+    colors = colors_scenarios()
     labels = []
     proxys = []
     refs = {}
@@ -375,16 +371,20 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                 y_err = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
                 if use_ref==False:
                     if error_bar==False:
-                        axSev.plot([x], [y], color=color, marker=marker, markersize=8)
+                        axSev.plot([x], [y], color=color, 
+                                   marker=marker, markersize=markersize)
                     else:
-                        axSev.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                        axSev.errorbar([x], [y], yerr=y_err, color=color,
+                                       marker=marker, markersize=markersize)
                 else:
                     y = y/refs[yr] if refs[yr]>0 else 1.
                     y_err = y_err/refs[yr] if refs[yr]>0 else 1.
                     if error_bar==False:
-                        axRef.plot([x], [y], color=color, marker=marker, markersize=8)
+                        axRef.plot([x], [y], color=color,
+                                   marker=marker, markersize=markersize)
                     else:
-                        axRef.errorbar([x], [y], yerr=y_err, color=color, marker=marker, markersize=8)
+                        axRef.errorbar([x], [y], yerr=y_err, color=color,
+                                       marker=marker, markersize=markersize)
                 del df_sim
                 del df
             if param in force_rename:
@@ -402,25 +402,30 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
     axRef.set_ylim([0,1.8])
     if variable=='max_severity':
         axSev.set_ylim([0, 100])
+    if ylims is not None:
+        axSev.set_ylim(ylims)
     axRef.set_ylim([0,1.8])
     axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
-    axRef.set_xticklabels(['']+str_ranked_years+[''])
+    axRef.set_xticklabels(['']+str_ranked_years+[''], rotation=30)
     axSev.set_xlim([-1, len(years)])
     axSev.set_xticks([-1] + range(len(years))+ [len(years)+1])
-    axSev.set_xticklabels(['']+str_ranked_years+[''])
+    axSev.set_xticklabels(['']+str_ranked_years+[''], rotation=30)
     axRef.grid(alpha=0.5)
     axSev.grid(alpha=0.5)
+    axSev.tick_params(axis='both', labelsize=18)
+    axRef.tick_params(axis='both', labelsize=18)
     if variable=='max_severity':
-        axSev.set_ylabel('Maximum severity (%)', fontsize=16)
-        axRef.set_ylabel('Variation of maximum severity', fontsize=16)
+        axSev.set_ylabel('Maximum severity (%)', fontsize=20)
+        axRef.set_ylabel('Variation of maximum severity', fontsize=20)
     elif variable=='audpc':
-        axSev.set_ylabel('AUDPC', fontsize=16)
-        axRef.set_ylabel('Variation of AUDPC', fontsize=16)
-    lgd = axRef.legend(proxys, labels, numpoints=1, 
-                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
-#    plt.subplots_adjust(hspace=0.05)
-    fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
-    return fig, axs, lgd
+        axSev.set_ylabel('AUDPC', fontsize=20)
+        axRef.set_ylabel('Variation of AUDPC', fontsize=20)
+#    lgd = axRef.legend(proxys, labels, numpoints=1, 
+#                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+#    fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
+#    return fig, axs, lgd
+    fig.savefig(title)
+    return fig, axs
     
 def plot_states_leaf(df, leaf=2):
     from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
