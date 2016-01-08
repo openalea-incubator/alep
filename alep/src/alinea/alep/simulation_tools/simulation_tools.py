@@ -189,13 +189,14 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     reg = pgen_ext.TillerRegression(ears_per_plant = ears_per_plant * scale_tillering)
     
     #generate plants
+    HSfit = HS_fit()[variety]
     axp = pgen_ext.AxePop(MS_leaves_number_probabilities = MS_leaves_number_probabilities,
-                          Emission=em, Regression=reg)
+                          Emission=em, Regression=reg, std_em=HSfit.std_TT_hs_0)
     plants = axp.plant_list(n_emerged)
     
     # Measure and save Green leaf durations on the reference
     adel_pars = parameters['adel_pars']
-    HSfit = HS_fit()[variety]
+
     HSfit.mean_nff = axp.mean_nff()
     Dimfit = dimension_fits(HS_fit(), **parameters)[variety]
     GLfit = GL_fits(HS_fit(), **parameters)[variety]
