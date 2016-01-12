@@ -1398,14 +1398,14 @@ def plot_explore_scenarios_single_param(years = range(1999,2007), nplants=15,
 
 def plot_explore_scenarios(years = range(1999,2007), nplants=15, 
                            leaf=1, variable='max_severity', error_bar=False,
-                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
-                                    'scale_stemDim':1.3, 'scale_stemRate':1.1,
-                                    'scale_tillering':0.8, 'scale_leafDim_length':1.2,
-                                    'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
+                      parameters = {'scale_HS':0.8, 'scale_leafSenescence':0.8,
+                                    'scale_stemDim':0.8, 'scale_stemRate':0.8,
+                                    'scale_tillering':0.8, 'scale_leafDim_length':0.8,
+                                    'scale_leafDim_width':0.8, 'scale_leafRate':0.8,
                                     'scale_fallingRate':0.8},
                                     force_rename={}, title='quanti_septo',
                                  custom_axis=False, ylims=None,
-                                 markersize=8):
+                                 markersize=8, suffix=''):
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     if variable=='max_severity' and leaf==1 and custom_axis==True:
@@ -1427,10 +1427,10 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
     refs = {}
     refs_conf = {}
     for yr in years:
-        suffix='scenario_reference_'+str(yr)
+        suffix_='scenario_'+suffix+'reference_'+str(yr)
         df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                          sporulating_fraction=5e-3,
-                                         suffix=suffix, forced_year=yr)
+                                         suffix=suffix_, forced_year=yr)
         df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
         refs[yr] = df[df['num_leaf_top']==leaf][variable].values[0]
         refs_conf[yr] = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
@@ -1445,10 +1445,10 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
             marker = markers[param]
             for yr in years:
                 x = rank_years[yr]
-                suffix='scenario_'+param+'_'+str(yr)
+                suffix_='scenario_'+suffix+param+'_'+str(yr)
                 df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                                  sporulating_fraction=5e-3,
-                                                 suffix=suffix, forced_year=yr)
+                                                 suffix=suffix_, forced_year=yr)
                 df, df_conf = get_synthetic_outputs_by_leaf(df_sim, return_conf=True)
                 y = df[df['num_leaf_top']==leaf][variable].values[0]
                 y_err = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
@@ -1613,4 +1613,105 @@ def rank_audpc_severity_by_scenario(years=range(1999,2007), nplants=15,
                     xycoords='axes fraction', fontsize=18)
 
     lgd = axs[0][-1].legend(proxys, labels, numpoints=1, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+    fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+def get_mean_date_end_leaf_by_fnl(data):
+    df = data.copy()
+    end_dates = {}
+    for fnl in set(df['fnl']):
+        df_fnl = df[df['fnl']==fnl]
+        end_dates[fnl] = {}
+        for lf in set(df_fnl['num_leaf_top']):
+            df_lf = df_fnl[df_fnl['num_leaf_top']==lf]
+            dates = np.zeros(len(set(df_lf['num_plant'])))
+            for i_pl, pl in enumerate(set(df_lf['num_plant'])):
+                df_pl = df_lf[df_lf['num_plant']==pl]
+                last_date = df_pl['degree_days'][df_pl['leaf_green_area']>0].iloc[-1]
+                dates[i_pl] = last_date
+            end_dates[fnl][lf] = dates.mean()
+    return end_dates
+            
+def get_audpc_ref(data, data_ref, variable='severity'):
+    from scipy.integrate import simps, trapz
+    end_dates = get_mean_date_end_leaf_by_fnl(data_ref)
+    for rep in set(data['rep']):
+        df_rep = data[data['rep'] == rep]
+        for pl in set(df_rep['num_plant']):
+            df_pl = df_rep[df_rep['num_plant'] == pl]
+            for lf in set(df_pl['num_leaf_top']):
+                df_lf = df_pl[df_pl['num_leaf_top'] == lf]
+                ind_data_lf = df_lf.index
+                if round(df_lf['leaf_green_area'][pandas.notnull(df_lf[variable])].iloc[-1],10)==0.:
+                    df = df_lf[variable][df_lf['degree_days']<=end_dates[np.unique(df_lf['fnl'])[0]][lf]]/100.
+                    ddays = df_lf['degree_days'][df_lf['degree_days']<=end_dates[np.unique(df_lf['fnl'])[0]][lf]]
+                    if len(df[df>0])>0:
+                        audpc = simps(df[df>0], ddays[df>0])
+                        if numpy.isnan(audpc):
+                            audpc = trapz(df[df>0], ddays[df>0])
+                    else:
+                        audpc = 0.
+                    data.loc[ind_data_lf, 'audpc_ref'] = audpc
+                else:
+                    data.loc[ind_data_lf, 'audpc_ref'] = np.nan
+
+def plot_audpc_by_leaf_ref(years=range(1999,2007), nplants=15, 
+                          leaves=range(1,12), markersize=10,
+                          title='audpc_by_leaf_ref'):
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(1, 2, figsize=(16,8))
+    ax_audpc = axs[0]
+    ax_sev = axs[1]
+    markers = markers_years()
+    colors = colors_years()
+    labels = []
+    proxys = []
+    audpcs = {}
+    sevs = {}
+    max_audpc_by_leaf = {lf:0. for lf in leaves}
+    max_sev_by_leaf = {lf:0. for lf in leaves}
+    for yr in years:
+        suffix='scenario_reference_'+str(yr)
+        df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                         sporulating_fraction=5e-3,
+                                         suffix=suffix, forced_year=yr)
+        df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
+        audpcs[yr] = {}
+        sevs[yr] = {}
+        for lf in leaves:
+            audpc_lf = df[df['num_leaf_top']==lf]['audpc'].values[0]
+            if max_audpc_by_leaf[lf]<audpc_lf:
+                max_audpc_by_leaf[lf] = audpc_lf
+            audpcs[yr][lf] = audpc_lf
+            
+            sev_lf = df[df['num_leaf_top']==lf]['max_severity'].values[0]
+            if max_sev_by_leaf[lf]<sev_lf:
+                max_sev_by_leaf[lf] = sev_lf
+            sevs[yr][lf] = sev_lf
+        del df_ref
+        del df
+        labels += [yr]
+        proxys += [plt.Line2D((0,1),(0,0), color=colors[yr], 
+                  marker=markers[yr], linestyle='None')]
+            
+    for yr in years:
+        audpc_norm = [audpcs[yr][lf]/max_audpc_by_leaf[lf] for lf in leaves]
+        ax_audpc.plot(leaves, audpc_norm, linestyle='-', 
+           marker=markers[yr], color=colors[yr], markersize=markersize)
+        ax_audpc.grid(alpha=0.5)
+        ax_audpc.set_ylabel('AUDPC normalized', fontsize=20)
+        ax_audpc.set_xlabel('Leaf rank (from top)', fontsize=20)
+        ax_audpc.set_xticks(leaves)
+        ax_audpc.set_xticklabels(leaves)
+           
+        sev_norm = [sevs[yr][lf]/max_sev_by_leaf[lf] for lf in leaves]
+        ax_sev.plot(leaves, sev_norm, linestyle='-', 
+                    marker=markers[yr], color=colors[yr], markersize=markersize)
+        ax_sev.grid(alpha=0.5)
+        ax_sev.set_ylabel('Max severity normalized', fontsize=20)
+        ax_sev.set_xlabel('Leaf rank (from top)', fontsize=20)
+        ax_sev.set_xticks(leaves)
+        ax_sev.set_xticklabels(leaves)
+
+    lgd = ax_sev.legend(proxys, labels, numpoints=1, 
+                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
     fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
