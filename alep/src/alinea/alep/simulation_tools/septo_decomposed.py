@@ -729,7 +729,7 @@ def temp_plot_comparison(data_obs_mercia, data_sim_mercia, weather_2011,
     if title is not None:
         plt.text(0.5, 0.98, title, fontsize=18,
                  transform=fig.transFigure, horizontalalignment='center')
-    fig.savefig('comparison_', bbox_extra_artists=(lgd,ab1,ab2,lgd2), bbox_inches='tight')
+    fig.savefig('comparison_new_linear', bbox_extra_artists=(lgd,ab1,ab2,lgd2), bbox_inches='tight')
 #    plt.tight_layout()
     
 def temp_plot_comparison_by_fnl(data_obs_2012, data_sim_2012, weather_2012, 
@@ -1222,7 +1222,7 @@ def plot_3_weathers():
             ylabel = False
         plot_relative_humidity(w, ax = axs[0][i], title=yr, ylims=[20,100],
                                xlims=[0, 2500],  xlabel=False, ylabel=ylabel,
-                                vertical_line=[800,1700])
+                                vertical_line=[700,1700])
         if i==2:
             ylabel2 = True
         else:
@@ -1405,7 +1405,7 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
                                     'scale_fallingRate':0.8},
                                     force_rename={}, title='quanti_septo',
                                  custom_axis=False, ylims=None,
-                                 markersize=8, suffix=''):
+                                 markersize=8, suffix='', correct_audpc=True):
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     if variable=='max_severity' and leaf==1 and custom_axis==True:
@@ -1426,12 +1426,14 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
     proxys = []
     refs = {}
     refs_conf = {}
+    df_refs = {}
     for yr in years:
         suffix_='scenario_'+suffix+'reference_'+str(yr)
         df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                          sporulating_fraction=5e-3,
                                          suffix=suffix_, forced_year=yr)
         df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
+        df_refs[yr] = df_ref
         refs[yr] = df[df['num_leaf_top']==leaf][variable].values[0]
         refs_conf[yr] = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
         del df_ref
@@ -1449,8 +1451,12 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15,
                 df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
                                                  sporulating_fraction=5e-3,
                                                  suffix=suffix_, forced_year=yr)
+                if (variable=='audpc' and param=='scale_leafSenescence' and
+                    correct_audpc==True):
+                        get_audpc_ref(df_sim, df_refs[yr], variable='severity')
+                        df_sim['audpc'] = df_sim['audpc_ref']
                 df, df_conf = get_synthetic_outputs_by_leaf(df_sim, return_conf=True)
-                y = df[df['num_leaf_top']==leaf][variable].values[0]
+                y = df[df['num_leaf_top']==leaf][variable].values[0]                        
                 y_err = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]
                 if use_ref==False:
                     if error_bar==False:
@@ -1715,3 +1721,69 @@ def plot_audpc_by_leaf_ref(years=range(1999,2007), nplants=15,
     lgd = ax_sev.legend(proxys, labels, numpoints=1, 
                         bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
     fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    
+def plot_range_effect(parameter='scale_leafSenescence',
+                      values=[-30, -20, -10, -5, 0, 5, 10, 20, 30],
+                      years=range(1999,2007), nplants=15, leaf=1, markersize=10,
+                      title='range_effect_audpc_scale_leafSenescence'):
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(1, 2, figsize=(16,8))
+    ax_audpc = axs[0]
+    ax_sev = axs[1]
+    markers = markers_years()
+    colors = colors_years()
+    labels = []
+    proxys = []
+#    audpcs = {}
+#    sevs = {}
+#    audpcs_conf = {}
+#    sevs_conf = {}
+#    for yr in years:
+#        suffix_='scenario_'+suffix+'reference_'+str(yr)
+#        df_ref = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+#                                         sporulating_fraction=5e-3,
+#                                         suffix=suffix_, forced_year=yr)
+#        df, df_conf = get_synthetic_outputs_by_leaf(df_ref, return_conf=True)
+#        audpcs[yr] = df[df['num_leaf_top']==leaf]['audpc'].values[0]
+#        audpcs_conf[yr] = df_conf[df_conf['num_leaf_top']==leaf]['audpc'].values[0]
+#        sevs[yr] = df[df['num_leaf_top']==leaf]['max_severity'].values[0]
+##        sevs_conf[yr] = df_conf[df_conf['num_leaf_top']==leaf]['max_severity'].values[0]
+#        del df_ref
+#        del df
+        
+    for yr in years:
+        labels += [yr]
+        proxys += [plt.Line2D((0,1),(0,0), color=colors[yr], 
+                  marker=markers[yr], linestyle='None')]
+        for val in values:
+            if val<0:
+                suf = 'minus'+str(-val)+'_'+parameter
+            elif val==0:
+                suf = 'reference'
+            else:
+                suf = 'plus'+str(val)+'_'+parameter
+            suffix='scenario_'+suf+'_'+str(yr)
+            df_sim = get_aggregated_data_sim(variety='Custom', nplants=nplants,
+                                             sporulating_fraction=5e-3,
+                                             suffix=suffix, forced_year=yr)
+            df, df_conf = get_synthetic_outputs_by_leaf(df_sim, return_conf=True)
+            audpc = df[df['num_leaf_top']==leaf]['audpc'].values[0]
+    #        audpc_conf = df_conf[df_conf['num_leaf_top']==leaf][variable].values[0]        
+            ax_audpc.plot(val, audpc, linestyle='', 
+               marker=markers[yr], color=colors[yr], markersize=markersize)
+            ax_audpc.grid(alpha=0.5)
+            ax_audpc.set_ylabel('AUDPC normalized', fontsize=20)
+            ax_audpc.set_xlabel('Variation of parameter (%)', fontsize=20)
+               
+            sev = df[df['num_leaf_top']==leaf]['max_severity'].values[0]
+    #        sev_conf = df_conf[df_conf['num_leaf_top']==leaf]['max_severity'].values[0]
+            ax_sev.plot(val, sev, linestyle='', 
+                        marker=markers[yr], color=colors[yr], markersize=markersize)
+            ax_sev.grid(alpha=0.5)
+            ax_sev.set_ylabel('Max severity normalized', fontsize=20)
+            ax_sev.set_xlabel('Leaf rank (from top)', fontsize=20)
+
+    lgd = ax_sev.legend(proxys, labels, numpoints=1, 
+                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+    fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    
