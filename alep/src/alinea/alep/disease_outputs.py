@@ -1142,10 +1142,9 @@ def get_synthetic_outputs_by_leaf(data, return_conf=False):
         df_lf = data[data['num_leaf_top']==lf]
         audpcs = numpy.unique(df_lf['audpc'])
 #        audpcs_500 = numpy.unique(df_lf['audpc_500'])
-        if 'rep' in df_lf.columns:
-            max_sevs = df_lf.groupby(['rep', 'num_plant']).max()['severity']
-        else:
-            max_sevs = df_lf.groupby(['num_plant']).max()['severity']
+        if not 'rep' in df_lf.columns:
+            df_lf['rep'] = 0
+        max_sevs = df_lf.groupby(['rep', 'num_plant']).max()['severity']
         max_sevs = max_sevs.reset_index()
         max_sevs = max_sevs.groupby('rep').mean()['severity']
         audpcs = df_lf.groupby(['rep', 'num_plant']).max()['audpc']
