@@ -36,8 +36,6 @@ class SeptoriaDU(DispersalUnit):
             None
         """
         super(SeptoriaDU, self).__init__(mutable=mutable)
-        # self.cumul_wetness = 0.
-        # self.cumul_loss_rate = 0.
         # Cumulation of temperature conditions
         self.temperature_sequence = []
         # Cumulation of wetness conditions
@@ -71,8 +69,6 @@ class SeptoriaDU(DispersalUnit):
                 # Accumulate climatic data on the leaf sector during the time step
                 self.temperature_sequence += props['temperature_sequence']
                 self.wetness_sequence += props['wetness_sequence']
-#                self.temperature_sequence += leaf.temperature_sequence.tolist()
-#                self.wetness_sequence += leaf.wetness_sequence.tolist()
                 
                 # Infection success
                 temps = self.temperature_sequence
