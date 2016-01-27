@@ -62,8 +62,8 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     septoria = plugin_septoria()
     lesion = septoria.lesion(mutable = False, group_dus = True, **kwds)
     nb_lesions = density_lesions * leaf_area
-#    lesion.set_position([[1] for i in range(int(nb_lesions))])
-    lesion.set_position([[1] for i in range(int(nb_lesions/2))]+[[10.] for i in range(int(nb_lesions/2))])
+    lesion.set_position([[1] for i in range(int(nb_lesions))])
+#    lesion.set_position([[1] for i in range(int(nb_lesions/2))]+[[10.] for i in range(int(nb_lesions/2))])
     leaf.lesions = [lesion]
     growth_controler = SeptoRustCompetition()
 #    growth_controler = NoPriorityGrowthControl()
@@ -101,15 +101,19 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
             tt.append(cum_tt)
 
     fig, ax = plt.subplots()
-    ax.plot(tt, surfs, 'b')
-    ax.plot(tt, surfs_inc, 'g')
-    ax.plot(tt, surfs_chlo, 'm')
-    ax.plot(tt, surfs_nec, 'k')
-    ax.plot(tt, surfs_spo, 'r')
-    ax.plot(tt, surfs_sen, 'y')
+    inc = (141/255., 200/255., 2/255.)
+    chlo = (1., 220/255., 63/255.)
+    nec = (190/255., 128/255., 60/255.)
+    spo = (228/255., 108/255., 10/255.)
+    ax.plot(tt, surfs, 'b', linewidth=2)
+    ax.plot(tt, surfs_inc, color=inc, linewidth=2)
+    ax.plot(tt, surfs_chlo, color=chlo, linewidth=2)
+    ax.plot(tt, surfs_nec, color=nec, linewidth=2)
+    ax.plot(tt, surfs_spo, color=spo, linewidth=2)
+    ax.plot(tt, surfs_sen, 'k')
 #    ax.plot([tt[0], tt[-1]], [leaf_area, leaf_area], 'k--')
-    ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
-    ax.set_ylabel("Surface d'une lesion (cm2)", fontsize = 18)
+    ax.set_xlabel("Thermal time (Teff)", fontsize = 20)
+    ax.set_ylabel("Surface d'une lesion (cm2)", fontsize = 20)
     ax.set_ylim([0,0.31*density_lesions*leaf_area])
     if sum(surfs_empty)>0:
         ax.plot(tt, surfs_empty, 'k--')
@@ -117,6 +121,7 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     else:
         labels = ['Total', 'Incubation', 'Chlorose', 'Necrose', 'Sporulant']
     ax.legend(labels, loc = 'best')
+    ax.tick_params(axis='both', labelsize=18)
     if return_lesion==True:
         return lesion
     
@@ -203,3 +208,47 @@ def scenario_compet(nb_ddays = 1500, leaf_area = 22.,
 def logistic(x, x0=1800, k=0.05, Kmax=22.):
     """ Calculate y for x with logistic curve """
     return Kmax / (1. + np.exp( -k * (x - x0)))
+    
+def gompertz(x, k = 0.003, B = 3.):
+    """ Calculate y for x with gompertz curve """
+    return np.exp(-B * np.exp(-k*x))
+    
+def linear_growth(x):
+    """ Calculate y for x in linear growth in septoria lesion model. """
+    if x <= 220:
+        return x*0.03/220.
+    elif x <= 670:
+        return 0.03+0.0006*(x-220)
+    else:
+        return 0.3
+        
+def linear_growth_list(xs):
+    return np.array([linear_growth(x) for x in xs])
+    
+def optimize_gompertz_on_linear():
+    from scipy.optimize import minimize
+    def rmse_gomp(params = (0.003, 3.)):
+        ref = linear_growth_list(x)
+        y = gompertz(x, k=params[0], B=params[1])*0.3
+        rmse = np.sqrt((ref-y)**2).mean()
+        return rmse
+    x = np.arange(1000)
+    res = minimize(rmse_gomp, (0.003, 3.))
+    k, B = res.x
+    plot(x, linear_growth_list(x))
+    plot(x, gompertz(x, k, B)*0.3)
+    return k, B
+    
+def optimize_logistic_on_linear():
+    from scipy.optimize import minimize
+    def rmse_logi(params = (300., 0.05)):
+        ref = linear_growth_list(x)
+        y = logistic(x, x0=params[0], k=params[1], Kmax=0.3)
+        rmse = np.sqrt((ref-y)**2).mean()
+        return rmse
+    x = np.arange(1000)
+    res = minimize(rmse_logi, (300., 0.05))
+    x0, k = res.x
+    plot(x, linear_growth_list(x))
+    plot(x, logistic(x, x0=x0, k=k, Kmax=0.3))
+    return x0, k
