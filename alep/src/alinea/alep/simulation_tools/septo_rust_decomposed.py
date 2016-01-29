@@ -162,7 +162,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                            record = True, output_file = None,
                            reset_reconst = True, rep_wheat = None, 
                            leaf_duration = 2., date_inoc_rust=1000., 
-                           length_inoc_rust=300., **kwds):
+                           length_inoc_rust=300., force_inoc_flag=False, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     if 'temp_min' in kwds:
         Tmin = kwds['temp_min']
@@ -181,6 +181,10 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                                               layer_thickness_septo=layer_thickness_septo,
                                               layer_thickness_rust=layer_thickness_rust,
                                               leaf_duration=leaf_duration, **kwds)
+
+    if force_inoc_flag==True:
+        phenT = adel.phenT()
+        date_inoc_rust = phenT['col'].max()
 
     for i, controls in enumerate(zip(canopy_timing, septo_dispersal_timing, rust_dispersal_timing,
                                      septo_rust_timing, recorder_timing)):
@@ -218,7 +222,14 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
 #            rust_dispersal_iter.value.degree_days.tolist()[-1] < date_inoc_rust+length_inoc_rust):
 #            print 'RUST INOC'
         if (rust_dispersal_iter and len(geom)>0):
-            g = external_contamination(g, rust_contaminator, rust_contaminator, 
+            if force_inoc_flag==True:
+                if (rust_dispersal_iter.value.degree_days.tolist()[-1] > date_inoc_rust and
+                    rust_dispersal_iter.value.degree_days.tolist()[-1] < date_inoc_rust+length_inoc_rust):
+                    g = external_contamination(g, rust_contaminator, rust_contaminator, 
+                                       density_dispersal_units=density_dispersal_units,
+                                       domain_area=adel.domain_area)
+            else:
+                g = external_contamination(g, rust_contaminator, rust_contaminator, 
                                        density_dispersal_units=density_dispersal_units,
                                        domain_area=adel.domain_area)
         # Develop disease (infect for dispersal units and update for lesions)
@@ -359,18 +370,20 @@ def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                                       suffix=suffix)
             data_sim = add_leaf_dates_to_data(data_sim)
             data_sim['severity_septo']*=100
+            data_sim['severity_septo_spo']*=100
             data_sim['severity_rust']*=100
+            data_sim['severity_rust_spo']*=100
 #            df_count = data_sim.groupby(['date', 'num_leaf_top']).count()
 #            df_count = df_count.reset_index()
 #            data_sim = data_sim[df_count['severity']==nplants*nreps]
             if inoc[0]==0:
                 plot_variable(data_sim, variable='severity_rust', ax=axs[1][i_yr])
             elif inoc[1]==0:
-#                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[0][i_yr])
-                plot_variable(data_sim, variable='severity_septo', ax=axs[0][i_yr])
+                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[0][i_yr])
+#                plot_variable(data_sim, variable='severity_septo', ax=axs[0][i_yr])
             else:
-#                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[2][i_yr])
-                plot_variable(data_sim, variable='severity_septo', ax=axs[2][i_yr])
+                plot_variable(data_sim, variable='severity_septo_spo', ax=axs[2][i_yr])
+#                plot_variable(data_sim, variable='severity_septo', ax=axs[2][i_yr])
                 plot_variable(data_sim, variable='severity_rust', ax=axs[3][i_yr])
                 
     for ax in axs.flat:
@@ -382,10 +395,10 @@ def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
     axs[2][0].set_ylabel('Severity septoria complex', fontsize=14)
     axs[3][0].set_ylabel('Severity rust complex', fontsize=14)
             
-def plot_states_leaf(df, leaf=2):
+def plot_states_leaf(df_sim, leaf=2):
     from alinea.echap.disease.alep_septo_evaluation import plot_one_sim
-    import matplotlib.pyplot as plt
-    df_sim = df.copy()
+#    import matplotlib.pyplot as plt
+#    df_sim = df.copy()
     fig, ax = plt.subplots()
     ax = np.array([ax])
     xaxis = 'degree_days'
@@ -393,6 +406,6 @@ def plot_states_leaf(df, leaf=2):
 #    plot_one_sim(df_sim, 'leaf_green_area', xaxis, ax, leaves, 'g')
 #    plot_one_sim(df_sim, 'surface_septo', xaxis, ax, leaves, 'b')
 #    plot_one_sim(df_sim, 'surface_rust', xaxis, ax, leaves, 'r')
-    plot_one_sim(df_sim, 'nb_dus_septo', xaxis, ax, leaves, 'b')
-    plot_one_sim(df_sim, 'nb_lesions_septo', xaxis, ax, leaves, 'r')
-    plot_one_sim(df_sim, 'nb_dus_rust', xaxis, ax, leaves, 'k')
+    plot_one_sim(df_sim, 'nb_dus_septo', xaxis, ax, leaves, 'b', no_decreasing=False)
+    plot_one_sim(df_sim, 'nb_lesions_septo', xaxis, ax, leaves, 'r', no_decreasing=False)
+    plot_one_sim(df_sim, 'nb_dus_rust', xaxis, ax, leaves, 'k', no_decreasing=False)
