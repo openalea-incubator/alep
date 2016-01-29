@@ -1412,10 +1412,17 @@ class SeptoRustRecorder(AdelWheatRecorder):
         nb_lesions_septo = 0
         nb_lesions_rust = 0
         surface_septo = 0.
+        surface_septo_inc = 0.
+        surface_septo_chlo = 0.
+        surface_septo_nec = 0.
         surface_septo_spo = 0.
+        surface_septo_dead = 0.
         surface_septo_on_green = 0.
         surface_rust = 0.
+        surface_rust_asy = 0.
+        surface_rust_chlo = 0.
         surface_rust_spo = 0.
+        surface_rust_dead = 0.
         
         for id in id_list:
             leaf = g.node(id)
@@ -1442,7 +1449,11 @@ class SeptoRustRecorder(AdelWheatRecorder):
                             ratio_green = float(nb_les_on_green)/nb_les if nb_les>0. else 0.
                             surface_les = les.surface_chlo + les.surface_nec + les.surface_spo + les.surface_empty
                             surface_septo += surface_les
+                            surface_septo_inc += les.surface_inc
+                            surface_septo_chlo += les.surface_chlo
+                            surface_septo_nec += les.surface_nec
                             surface_septo_spo += les.surface_spo + les.surface_empty
+                            surface_septo_dead += les.surface_dead
                             surface_septo_on_green += surface_les*ratio_green
                         else:
                             nb_lesions_septo += 1
@@ -1457,6 +1468,9 @@ class SeptoRustRecorder(AdelWheatRecorder):
                         else:
                             nb_lesions_rust += 1
                         surface_rust += les.surface_alive
+                        surface_rust_asy += les.surface_sink
+                        surface_rust_chlo += les.surface_chlo
+                        surface_rust_dead += les.surface_dead
                         surface_rust_spo += les.surface_spo
 
         dict_lf['nb_dus_septo'] = nb_dus_septo
@@ -1464,13 +1478,20 @@ class SeptoRustRecorder(AdelWheatRecorder):
         dict_lf['nb_lesions_septo'] = nb_lesions_septo
         dict_lf['nb_lesions_rust'] = nb_lesions_rust
         dict_lf['surface_septo'] = surface_septo
+        dict_lf['surface_septo_inc'] = surface_septo_inc
+        dict_lf['surface_septo_chlo'] = surface_septo_chlo
+        dict_lf['surface_septo_nec'] = surface_septo_nec
         dict_lf['surface_septo_spo'] = surface_septo_spo
+        dict_lf['surface_septo_dead'] = surface_septo_dead
         if green_area>0:
             dict_lf['surface_septo_on_green'] = surface_septo_on_green
         else:
             dict_lf['surface_septo_on_green'] = np.nan
         dict_lf['surface_rust'] = surface_rust
+        dict_lf['surface_rust_asy'] = surface_rust_asy
+        dict_lf['surface_rust_chlo'] = surface_rust_chlo
         dict_lf['surface_rust_spo'] = surface_rust
+        dict_lf['surface_rust_dead'] = surface_rust_dead
         return dict_lf
     
     def leaf_senesced_area(self):
