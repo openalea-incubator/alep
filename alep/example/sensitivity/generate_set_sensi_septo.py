@@ -18,16 +18,15 @@ from sensi_septo_tools import variety_code
 #                          ('loss_delay', [72., 168.]), 
 #                          ('temp_min', [0., 10.])])
 
-parameters = OrderedDict([('tiller_probability', [0.7, 1.3]),
-                          ('proba_main_nff', [0.49, 0.91]),
-                          ('scale_HS', [0.7, 1.3]),
-                          ('scale_leafDim_length', [0.7, 1.3]),
-                          ('scale_leafDim_width', [0.7, 1.3]),
-                          ('scale_leafRate', [0.7, 1.3]),
-                          ('scale_stemDim', [0.7, 1.3]),
-                          ('scale_stemRate', [0.7, 1.3]),
-                          ('scale_fallingRate', [0.7, 1.3]),
-                          ('scale_leafSenescence', [0.7, 1.3]),])
+parameters = OrderedDict([('proba_main_nff', [0.56, 0.84]),
+                          ('scale_HS', [0.8, 1.2]),
+                          ('scale_leafDim_length', [0.8, 1.2]),
+                          ('scale_leafDim_width', [0.8, 1.2]),
+                          ('scale_leafRate', [0.8, 1.2]),
+                          ('scale_stemDim', [0.8, 1.2]),
+                          ('scale_stemRate', [0.8, 1.2]),
+                          ('scale_fallingRate', [0.8, 1.2]),
+                          ('scale_leafSenescence', [0.8, 1.2])])
                           
 v = variety_code()
 
@@ -35,7 +34,8 @@ v = variety_code()
              # (2011, v['Rht3']),
              # (2012, v['Tremie12']),
              # (2013, v['Tremie13'])]
-scenarios = [(2011, v['Custom'])]
+scenarios = [(2011, v['Custom']),
+              (2013, v['Custom'])]
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
 nboots = 3

@@ -13,8 +13,12 @@ def variety_decode():
     return {v:k for k,v in variety_code().iteritems()}
 
 def get_stored_rec(variety, year, i_sample, i_boot):
-    return './septoria/'+variety.lower()+'_'+ str(year)+ \
+    if variety=='Custom':
+        return './septo_wheat/'+variety.lower()+'_'+ str(year)+ \
             '_'+str(int(i_sample))+'_boot'+str(int(i_boot))+'.csv'
+    else:
+        return './septoria/'+variety.lower()+'_'+ str(year)+ \
+                '_'+str(int(i_sample))+'_boot'+str(int(i_boot))+'.csv'
     
 def run_septoria(sample):
     i_sample = sample.pop('i_sample')
@@ -49,31 +53,21 @@ def run_custom_septoria(sample):
     output_file = get_stored_rec(variety, year, i_sample, i_boot)
     annual_loop_septo(year = year, variety = variety, sowing_date=sowing_date,
                         nplants = 15, output_file = output_file,
-                        proba_inf=1, Smin=0.02, growth_rate=0.0006,
-                        degree_days_to_chlorosis=160., 
-                        degree_days_to_necrosis=160.,
-                        degree_days_to_sporulation=50.,
-                        sporulating_fraction=0.01,
-                        reduction_by_rain=0., 
-                        rain_events_to_empty=5, 
-                        leaf_duration=2.5, 
-                        keep_leaves=True, 
-                        rh_effect=True, apply_rh='all', 
-                        rh_min=35.,
                         **sample)
 
-def get_septo_morris_path(year = 2012, variety = 'Tremie12'):
-    return './septoria/septo_morris_output_'+variety.lower()+'_'+str(year)+'.csv'
+def get_septo_morris_path(year = 2012, variety = 'Tremie12', folder='septoria'):
+    return './'+folder+'/septo_morris_output_'+variety.lower()+'_'+str(year)+'.csv'
         
 def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
-                             parameter_range_file = './septoria/septo_param_range.txt',
-                             input_file = './septoria/septo_morris_input_full.txt',
+                             parameter_range_file = 'septo_param_range.txt',
+                             input_file = 'septo_morris_input_full.txt',
+                             folder = 'septoria',
                              nboots = 5):
-    parameter_names = pd.read_csv(parameter_range_file, header=None, sep = ' ')[0].values.tolist()
+    parameter_names = pd.read_csv('./'+folder+'/'+parameter_range_file, header=None, sep = ' ')[0].values.tolist()
     list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameter_names
     df_out = pd.DataFrame()
     for boot in range(nboots):
-        input_boot = input_file[:-9]+'_boot'+str(boot)+input_file[-9:]
+        input_boot = './'+folder+'/'+input_file[:-9]+'_boot'+str(boot)+input_file[-9:]
         df_in = pd.read_csv(input_boot, sep=' ',
                             index_col=0, names=list_param_names)
         vc = variety_code()
@@ -93,27 +87,28 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
                 output['num_leaf_top'] = lf
                 for col in df_in.columns:
                     output[col] = df_in.loc[i_sample, col]
-                output['normalized_audpc'] = df_s[df_s['num_leaf_top']==lf].normalized_audpc.astype(float).values[0]
+                # output['normalized_audpc'] = df_s[df_s['num_leaf_top']==lf].normalized_audpc.astype(float).values[0]
                 output['audpc'] = df_s[df_s['num_leaf_top']==lf].audpc.astype(float).values[0]
                 # output['audpc_500'] = df_reco_lf.audpc_500.mean()
                 output['max_severity'] = df_s[df_s['num_leaf_top']==lf].max_severity.astype(float).values[0]
                 df_out_b = df_out_b.append(output, ignore_index = True)
         df_out_b['i_boot'] = boot
         df_out = pd.concat([df_out, df_out_b])
-    output_file = get_septo_morris_path(year=year, variety=variety)
+    output_file = get_septo_morris_path(year=year, variety=variety, folder=folder)
     df_out.to_csv(output_file)
     
 def plot_septo_morris_by_leaf(year = 2012, variety = 'Tremie12',
                              variable = 'normalized_audpc',
                              parameter_range_file = './septoria/septo_param_range.txt',
                              input_file = './septoria/septo_morris_input.txt',
-                             nboots = 5, ylims=None, force_rename={}):
+                             nboots = 5, ylims=None, force_rename={}, markers_SA={}):
     output_file = get_septo_morris_path(year=year, variety=variety)
     df_out = pd.read_csv(output_file)
     plot_morris_by_leaf(df_out, variable=variable,
                         parameter_range_file=parameter_range_file,
                         input_file=input_file, nboots=nboots, 
-                        ylims=ylims, force_rename=force_rename)
+                        ylims=ylims, force_rename=force_rename,
+                        markers_SA=markers_SA)
                         
 def plot_septo_morris_by_leaf_by_boot(year = 2012, variety = 'Tremie12',
                              variable = 'normalized_audpc',
@@ -164,7 +159,7 @@ def septo_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
                     
 def force_rename_SA_wheat():
     return {'tiller_probability':r"$\mathit{Tiller}$",
-            'proba_main_nff':r"$\mathit{FNL}$",
+            'proba_main_nff':r"$\mathit{FLN}$",
             'scale_HS':r"$\mathit{Earliness}$",
             'scale_leafDim_length':r"$\mathit{Length}_{leaf}$", 
             'scale_leafDim_width':r"$\mathit{Width}_{leaf}$",
@@ -174,22 +169,29 @@ def force_rename_SA_wheat():
             'scale_fallingRate':r"$\mathit{Curvature}_{leaf}$",
             'scale_leafSenescence':r"$\mathit{Senescence}_{leaf}$"}
             
+def markers_SA():
+    return {'scale_HS':'o', 'scale_leafSenescence':'^',
+            'scale_stemDim':'s', 'scale_stemRate':'p', 'scale_tillering':'*',
+            'scale_leafDim_length':'d', 'scale_leafDim_width':'D', 
+            'scale_leafRate':'h', 'scale_fallingRate':'H'}
+            
 def plot_morris_3_leaves_2_years(years=[2011, 2013], variety = 'Custom', 
                                leaves = [10, 5, 1], variable = 'audpc',
-                               parameter_range_file = './septo_wheat/2011/septo_param_range.txt',
-                               input_files = ['./septo_wheat/2011/septo_morris_input.txt',
-                                              './septo_wheat/2013/septo_morris_input.txt'],
+                               parameter_range_file = '2011/septo_param_range.txt',
+                               input_files = ['2011/septo_morris_input.txt',
+                                              '2013/septo_morris_input.txt'],
                                nboots=5, ylims=None, force_rename={},
-                               axs=None, save_fig=True):
+                               axs=None, save_fig=True, folder='septo_wheat'):
     fig, axs = plt.subplots(2,3, figsize=(10,6))
     for yr, ax, input_file in zip(years, axs, input_files):
-        df_out = pd.read_csv(get_septo_morris_path(year=yr, variety='Custom'))
+        df_out = pd.read_csv(get_septo_morris_path(year=yr, variety='Custom', folder=folder))
         sfx = '- %d' %yr
         plot_morris_3_leaves(df_out, leaves=leaves, variable=variable,
                             parameter_range_file=parameter_range_file,
                             input_file=input_file, nboots=nboots, ylims=ylims,
                             force_rename=force_rename, 
-                            axs=ax, annotation_suffix=sfx)
+                            axs=ax, annotation_suffix=sfx,
+                            folder=folder)
     if save_fig:
         fig.savefig('morris_3_leaves_2_years', bbox_inches='tight')
         

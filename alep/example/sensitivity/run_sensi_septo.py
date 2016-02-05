@@ -22,16 +22,15 @@ import numpy as np
 #                          ('loss_delay', [72., 168.]), 
 #                          ('temp_min', [0., 10.])])
 
-parameters = OrderedDict([('tiller_probability', [0.7, 1.3]),
-                          ('proba_main_nff', [0.49, 0.91]),
-                          ('scale_HS', [0.7, 1.3]),
-                          ('scale_leafDim_length', [0.7, 1.3]),
-                          ('scale_leafDim_width', [0.7, 1.3]),
-                          ('scale_leafRate', [0.7, 1.3]),
-                          ('scale_stemDim', [0.7, 1.3]),
-                          ('scale_stemRate', [0.7, 1.3]),
-                          ('scale_fallingRate', [0.7, 1.3]),
-                          ('scale_leafSenescence', [0.7, 1.3]),])
+parameters = OrderedDict([('proba_main_nff', [0.56, 0.84]),
+                          ('scale_HS', [0.8, 1.2]),
+                          ('scale_leafDim_length', [0.8, 1.2]),
+                          ('scale_leafDim_width', [0.8, 1.2]),
+                          ('scale_leafRate', [0.8, 1.2]),
+                          ('scale_stemDim', [0.8, 1.2]),
+                          ('scale_stemRate', [0.8, 1.2]),
+                          ('scale_fallingRate', [0.8, 1.2]),
+                          ('scale_leafSenescence', [0.8, 1.2])])
 
 list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
 nboots = 3
@@ -46,5 +45,5 @@ for i_boot in range(nboots):
 # Run disease simulation
 if __name__ == '__main__':
     # pymap(run_septoria, samples, nb_cpu-2)
-    pymap(run_custom_septoria, samples, nb_cpu)
+    pymap(run_custom_septoria, samples, nb_cpu-2)
     

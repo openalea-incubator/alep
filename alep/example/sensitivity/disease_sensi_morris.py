@@ -13,6 +13,7 @@ from SALib.sample.morris import sample
 from SALib.util import read_param_file
 from SALib.analyze import morris
 from alinea.alep.disease_outputs import conf_int
+import itertools
 
 ### Generation of parameter set
 def add_parameter(parameter_name = 'sporulating_fraction', interval = [1e-6, 1e-2], filename = 'param_range_SA.txt'):
@@ -87,47 +88,89 @@ def param_values_to_dict(values, list_param_names):
 def read_sensitivity_outputs(filename = 'septo_morris_output_mercia_2004.csv'):
      return pd.read_csv(filename)
     
+def plot_morris_one_leaf(df_out, problem, leaf=1, ax=None,
+                        variable = 'normalized_audpc',
+                        input_file = 'morris_input.txt',
+                        folder='septoria',
+                        nboots = 5, ylims=None, force_rename={},
+                        markers_SA={}, add_legend=True,
+                        annotation_suffix='', markersize=8):
+    if ax is None:
+        fig, ax = plt.subplots()
+    df_mu_lf = pd.DataFrame()
+    df_sigma_lf = pd.DataFrame()
+    for boot in np.unique(df_out['i_boot']):
+        param_values = np.loadtxt('./'+folder+'/'+input_file[:-4]+'_boot'+str(boot)+input_file[-4:])
+        df = df_out[(df_out['i_boot']==boot) & (df_out['num_leaf_top']==leaf)]
+        Y = df[variable]
+        Si_bt = morris.analyze(problem, param_values, Y, grid_jump = 5, 
+                                num_levels = 10, conf_level=0.95, 
+                                print_to_console=False)
+        for ip, param in enumerate(Si_bt['names']):
+            df_mu_lf.loc[boot, param] = Si_bt['mu_star'][ip]
+            df_sigma_lf.loc[boot, param] = Si_bt['sigma'][ip]
+    mu_star = df_mu_lf.mean().values
+    mu_star_conf = df_mu_lf.apply(conf_int).values
+    sigma = df_sigma_lf.mean().values
+    sigma_conf = df_sigma_lf.apply(conf_int).values
+    # ax.errorbar(mu_star, sigma, yerr=sigma_conf, xerr=mu_star_conf,
+                # color='b', marker='*', linestyle='')
+    tags = iter(df_mu_lf.columns)
+    markers = itertools.cycle(['o', '^', 's', 'p', '*', 'd', 'D', 'h', 'H'])
+    labels=[]
+    proxys=[]
+    for x,y in zip(mu_star, sigma):
+        tag = tags.next()
+        if tag in markers_SA:
+            marker = markers_SA[tag]
+        else:
+            marker = markers.next()
+        if tag in force_rename:
+            tag = force_rename[tag]
+        ax.plot(x, y, 'b', marker=marker, markersize=markersize)
+        #ax.annotate(tag, (x,y))
+        labels += [tag]
+        proxys += [plt.Line2D((0,1),(0,0), color='b', 
+                           marker=marker, linestyle='None')]
+    if ylims is not None:
+        ax.set_ylim(ylims)
+        ax.set_xlim(ylims)
+    ax.annotate('Leaf %d ' % leaf +annotation_suffix, xy=(0.05, 0.85), 
+                xycoords='axes fraction', fontsize=14)
+    ax.set_ylabel(r"$\sigma$", fontsize=18)
+    ax.set_xlabel(r"$\mu^\ast$", fontsize=18)
+    if add_legend==True:
+        ax.legend(proxys, labels, numpoints=1, 
+                  bbox_to_anchor=(1.01, 1.), loc=2, borderaxespad=0.)
+    plt.rcParams['text.usetex']=False
+    
 def plot_morris_by_leaf(df_out, variable = 'normalized_audpc',
                         parameter_range_file = 'param_range_SA.txt',
                         input_file = 'morris_input.txt',
-                        nboots = 5, ylims=None, force_rename={}):
+                        nboots = 5, ylims=None, force_rename={},
+                        markers_SA={}, annotation_suffix='',
+                        folder='septoria'):
     plt.rcParams['text.usetex']=True
     problem = read_param_file(parameter_range_file)
     fig, axs = plt.subplots(6,2, figsize=(15,30))
     for i, ax in enumerate(axs.flat):
         lf = i+1
-        df_mu_lf = pd.DataFrame()
-        df_sigma_lf = pd.DataFrame()
-        for boot in np.unique(df_out['i_boot']):
-            param_values = np.loadtxt(input_file[:-4]+'_boot'+str(boot)+input_file[-4:])
-            df = df_out[(df_out['i_boot']==boot) & (df_out['num_leaf_top']==lf)]
-            Y = df[variable]
-            Si_bt = morris.analyze(problem, param_values, Y, grid_jump = 5, 
-                                    num_levels = 10, conf_level=0.95, 
-                                    print_to_console=False)
-            for ip, param in enumerate(Si_bt['names']):
-                df_mu_lf.loc[boot, param] = Si_bt['mu_star'][ip]
-                df_sigma_lf.loc[boot, param] = Si_bt['sigma'][ip]
-        mu_star = df_mu_lf.mean().values
-        mu_star_conf = df_mu_lf.apply(conf_int).values
-        sigma = df_sigma_lf.mean().values
-        sigma_conf = df_sigma_lf.apply(conf_int).values
-        # ax.errorbar(mu_star, sigma, yerr=sigma_conf, xerr=mu_star_conf,
-                    # color='b', marker='*', linestyle='')
-        ax.plot(mu_star, sigma, 'b*')
-        tags = iter(df_mu_lf.columns)
-        for x,y in zip(mu_star, sigma):
-            tag = tags.next()
-            if tag in force_rename:
-                tag = force_rename[tag]
-            ax.annotate(tag, (x,y))
-        if ylims is not None:
-            ax.set_ylim(ylims)
-            ax.set_xlim(ylims)
-        ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
-                    xycoords='axes fraction', fontsize=18)
+        if ax==axs[0][-1]:
+            add_legend=True
+        else:
+            add_legend=False
+        plot_morris_one_leaf(df_out, problem,
+                        leaf=lf, ax=ax,
+                        variable=variable,
+                        input_file=input_file,
+                        nboots=nboots, ylims=ylims, 
+                        force_rename=force_rename,
+                        markers_SA=markers_SA, 
+                        add_legend=add_legend,
+                        annotation_suffix=annotation_suffix,
+                        folder=folder)
     plt.rcParams['text.usetex']=False
-                    
+    
 def plot_morris_by_leaf_by_boot(df_out, variable = 'normalized_audpc',
                         parameter_range_file = 'param_range_SA.txt',
                         input_file = 'morris_input.txt',
@@ -160,47 +203,32 @@ def plot_morris_3_leaves(df_out, leaves = [10, 5, 1],
                         parameter_range_file = 'param_range_SA.txt',
                         input_file = 'morris_input.txt',
                         nboots=5, ylims=None, 
-                        force_rename={}, axs=None, annotation_suffix=''):
+                        force_rename={}, axs=None,
+                        annotation_suffix='',
+                        folder='septoria', markers_SA={}, 
+                        markersize=8):
     plt.rcParams['text.usetex']=True
-    problem = read_param_file(parameter_range_file)
+    problem = read_param_file('./'+folder+'/'+parameter_range_file)
     if axs is None:
         fig, axs = plt.subplots(1,3, figsize=(18,6))
     leaves = iter(leaves)
     for i, ax in enumerate(axs.flat):
         lf = leaves.next()
-        df_mu_lf = pd.DataFrame()
-        df_sigma_lf = pd.DataFrame()
-        for boot in np.unique(df_out['i_boot']):
-            param_values = np.loadtxt(input_file[:-4]+'_boot'+str(boot)+input_file[-4:])
-            df = df_out[(df_out['i_boot']==boot) & (df_out['num_leaf_top']==lf)]
-            Y = df[variable]
-            Si_bt = morris.analyze(problem, param_values, Y, grid_jump = 5, 
-                                    num_levels = 10, conf_level=0.95, 
-                                    print_to_console=False)
-            for ip, param in enumerate(Si_bt['names']):
-                df_mu_lf.loc[boot, param] = Si_bt['mu_star'][ip]
-                df_sigma_lf.loc[boot, param] = Si_bt['sigma'][ip]
-        mu_star = df_mu_lf.mean().values
-        mu_star_conf = df_mu_lf.apply(conf_int).values
-        sigma = df_sigma_lf.mean().values
-        sigma_conf = df_sigma_lf.apply(conf_int).values
-        # ax.errorbar(mu_star, sigma, yerr=sigma_conf, xerr=mu_star_conf,
-                    # color='b', marker='*', linestyle='')
-        ax.plot(mu_star, sigma, 'b*')
-        tags = iter(df_mu_lf.columns)
-        for x,y in zip(mu_star, sigma):
-            tag = tags.next()
-            if tag in force_rename:
-                tag = force_rename[tag]
-            ax.annotate(tag, (x,y))
-        if ylims is not None:
-            ax.set_ylim(ylims)
-            ax.set_xlim(ylims)
-        ax.annotate('Leaf %d ' % lf +annotation_suffix, xy=(0.05, 0.85), 
-                    xycoords='axes fraction', fontsize=14)
-        ax.set_ylabel(r"$\sigma$", fontsize=18)
-        ax.set_xlabel(r"$\mu^\ast$", fontsize=18)
-    plt.tight_layout()
+        if ax==axs[-1]:
+            add_legend=True
+        else:
+            add_legend=False
+        plot_morris_one_leaf(df_out, problem,
+                        leaf=lf, ax=ax,
+                        variable=variable,
+                        input_file=input_file,
+                        nboots=nboots, ylims=ylims, 
+                        force_rename=force_rename,
+                        markers_SA=markers_SA, 
+                        add_legend=add_legend,
+                        annotation_suffix=annotation_suffix,
+                        folder=folder, markersize=markersize)
+    # plt.tight_layout()
     plt.rcParams['text.usetex']=True
 
 def scatter_plot_by_leaf(df_out, variable = 'normalized_audpc', 
