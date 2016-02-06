@@ -71,8 +71,8 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
         for par in pars.iterkeys():
             if par in kwds:
                 pars[par] = kwds[par]
-            elif par+'_septoria' in kwds:
-                pars[par] = kwds[par+'_septoria']
+            elif par+suffix in kwds:
+                pars[par] = kwds[par+suffix]
         fungus.parameters(**pars)
         return fungus
     
