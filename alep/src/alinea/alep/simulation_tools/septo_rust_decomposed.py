@@ -162,7 +162,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                            record = True, output_file = None,
                            reset_reconst = True, rep_wheat = None, 
                            leaf_duration = 2., date_inoc_rust=1000., 
-                           length_inoc_rust=300., force_inoc_flag=False, **kwds):
+                           length_inoc_rust=300., force_inoc_leaf=None, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     if 'temp_min' in kwds:
         Tmin = kwds['temp_min']
@@ -182,8 +182,9 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
                                               layer_thickness_rust=layer_thickness_rust,
                                               leaf_duration=leaf_duration, **kwds)
 
-    if force_inoc_flag==True:
+    if force_inoc_leaf is not None:
         phenT = adel.phenT()
+        phenT = phenT[phenT['n']==phenT['n'].max()-force_inoc_leaf+1]
         date_inoc_rust = phenT['col'].max()
 
     for i, controls in enumerate(zip(canopy_timing, septo_dispersal_timing, rust_dispersal_timing,
@@ -222,7 +223,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
 #            rust_dispersal_iter.value.degree_days.tolist()[-1] < date_inoc_rust+length_inoc_rust):
 #            print 'RUST INOC'
         if (rust_dispersal_iter and len(geom)>0):
-            if force_inoc_flag==True:
+            if force_inoc_leaf is not None:
                 if (rust_dispersal_iter.value.degree_days.tolist()[-1] > date_inoc_rust and
                     rust_dispersal_iter.value.degree_days.tolist()[-1] < date_inoc_rust+length_inoc_rust):
                     g = external_contamination(g, rust_contaminator, rust_contaminator, 
