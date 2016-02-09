@@ -329,8 +329,6 @@ class SeptoRustCompetition:
                 nb_non_prio = 0.
                 for l in leaf_lesions:
                     if l.fungus.name=='septoria' and l.status >= l.fungus.CHLOROTIC:
-#                    if l.fungus.name=='septoria' and l.status > l.fungus.CHLOROTIC:
-#                    if l.fungus.name=='septoria':
                         s_prio += l.surface
                         s_prio_alive += l.surface_alive
                         s_prio_non_sen += l.surface_non_senescent
@@ -346,6 +344,9 @@ class SeptoRustCompetition:
                         non_prio_les.append(l)
                         demand_non_prio += l.growth_demand
                         nb_non_prio += l.nb_lesions_non_sen
+                        if l.fungus.name=='brown_rust':
+                            nb_rust += l.nb_lesions_non_sen
+                            s_rust_non_sen += l.surface_non_senescent
                 
                 if nb_prio>0:
                     if round(s_prio_non_sen, 16) < round(leaf_green_area, 16):
@@ -356,8 +357,6 @@ class SeptoRustCompetition:
                             offer_prio = min(leaf_area-s_prio_non_sen, true_area_prio - s_prio_non_sen)
                         elif leaf_area > s_prio:
                             offer_prio = min(leaf_area-s_prio, true_area_prio - s_prio_non_sen)
-#                        elif leaf_area > s_prio_alive:
-#                            offer_prio = min(leaf_area-s_prio_alive, true_area_prio - s_prio_non_sen)
                         else:
                             offer_prio = 0.                            
                     else:
@@ -369,21 +368,12 @@ class SeptoRustCompetition:
                                                           lengths)
 
                     offer_prio = max(0., min(offer_prio, demand_prio))
-                    # Temp
-#                    if round(s_prio_alive+offer_prio, 10)>leaf_area:
-#                        import pdb
-#                        pdb.set_trace()
                     for l in prio_les:
                         offer_lesion = l.growth_demand*offer_prio/demand_prio if demand_prio>0. else 0.
                         l.control_growth(offer_lesion)
-
-#                if (leaf[0] in a_labs and 
-#                    a_labs[leaf[0]]=='plant1_MS_metamer3_blade_LeafElement1'):
-#                    disease_area = s_non_prio + s_prio + offer_prio
-#                    if self.full==True and round(leaf_area,10) :
-#                        import pdb
-#                        pdb.set_trace()
-#                    self.disease_area = disease_area
+                        # Temp : Add limiting factor on sporulating capacity of septoria
+#                        if nb_rust>0:
+#                            l.sporulating_capacity = s_rust_non_sen/leaf_green_area if leaf_green_area>0. else 0.
 
                 if nb_non_prio>0:
                     nb_les = nb_prio + nb_non_prio
@@ -421,11 +411,3 @@ class SeptoRustCompetition:
                         for l in non_prio_les:
                             offer_lesion = offer_non_prio*l.surface_non_senescent/s_non_prio_non_sen if s_non_prio_non_sen>0. else 0.                        
                             l.control_growth(growth_offer=offer_lesion)
-                    
-#                    if s_non_prio_alive+offer_non_prio == 0.:
-#                        import pdb
-#                        pdb.set_trace()
-#                    if round(s_prio_alive+offer_prio+s_non_prio_alive+offer_non_prio, 10)>leaf_area:
-#                        import pdb
-#                        pdb.set_trace()
-#                    a=1
