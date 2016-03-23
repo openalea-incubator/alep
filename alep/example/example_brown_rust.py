@@ -95,12 +95,15 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
             tt.append(cum_tt)
 
     fig, ax = plt.subplots()
-    ax.plot(tt, surfs, 'b')
-    ax.plot(tt, surfs_sink, 'k')
-    ax.plot(tt, surfs_chlo, 'r')
-    ax.plot(tt, surfs_spo, 'g')
-    ax.set_xlabel("Thermal time (Teff)", fontsize = 18)
-    ax.set_ylabel("Surface d'une lesion (cm2)", fontsize = 18)
+    asym = (141/255., 200/255., 2/255.)
+    chlo = (1., 220/255., 63/255.)
+    spo = (228/255., 108/255., 10/255.)
+    ax.plot(tt, surfs, 'b', linewidth=2)
+    ax.plot(tt, surfs_sink, color=asym, linewidth=2)
+    ax.plot(tt, surfs_chlo, color=chlo, linewidth=2)
+    ax.plot(tt, surfs_spo, color=spo, linewidth=2)
+    ax.set_xlabel("Thermal time (Teff)", fontsize = 20)
+    ax.set_ylabel("Surface d'une lesion (cm2)", fontsize = 20)
     if plot_empty==True:
         ax.plot(tt, surfs_empty, 'y')
         labels = ['Total', 'Asymptomatique', 'Chlorotique', 'Sporulant', 'Necrose']
@@ -108,8 +111,9 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
         labels = ['Total', 'Asymptomatique', 'Chlorotique', 'Sporulant']
         f = lesion.fungus
         start_spo = 0.05*f.Smax*f.ratio_spo
-        ax.plot(tt, [start_spo for t in tt], 'k--')
+#        ax.plot(tt, [start_spo for t in tt], 'k--')
     ax.legend(labels, loc = 'best')
+    ax.tick_params(axis='both', labelsize=18)
                
 def example_geom_competition(density = 30., **kwds):
     g, leaf = get_g_and_one_leaf()
