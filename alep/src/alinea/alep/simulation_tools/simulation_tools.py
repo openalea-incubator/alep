@@ -134,7 +134,7 @@ def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.):
         pars['pgen_base'] = {'TT_hs_break':None, 'inner_params':{'DELAIS_PHYLL_SEN_DISP':20}}
     #CF : ici si tu veux ajuster la duree d'allongement des feuilles, en particulier pour avoir des emergences plus precoces:
     #    Une feuille emerge (0.8 * leafDuration * phyllochron) dd  avant HS
-    pars['adel_pars']['leafDuration'] = leaf_duration #2 = valeur normale
+    pars['adel_pars']['leafDuration'] = leaf_duration #2 = valeur normale ; 3 = valeur calibree pour septo
     # Temp
     pars['adel_pars']['dHS_en'] -= 1.
 #    pars['adel_pars']['stemDuration'] += 1.

@@ -3,7 +3,7 @@
 """
 
 # Imports #########################################################################
-from alinea.alep.fungal_objects import *
+from alinea.alep.fungus import *
 from alinea.alep.septoria import SeptoriaDU, septoria_parameters, is_iterable
 import numpy as np
 from scipy.interpolate import interp1d

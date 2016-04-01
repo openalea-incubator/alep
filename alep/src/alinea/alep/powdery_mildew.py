@@ -2,7 +2,7 @@
 
 """
 # Imports #########################################################################
-from alinea.alep.fungal_objects import *
+from alinea.alep.fungus import *
 from random import random, randint
 from math import (exp, pi, floor, ceil, sqrt)
 

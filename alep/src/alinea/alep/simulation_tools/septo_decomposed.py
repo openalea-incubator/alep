@@ -106,8 +106,6 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
                                              domain=domain, domain_area=domain_area, 
                                              compute_star = compute_star,
                                              mutable = mutable)
-#    growth_controler = PriorityGrowthControl()
-#    growth_controler = GeometricPoissonCompetition()
     if competition=='poisson':
         growth_controler = SeptoRustCompetition()
     elif competition=='simple':
@@ -115,7 +113,6 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
     else:
         raise ValueError('Unknown competition model')
     infection_controler = BiotrophDUProbaModel(age_infection=age_infection, fungus=['septoria'])
-#    emitter = Septo3DEmission(domain=domain)
     emitter = PopDropsEmission(domain=domain, compute_star = compute_star)
     transporter = PopDropsTransport(fungus=fungus, group_dus=True,
                                     domain = domain, domain_area = domain_area,
@@ -162,14 +159,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
         if canopy_iter:
             it_wheat += 1
             g = grow_canopy(g, adel, canopy_iter, it_wheat,
-                        wheat_dir, wheat_is_loaded, rain_and_light=True)
-                
-        # TEMP: debug
-        g.add_property('a_label')
-        a_labels = g.property('a_label')
-        a_labels.update( adel_labels(g))
-                        
-                
+                        wheat_dir, wheat_is_loaded, rain_and_light=True)               
         # Get weather for date and add it as properties on leaves
         if septo_iter:
             set_properties(g,label = 'LeafElement',
@@ -197,7 +187,6 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
             g = disperse(g, emitter, transporter, "septoria",
                          label='LeafElement', weather_data=rain_iter.value,
                          domain=adel.domain, domain_area=adel.domain_area)
-        
         # Save images
         if save_images == True:
             if canopy_iter:
@@ -261,21 +250,14 @@ def plot_severity_septo_by_leaf(g, senescence=True,
                                 label='LeafElement'):
     """ Display the MTG with colored leaves according to disease severity 
     
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    senescence: bool
-        True if senescence must be displayed, False otherwise
-    transparency: float[0:1]
-        Transparency of the part of the MTG without lesion
-    label: str
-        Label of the part of the MTG concerned by the calculation
+    :Parameters:
+     - 'g' (MTG): MTG representing the canopy 
+     - 'senescence' (bool): True if senescence must be displayed, False otherwise
+     - 'transparency' (float[0:1]): Transparency of the part of the MTG without lesion
+     - 'label' (str): Label of the part of the MTG concerned by the calculation
         
-    Returns
-    -------
-    scene:
-        Scene containing the MTG attacked by the disease
+    :Returns:
+     - 'scene': Scene containing the MTG attacked by the disease
     
     """
     from alinea.alep.architecture import set_property_on_each_id, get_leaves
@@ -321,7 +303,6 @@ def plot_severity_septo_by_leaf(g, senescence=True,
     Viewer.display(scene)
     return scene
     
-                   
 def set_canopy_visu(year=2013, variety='Tremie13', sowing_date='10-29', nplants=15):
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
@@ -348,7 +329,6 @@ def temp_plot_simu(df, multiply_sev = True, xaxis='degree_days',
     from alinea.alep.alep_weather import plot_rain_and_temp
     import cPickle as pickle
     import matplotlib.pyplot as plt
-#    from math import ceil
     df_sim = df.copy()
     if title is not None:
         ttle = False

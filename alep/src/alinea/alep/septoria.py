@@ -2,12 +2,7 @@
 
 """
 # Imports #####################################################################
-from alinea.alep.fungal_objects import *
-# from alinea.alep import septoria_continuous, septoria_with_rings,
-# septoria_exchanging_rings
-# from alinea.alep.septoria_continuous import *
-# from alinea.alep.septoria_with_rings import *
-# from alinea.alep.septoria_exchanging_rings import *
+from alinea.alep.fungus import *
 try:
     from openalea.vpltk import plugin
 except ImportError:
