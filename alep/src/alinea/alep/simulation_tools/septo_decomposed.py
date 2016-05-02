@@ -46,12 +46,14 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
           end_date="2011-06-20 01:00:00", variety='Mercia',
           nplants = 30, nsect = 7, disc_level = 5, septo_delay_dday = 10.,
           rain_min = 0.2, recording_delay = 24., rep_wheat = None,
-          save_images=False, keep_leaves=False, leaf_duration=2., **kwds):
+          save_images=False, keep_leaves=False, leaf_duration=2.,
+          single_nff=False, variability=True, **kwds):
     """ Get plant model, weather data and set scheduler for simulation. """
     # Set canopy
     it_wheat = 0
     if variety!='Custom':
-        reconst = alep_echap_reconstructions(keep_leaves=keep_leaves, leaf_duration=leaf_duration)
+        reconst = alep_echap_reconstructions(keep_leaves=keep_leaves, leaf_duration=leaf_duration,
+                                             single_nff=single_nff, variability=variability)
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
         if save_images:
             adel.stand.density_curve=None
@@ -127,7 +129,8 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                       competition = 'poisson', save_images = False, 
                       reset_reconst = True, distri_chlorosis = None, 
                       rep_wheat = None, age_infection=False, keep_leaves=False,
-                      leaf_duration = 2., compute_star = False, **kwds):
+                      leaf_duration = 2., compute_star = False, 
+                      single_nff=False, variability=True, **kwds):
     """ Simulate epidemics with canopy saved before simulation """
     (g, adel, weather, seq, rain_timing, 
      canopy_timing, septo_timing, recorder_timing, it_wheat, wheat_dir,
@@ -138,7 +141,10 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
                               septo_delay_dday=septo_delay_dday,
                               save_images=save_images, 
                               keep_leaves=keep_leaves, 
-                              leaf_duration=leaf_duration,**kwds)
+                              leaf_duration=leaf_duration,
+                              single_nff=single_nff, 
+                              variability=variability,
+                              **kwds)
 
     (inoculum, contaminator, infection_controler, growth_controler, emitter, 
      transporter) = septo_disease(adel, sporulating_fraction, layer_thickness, 
@@ -1136,15 +1142,6 @@ def resample_fnl(df_obs, df_sim, weather, variable='severity'):
             df_sim[col] = df_sim[col].map(hack_convert)
         df_sim[col] *= df_sim['cross_product']
     return df_sim
-#for suffix in ['new_calib_age', 'new_calib_smin', 'new_calib_rate', 'new_calib_states', 'new_calib_states_2']:
-#    data_sim_new_calib = get_aggregated_data_sim(variety = 'Tremie12', nplants = 15,
-#                                                 sporulating_fraction=7e-2, suffix=suffix)
-#    temp_plot_simu(data_sim_new_calib, multiply_sev = False)
-#    plt.savefig('C:/Users/ggarin/Desktop/20150409_results/'+suffix[10:]+'.png')
-#    plot_by_leaf(data_sim_new_calib, variable='severity')
-#    plt.savefig('C:/Users/ggarin/Desktop/20150409_results/'+suffix[10:]+'_all.png')
-#    plot_by_leaf(data_sim_new_calib, variable='nb_lesions')
-#    plt.savefig('C:/Users/ggarin/Desktop/20150409_results/'+suffix[10:]+'_lesions.png')
 
 def plot_variables_leaf(df, leaf=2, add_leaf_dates=False,
                         xaxis='age_leaf', xlims=[0,1400]):
@@ -2039,3 +2036,28 @@ def combine_old_new(parameter='scale_stemDim', value=-5, year=2004):
     output_file = get_filename(fungus='septoria', year=year, variety='Custom',
                            nplants=15, inoc=5e-3, suffix=suffix)
     df.to_csv(output_file)
+    
+def plot_comparison_scenarios(year=2004, xaxis = 'degree_days',
+                              suffixes=['scenario_reference_2004',
+                                        'scenario_plus20_scale_HS_2004',
+                                        'scenario_minus20_scale_HS_2004'],
+                              title='comparison_scenarios_2004'):
+#    leaves = np.arange(5, 0, -1)
+    leaves = range(1, 6)
+    fig, axs = plt.subplots(1, len(leaves), figsize=(10.*len(leaves), 10.))
+    colors = iter(['b', 'g', 'r', 'k' 'm'])
+    proxys = []
+    for suffix in suffixes:
+        df_sim = get_aggregated_data_sim(forced_year=year, variety='Custom', 
+                                         sporulating_fraction=5e-3, 
+                                         suffix=suffix)
+        df_sim = df_sim.drop(df_sim[df_sim['leaf_green_area']==0].index)
+        df_sim = get_data_without_death(df_sim)
+        color = colors.next()
+        plot_one_sim(df_sim, 'severity', xaxis, axs, leaves, color, no_decreasing=False)
+        for ax, lf in zip(axs, leaves):
+            ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85), 
+                        xycoords='axes fraction', fontsize=18)
+        proxys += [plt.Line2D((0,1),(0,0), color=color)]
+    axs[-1].legend(proxys, suffixes, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    fig.savefig(title, bbox_inches='tight')
