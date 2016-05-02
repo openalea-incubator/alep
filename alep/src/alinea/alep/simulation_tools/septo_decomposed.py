@@ -187,7 +187,7 @@ def annual_loop_septo(year = 2013, variety = 'Tremie13', sowing_date = '10-29',
         if septo_iter:
             infect(g, septo_iter.dt, infection_controler, label='LeafElement')
             group_duplicates_in_cohort(g) # Additional optimisation (group identical cohorts)
-            update(g, septo_iter.dt, growth_controler, senescence_model=None, label='LeafElement')            
+            update(g, septo_iter.dt, growth_controler, label='LeafElement')            
         # Disperse and wash
         if rain_iter and len(geom)>0 and rain_iter.value.rain.mean()>0.2:
             g = disperse(g, emitter, transporter, "septoria",
