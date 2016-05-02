@@ -125,7 +125,8 @@ def grow_canopy(g, adel, canopy_iter, it_wheat,
                                 domain=adel.domain, convUnit=adel.convUnit)
         return g
     
-def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.):
+def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.,
+                               single_nff=False, variability=True):
     pars = reconstruction_parameters()
     pars['density_tuning'] = pdict(None)
     pars['density_tuning']['Tremie12'] = 0.85
@@ -139,14 +140,44 @@ def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.):
     pars['adel_pars']['dHS_en'] -= 1.
 #    pars['adel_pars']['stemDuration'] += 1.
     #
+    
+    # Manage NFF
+    if single_nff==True:
+        nff_in_disease_data = {'Mercia':None, 'Rht3':None,
+                               'Tremie12': {'12':0.21, '13':0.79},
+                               'Tremie13': {'11':23./43, '12':20./43.}}
+    else:       
+        nff_in_disease_data = {'Mercia':None, 'Rht3':None,
+                               'Tremie12': {'12':0., '13':1.},
+                               'Tremie13': {'11':0., '12':1.}}
+    pars['nff_probabilities'] = nff_in_disease_data
+
+    # Manage variability
+    if variability == True:
+        my_variability = {'Mercia': None,
+                          'Rht3': None,
+                          'Tremie12': 0,
+                          'Tremie13': 10}
+    else:
+        my_variability = {'Mercia': 0,
+                          'Rht3': 0,
+                          'Tremie12': 0,
+                          'Tremie13': 0} 
+    pars['std_emergence'] = my_variability
+
+    
     reconst = EchapReconstructions(reset_data=True, pars=pars)
     
-    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
-    reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
+    # G.Garin : temporary commented : new way to set nff
+#    reconst.axepop_fits['Tremie12'].MS_probabilities = {12:0.21, 13:0.79}
+#    reconst.axepop_fits['Tremie13'].MS_probabilities = {11:23./43, 12:20./43.}
 
     # Temp    
 #    reconst.HS_fit['Tremie12'].TT_hs_0 -= 35
 #    reconst.HS_fit['Tremie13'].TT_hs_0 -= 35
+
+    import pdb
+    pdb.set_trace()
 
     # Temp
     reconst.GL_fits['Tremie12'].GL_bolting = reconst.GL_fits['Tremie13'].GL_bolting   
