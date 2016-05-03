@@ -44,10 +44,7 @@ class BrownRustDU(DispersalUnit):
                 if self.nb_dispersal_units == 0.:
                     self.disable()
                     return
-#            else:
-#                import pdb
-#                pdb.set_trace()
-
+                    
             # Accumulate climatic data on the leaf sector during the time step
             self.temperature_sequence += leaf.temperature_sequence
             self.wetness_sequence += leaf.wetness_sequence
@@ -70,12 +67,7 @@ class BrownRustDU(DispersalUnit):
                     loss_rate = 1.
                 else:
                     loss_rate = 1./(f.loss_delay - dry_duration)
-                    
-                    
-#                import pdb
-#                pdb.set_trace()    
-#    
-#    
+
                 # Combination
                 proba_infection = temp_factor * wet_factor
                 if f.group_dus:
@@ -89,9 +81,6 @@ class BrownRustDU(DispersalUnit):
                         if init_nb_dus > nb_les:
                             nb_dead = np.random.binomial(init_nb_dus - nb_les, loss_rate)
                             self.nb_dispersal_units -= nb_dead
-                            if self.nb_dispersal_units < 0.:
-                                import pdb
-                                pdb.set_trace()
                             if self.nb_dispersal_units == 0.:
                                 self.disable()
                         return
@@ -125,12 +114,6 @@ class BrownRustDU(DispersalUnit):
                 if self.nb_dispersal_units == 0.:
                     self.disable()
                     return
-    
-    def set_status(self, status = 'deposited'):
-        self.status = status
-        
-    def set_nb_dispersal_units(self, nb_dispersal_units = 1):
-        self.nb_dispersal_units = nb_dispersal_units
 
 # Lesion ###########################################################################################
 class BrownRustLesion(Lesion):

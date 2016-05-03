@@ -52,6 +52,8 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
     # Set canopy
     it_wheat = 0
     if variety!='Custom':
+        import pdb
+        pdb.set_trace()
         reconst = alep_echap_reconstructions(keep_leaves=keep_leaves, leaf_duration=leaf_duration,
                                              single_nff=single_nff, variability=variability)
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
@@ -1009,7 +1011,7 @@ def plot_states_leaf(df, leaf=2, xaxis = 'age_leaf', xlims=None, ylims=None):
     ax[0].set_xlabel('Age de la feuille (Cd)', fontsize=20)
     ax[0].tick_params(axis='both', labelsize=18)
     
-def temp_plot_simu_by_fnl(df, multiply_sev = True, xaxis='degree_days',
+def temp_plot_simu_by_fnl(df, multiply_sev = False, xaxis='degree_days',
                    leaves=None, only_severity=False, xlims = [800, 2200],
                    display_lesions=False):
     from alinea.echap.disease.alep_septo_evaluation import (data_reader,

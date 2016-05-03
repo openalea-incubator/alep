@@ -16,58 +16,67 @@ class DispersalUnit(object):
     To implement a dispersal unit for a specific fungus, you can override the following method:
         - infect()       
     """
-    def __init__(self, mutable=False, is_active=True, status='emitted', nb_dispersal_units=1):
+    def __init__(self, mutable=False):
         """ Initialize the dispersal unit (DU).
         
         :Parameters:
          - 'mutable' (bool) - True if each DU has its own parameters (intra-population variability),
          False if all DU of the same fungus share the same parameters.
+         
+        :Attributes:
          - 'is_active' (bool) - Activity of the DU (bool): if False, DU is dead.
          - 'status' (str) - 'emitted' or 'deposited': can be used to distinguish DUs to disperse and 
          DUs that are already deposited on leaves.
          - 'nb_dispersal_units' (int) - A DispersalUnit object can represent a cohort of DU that are
          deposited on the leaf at the same date. 
         """
-        self.is_active = is_active 
-        self.status = status
-        self.nb_dispersal_units = nb_dispersal_units
+        self.is_active = True 
+        self.status = 'emitted'
+        self.nb_dispersal_units = 1
 
         # Capacity to differ from other lesions of same Fungus
         self.mutable = mutable
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
         
-    def infect(self, leaf=None):
+    def infect(self, dt=1, leaf=None, **kwds):
         """ Compute the success of infection by the DU.
         
         To be overridden specifically by fungus type. By default, create a new lesion.
         
         :Parameters:
-         - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
-            green area, senescence, wetness, temperature, other DUs and lesions, ...)
-        """
-        self.create_lesion(leaf)
-    
-    def create_lesion(self, leaf=None, **kwds):
-        """ Create a new lesion of same fungus type as DU, and disable DU.
-        
-        :Parameters:
+         - 'dt' (int): Time step of the simulation (in hours)
          - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
             green area, senescence, wetness, temperature, other DUs and lesions, ...)
          - **kwds : optional arguments depending on fungus specifications
         """
-        les = self.fungus.lesion(mutable = self.mutable)
-        les.__dict__.update(kwds)
-        les.set_position(self.position)
-        if leaf is None:
-            self.disable()
-            return les
-        else:
-            try:
-                leaf.lesions.append(les)
-            except:
-                leaf.lesions = [les]
-            self.disable()
+        self.create_lesion(leaf)
+    
+    def create_lesion(self, nb_lesions = 1, leaf=None, **kwds):
+        """ Create new lesions of same fungus type as DU, and disable self if no DU left in cohort.
+        
+        :Parameters:
+         - 'nb_lesions' (int): Number of lesions to create from DU (or cohort of DU)
+         - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
+            green area, senescence, wetness, temperature, other DUs and lesions, ...)
+         - **kwds : optional arguments depending on fungus specifications
+        """
+        if nb_lesions>0:
+            les = self.fungus.lesion(mutable = self.mutable)
+            les.__dict__.update(kwds)
+            les.set_position(self.position)
+            self.set_nb_dispersal_units(max(0, self.nb_dispersal_units - nb_lesions))
+            if leaf is None:
+                self.disable()
+                return les
+            else:
+                try:
+                    leaf.lesions.append(les)
+                except:
+                    leaf.lesions = [les]
+                if self.nb_dispersal_units == 0.:
+                    self.disable()
+                    return
         
     def disable(self):
         """ Disable the dispersal unit.
@@ -81,6 +90,15 @@ class DispersalUnit(object):
          - 'position' (x,y) - Position of the DU: coordinates on the leaf axis.
         """
         self.position = position
+
+    def set_status(self, status = 'deposited'):
+        """ Set the status of the DU to given argument.
+        
+        :Parameters:
+         - 'status' (str) - 'emitted' or 'deposited': can be used to distinguish DUs to disperse and 
+         DUs that are already deposited on leaves.
+        """
+        self.status = status
         
     def set_nb_dispersal_units(self, nb_dispersal_units=1):
         """ Set the number of DUs in cohort to number given in argument.
@@ -104,13 +122,16 @@ class Lesion(object):
         - senescence_response()
     """
     fungus = None
-    def __init__(self, mutable=False, is_active=True, growth_is_active=True, is_senescent=False,
-                growth_demand=None):
+    def __init__(self, mutable=False, nb_lesions=1):
         """ Initialize the lesion. 
         
         :Parameters:
          - 'mutable' (bool) - True if each lesion has its own parameters (intra-population 
          variability), False if all lesions of the same fungus share the same parameters.
+         - 'nb_lesions' (int) - A Lesion object can represent a cohort of lesions that are
+         deposited on the leaf at the same date. 
+         
+        :Attributes:
          - 'is_active' (bool) - Activity of the lesion (growth and ageing): if False, lesion is dead.
          - 'growth_is_active' (bool) - Growing activity of the lesion: if False, the growth is 
          stopped but the lesion is still alive and can continue the infection cycle.
@@ -118,10 +139,11 @@ class Lesion(object):
          - 'growth_demand' (float) - Potential surface increase of the lesion during
          the time step to come.  
         """
-        self.is_active = is_active
-        self.growth_is_active = growth_is_active
-        self.is_senescent = is_senescent
-        self.growth_demand = growth_demand
+        self.is_active = True
+        self.growth_is_active = True
+        self.is_senescent = False
+        self.growth_demand = 0.
+        self.nb_lesions = nb_lesions
 
         # Capacity to differ from other lesions of same Fungus
         self.mutable = mutable
@@ -152,9 +174,9 @@ class Lesion(object):
         """ Increase lesion surface according to area available on leaf for this specific 
         lesion ('growth_offer')
         
-        The growth offer is specific of this lesion and represents the area that will be colonized
-        by the lesion during the time step. It is necessarily inferior or equal to growth demand 
-        (i.e. potential growth). It is computed by an external model that coordinates all the 
+        The growth offer is specific of each Lesion object and represents the area that will be 
+        colonized by the lesion during the time step. It is necessarily inferior or equal to growth 
+        demand (i.e. potential growth). It is computed by an external model that coordinates all the 
         lesions on the same leaf.
         
         ..seealso:: :method: Lesion.update()
@@ -162,7 +184,7 @@ class Lesion(object):
         To be overridden specifically by fungus type. By default, pass.
         
         :Parameters:
-         - growth_offer (float): area available on leaf.
+         - growth_offer (float): area available on leaf for lesion growth.
         """
         pass
     

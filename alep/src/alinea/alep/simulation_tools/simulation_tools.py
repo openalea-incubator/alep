@@ -142,7 +142,7 @@ def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.,
     #
     
     # Manage NFF
-    if single_nff==True:
+    if single_nff==False:
         nff_in_disease_data = {'Mercia':None, 'Rht3':None,
                                'Tremie12': {'12':0.21, '13':0.79},
                                'Tremie13': {'11':23./43, '12':20./43.}}
@@ -175,9 +175,6 @@ def alep_echap_reconstructions(keep_leaves=False, leaf_duration=2.,
     # Temp    
 #    reconst.HS_fit['Tremie12'].TT_hs_0 -= 35
 #    reconst.HS_fit['Tremie13'].TT_hs_0 -= 35
-
-    import pdb
-    pdb.set_trace()
 
     # Temp
     reconst.GL_fits['Tremie12'].GL_bolting = reconst.GL_fits['Tremie13'].GL_bolting   

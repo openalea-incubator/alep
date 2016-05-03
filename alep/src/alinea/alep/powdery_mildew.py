@@ -1,8 +1,12 @@
 """ Classes of dispersal unit, lesion of grapevine powdery mildew.
 
+..:todo: - adapt emission to new protocol
+         - build PowderyMildewInspector
+
 """
 # Imports #########################################################################
 from alinea.alep.fungus import *
+import numpy as np
 from random import random, randint
 from math import (exp, pi, floor, ceil, sqrt)
 
@@ -12,131 +16,110 @@ class PowderyMildewDU(DispersalUnit):
     
     """
     fungus = None
-    def __init__(self, nb_spores=None, position=None, status=None):
-        """ Initialize the dispersal unit of powdery mildew.
+    def __init__(self, mutable=False):
+        """ Initialize the dispersal unit (DU).
         
-        Parameters
-        ----------
-        nb_spores: int
-            Number of spores aggregated in the dispersal unit
-        position: non defined
-            Position of the dispersal unit on the phyto-element
-        status: str
-            'emitted' or 'deposited'
-        
-        Returns
-        -------
-            None
-        
+        :Parameters:
+         - 'mutable' (bool) - True if each DU has its own parameters (intra-population variability),
+         False if all DU of the same fungus share the same parameters.
         """
-        super(PowderyMildewDU, self).__init__(nb_spores=nb_spores, position=position, status=status)
+        super(PowderyMildewDU, self).__init__(mutable=mutable)
         # Age of the dispersal unit in degree days
         self.age_dday = 0.
-        # Viability of the dispersal unit:
-        # Scale from 1:viable to 0:not viable
+        # Viability of the DU : Decreases with time down to 0
         self.viability = 1.
         
-    def infect(self, dt, leaf, **kwds):
+    def infect(self, dt=1, leaf=None):
         """ Compute infection by the dispersal unit of powdery mildew.
         
-        Parameters
-        ----------
-        dt: int
-            Time step of the simulation (in hours)
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. area, green area, healthy area,
-            senescence, rain intensity, wetness, temperature, lesions)
-
-        Returns
-        -------
-            None  
+        :Parameters:
+         - 'dt' (int): Time step of the simulation (in hours)
+         - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
+            green area, senescence, wetness, temperature, other DUs and lesions, ...)
         """
-        # External variables
-        leaf_wet = leaf.wetness
-        temp = leaf.temp
-        relative_humidity = leaf.relative_humidity
-        
-        # Parameters for calculation
-        f = self.fungus
-        t_min = f.temp_min_for_infection
-        t_max = f.temp_max_for_infection
-        m = f.m_for_infection
-        n = f.n_for_infection
-        max_rate = f.max_infection_rate
-        decay_rate = f.decay_rate
-        a_RH_effect = f.a_RH_effect
-        b_RH_effect = f.b_RH_effect
-        RH_opt = f.RH_opt_for_infection
-        c_wetness_effect = f.c_wetness_effect
-        d_wetness_effect = f.d_wetness_effect
-        nb_spores = self.nb_spores
-        
-        if nb_spores == 0.:
-            self.disable()
-            return
-        
-        # Compute dispersal unit age (and viability?)
-        self.update_age_dday(dt, leaf)
+        if self.is_active:
+                
+            # External variables
+            if leaf.green_area== 0.:
+                self.disable()
+                return
+            leaf_wet = leaf.wetness
+            temp = leaf.temp
+            relative_humidity = leaf.relative_humidity
+            
+            # Parameters for calculation
+            f = self.fungus
+            t_min = f.temp_min_for_infection
+            t_max = f.temp_max_for_infection
+            m = f.m_for_infection
+            n = f.n_for_infection
+            max_rate = f.max_infection_rate
+            decay_rate = f.decay_rate
+            a_RH_effect = f.a_RH_effect
+            b_RH_effect = f.b_RH_effect
+            RH_opt = f.RH_opt_for_infection
+            c_wetness_effect = f.c_wetness_effect
+            d_wetness_effect = f.d_wetness_effect
+            
+            if self.nb_dispersal_units == 0.:
+                self.disable()
+                return
+            
+            # Compute dispersal unit age (and viability?)
+            self.update_age_dday(dt, leaf)
 
-        if self.is_ready_to_infect():
-            # Temperature factor
-            t_norm_function = temp_norm_function(temp, t_min, t_max, m, n)
-            temp_factor = (max_rate * t_norm_function * exp(-decay_rate * leaf.age))
-            
-            # Relative humidity factor
-            RH_factor = min(1., a_RH_effect * relative_humidity + b_RH_effect)
-            
-            # Wetness factor
-            if relative_humidity >= RH_opt or leaf_wet:
-                wetness_factor = min(1., c_wetness_effect - d_wetness_effect * temp)
-            else:
-                wetness_factor = 1.
-            
-            # Spores factor
-            # TODO : create a function of the number of spores            
-            spores_factor = nb_spores / nb_spores # always equals 1 for now
-            
-            # Infection rate 
-            infection_rate = temp_factor * RH_factor * wetness_factor * spores_factor
-            if proba(infection_rate):
-                self.create_lesion(leaf)
-            else:
-                # self.disable()
-                self.update_viability(dt, leaf)
-                if not self.is_viable():
-                    self.disable()
+            if self.is_ready_to_infect():
+                # Temperature factor
+                t_norm_function = temp_norm_function(temp, t_min, t_max, m, n)
+                temp_factor = (max_rate * t_norm_function * exp(-decay_rate * leaf.age))
+                
+                # Relative humidity factor
+                RH_factor = min(1., a_RH_effect * relative_humidity + b_RH_effect)
+                
+                # Wetness factor
+                if relative_humidity >= RH_opt or leaf_wet:
+                    wetness_factor = min(1., c_wetness_effect - d_wetness_effect * temp)
+                else:
+                    wetness_factor = 1.
+                
+                # Probability of infection
+                proba_infection = temp_factor * RH_factor * wetness_factor * spores_factor
+                proba_loss = 1 - self.viability
+                if f.group_dus:
+                    init_nb_dus = self.nb_dispersal_units
+                    nb_les = np.random.binomial(init_nb_dus, proba_infection)
+                    self.create_lesion(nb_les, leaf)
+                    if init_nb_dus > nb_les:
+                        nb_dead = np.random.binomial(init_nb_dus - nb_les, proba_loss)
+                        self.nb_dispersal_units -= nb_dead
+                else:
+                    if np.random.random() < proba_infection:
+                        self.create_lesion(1, leaf)
+                    elif np.random.random() < proba_loss:
+                        self.disable()
                 
     def update_age_dday(self, dt=1., leaf=None):
         """ Update the age of the lesion.
         
-        Parameters
-        ----------
-        dt: int
-            Time step of the simulation (in hours)
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. area, green area, healthy area,
-            senescence, rain intensity, wetness, temperature, lesions)
+        :Parameters:
+         - 'dt' (int): Time step of the simulation (in hours)
+         - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
+            green area, senescence, wetness, temperature, other DUs and lesions, ...)
         """
         self.age_dday += self.compute_delta_ddays(dt, leaf)
         
     def compute_delta_ddays(self, dt=1., leaf=None):
         """ Compute delta degree days in dt.
         
-        Parameters
-        ----------
-        dt: int
-            Time step of the simulation (in hours)
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. area, green area, healthy area,
-            senescence, rain intensity, wetness, temperature, lesions)
+        :Parameters:
+         - 'dt' (int): Time step of the simulation (in hours)
+         - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
+            green area, senescence, wetness, temperature, other DUs and lesions, ...)
         
-        Returns
-        -------
-        ddday: float
-            Delta degree days in time step
+        :Returns:
+         - 'ddday' (float): Delta degree days in time step
         """
         f = self.fungus
-        # Calculation
         if dt != 0.:
             ddday = max(0,(leaf.temp - f.basis_for_dday*dt)/(24./dt))
         else:
@@ -149,13 +132,10 @@ class PowderyMildewDU(DispersalUnit):
         The hypothesis is made that a dispersal unit is viable 5 days (120h).
         The decrease of viability by time step is doubled if the leaf is wet.
         
-        Parameters
-        ----------
-        dt: int
-            Time step of the simulation (in hours)
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. area, green area, healthy area,
-            senescence, rain intensity, wetness, temperature, lesions)
+        :Parameters:
+         - 'dt' (int): Time step of the simulation (in hours)
+         - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
+            green area, senescence, wetness, temperature, other DUs and lesions, ...)
         """
         f = self.fungus
         if leaf.wetness:
@@ -163,31 +143,15 @@ class PowderyMildewDU(DispersalUnit):
         viability_loss = dt/f.viability_length
         self.viability -= viability_loss if self.viability > viability_loss else 0.
     
+    @property
     def is_viable(self):
         """ Check if the dispersal unit is still viable.
-        
-        Parameters
-        ----------
-            None
-        
-        Returns
-        -------
-        True or False:
-            True if the dispersal unit is viable, False otherwise
         """
         return self.viability > 0.
-                    
+
+    @property
     def is_ready_to_infect(self):
         """ Check if the dispersal unit is ready to infect according to its age.
-        
-        Parameters
-        ----------
-            None
-        
-        Returns
-        -------
-        True or False:
-            True if the dispersal unit is ready for infection, False otherwise
         """
         f = self.fungus
         return self.age_dday >= f.degree_days_to_infect
@@ -243,11 +207,10 @@ class PowderyMildew(Lesion):
  
         Parameters
         ----------
-        dt: int
-            Time step of the simulation (in hours)
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. area, green area, healthy area,
-            senescence, rain intensity, wetness, temperature, lesions)
+        :Parameters:
+         - 'dt' (int): Time step of the simulation (in hours)
+         - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
+            green area, senescence, wetness, temperature, other DUs and lesions, ...)
         """       
         # Update lesion age
         self.dt = dt
@@ -273,13 +236,12 @@ class PowderyMildew(Lesion):
         self.temperatures.append(leaf.temp)
     
     def update_diameter_max(self, leaf=None):
-        """ Compute maximum diameter of the lesion according to its age.
+        """ Compute maximum diameter of the lesion or each lesion in cohort according to its age.
         
-        Parameters
-        ----------
-        leaf: Leaf sector node of an MTG 
-            A leaf sector with properties (e.g. area, green area, healthy area,
-            senescence, rain intensity, wetness, temperature, lesions)
+        :Parameters:
+         - 'dt' (int): Time step of the simulation (in hours)
+         - 'leaf' (Leaf sector node of a MTG): A leaf sector with properties (e.g. area, 
+            green area, senescence, wetness, temperature, other DUs and lesions, ...)
         """
         # Parameters for the calculation
         f = self.fungus
@@ -287,16 +249,12 @@ class PowderyMildew(Lesion):
         diameter_min = f.diameter_min
         leaf_age_effect = f.leaf_age_effect
         
-        # Maximum diameter of the lesion according to leaf age
+        # Maximum diameter of a lesion in cohort according to leaf age
         kmax = diameter_min + (diameter_max - diameter_min) * exp(-leaf_age_effect * leaf.age)
         self.diameter_max = kmax
         
     def update_growth_demand(self):
         """ Compute lesion growth demand for the time step.
-        
-        Parameters
-        ----------
-            None
         """
         # Parameters for the calculation
         f = self.fungus
@@ -318,17 +276,11 @@ class PowderyMildew(Lesion):
         diameter_demand = diameter + kmax * t_norm_function * age_factor
         
         # Growth demand in surface
-        gd = (pi * diameter_demand**2 /4) - self.surface
-
-        self.growth_demand = gd
+        self.growth_demand = self.nb_lesions * (pi * diameter_demand**2 /4) - self.surface
     
     def progress_in_latency(self):
         """ Compute the ageing of the lesion in latency period and 
             set the status of the lesion to SPORULATING when needed.
-               
-        Parameters
-        ----------
-            None
         """
         # Parameters for the calculation
         f = self.fungus
@@ -352,10 +304,6 @@ class PowderyMildew(Lesion):
     def progress_in_sporulation(self):
         """ Compute the ageing of the lesion in latency period and 
             set the status of the lesion to SPORULATING when needed.
-               
-        Parameters
-        ----------
-            None
         """
         # Parameters for the calculation
         f = self.fungus
@@ -378,10 +326,8 @@ class PowderyMildew(Lesion):
         """ update surface of the lesion according to its growth demand
             and available surface on the leaf.
         
-        Parameters
-        ----------
-        growth_offer: float
-            Minimum between 'growth_demand' and the surface available on
+        :Parameters:
+         - 'growth_offer' (float): Minimum between 'growth_demand' and the surface available on
             the leaf for the lesion to grow (cm2)
         """
         # 1. Update surface
@@ -408,11 +354,7 @@ class PowderyMildew(Lesion):
         """ Update the stock of spores available on the lesion
             according only to surface.
         
-        Not used in Calonnec version.
-        
-        Parameters
-        ----------
-            None
+        Not used in Calonnec model.
         """
         # Parameters for the calculation
         f = self.fungus
@@ -430,11 +372,7 @@ class PowderyMildew(Lesion):
         """ Update the stock of spores available on the lesion 
             according to surface and temperature.
         
-        Not used in Calonnec version.
-        
-        Parameters
-        ----------
-            None
+        Not used in Calonnec model.
         """
         # Parameters for the calculation
         f = self.fungus
@@ -527,277 +465,95 @@ class PowderyMildew(Lesion):
     
     def senescence_response(self):
         """ Disable the lesion if it is on senescent tissue.
-        
-        Parameters
-        ----------
         """
         self.disable()
         
     def is_latent(self):
         """ Check if the status of the lesion is LATENT.
-        
-        Parameters
-        ----------
-            None
         """
         f = self.fungus
         return self.status==f.LATENT
     
     def is_sporulating(self):
         """ Check if the status of the lesion is SPORULATING.
-        
-        Parameters
-        ----------
-            None
         """
         f = self.fungus
         return self.status==f.SPORULATING
 
     def is_empty(self):
         """ Check if the status of the lesion is EMPTY.
-        
-        Parameters
-        ----------
-            None
         """
         f = self.fungus
         return self.status==f.EMPTY    
         
     def disable_production(self):
         """ Shut down lesion production activity (turn it to False)
-        
-        Parameters
-        ----------
-            None
         """
         self.production_is_active = False
 
     def activate_production(self):
         """ Turn lesion production activity on (turn it to True)
-        
-        Parameters
-        ----------
-            None
         """
         self.production_is_active = True
         
-# Fungus parameters (e.g. .ini): config of the fungus #############################
-class PowderyMildewParameters(Parameters):
+# Fungus parameters: config of the fungus ##########################################################
+powdery_mildew_parameters = dict(name='powdery_mildew',
+                                 LATENT = 0,
+                                 SPORULATING = 1,
+                                 EMPTY = 2,
+                                 DEAD = 3,
+                                 group_dus = True,
+                                 degree_days_to_infect = 20.,
+                                 basis_for_dday = 0.,
+                                 viability_length = 120.,
+                                 temp_min_for_infection = 5.,
+                                 temp_max_for_infection = 33.,
+                                 m_for_infection = 0.338,
+                                 n_for_infection = 1.055,
+                                 max_infection_rate = 0.53,
+                                 decay_rate = 0.147,
+                                 a_RH_effect = 0.0023,
+                                 b_RH_effect = 0.8068,
+                                 RH_opt_for_infection = 85,
+                                 c_wetness_effect = 1.155,
+                                 d_wetness_effect = 0.014,
+                                 diameter_max = 1.8,
+                                 diameter_min = 0.2, 
+                                 leaf_age_effect = 0.08,
+                                 temp_min_for_growth = 5.,
+                                 temp_max_for_growth = 33.,
+                                 m_for_growth = 0.27,
+                                 n_for_growth = 1.24,
+                                 growth_rate = 0.2,
+                                 half_growth_time = 13., 
+                                 temp_min_for_latency = 5.,
+                                 temp_max_for_latency = 33.,
+                                 m_for_latency = 0.27,
+                                 n_for_latency = 1.24,
+                                 min_latency_duration = 6. * 24,
+                                 a_for_sporulation = 0.0227 / 24,
+                                 b_for_sporulation = 0.0762,
+                                 beta_for_sporulation = 874.,
+                                 gamma_for_sporulation = 0.314,
+                                 temp_min_for_sporulation = 15.,
+                                 temp_max_for_sporulation = 33.,
+                                 m_for_sporulation = 1.,
+                                 n_for_sporulation = 1.,
+                                 a_for_emission = 0.71, 
+                                 b_for_emission = -5.8, 
+                                 r_for_emission = 0.41, 
+                                 treshold_spores = 1)
+                                 
+# Powdery mildew fungus ############################################################################
+class PowderyMildewFungus(Fungus):
+    """ Define a fungus model with dispersal unit class, lesion class and set of parameters """
     def __init__(self,
-                 LATENT = 0,
-                 SPORULATING = 1,
-                 EMPTY = 2,
-                 DEAD = 3,
-                 degree_days_to_infect = 20.,
-                 basis_for_dday = 0.,
-                 viability_length = 120.,
-                 temp_min_for_infection = 5.,
-                 temp_max_for_infection = 33.,
-                 m_for_infection = 0.338,
-                 n_for_infection = 1.055,
-                 max_infection_rate = 0.53,
-                 decay_rate = 0.147,
-                 a_RH_effect = 0.0023,
-                 b_RH_effect = 0.8068,
-                 RH_opt_for_infection = 85,
-                 c_wetness_effect = 1.155,
-                 d_wetness_effect = 0.014,
-                 diameter_max = 1.8,
-                 diameter_min = 0.2, 
-                 leaf_age_effect = 0.08,
-                 temp_min_for_growth = 5.,
-                 temp_max_for_growth = 33.,
-                 m_for_growth = 0.27,
-                 n_for_growth = 1.24,
-                 growth_rate = 0.2,
-                 half_growth_time = 13., 
-                 temp_min_for_latency = 5.,
-                 temp_max_for_latency = 33.,
-                 m_for_latency = 0.27,
-                 n_for_latency = 1.24,
-                 min_latency_duration = 6. * 24,
-                 
-                 a_for_sporulation = 0.0227 / 24,
-                 b_for_sporulation = 0.0762,
-                 beta_for_sporulation = 874.,
-                 gamma_for_sporulation = 0.314,
-                 
-                 temp_min_for_sporulation = 15.,
-                 temp_max_for_sporulation = 33.,
-                 m_for_sporulation = 1.,
-                 n_for_sporulation = 1.,
-                                  
-                 a_for_emission = 0.71, 
-                 b_for_emission = -5.8, 
-                 r_for_emission = 0.41, 
-                 treshold_spores = 1,
-                 
-                 *args, **kwds):
-        """ Parameters for powdery mildew.
-        
-        Parameters
-        ----------
-        degree_days_to_infect: float
-            Degree days needed to achieve infection
-            (/!\ personal suggestion)
-        basis_for_dday: float
-            Base temperature for degree days cumulation
-            (/!\ personal suggestion)
-        viability_length: float
-            Length of the period of viability of a dispersal unit deposited on a leaf
-            (/!\ personal suggestion)
-        temp_min_for_infection: float
-            Minimal temperature for infection (degrees celsius)
-        temp_max_for_infection: float
-            Maximal temperature for infection (degrees celsius)
-        m_for_infection: float
-            Shape parameter for the calculation of the normalized temperature for infection
-        n_for_infection: float
-            Shape parameter for the calculation of the normalized temperature for infection
-        max_infection_rate: float
-            Maximal infection rate ([0;1])
-        decay_rate: float
-            Leaf susceptibility decay with age ([0;1])
-        a_RH_effect: float
-            Shape parameter for the calculation of the effect of relative humidity on infection
-        b_RH_effect: float
-            Shape parameter for the calculation of the effect of relative humidity on infection
-        RH_opt_for_infection: float
-            Optimal relative humidity for infection (%)
-        c_wetness_effect: float
-            Shape parameter for the calculation of the effect of leaf wetness on infection
-        d_wetness_effect: float
-            Shape parameter for the calculation of the effect of leaf wetness on infection
-        diameter_max: float
-            Maximum diameter of the lesion (cm)
-        diameter_min: float
-            Minimum diameter of the lesion (cm)
-        leaf_age_effect: float
-            Rate of colony growth with the leaves age ([0;1])
-        temp_min_for_growth: float
-            Minimal temperature for growth (degrees celsius)
-        temp_max_for_growth: float
-            Maximal temperature for growth (degrees celsius)
-        m_for_growth: float
-            Shape parameter for the calculation of the normalized temperature for growth
-        n_for_growth: float
-            Shape parameter for the calculation of the normalized temperature for growth
-        half_growth_time: float
-            Time before 50% of colony growth (hours)
-        temp_min_for_latency: float
-            Minimal temperature for latency (degrees celsius)
-        temp_max_for_latency: float
-            Maximal temperature for latency (degrees celsius)
-        m_for_latency: float
-            Shape parameter for the calculation of the normalized temperature for latency
-        n_for_latency: float
-            Shape parameter for the calculation of the normalized temperature for latency
-        min_latency_duration: float
-            Minimum latency duration (hours)
-        a_for_sporulation: float
-            Shape parameter for the calculation of the progress 
-            of the sporulation period according to temperature
-        b_for_sporulation: float
-            Shape parameter for the calculation of the progress 
-            of the sporulation period according to temperature
-        beta_for_sporulation: float
-            Shape parameter for the calculation of spore production
-        gamma_for_sporulation: float
-            Shape parameter for the calculation of spore production
-        temp_min_for_sporulation: float
-            Minimal temperature for sporulation (degrees celsius)
-        temp_max_for_sporulation: float
-            Maximal temperature for sporulation (degrees celsius)
-        m_for_sporulation: float
-            Shape parameter for the calculation of the normalized temperature for sporulation
-        n_for_sporulation: float
-            Shape parameter for the calculation of the normalized temperature for sporulation
-        a_for_emission: float
-            Shape parameter to compute emission of spores because of wind
-        b_for_emission: float
-            Shape parameter to compute emission of spores because of wind
-        r_for_emission: float
-            Shape parameter to compute emission of spores because of wind
-        treshold_spores: int
-            Treshold of spores on a surface to consider it empty
-        """
-        self.name = "powdery_mildew"
-        self.LATENT = LATENT
-        self.SPORULATING = SPORULATING
-        self.EMPTY = EMPTY
-        self.DEAD = DEAD
-        self.degree_days_to_infect = degree_days_to_infect
-        self.basis_for_dday = basis_for_dday
-        self.viability_length = viability_length
-        self.temp_min_for_infection = temp_min_for_infection
-        self.temp_max_for_infection = temp_max_for_infection
-        self.m_for_infection = m_for_infection
-        self.n_for_infection = n_for_infection
-        self.max_infection_rate = max_infection_rate
-        self.decay_rate = decay_rate
-        self.a_RH_effect = a_RH_effect
-        self.b_RH_effect = b_RH_effect
-        self.RH_opt_for_infection = RH_opt_for_infection
-        self.c_wetness_effect = c_wetness_effect
-        self.d_wetness_effect = d_wetness_effect
-        
-        self.diameter_max = diameter_max
-        self.diameter_min = diameter_min
-        self.leaf_age_effect = leaf_age_effect
-        self.temp_min_for_growth = temp_min_for_growth
-        self.temp_max_for_growth = temp_max_for_growth
-        self.m_for_growth = m_for_growth
-        self.n_for_growth = n_for_growth
-        self.growth_rate = growth_rate
-        self.half_growth_time = half_growth_time
-        
-        self.temp_min_for_latency = temp_min_for_latency
-        self.temp_max_for_latency = temp_max_for_latency
-        self.m_for_latency = m_for_latency
-        self.n_for_latency = n_for_latency
-        self.min_latency_duration = min_latency_duration
-        
-        self.a_for_sporulation = a_for_sporulation
-        self.b_for_sporulation = b_for_sporulation
-        self.beta_for_sporulation = beta_for_sporulation
-        self.gamma_for_sporulation = gamma_for_sporulation
-        
-        self.temp_min_for_sporulation = temp_min_for_sporulation
-        self.temp_max_for_sporulation = temp_max_for_sporulation
-        self.m_for_sporulation = m_for_sporulation
-        self.n_for_sporulation = n_for_sporulation
-                
-        self.a_for_emission = a_for_emission
-        self.b_for_emission = b_for_emission
-        self.r_for_emission = r_for_emission
-        self.treshold_spores = treshold_spores
-
-    def __call__(self, nb_spores=None, position=None):
-        if PowderyMildew.fungus is None:
-            PowderyMildew.fungus = self
-        if PowderyMildewDU.fungus is None:
-            PowderyMildewDU.fungus = self
-        return PowderyMildew(nb_spores=nb_spores, position=position)
-
-def powdery_mildew(**kwds):
-    return PowderyMildewParameters(**kwds)
-
-class Disease(object):
-    name = 'powdery_mildew'
-
-    @classmethod
-    def parameters(cls, **kwds):
-        return powdery_mildew(**kwds)
-    
-    @classmethod
-    def dispersal_unit(cls, **kwds):
-        PowderyMildewDU.fungus=cls.parameters(**kwds)
-        return PowderyMildewDU
-    
-    @classmethod
-    def lesion(cls, **kwds):
-        PowderyMildew.fungus=cls.parameters(**kwds)
-        return PowderyMildew
+                 Lesion = PowderyMildewLesion,
+                 DispersalUnit = PowderyMildewDU,
+                 parameters = powdery_mildew_parameters):
+        super(BrownRustFungus, self).__init__(Lesion = Lesion,
+                                              DispersalUnit = DispersalUnit,
+                                              parameters = parameters)
     
 # Useful functions ################################################################
 def proba(p):
