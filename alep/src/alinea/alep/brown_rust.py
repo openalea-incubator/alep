@@ -1,7 +1,7 @@
 # -*- coding: latin1 -*-
 """ Classes of dispersal unit and lesion of wheat brown rust.
 """
-from alinea.alep.fungal_objects import *
+from alinea.alep.fungus import *
 import numpy as np
 
 # Dispersal unit ###################################################################################
