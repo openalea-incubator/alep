@@ -122,7 +122,7 @@ class Lesion(object):
         - senescence_response()
     """
     fungus = None
-    def __init__(self, mutable=False, nb_lesions=1):
+    def __init__(self, mutable=False):
         """ Initialize the lesion. 
         
         :Parameters:
@@ -143,7 +143,6 @@ class Lesion(object):
         self.growth_is_active = True
         self.is_senescent = False
         self.growth_demand = 0.
-        self.nb_lesions = nb_lesions
 
         # Capacity to differ from other lesions of same Fungus
         self.mutable = mutable
