@@ -237,7 +237,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
         if septo_rust_iter:
             infect(g, septo_rust_iter.dt, infection_controler, label='LeafElement')
 #            group_duplicates_in_cohort(g) # Additional optimisation (group identical cohorts)
-            update(g, septo_rust_iter.dt, growth_controler, senescence_model=None, label='LeafElement')            
+            update(g, septo_rust_iter.dt, growth_controler, label='LeafElement')            
 #         Disperse and wash
         if septo_dispersal_iter and len(geom)>0 and septo_dispersal_iter.value.rain.mean()>0.2:
             g = disperse(g, septo_emitter, septo_transporter, "septoria",
@@ -337,7 +337,8 @@ def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                     nplants = 15,  sowing_date = '10-29', 
                     inoc_septo = 2.5e-3, inoc_rust = 300.,
                     suffix = None, nreps=3, **kwds):
-    scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
+    # scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
+    scenarios_inoc = [(0, inoc_rust), (inoc_septo, inoc_rust)]
     for yr in years:
         for inoc in scenarios_inoc:
             run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
@@ -345,7 +346,7 @@ def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                                 sporulating_fraction=inoc[0],
                                 density_dispersal_units=inoc[1],
                                 nreps=nreps, suffix=suffix, **kwds)
-                                
+                                                                
 def plot_example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                         nplants = 15,  sowing_date = '10-29', 
                         inoc_rust = 300., inoc_septo = 2.5e-3, 
