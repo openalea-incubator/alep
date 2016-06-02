@@ -327,6 +327,8 @@ class SeptoRustCompetition:
                 non_prio_les = []
                 nb_prio = 0.
                 nb_non_prio = 0.
+                nb_rust = 0.
+                s_rust_non_sen = 0.
                 for l in leaf_lesions:
                     if l.fungus.name=='septoria' and l.status >= l.fungus.CHLOROTIC:
                         s_prio += l.surface
@@ -361,7 +363,7 @@ class SeptoRustCompetition:
                             offer_prio = 0.                            
                     else:
                         offer_prio = 0.
-                        r = leaf_green_area / s_prio_non_sen
+                        r = leaf_green_area / s_prio_non_sen if s_non_prio_non_sen>0 else 0.
                         if round(r,14) < 1:
                             self.manage_senescence_border(leaf, r, lesions,
                                                           senesced_lengths,
@@ -372,8 +374,9 @@ class SeptoRustCompetition:
                         offer_lesion = l.growth_demand*offer_prio/demand_prio if demand_prio>0. else 0.
                         l.control_growth(offer_lesion)
                         # Temp : Add limiting factor on sporulating capacity of septoria
-#                        if nb_rust>0:
-#                            l.sporulating_capacity = s_rust_non_sen/leaf_green_area if leaf_green_area>0. else 0.
+                        # print "l.377 growth_control modif"
+                        # if nb_rust>0:
+                            # l.sporulating_capacity = s_rust_non_sen/leaf_green_area if leaf_green_area>0. else 0.
 
                 if nb_non_prio>0:
                     nb_les = nb_prio + nb_non_prio
@@ -387,7 +390,7 @@ class SeptoRustCompetition:
                                              true_area_non_prio-s_non_prio_non_sen-new_true_area_prio)
                     else:
                         offer_non_prio = 0.
-                        r = leaf_green_area / s_non_prio_non_sen
+                        r = leaf_green_area / s_non_prio_non_sen if s_non_prio_non_sen>0 else 0.
                         if round(r,14) < 1:
                             self.manage_senescence_border(leaf, r, lesions,
                                                           senesced_lengths,

@@ -272,7 +272,7 @@ class BrownRustLesion(Lesion):
                     self.surface_chlo = 0.
                     self.surface_spo = 0.
                     self.surface_empty = 0.
-                    self.disable_growth = 0.
+                    self.disable_growth()
 
             # If lesion has reached max size, disable growth
             if round(self.surface, 4) >= round(self._surface_max, 4):
@@ -339,7 +339,7 @@ class BrownRustLesion(Lesion):
             self.surface_sink = 0.
             self.surface_empty = 0.
             self.surface_dead = 0.
-            self.disable()
+            self.is_active = False
 
     def disappear(self):
         """ Kill the lesion and pass all surfaces to 0. 

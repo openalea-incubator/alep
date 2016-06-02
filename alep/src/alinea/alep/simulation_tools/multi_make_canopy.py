@@ -7,13 +7,15 @@ import os
 nplants = 15
 nsect = 7
 
-scenarios = [{'year':2011, 'variety':'Mercia', 'sowing_date':'10-15', 
+# scenarios = [{'year':2011, 'variety':'Mercia', 'sowing_date':'10-15', 
+            # 'nplants':nplants, 'nsect':nsect, 'fixed_rep':rep} for rep in range(30)]
+# scenarios += [{'year':2011, 'variety':'Rht3', 'sowing_date':'10-15', 
+            # 'nplants':nplants, 'nsect':nsect, 'fixed_rep':rep} for rep in range(30)]
+# scenarios += [{'year':2012, 'variety':'Tremie12', 'sowing_date':'10-21', 
+            # 'nplants':nplants, 'nsect':nsect, 'fixed_rep':rep} for rep in range(30)]
+scenarios = [{'year':2013, 'variety':'Tremie13', 'sowing_date':'10-29', 
             'nplants':nplants, 'nsect':nsect, 'fixed_rep':rep} for rep in range(30)]
-scenarios += [{'year':2011, 'variety':'Rht3', 'sowing_date':'10-15', 
-            'nplants':nplants, 'nsect':nsect, 'fixed_rep':rep} for rep in range(30)]
-scenarios += [{'year':2012, 'variety':'Tremie12', 'sowing_date':'10-21', 
-            'nplants':nplants, 'nsect':nsect, 'fixed_rep':rep} for rep in range(30)]
-scenarios += [{'year':2013, 'variety':'Tremie13', 'sowing_date':'10-29', 
+scenarios += [{'year':1999, 'variety':'Tremie13', 'sowing_date':'10-29', 
             'nplants':nplants, 'nsect':nsect, 'fixed_rep':rep} for rep in range(30)]
 
 def make_canopy_helper(kwargs):

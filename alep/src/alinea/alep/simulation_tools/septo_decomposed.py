@@ -52,8 +52,6 @@ def setup(sowing_date="2010-10-15 12:00:00", start_date = None,
     # Set canopy
     it_wheat = 0
     if variety!='Custom':
-        import pdb
-        pdb.set_trace()
         reconst = alep_echap_reconstructions(keep_leaves=keep_leaves, leaf_duration=leaf_duration,
                                              single_nff=single_nff, variability=variability)
         adel = reconst.get_reconstruction(name=variety, nplants=nplants, nsect=nsect)
@@ -1224,22 +1222,23 @@ def get_rmse(data_obs, data_sim):
     df_mean_obs, df_mean_sim = map(lambda df: df.drop('doy',1), (df_mean_obs, df_mean_sim))
     return np.sqrt((df_mean_sim - df_mean_obs) ** 2).mean().mean()
     
-def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
-                      parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
-                                    'scale_stemDim':1.3, 'scale_stemRate':1.1,
-                                    'scale_tillering':0.8, 'scale_leafDim_length':1.2,
-                                    'scale_leafDim_width':1.2, 'scale_leafRate':1.1,
+def explore_scenarios(years = range(1999,2007), nplants=15, nreps=3,
+                      parameters = {'scale_HS':0.8, 'scale_leafSenescence':0.8,
+                                    'scale_stemDim':0.8, 'scale_stemRate':0.8,
+                                    'scale_tillering':0.8, 'scale_leafDim_length':0.8,
+                                    'scale_leafDim_width':0.8, 'scale_leafRate':0.8,
                                     'scale_fallingRate':0.8}):
-    parameters['reference']=1.
+    # parameters['reference']=1.
     for param in parameters:
         kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
-        scale_leafRate = 1.5*kwds.pop('scale_leafRate')
+        # scale_leafRate = 1.5*kwds.pop('scale_leafRate')
+        scale_leafRate = 1.5
         for yr in years:
             run_reps_septo(year=yr, variety='Custom', sowing_date='10-29',
                    nplants=nplants, proba_inf=1, sporulating_fraction=5e-3,
                    scale_leafRate=scale_leafRate, apply_sen='incubation', 
                    age_physio_switch_senescence=100/250.,
-                   suffix='scenario_'+param+'_'+str(yr), nreps=3, **kwds)
+                   suffix='scenario_minus52_'+param+'_'+str(yr), nreps=3, **kwds)
                    
 def rain_scenarios(years = range(1999,2007)):
     df_rain = pd.DataFrame(columns=['year', 'rain_cum', 'mean_rain_interruption'])

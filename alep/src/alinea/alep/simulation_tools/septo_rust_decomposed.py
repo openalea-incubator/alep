@@ -337,8 +337,8 @@ def example_climate(years = [2003,2012,2013], variety = 'Tremie13',
                     nplants = 15,  sowing_date = '10-29', 
                     inoc_septo = 2.5e-3, inoc_rust = 300.,
                     suffix = None, nreps=3, **kwds):
-    # scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
-    scenarios_inoc = [(0, inoc_rust), (inoc_septo, inoc_rust)]
+    scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
+    # scenarios_inoc = [(0, inoc_rust), (inoc_septo, inoc_rust)]
     for yr in years:
         for inoc in scenarios_inoc:
             run_reps_septo_rust(year=yr, variety=variety, nplants=nplants,
