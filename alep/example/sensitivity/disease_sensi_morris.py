@@ -93,7 +93,7 @@ def plot_morris_one_leaf(df_out, problem, leaf=1, ax=None,
                         input_file = 'morris_input.txt',
                         folder='septoria',
                         nboots = 5, ylims=None, force_rename={},
-                        markers_SA={}, add_legend=True,
+                        markers_SA={}, add_legend=True, colored=False,
                         annotation_suffix='', markersize=8):
     if ax is None:
         fig, ax = plt.subplots()
@@ -107,8 +107,9 @@ def plot_morris_one_leaf(df_out, problem, leaf=1, ax=None,
                                 num_levels = 10, conf_level=0.95, 
                                 print_to_console=False)
         for ip, param in enumerate(Si_bt['names']):
-            df_mu_lf.loc[boot, param] = Si_bt['mu_star'][ip]
-            df_sigma_lf.loc[boot, param] = Si_bt['sigma'][ip]
+            if param!='proba_main_nff':
+                df_mu_lf.loc[boot, param] = Si_bt['mu_star'][ip]
+                df_sigma_lf.loc[boot, param] = Si_bt['sigma'][ip]
     mu_star = df_mu_lf.mean().values
     mu_star_conf = df_mu_lf.apply(conf_int).values
     sigma = df_sigma_lf.mean().values
@@ -116,7 +117,8 @@ def plot_morris_one_leaf(df_out, problem, leaf=1, ax=None,
     # ax.errorbar(mu_star, sigma, yerr=sigma_conf, xerr=mu_star_conf,
                 # color='b', marker='*', linestyle='')
     tags = iter(df_mu_lf.columns)
-    markers = itertools.cycle(['o', '^', 's', 'p', '*', 'd', 'D', 'h', 'H'])
+    markers = itertools.cycle(['o', '^', 'v', 's', 'p', '*', 'd', 'D', '<', '>'])
+    colors = itertools.cycle(['b', 'g', 'r', 'k', 'm', 'c'])
     labels=[]
     proxys=[]
     for x,y in zip(mu_star, sigma):
@@ -127,18 +129,28 @@ def plot_morris_one_leaf(df_out, problem, leaf=1, ax=None,
             marker = markers.next()
         if tag in force_rename:
             tag = force_rename[tag]
-        ax.plot(x, y, 'b', marker=marker, markersize=markersize)
+        if colored == True:
+            color = next(colors)
+        else:
+            color = 'k'
+        ax.plot(x, y, color=color, marker=marker, markersize=markersize)
         #ax.annotate(tag, (x,y))
         labels += [tag]
-        proxys += [plt.Line2D((0,1),(0,0), color='b', 
+        proxys += [plt.Line2D((0,1),(0,0), color=color, 
                            marker=marker, linestyle='None')]
     if ylims is not None:
         ax.set_ylim(ylims)
         ax.set_xlim(ylims)
+    else:
+        ylims = [min([ax.get_xlim()[0], ax.get_xlim()[0]]),
+                 max([max(mu_star), max(sigma)])*1.05]
+        ax.set_ylim(ylims)
+        ax.set_xlim(ylims)
     ax.annotate('Leaf %d ' % leaf +annotation_suffix, xy=(0.05, 0.85), 
                 xycoords='axes fraction', fontsize=14)
-    ax.set_ylabel(r"$\sigma$", fontsize=18)
-    ax.set_xlabel(r"$\mu^\ast$", fontsize=18)
+    ax.set_ylabel(r"$\sigma$", fontsize=20)
+    ax.set_xlabel(r"$\mu^\ast$", fontsize=20)
+    ax.tick_params(axis='both', labelsize=18)
     if add_legend==True:
         ax.legend(proxys, labels, numpoints=1, 
                   bbox_to_anchor=(1.01, 1.), loc=2, borderaxespad=0.)
@@ -206,7 +218,7 @@ def plot_morris_3_leaves(df_out, leaves = [10, 5, 1],
                         force_rename={}, axs=None,
                         annotation_suffix='',
                         folder='septoria', markers_SA={}, 
-                        markersize=8):
+                        markersize=8, title=None):
     plt.rcParams['text.usetex']=True
     problem = read_param_file('./'+folder+'/'+parameter_range_file)
     if axs is None:
@@ -230,6 +242,8 @@ def plot_morris_3_leaves(df_out, leaves = [10, 5, 1],
                         folder=folder, markersize=markersize)
     # plt.tight_layout()
     plt.rcParams['text.usetex']=True
+    if title is not None:
+        fig.savefig(title, bbox_inches='tight')
 
 def scatter_plot_by_leaf(df_out, variable = 'normalized_audpc', 
                             parameter = 'Smax', ylims=None):

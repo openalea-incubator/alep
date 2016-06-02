@@ -99,17 +99,18 @@ def save_sensitivity_outputs(year = 2012, variety = 'Tremie12',
     
 def plot_septo_morris_by_leaf(year = 2012, variety = 'Tremie12',
                              variable = 'normalized_audpc',
-                             parameter_range_file = './septoria/septo_param_range.txt',
-                             input_file = './septoria/septo_morris_input.txt',
-                             nboots = 5, ylims=None, force_rename={}, markers_SA={}):
-    output_file = get_septo_morris_path(year=year, variety=variety)
+                             parameter_range_file = 'septo_param_range.txt',
+                             input_file = 'septo_morris_input.txt',
+                             nboots = 5, ylims=None, force_rename={}, markers_SA={},
+                             folder='septoria'):
+    output_file = get_septo_morris_path(year=year, variety=variety, folder=folder)
     df_out = pd.read_csv(output_file)
     plot_morris_by_leaf(df_out, variable=variable,
                         parameter_range_file=parameter_range_file,
                         input_file=input_file, nboots=nboots, 
                         ylims=ylims, force_rename=force_rename,
-                        markers_SA=markers_SA)
-                        
+                        markers_SA=markers_SA, folder=folder)
+
 def plot_septo_morris_by_leaf_by_boot(year = 2012, variety = 'Tremie12',
                              variable = 'normalized_audpc',
                              parameter_range_file = './septoria/septo_param_range.txt',
@@ -160,7 +161,7 @@ def septo_boxplot_3_leaves(year = 2012, leaves = [10, 5, 1],
 def force_rename_SA_wheat():
     return {'tiller_probability':r"$\mathit{Tiller}$",
             'proba_main_nff':r"$\mathit{FLN}$",
-            'scale_HS':r"$\mathit{Earliness}$",
+            'scale_HS':r"$\mathit{Phyllochron}$",
             'scale_leafDim_length':r"$\mathit{Length}_{leaf}$", 
             'scale_leafDim_width':r"$\mathit{Width}_{leaf}$",
             'scale_leafRate':r"$\mathit{Elongation}_{leaf}$",
@@ -173,7 +174,8 @@ def markers_SA():
     return {'scale_HS':'o', 'scale_leafSenescence':'^',
             'scale_stemDim':'s', 'scale_stemRate':'p', 'scale_tillering':'*',
             'scale_leafDim_length':'d', 'scale_leafDim_width':'D', 
-            'scale_leafRate':'h', 'scale_fallingRate':'H'}
+            'scale_leafRate':'<', 'scale_fallingRate':'>', 
+            'proba_main_nff':'v'}
             
 def plot_morris_3_leaves_2_years(years=[2011, 2013], variety = 'Custom', 
                                leaves = [10, 5, 1], variable = 'audpc',
@@ -206,3 +208,40 @@ def septo_boxplot_3_leaves_3_params(year = 2013, leaves = [10, 5, 1],
     for parameter, ax in zip(parameters, axs):
         boxplot_3_leaves(df_out, leaves=leaves, variable=variable,
                         parameter=parameter, ylims=ylims, axs=ax)
+                        
+def plot_septo_morris_two_years_two_leaves(years=[2011,2013], leaves=[1,2],
+                                            variety = 'Custom',
+                                             variable = 'audpc',
+                                             parameter_range_file = 'septo_param_range.txt',
+                                             input_file = 'septo_morris_input.txt',
+                                             nboots = 5, ylims=None, force_rename=force_rename_SA_wheat(),
+                                             markers_SA=markers_SA(),
+                                             folder='septo_wheat'):
+    # import matplotlib.pyplot as plt
+    plt.rcParams['text.usetex']=True
+    problem = read_param_file('./'+folder+'/'+parameter_range_file)
+    fig, axs = plt.subplots(2, 2, figsize=(20,20))
+    for i_year, year in enumerate(years):
+        output_file = get_septo_morris_path(year=year, variety=variety, folder=folder)
+        df_out = pd.read_csv(output_file)
+        axs_ = axs[i_year]
+        for i_leaf, leaf in enumerate(leaves):
+            ax = axs_[i_leaf]
+            if ax==axs[0][-1]:
+                add_legend=True
+            else:
+                add_legend=False
+            plot_morris_one_leaf(df_out, problem,
+                            leaf=leaf, ax=ax,
+                            variable=variable,
+                            input_file=input_file,
+                            nboots=nboots, ylims=ylims, 
+                            force_rename=force_rename,
+                            markers_SA=markers_SA, 
+                            add_legend=add_legend,
+                            annotation_suffix='',
+                            colored = True,
+                            folder=folder)
+            ax.set_title(year, fontsize=18)
+    plt.rcParams['text.usetex']=False
+                        
