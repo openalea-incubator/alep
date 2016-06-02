@@ -1,0 +1,4 @@
+Alep is a generic model to simulate foliar desease pathogen.
+It currently implements two pathogens: 
+    * Septoria tritici (aka Septoria)
+    * Erisyphe necator (aka Powdery Mildew)
