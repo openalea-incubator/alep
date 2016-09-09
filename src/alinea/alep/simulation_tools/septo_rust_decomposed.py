@@ -428,51 +428,63 @@ def plot_example_simulations(year = 2012, variety = 'Tremie13',
                              suffixes=['20160304_x0300_latency135',
                                        '20160304_spo_capacity',
                                        '20160304_strong_inoc_leaf4']):
-
     def plot_variable(df, variable='severity_septo', ax=None):
         legend = False
-        if (len(suffixes)>1 and ax==axs[0][-1]) or (len(suffixes)==1 and ax==axs[0]):
-            legend=True
-        plot_by_leaf(df, variable, xaxis = 'age_leaf_vs_flag_emg', 
+        if (len(suffixes) > 1 and ax == axs[0][-1]) or (len(suffixes) == 1 and ax == axs[0]):
+            legend = True
+        plot_by_leaf(df, variable, xaxis='age_leaf_vs_flag_emg',
                      ax=ax, ylims=[0, 100], xlims=[0, 1500], legend=legend,
                      linewidth=linewidth)
 
     import matplotlib.pyplot as plt
-    fig, axs = plt.subplots(4,3, figsize=(10, 16))
+    fig, axs = plt.subplots(4, len(suffixes), figsize=(10, 5*len(suffixes)))
     for i_suf, suf in enumerate(suffixes):
-        ax0, ax1, ax2, ax3 = (axs[0][i_suf], axs[1][i_suf], axs[2][i_suf], axs[3][i_suf]) 
-        if not 'strong_inoc' in suf:        
+        ax0, ax1, ax2, ax3 = (axs[0][i_suf], axs[1][i_suf], axs[2][i_suf], axs[3][i_suf])
+        if not 'strong_inoc' in suf:
             scenarios_inoc = [(inoc_septo, 0), (0, inoc_rust), (inoc_septo, inoc_rust)]
         else:
             scenarios_inoc = [(inoc_septo, 0), (0, strong_inoc_rust), (inoc_septo, strong_inoc_rust)]
         for inoc in scenarios_inoc:
-            data_sim = get_aggregated_data_sim(year=year, variety=variety, 
-                                      nplants=nplants, 
-                                      sporulating_fraction=inoc[0],
-                                      density_dispersal_units=inoc[1],
-                                      suffix=suf)
+            data_sim = get_aggregated_data_sim(year=year, variety=variety,
+                                               nplants=nplants,
+                                               sporulating_fraction=inoc[0],
+                                               density_dispersal_units=inoc[1],
+                                               suffix=suf)
             data_sim = add_leaf_dates_to_data(data_sim)
-            data_sim['severity_septo']*=100
-            data_sim['severity_septo_spo']*=100
-            data_sim['severity_rust']*=100
-            data_sim['severity_rust_spo']*=100
-            if inoc[0]==0:
+            data_sim['severity_septo'] *= 100
+            data_sim['severity_septo_spo'] *= 100
+            data_sim['severity_rust'] *= 100
+            data_sim['severity_rust_spo'] *= 100
+            if inoc[0] == 0:
                 plot_variable(data_sim, variable='severity_rust', ax=ax1)
-            elif inoc[1]==0:
+            elif inoc[1] == 0:
                 plot_variable(data_sim, variable='severity_septo_spo', ax=ax0)
             else:
                 plot_variable(data_sim, variable='severity_septo_spo', ax=ax2)
                 plot_variable(data_sim, variable='severity_rust', ax=ax3)
-                
+
     for ax in axs.flat:
         ax.grid(alpha=0.5)
-        if (len(suffixes)>1 and ax in axs[-1]) or (len(suffixes)==1 and ax==axs[-1]):
+        if (len(suffixes) > 1 and ax in axs[-1]) or (len(suffixes) == 1 and ax == axs[-1]):
             ax.set_xlabel('Degree days since flag emergence', fontsize=14)
-    if len(suffixes)>1:
-        ax0, ax1, ax2, ax3 = (axs[0][0], axs[1][0], axs[2][0], axs[3][0]) 
+    if len(suffixes) > 1:
+        ax0, ax1, ax2, ax3 = (axs[0][0], axs[1][0], axs[2][0], axs[3][0])
     else:
         ax0, ax1, ax2, ax3 = (axs[0], axs[1], axs[2], axs[3])
     ax0.set_ylabel('Severity septoria alone', fontsize=14)
     ax1.set_ylabel('Severity rust alone', fontsize=14)
     ax2.set_ylabel('Severity septoria complex', fontsize=14)
     ax3.set_ylabel('Severity rust complex', fontsize=14)
+
+if __name__ == '__main__':
+    plot_example_simulations(year=2012, variety='Tremie12',
+                             nplants=15, sowing_date='10-29',
+                             inoc_rust=300., inoc_septo=2.5e-3,
+                             strong_inoc_rust=1e5,
+                             nreps=3, linewidth=2,
+                             suffixes=['20160506_ref',
+                                       '20160506_new_incub',
+                                       '20160506_new_incub_scenarioA',
+                                       '20160506_new_incub_scenarioB',
+                                       '20160506_new_incub_scenarioC'])
+    plt.show()
