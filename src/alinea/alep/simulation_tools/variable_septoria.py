@@ -1,5 +1,4 @@
-from alinea.alep.septoria_age_physio import *
-from alinea.alep.septoria import SeptoriaDU, septoria_parameters
+from alinea.alep.septo3d_v2 import *
 import random as rd
 
 def variable_septoria(distri_chlorosis = {'mu':200., 'sigma':30.}):
@@ -9,7 +8,7 @@ def variable_septoria(distri_chlorosis = {'mu':200., 'sigma':30.}):
     septoria_parameters['mu'] = distri_chlorosis['mu']
     septoria_parameters['sigma'] = distri_chlorosis['sigma']
 
-    class VariableSeptoria(SeptoriaAgePhysio):
+    class VariableSeptoria(SeptoriaLesion):
         def __init__(self, mutable = True):
             super(VariableSeptoria, self).__init__(mutable = mutable)
             self.fungus.degree_days_to_chlorosis = rnd.gauss(mu=self.fungus.mu,

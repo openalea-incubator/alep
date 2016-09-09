@@ -3,7 +3,6 @@
 Run annual loop for the model of septoria in alep on the basis of 'annual_loop_decomposed' in echap
 
 """
-import pandas as pd
 import sys
 
 # Imports for wheat
@@ -25,7 +24,7 @@ from alinea.astk.TimeControl import (IterWithDelays, rain_filter, time_filter,
 
 # Imports for alep septoria
 from alinea.alep.protocol import *
-from alinea.alep.septoria import plugin_septoria
+from alinea.alep.septo3d_v2 import SeptoriaFungus
 from alinea.alep.simulation_tools.simulation_tools import group_duplicates_in_cohort
 from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DEmission
 from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEmission, PopDropsTransport
@@ -35,12 +34,11 @@ from alinea.alep.disease_outputs import save_image, AdelSeptoRecorder
 from variable_septoria import *
 
 # Temp
-import alinea.alep
 from openalea.deploy.shared_data import shared_data
 from alinea.echap.disease.alep_septo_evaluation import *
 from alinea.alep.disease_outputs import plot_by_leaf
 from alinea.alep.simulation_tools.simulation_tools import add_leaf_dates_to_data
-from alinea.adel.newmtg import adel_labels
+import itertools
 
 
 def setup(sowing_date="2010-10-15 12:00:00", start_date=None,
@@ -89,8 +87,8 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
                   age_infection=False, compute_star=False, **kwds):
     """ Choose models to assemble the disease model. """
 
-    if 'alinea.alep.septoria_age_physio' in sys.modules:
-        del (sys.modules['alinea.alep.septoria_age_physio'])
+    if 'alinea.alep.septo3d_v2' in sys.modules:
+        del (sys.modules['alinea.alep.septo3d_v2'])
 
     domain = adel.domain
     domain_area = adel.domain_area
@@ -99,7 +97,7 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
         fungus = variable_septoria(distri_chlorosis=distri_chlorosis)
         mutable = True
     else:
-        fungus = plugin_septoria()
+        fungus = SeptoriaFungus()
         mutable = False
     fungus.parameters(group_dus=True, nb_rings_by_state=1, **kwds)
     inoculum = SoilInoculum(fungus=fungus,
@@ -218,7 +216,7 @@ def annual_loop_septo(year=2013, variety='Tremie13', sowing_date='10-29',
             print date
             recorder.record(g, date, degree_days=record_iter.value.degree_days[-1])
 
-    if record == True:
+    if record:
         recorder.post_treatment(variety=variety)
         if output_file is not None:
             recorder.save(output_file)
@@ -274,9 +272,9 @@ def plot_severity_septo_by_leaf(g, senescence=True,
     """
     from alinea.alep.architecture import set_property_on_each_id, get_leaves
     from alinea.alep.alep_color import alep_colormap, green_yellow_red
-    from alinea.adel.mtg_interpreter import plot3d
+    # from alinea.adel.mtg_interpreter import plot3d
     from alinea.alep.disease_outputs import plot3d_transparency
-    from openalea.plantgl.all import Viewer
+    # from openalea.plantgl.all import Viewer
     # Visualization
     lesions = g.property('lesions')
     leaves = get_leaves(g, label=label)

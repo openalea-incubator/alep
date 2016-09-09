@@ -1,7 +1,7 @@
 """ Examples to test consistency of septoria model.
 """
 from alinea.echap.weather_data import read_weather_year
-from alinea.alep.septoria import plugin_septoria
+from alinea.alep.septo3d_v2 import plugin_septoria
 from alinea.alep.disease_outputs import AdelSeptoRecorder, plot_by_leaf, conf_int
 from alinea.alep.growth_control import SeptoRustCompetition
 from alinea.alep.inoculation import AirborneContamination
