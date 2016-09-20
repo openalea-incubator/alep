@@ -1,7 +1,7 @@
 """ Examples to test consistency of septoria model.
 """
 from alinea.echap.weather_data import read_weather_year
-from alinea.alep.septoria import plugin_septoria
+from alinea.alep.septo3d_v2 import plugin_septoria
 from alinea.alep.disease_outputs import AdelSeptoRecorder, plot_by_leaf, conf_int
 from alinea.alep.growth_control import SeptoRustCompetition
 from alinea.alep.inoculation import AirborneContamination
@@ -55,6 +55,7 @@ def example_surface(nb_steps = 4500, density_lesions = 1, with_compet = False,
     df = weather.data
     df = df.reset_index()
     df = df[df['degree_days']>0]
+    df['date'] = df['datetime']
     g, leaf = get_g_and_one_leaf()
     leaf.area = leaf_area
     leaf.green_area = leaf_area
@@ -252,3 +253,7 @@ def optimize_logistic_on_linear():
     plot(x, linear_growth_list(x))
     plot(x, logistic(x, x0=x0, k=k, Kmax=0.3))
     return x0, k
+
+if __name__ == '__main__':
+    example_surface()
+    plt.show()

@@ -1,10 +1,7 @@
 from alinea.adel.data_samples import adel_two_metamers_stand
-from alinea.alep.fungal_objects import Fungus
 from memory_profiler import profile
 from alinea.alep.septoria_age_physio import *
-import numpy as np
-from septo_decomposed import run_disease
-from variable_septoria import *
+from alinea.alep.simulation_tools.variable_septoria import *
 
 def create_g(leaf_sectors = 1, density = 350, interleaf = 10, 
             leaf_length = 20, leaf_width = 1, Einc = 0):

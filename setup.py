@@ -108,9 +108,7 @@ setup(
     entry_points = { 
         'wralea' : ['alep = alinea.alep_wralea'],
         'alep.disease' :  ['template = alinea.alep.fungal_objects:Fungus',
-                           'septoria_exchanging_rings = alinea.alep.septoria_exchanging_rings:SeptoriaFungus',
-                           'septoria_continuous = alinea.alep.septoria_continuous:SeptoriaFungus',
-                           'septoria_with_rings = alinea.alep.septoria_with_rings:SeptoriaFungus',
+                           'septoria= alinea.alep.septo3d_v2:SeptoriaFungus',
                            'powdery_mildew = alinea.alep.powdery_mildew:PowderyMildewFungus',
                            'brown_rust = alinea.alep.brown_rust:BrownRustFungus',],
         #'console_scripts': [

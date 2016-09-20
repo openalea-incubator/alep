@@ -157,7 +157,7 @@ class PowderyMildewDU(DispersalUnit):
         return self.age_dday >= f.degree_days_to_infect
 
 # Lesion ##########################################################################
-class PowderyMildew(Lesion):
+class PowderyMildewLesion(Lesion):
     """ Powdery mildew lesion implemented as in Calonnec et al., 2008 for the most part. """
     
     def __init__(self, nb_spores=None, position=None):
@@ -551,7 +551,7 @@ class PowderyMildewFungus(Fungus):
                  Lesion = PowderyMildewLesion,
                  DispersalUnit = PowderyMildewDU,
                  parameters = powdery_mildew_parameters):
-        super(BrownRustFungus, self).__init__(Lesion = Lesion,
+        super(PowderyMildewFungus, self).__init__(Lesion = Lesion,
                                               DispersalUnit = DispersalUnit,
                                               parameters = parameters)
     
