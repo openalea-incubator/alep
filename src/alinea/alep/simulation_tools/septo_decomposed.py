@@ -613,7 +613,7 @@ def temp_plot_comparison(data_obs_mercia, data_sim_mercia, weather_2011,
                          data_obs_2012, data_sim_2012, weather_2012,
                          data_obs_2013, data_sim_2013, weather_2013,
                          multiply_sev=False, xaxes=['degree_days', 'age_leaf'],
-                         alpha=0.2, xlimits=[[800, 2250], [-200, 1250]],
+                         alpha=0.2, xlimits=[[1100, 2100], [100, 1100]],
                          title=None, correct_fnl=False, leaves = [5, 4, 3, 2, 1]):
     from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot, plot_one_sim
     import matplotlib.pyplot as plt
@@ -1890,7 +1890,7 @@ def plot_range_effect(parameter='scale_leafSenescence',
     for yr in years:
         labels += [yr]
         proxys += [plt.Line2D((0, 1), (0, 0), color=colors[yr],
-                              marker=markers[yr], linestyle='None')]
+                              marker=markers[yr], linestyle='None', markersize=markersize)]
         audpcs = []
         audpcs_conf = []
         sevs = []
@@ -1928,21 +1928,23 @@ def plot_range_effect(parameter='scale_leafSenescence',
         ax_audpc.errorbar(values, audpcs, yerr=audpcs_conf, linestyle='-',
                           marker=markers[yr], color=colors[yr], markersize=markersize)
         ax_audpc.grid(alpha=0.5)
-        ax_audpc.set_ylabel('AUDPC', fontsize=20)
-        ax_audpc.set_xlabel('Variation of parameter (%)', fontsize=20)
+        ax_audpc.set_ylabel('AUDPC', fontsize=24)
+        ax_audpc.set_xlabel('Variation of parameter (%)', fontsize=24)
         ax_audpc.set_ylim([0, 250])
         ax_audpc.set_xlim([-30, 30])
+        ax_audpc.tick_params(axis='both', which='major', labelsize=20)
 
         ax_sev.errorbar(values, sevs, yerr=sevs_conf, linestyle='-',
                         marker=markers[yr], color=colors[yr], markersize=markersize)
         ax_sev.grid(alpha=0.5)
-        ax_sev.set_ylabel('Max severity', fontsize=20)
-        ax_sev.set_xlabel('Variation of parameter (%)', fontsize=20)
+        ax_sev.set_ylabel('Maximum severity', fontsize=24)
+        ax_sev.set_xlabel('Variation of parameter (%)', fontsize=24)
         ax_sev.set_ylim([0, 100])
         ax_sev.set_xlim([-30, 30])
+        ax_sev.tick_params(axis='both', which='major', labelsize=20)
 
     lgd = ax_sev.legend(proxys, labels, numpoints=1,
-                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+                        bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0., fontsize=20)
     fig.savefig(title, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 
@@ -2119,12 +2121,12 @@ def plot_comparison_scenarios(year=2004, xaxis='degree_days',
 
 def temp_plot_comparison_by_fnl_2013(data_obs_2013, data_sim_2013, weather_2013,
                                      multiply_sev=False, xaxes=['degree_days', 'age_leaf'],
-                                     xlimits=[[1000, 2000], [100, 1000]], alpha=0.2):
+                                     xlimits=[[1100, 2000], [100, 1000]], alpha=0.2):
     from alinea.echap.disease.alep_septo_evaluation import plot_confidence_and_boxplot, plot_one_sim
     import matplotlib.pyplot as plt
 
     leaves = [2, 4]
-    fig, axs = plt.subplots(len(leaves), 2, figsize=(20, 20))
+    fig, axs = plt.subplots(len(leaves), 2, figsize=(15, 15))
     axs_left = np.array([[ax[0]] for ax in axs])
     axs_right = np.array([[ax[1]] for ax in axs])
 
@@ -2165,25 +2167,25 @@ def temp_plot_comparison_by_fnl_2013(data_obs_2013, data_sim_2013, weather_2013,
         ax.set_xticks(ticks)
         ax.set_xticklabels(ticks)
         ax.tick_params(axis='both', which='major', labelsize=20)
-        ax.set_ylabel('Disase severity (%)', fontsize=24)
+        ax.set_ylabel('Disease severity (%)', fontsize=24)
         ax.grid()
     ticks = np.arange(xlimits[1][0], xlimits[1][1], 200)
     for ax in axs_right.flat:
         ax.set_xticks(ticks)
         ax.set_xticklabels(ticks)
         ax.tick_params(axis='both', which='major', labelsize=20)
-        ax.set_ylabel('', fontsize=24)
+        ax.set_ylabel('', fontsize=20)
         ax.set_xlim(xlimits[1])
         ax.grid()
-    axs[0][0].set_xlabel('Thermal time since sowing ($^\circ$Cd)', fontsize=24)
-    axs[1][0].set_xlabel('Thermal time since sowing ($^\circ$Cd)', fontsize=24)
-    axs[0][1].set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=24)
-    axs[1][1].set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=24)
+    axs[0][0].set_xlabel('Thermal time since sowing ($^\circ$Cd)', fontsize=20)
+    axs[1][0].set_xlabel('Thermal time since sowing ($^\circ$Cd)', fontsize=20)
+    axs[0][1].set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=20)
+    axs[1][1].set_xlabel('Age of leaf ($^\circ$Cd)', fontsize=20)
 
     proxy = [plt.Line2D((0, 1), (0, 0), color='k', marker='o', linestyle='-'),
              plt.Rectangle((0, 0), 0, 0, facecolor='k', alpha=0.3)]
     labels = ['Mean', 'Confidence\n interval']
-    lgd = axs[0][-1].legend(proxy, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=24)
+    lgd = axs[0][-1].legend(proxy, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=20)
     locbox = (1.1, 0.2)
     locim = (1.12, 0.2)
     txtbox = TextArea('        Distribution', minimumdescent=False)
@@ -2201,7 +2203,7 @@ def temp_plot_comparison_by_fnl_2013(data_obs_2013, data_sim_2013, weather_2013,
     proxy2 = [plt.Rectangle((0, 0), 0, 0, facecolor='b', alpha=0.3),
               plt.Rectangle((0, 0), 0, 0, facecolor='r', alpha=0.3)]
     labels2 = ['FLN11 2013', 'FLN12 2013']
-    lgd2 = axs[1][-1].legend(proxy2, labels2, bbox_to_anchor=(1.05, 1.9), loc=2, borderaxespad=0., fontsize=24)
+    lgd2 = axs[1][-1].legend(proxy2, labels2, bbox_to_anchor=(1.05, 1.9), loc=2, borderaxespad=0., fontsize=20)
     fig.savefig('by_fnl_2013', bbox_extra_artists=(lgd, ab1, ab2, lgd2), bbox_inches='tight')
 
 
@@ -2309,7 +2311,13 @@ if __name__ == '__main__':
     #                      data_obs_2013, data_sim_2013, weather_2013, leaves=[4, 3, 2, 1])
 
     # temp_plot_comparison_by_fnl_2013(data_obs_2013, data_sim_2013, weather_2013)
+    #
+    # plot_explore_scenarios_new(variable='audpc', title='Figure5_audpc', force_rename=force_rename_wheat_params(),
+    #                            ylims=[0, 300])
 
-    plot_explore_scenarios_new(variable='audpc', title='Figure5_audpc', force_rename=force_rename_wheat_params(),
-                               ylims=[0, 300])
+    plot_range_effect(parameter='scale_stemRate',
+                      values=[-30, -20, -10, -5, 0, 5, 10, 20, 30],
+                      years=range(1999, 2007), nplants=15, leaf=1, markersize=10,
+                      title='range_effect_audpc_scale_stemRate',
+                      correct_audpc=True)
     plt.show()
