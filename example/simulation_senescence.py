@@ -22,9 +22,7 @@ from alinea.alep.architecture import set_properties, update_healthy_area, get_le
 
 # Imports for septoria
 from alinea.alep.protocol import *
-from alinea.alep.septoria_exchanging_rings import SeptoriaExchangingRings
-from alinea.alep.septoria import Disease as _Disease, SeptoriaParameters as _SeptoriaParameters
-from alinea.alep.septoria import plugin_septoria
+from alinea.alep.septo3d_v2 import *
 from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.dispersal_emission import SeptoriaRainEmission

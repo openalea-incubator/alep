@@ -22,7 +22,7 @@ from alinea.alep.architecture import set_properties, update_healthy_area
 
 # Imports for septoria
 from alinea.alep.protocol import *
-from alinea.alep.septoria import plugin_septoria
+from alinea.alep.septo3d_v2 import plugin_septoria
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.disease_outputs import LeafInspector

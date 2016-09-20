@@ -26,7 +26,17 @@ from alinea.alep.simulation_tools.septo_decomposed import *
     # run_reps_septo(year=2013, variety='Tremie13', sowing_date='10-29',
                # nplants=15, sporulating_fraction=1.5e-3, leaf_duration=3.,
                # suffix='20160503_ref', nreps=10)
-               
+
+def call_():
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-29',
+               nplants=15, sporulating_fraction=2.5e-3,
+               Smin = 0.,
+               suffix='20160606_simple_Smin', nreps=1)
+    run_reps_septo(year=2012, variety='Tremie12', sowing_date='10-29',
+                   nplants=15, sporulating_fraction=2.5e-3,
+                   degree_days_to_chlorosis=300.,
+                   suffix='20160606_simple_DD', nreps=1)
+
 def call1():
     run_reps_septo(year=2011, variety='Mercia', sowing_date='10-15',
                nplants=15, sporulating_fraction=1.5e-5,
@@ -84,3 +94,6 @@ def call6():
                # nplants=15, sporulating_fraction=1.5e-3, leaf_duration=3.,
                # single_nff=True, variability=False,
                # suffix='20160502_dominantNFF_variabilityFalse', nreps=10)
+
+if __name__ == '__main__':
+    call_()

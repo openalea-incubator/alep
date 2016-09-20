@@ -14,7 +14,7 @@ from alinea.astk.plant_interface import grow_canopy
 
 # Imports for septoria
 from alinea.alep.protocol import *
-from alinea.alep.septoria import plugin_septoria
+from alinea.alep.septo3d_v2 import plugin_septoria
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
 from alinea.alep.growth_control import PriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUPositionModel
