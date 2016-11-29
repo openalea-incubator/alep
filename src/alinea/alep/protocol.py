@@ -138,7 +138,7 @@ def disperse(g,
              fungus_name='', 
              weather_data=None,
              label="LeafElement",
-             **kwds):
+			 **kwds):
     """ Disperse spores of the lesions of fungus identified by fungus_name.
         
     In the framework, the dispersal of DUs is calculated in two steps:
@@ -173,7 +173,7 @@ def disperse(g,
             deposits = transport_model.disperse(g, DU, weather_data, **kwds)
         else:
             deposits = transport_model.disperse(g, DU, **kwds)
-        # deposits is in the following format: dict: {'leaf_id in the MTG': number of DU deposited}
+        # deposits is in the following format: dict: {'leaf_id in the MTG': list of DU deposited}
             
         # Allocation of new dispersal units
         labels = g.property('label') 
