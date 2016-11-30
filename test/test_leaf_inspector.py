@@ -7,17 +7,17 @@ from random import sample, randint, seed
 from alinea.alep.wheat import initialize_stand, find_blade_id, find_leaf_ids
 
 # Imports for lesions of septoria
-from openalea.vpltk import plugin
+from openalea.core import plugin
 from alinea.alep.disease_operation import generate_stock_lesions
 from alinea.alep.disease_outputs import LeafInspector
 
 # Useful functions ###################################################
-def generate_lesions_with_surfaces(nb_lesions = 100, surface_inc = 0.1, surface_chlo = 0.2, 
+def generate_lesions_with_surfaces(nb_lesions = 100, surface_inc = 0.1, surface_chlo = 0.2,
                                    surface_nec = 0.3, surface_spo = 0.4):
 
     def necrotic_area_new(lesion):
         return lesion.surface_nec + lesion.surface_spo
-    
+
     diseases=plugin.discover('alep.disease')
     septoria = diseases['septoria_exchanging_rings'].load()
     LesionKlass = septoria.lesion()
@@ -29,10 +29,10 @@ def generate_lesions_with_surfaces(nb_lesions = 100, surface_inc = 0.1, surface_
         lesion.surface_chlo = surface_chlo
         lesion.surface_nec = surface_nec
         lesion.surface_spo = surface_spo
-    return lesion_stock 
-    
+    return lesion_stock
+
 def distribute_lesions(g, leaf_ids, lesions):
-    seed(7)   
+    seed(7)
     for le in leaf_ids:
         if len(lesions)>0:
             if le != leaf_ids[-1]:
@@ -52,11 +52,11 @@ def compute_ratios_new(inspector, g):
         total_area += leaf.area
         if leaf.lesions!=None:
             lesion_list += g.node(id).lesions
-    
+
     surface_inc = 0.
     surface_chlo = 0.
     surface_nec = 0.
-    surface_spo = 0.       
+    surface_spo = 0.
     if len(lesion_list)>0:
         for l in lesion_list:
             surface_inc += l.surface_inc
@@ -75,7 +75,7 @@ def compute_ratios_new(inspector, g):
 
 # Test ###############################################################
 # Initialize a wheat canopy
-g, wheat, domain_area = initialize_stand(age=1000., length=0.1, 
+g, wheat, domain_area = initialize_stand(age=1000., length=0.1,
                                         width=0.2, sowing_density=150,
                                         plant_density=150, inter_row=0.12)
 
