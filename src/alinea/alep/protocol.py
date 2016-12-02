@@ -162,9 +162,9 @@ def disperse(g,
     """
     # Emission of dispersal units
     if weather_data is None:
-        DU = emission_model.get_dispersal_units(g, fungus_name, label, **kwds)
+        DU = emission_model.get_dispersal_units(g, fungus_name=fungus_name, label=label, **kwds)
     else: 
-        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data, **kwds)
+        DU = emission_model.get_dispersal_units(g, fungus_name=fungus_name, label=label, weather_data=weather_data, **kwds)
     # DU is in the following format: dict: {'leaf_id in the MTG': number of DU emitted}
  
     # Transport of dispersal units
