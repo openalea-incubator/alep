@@ -57,7 +57,6 @@ g = adel.setup_canopy(1500)
 # adel.plot(g)
 
 # choose source leaf
-
 leaf_ids = [id for id, label in g.property("label").iteritems() if label.startswith("LeafElement")]
 source_leaf = g.node(leaf_ids[1])
 
@@ -77,14 +76,14 @@ transporter = SeptoriaRainDispersal()
 #transporter = PowderyMildewWindDispersal(label='LeafElement')
 # wind 1D
 #transporter = BrownRustDispersal(domain_area=adel.domain_area)
-# missing : rian 1D (septo 3d dispersal model)
+# missing : rain 1D (septo 3d dispersal model)
 
 # Simulate one dispersal event
 g = disperse(g, emission_model=emitter, transport_model=transporter, fungus_name=fungus_name)
 
 # Visualize (currently only works for septoria)
 # rain/ wind
-#transporter.plot_distri_3d(g)
+transporter.plot_distri_3d(g)
 # wind 1D
 #transporter.plot_layers(g)
 
