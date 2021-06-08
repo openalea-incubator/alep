@@ -206,13 +206,13 @@ def alep_custom_reconstructions(variety='Tremie13', nplants=30,
     ears_per_plant = 2.5
     
     if 'tiller_probability' in kwds:
-        tiller_proba = {k:min(1, p*kwds['tiller_probability']) for k,p in tiller_proba.iteritems()}
+        tiller_proba = {k:min(1, p*kwds['tiller_probability']) for k,p in tiller_proba.items()}
 
     if 'proba_main_nff' in kwds:
         MS_leaves_number_probabilities = {'11':1-kwds['proba_main_nff'], '12':kwds['proba_main_nff']}
     
     # scale _tillering
-    tiller_proba = {k:min(1, p * scale_tillering) for k,p in tiller_proba.iteritems()}
+    tiller_proba = {k:min(1, p * scale_tillering) for k,p in tiller_proba.items()}
     em = pgen_ext.TillerEmission(primary_tiller_probabilities=tiller_proba)
     reg = pgen_ext.TillerRegression(ears_per_plant = ears_per_plant * scale_tillering)
     
@@ -332,7 +332,7 @@ def get_iter_rep_wheats(year = 2013, variety = 'Tremie13',
                         nplants = 15, nsect = 7, nreps=5):
     nb_can = count_available_canopies(year, variety, nplants, nsect)
     if nb_can >= nreps:
-        return iter(rd.sample(range(nb_can), nreps))
+        return iter(rd.sample(list(range(nb_can)), nreps))
     else:
         return iter([None for rep in range(nreps)])
         
@@ -356,8 +356,8 @@ def get_fnl_by_plant(data):
     grps = {fnl:[plant for plant in df[df['num_leaf_bottom']==fnl]['num_plant']] 
             for fnl in set(df['num_leaf_bottom'])}
     # Find fnl if missing value for a leaf on last notation
-    if len(sum(grps.itervalues(),[]))<max(data['num_plant']):
-        miss = get_missing(np.sort(sum(grps.itervalues(),[])), start=1,
+    if len(sum(iter(grps.values()),[]))<max(data['num_plant']):
+        miss = get_missing(np.sort(sum(iter(grps.values()),[])), start=1,
                            end=max(data['num_plant']))
         for m in miss:
             if len(data[data['num_plant']==m])>0:
@@ -379,8 +379,8 @@ def add_leaf_dates_to_data(df, correct_leaf_number=True, force_mean_fnl=False):
         df['date_emergence_leaf'] = fun_em(df['num_leaf_bottom'], df['fnl'])
         df['date_ligulation_leaf'] = fun_lig(df['num_leaf_bottom'], df['fnl'])
         if force_mean_fnl==False:
-            df['date_emergence_flag_leaf'] = map(lambda fnl: hs_fit.TTemleaf(fnl, nff=fnl), df['fnl'])
-            df['date_ligulation_flag_leaf'] = map(lambda fnl: hs_fit.TTligleaf(fnl, nff=fnl), df['fnl'])
+            df['date_emergence_flag_leaf'] = [hs_fit.TTemleaf(fnl, nff=fnl) for fnl in df['fnl']]
+            df['date_ligulation_flag_leaf'] = [hs_fit.TTligleaf(fnl, nff=fnl) for fnl in df['fnl']]
         else:
             df['date_emergence_flag_leaf'] = hs_fit.TTemleaf(hs_fit.mean_nff, nff=None)[0]
             df['date_ligulation_flag_leaf'] = hs_fit.TTligleaf(hs_fit.mean_nff, nff=None)[0]
@@ -388,7 +388,7 @@ def add_leaf_dates_to_data(df, correct_leaf_number=True, force_mean_fnl=False):
     
     if not 'fnl' in df.columns:
         fnls = get_fnl_by_plant(df)
-        df['fnl'] = map(lambda x: {vv:k for k,v in fnls.iteritems() for vv in v}[x], df['num_plant'])
+        df['fnl'] = [{vv:k for k,v in fnls.items() for vv in v}[x] for x in df['num_plant']]
     # Correction only for specific data of disease measurements (Grignon Tremie 2012)
     if correct_leaf_number == True:
         df['num_leaf_bottom'][df['fnl']==14] -= 1
@@ -411,7 +411,7 @@ def group_duplicates_in_cohort(g):
         dd = defaultdict(list)
         for i,item in enumerate(seq):
             dd[item].append(i)
-        dups = [idx for key,idx in dd.iteritems() if len(idx)>1 and key==0.]
+        dups = [idx for key,idx in dd.items() if len(idx)>1 and key==0.]
         if len(dups)>0:
             return dups[-1]
         else:
@@ -426,7 +426,7 @@ def group_duplicates_in_cohort(g):
         return new_l
     
     lesions = g.property('lesions')
-    for vid, les in lesions.iteritems():
+    for vid, les in lesions.items():
         ages = [l.age_tt for l in les]
         if len(les)!=len(set(ages)):
             idxs = _get_index_duplicates(ages)
@@ -463,7 +463,7 @@ def get_data_sim(fungus = 'brown_rust', year = 2012, variety = 'Tremie12',
 def plot_simu_results(fungus = 'brown_rust', year = 2012,
                       variety = 'Tremie12', nplants = 15, inoc=300, 
                       nreps = 5, variable = 'severity', xaxis = 'degree_days', 
-                      leaves = range(1, 14), from_top = True,
+                      leaves = list(range(1, 14)), from_top = True,
                       plant_axis = ['MS'], error_bars = False, 
                       error_method = 'confidence_interval', marker = '', 
                       empty_marker = False, linestyle = '-', 

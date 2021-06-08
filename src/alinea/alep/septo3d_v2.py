@@ -653,7 +653,7 @@ class SeptoriaLesion(Lesion):
         """ Return number of DUs emitted by the lesion. """
         if density_DU_emitted>0:       
             f = self.fungus
-            emissions = map(lambda x: int(x), self.surfaces_spo * density_DU_emitted)
+            emissions = [int(x) for x in self.surfaces_spo * density_DU_emitted]
             self.surface_empty += self.surfaces_spo[-1]
             self.surfaces_spo[1:] = self.surfaces_spo[:-1]
             self.surfaces_spo[0] = 0.
@@ -667,7 +667,7 @@ class SeptoriaLesion(Lesion):
             self.become_senescent()
             
         if not self.senescence_response_completed:
-            nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
+            nb_sen = len([x for x in self.position if x[0]<=senesced_length])
             nb_new_sen = nb_sen - self.nb_lesions_sen
             ratio_sen = float(nb_new_sen)/(self.nb_lesions_non_sen)
 

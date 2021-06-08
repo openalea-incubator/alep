@@ -18,7 +18,7 @@ def count_lesions(g):
     nb_lesions: int
         Number of lesions on the MTG
     """
-    return len(sum(g.property('lesions').values(), []))
+    return len(sum(list(g.property('lesions').values()), []))
 
 def count_dispersal_units(g):
     """ Count dispersal units of the mtg.
@@ -33,7 +33,7 @@ def count_dispersal_units(g):
     nb_dispersal_units: int
         Number of dispersal units on the MTG
     """
-    return len(sum(g.property('dispersal_units').values(), []))
+    return len(sum(list(g.property('dispersal_units').values()), []))
     
 def count_lesions_by_leaf(g):
     """ Count lesions on each leaf of the MTG.
@@ -49,7 +49,7 @@ def count_lesions_by_leaf(g):
         Number of lesions on each part of the MTG given by the label
     """
     lesions = g.property('lesions')
-    return {k:len(v) for k,v in lesions.iteritems()}
+    return {k:len(v) for k,v in lesions.items()}
 
 def count_dispersal_units_by_leaf(g, label='LeafElement'):
     """ Count dispersal units on each part of the MTG given by the label.
@@ -67,7 +67,7 @@ def count_dispersal_units_by_leaf(g, label='LeafElement'):
         Number of dispersal units on each part of the MTG given by the label
     """
     dispersal_units = g.property('dispersal_units')
-    return {k:len(v) for k,v in dispersal_units.iteritems()}
+    return {k:len(v) for k,v in dispersal_units.items()}
 
 def plot_lesions(g):
     """ plot the plant with infected elements in red """
@@ -122,7 +122,7 @@ def compute_lesion_areas_by_leaf(g, label='LeafElement'):
     vids = get_leaves(g, label=label)
     lesions = g.property('lesions')
     return {vid:(sum(l.surface for l in lesions[vid])
-            if vid in lesions.keys() else 0.) for vid in vids} 
+            if vid in list(lesions.keys()) else 0.) for vid in vids} 
 
 def compute_green_lesion_areas_by_leaf(g, label='LeafElement'):
     """ Compute lesion areas on each green part of the MTG given by the label.
@@ -148,7 +148,7 @@ def compute_green_lesion_areas_by_leaf(g, label='LeafElement'):
     
     gla = {}
     for vid in vids:
-        if vid in lesions.keys():
+        if vid in list(lesions.keys()):
             les_surf = sum(l.surface_alive for l in lesions[vid])
             ratio_sen = sen_lengths[vid]/(sen_lengths[vid]+green_lengths[vid]) if (sen_lengths[vid]+green_lengths[vid])>0. else 0.
             # /!\ TODO : Can be replaced by green_areas[vid]/senesced_areas[vid]
@@ -186,7 +186,7 @@ def compute_healthy_area_by_leaf(g, label='LeafElement'):
     # positions_senescence = g.property('position_senescence')
     sen_lengths = g.property('senesced_length')
     green_lengths = g.property('green_length')
-    senesced_areas = {k:v*(sen_lengths[k]/(sen_lengths[k]+green_lengths[k]) if (sen_lengths[k]+green_lengths[k])>0. else 0.) for k,v in areas.iteritems() if labels[k].startswith(label)}
+    senesced_areas = {k:v*(sen_lengths[k]/(sen_lengths[k]+green_lengths[k]) if (sen_lengths[k]+green_lengths[k])>0. else 0.) for k,v in areas.items() if labels[k].startswith(label)}
     
     # if len(positions_senescence)>0:
         # senesced_areas = {k:v*(1-positions_senescence[k]) for k,v in areas.iteritems() if labels[k].startswith(label)}
@@ -267,10 +267,10 @@ def compute_senescence_by_leaf(g, label='LeafElement'):
         Senescence on each part of the MTG given by the label    
     """
     labels = g.property('label')
-    total_areas = {k:v for k,v in g.property('area').iteritems() if labels[k].startswith(label)}
+    total_areas = {k:v for k,v in g.property('area').items() if labels[k].startswith(label)}
     pos_sen = g.property('position_senescence')
     sen = {}
-    for vid in total_areas.iterkeys():
+    for vid in total_areas.keys():
         sen[vid] = total_areas[vid]*(1-pos_sen[vid])
     return sen
     
@@ -294,8 +294,8 @@ def compute_senescence_necrosis_by_leaf(g, label='LeafElement'):
     lesions = g.property('lesions')
     pos_sen = g.property('position_senescence')
     nec_sen = {}
-    for vid in total_areas.iterkeys():
-        if vid in lesions.keys():
+    for vid in total_areas.keys():
+        if vid in list(lesions.keys()):
             # Note G.Garin 16/12/13:
             # Little hack when senescence reaches leaf basis to account 
             # non localized lesion growth with available space. 
@@ -335,8 +335,8 @@ def compute_necrosis_percentage_by_leaf(g, label='LeafElement'):
     total_areas = g.property('area')
     lesions = g.property('lesions')
     necrotic_areas = {}
-    for vid in total_areas.iterkeys():
-        if vid in lesions.keys():
+    for vid in total_areas.keys():
+        if vid in list(lesions.keys()):
             necrotic_areas[vid] = sum([lesion.necrotic_area for lesion in lesions[vid]])
         else:
             necrotic_areas[vid] = 0.
@@ -394,8 +394,8 @@ def compute_necrotic_area_by_leaf(g, label='LeafElement'):
     total_areas = g.property('area')
     lesions = g.property('lesions')
     necrotic_areas = {}
-    for vid in total_areas.iterkeys():
-        if vid in lesions.keys():
+    for vid in total_areas.keys():
+        if vid in list(lesions.keys()):
             necrotic_areas[vid] = sum(lesion.necrotic_area for lesion in lesions[vid])
         else:
             necrotic_areas[vid] = 0.
@@ -420,7 +420,7 @@ def compute_total_severity(g, label='LeafElement'):
     """
     from numpy import mean
     severities = compute_severity_by_leaf(g, label=label)
-    return mean(severities.values())
+    return mean(list(severities.values()))
     
 def compute_total_necrosis_percentage(g, label='LeafElement'):
     """ Compute necrosis percentage on the whole plant.
@@ -441,7 +441,7 @@ def compute_total_necrosis_percentage(g, label='LeafElement'):
     """   
     from numpy import mean
     nec = compute_necrosis_percentage_by_leaf(g, label=label)
-    return mean(nec.values())
+    return mean(list(nec.values()))
 
 def compute_total_necrotic_area(g, label='LeafElement'):
     """ Compute necrosis percentage on the whole plant.
@@ -556,7 +556,7 @@ def plot3d_transparency(g,
         shape.id = vid
         scene.add(shape)
 
-    for vid, mesh in geometries.iteritems():
+    for vid, mesh in geometries.items():
         geom2shape(vid, mesh, scene)
     return scene
 
@@ -807,13 +807,13 @@ class AdelWheatRecorder(object):
                                                 
     def record(self, g, date = None, degree_days = None):
         self.a_labels = {vid:lab for vid, lab
-                         in adel_labels(g, scale = 5).iteritems() 
+                         in adel_labels(g, scale = 5).items() 
                          if 'LeafElement' in lab}
         v_length = g.property('visible_length')
         labels = g.property('label')
         geometries = g.property('geometry')
         areas = g.property('area')
-        blades = [id for id,lb in labels.iteritems() if lb.startswith('blade') and v_length[id]>0]
+        blades = [id for id,lb in labels.items() if lb.startswith('blade') and v_length[id]>0]
         for blade in blades:
             id_list = self.get_ids_on_blade(g.components(blade),
                                             geometries, areas, labels)
@@ -856,7 +856,7 @@ import numpy
 import pandas
 from scipy.integrate import simps, trapz
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except:
     import pickle
 from alinea.adel.newmtg import adel_labels
@@ -1129,10 +1129,10 @@ def get_date_threshold(data, variable = 'severity',
     
 def get_synthetic_outputs_by_leaf(data, return_conf=False):
     leaves = np.unique(data['num_leaf_top'])
-    df = pandas.DataFrame(index = range(len(leaves)), 
+    df = pandas.DataFrame(index = list(range(len(leaves))), 
                       columns = ['num_leaf_top', 'audpc',
                                  'max_severity', 'age_threshold'])
-    df_conf = pandas.DataFrame(index = range(len(leaves)), 
+    df_conf = pandas.DataFrame(index = list(range(len(leaves))), 
                       columns = ['num_leaf_top', 'audpc',
                                  'max_severity', 'age_threshold'])
     df_dates = get_date_threshold(data, threshold=0.05)
@@ -1346,10 +1346,10 @@ def get_data_without_death(data, num_leaf = 'num_leaf_bottom'):
 
 def get_synthetic_outputs_by_leaf_rust(data, return_conf=False):
     leaves = np.unique(data['num_leaf_top'])
-    df = pandas.DataFrame(index = range(len(leaves)), 
+    df = pandas.DataFrame(index = list(range(len(leaves))), 
                       columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
                                  'max_severity'])
-    df_conf = pandas.DataFrame(index = range(len(leaves)), 
+    df_conf = pandas.DataFrame(index = list(range(len(leaves))), 
                       columns = ['num_leaf_top', 'audpc', 'normalized_audpc',
                                  'max_severity'])
     df_dates = get_date_threshold(data, threshold=0.05)
@@ -1634,7 +1634,7 @@ def get_mean_leaf(data_lf, variable = 'severity', xaxis = 'degree_days'):
 def get_error(data, variable = 'severity', xaxis = 'degree_days', 
                error_method = 'confidence_interval'):
     df = data[pandas.notnull(data.loc[:,variable])].loc[:, [xaxis, variable]]
-    df['nb_plants'] = map(lambda x: df[xaxis].value_counts()[x], df[xaxis])
+    df['nb_plants'] = [df[xaxis].value_counts()[x] for x in df[xaxis]]
     if len(df['nb_plants'])>0 and min(df['nb_plants'])>1:
         if error_method == 'confidence_interval':
             df_err = df.groupby(xaxis).agg(conf_int)
@@ -1689,7 +1689,7 @@ def plot_mean_leaf(data_lf, variable = 'severity', xaxis = 'degree_days',
             return ax
 
 def plot_by_leaf(data, variable = 'green_area', xaxis = 'degree_days', 
-                  leaves = range(1, 14), from_top = True, plant_axis = ['MS'],
+                  leaves = list(range(1, 14)), from_top = True, plant_axis = ['MS'],
                   error_bars = False, error_method = 'confidence_interval', 
                   marker = '', empty_marker = False, linestyle = '-', fixed_color = None, 
                   alpha = None, title = None, legend = True, xlabel = None, ylabel = None,
@@ -1800,7 +1800,7 @@ def plot_sum_leaf(data_lf, variable = 'severity', xaxis = 'degree_days',
             return ax
 
 def plot_sum_by_leaf(data, variable = 'green_area', xaxis = 'degree_days', 
-                      leaves = range(1, 14), from_top = True, plant_axis = ['MS'],
+                      leaves = list(range(1, 14)), from_top = True, plant_axis = ['MS'],
                       marker = '', empty_marker = False, linestyle = '-', fixed_color = None, 
                       alpha = None, title = None, legend = True, xlabel = None, ylabel = None,
                       xlims = None, ylims = None, ax = None, return_ax = False, fig_size = (10,8)):

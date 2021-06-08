@@ -70,7 +70,7 @@ def run_simulation_septoria():
 
     # Choose dates of simulation and initialize the value of date
     start_date = datetime(2000, 10, 1, 1, 00, 00)
-    end_date = datetime(2001, 07, 01, 00, 00)
+    end_date = datetime(2001, 0o7, 0o1, 00, 00)
     date = None
 
     # Read weather and adapt it to septoria (add wetness)
@@ -146,7 +146,7 @@ def run_simulation_septoria():
           
         infect(g, t['disease'].dt, infection_controler, label='LeafElement')
         update(g, t['disease'].dt, growth_controler, sen_model, label='LeafElement')
-        for inspector in inspectors.itervalues():
+        for inspector in inspectors.values():
             inspector.compute_severity(g)
             inspector.update_disease_area(g)
             inspector.update_green_area(g)
@@ -160,7 +160,7 @@ def run_simulation_septoria():
             
     # Tout stocker dans un dataframe avec les dates en index
     outputs = {}
-    for id, inspector in inspectors.iteritems():
+    for id, inspector in inspectors.items():
         outs = {'severity':inspectors[id].severity,
                 'disease_area': inspectors[id].leaf_disease_area,
                 'green_area': inspectors[id].leaf_green_area,
@@ -176,7 +176,7 @@ def run_simulation_powdery_mildew():
 
     # Choose dates of simulation and initialize the value of date
     start_date = datetime(2000, 10, 1, 1, 00, 00)
-    end_date = datetime(2001, 07, 01, 00, 00)
+    end_date = datetime(2001, 0o7, 0o1, 00, 00)
     date = None
 
     # Read weather and adapt it to septoria (add wetness)
@@ -254,13 +254,13 @@ def run_simulation_powdery_mildew():
             initiate(g, dispersal_units, inoculator)
         
         du_dict = g.property('dispersal_units')
-        for du_list in du_dict.values():
+        for du_list in list(du_dict.values()):
             for du in du_list:
                 du.set_position(position=[random.random(), 0])
                 
         infect(g, t['disease'].dt, infection_controler, label='LeafElement')
         update(g, t['disease'].dt, growth_controler, sen_model, label='LeafElement')
-        for inspector in inspectors.itervalues():
+        for inspector in inspectors.values():
             inspector.compute_severity(g)
             inspector.update_disease_area(g)
             inspector.update_green_area(g)
@@ -274,7 +274,7 @@ def run_simulation_powdery_mildew():
             
     # Tout stocker dans un dataframe avec les dates en index
     outputs = {}
-    for id, inspector in inspectors.iteritems():
+    for id, inspector in inspectors.items():
         outs = {'severity':inspectors[id].severity,
                 'disease_area': inspectors[id].leaf_disease_area,
                 'green_area': inspectors[id].leaf_green_area,

@@ -37,13 +37,13 @@ class NoPriorityGrowthControl:
         - Assert that leaf surface is not negative
         
         """       
-        lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
+        lesions = {k:v for k,v in g.property('lesions').items() if len(v)>0.}
         areas = g.property('area')
         green_areas = g.property('green_area')
         senesced_areas = g.property('senesced_area')
         geom = g.property('geometry')
         labels = g.property('label')
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        bids = (v for v,l in labels.items() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) 
                     if labels[vid].startswith(label) and vid in geom]
@@ -74,7 +74,7 @@ class PriorityGrowthControl:
     def control(self, g, label='LeafElement'):
         """ 
         """
-        lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
+        lesions = {k:v for k,v in g.property('lesions').items() if len(v)>0.}
         areas = g.property('area')
         green_areas = g.property('green_area')
         senesced_areas = g.property('senesced_area')
@@ -82,7 +82,7 @@ class PriorityGrowthControl:
         geom = g.property('geometry')
 
         # Select all the leaves
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        bids = (v for v,l in labels.items() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) 
                     if labels[vid].startswith(label) and vid in geom]
@@ -145,7 +145,7 @@ class GrowthControlVineLeaf:
         labels = g.property('label')
         
         # Select all the leaves
-        vids = (v for v,l in labels.iteritems() if l.startswith(label))
+        vids = (v for v,l in labels.items() if l.startswith(label))
         for leaf in vids:
             try:
                 leaf_healthy_area = healthy_areas[leaf]
@@ -202,14 +202,14 @@ class GeometricPoissonCompetition:
         """ Limit lesion growth to healthy area on leaves and simulate 
             congestion between circular lesions.
         """       
-        lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
+        lesions = {k:v for k,v in g.property('lesions').items() if len(v)>0.}
         green_areas = g.property('green_area')
         geom = g.property('geometry')
         labels = g.property('label')
         lengths = g.property('length')
         areas = g.property('area')
         senesced_lengths = g.property('senesced_length')
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        bids = (v for v,l in labels.items() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) 
                     if labels[vid].startswith(label) and vid in geom]
@@ -289,7 +289,7 @@ class SeptoRustCompetition:
         
         TODO : Review: lots of limit cases, difficult to understand. Aaaaargh
         """
-        lesions = {k:v for k,v in g.property('lesions').iteritems() if len(v)>0.}
+        lesions = {k:v for k,v in g.property('lesions').items() if len(v)>0.}
         areas = g.property('area')
         green_areas = g.property('green_area')
         labels = g.property('label')
@@ -297,7 +297,7 @@ class SeptoRustCompetition:
         lengths = g.property('length')
         areas = g.property('area')
         senesced_lengths = g.property('senesced_length')
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        bids = (v for v,l in labels.items() if l.startswith('blade'))
         
         # Temp
 #        from alinea.adel.newmtg import adel_labels

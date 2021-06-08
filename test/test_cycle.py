@@ -1,9 +1,8 @@
 from nose import with_setup
 import matplotlib.pyplot as plt
 
-from alinea.alep import cycle
-from alinea.alep.cycle import septoria
-from alinea.alep.cycle import powdery_mildew
+from alinea.alep import septoria
+from alinea.alep import powdery_mildew
 
 class StubLeaf(object):
     def __init__(self):
@@ -22,7 +21,7 @@ class TestClass:
         self.nb_steps = 1000
 
     def tearDown(self):
-        print "TearDown"
+        print("TearDown")
 
     def test_powdery(self):
         leaf = self.leaf
@@ -166,16 +165,16 @@ if __name__ == '__main__':
     test = TestClass()
     test.setUp()
     s = test.test_septoria()
-    print 'TEST 1 : Run Septoria'
-    print ' ------------------------------------------------------------------------------- '
-    print '1st ring status must be 5 = EMPTY. It is equal to ', s.rings[0].status ,  
+    print('TEST 1 : Run Septoria')
+    print(' ------------------------------------------------------------------------------- ')
+    print('1st ring status must be 5 = EMPTY. It is equal to ', s.rings[0].status, end=' ')  
     
     test.setUp()
     s = test.test_septoria_rain()
-    print 2*'\n'
-    print 'TEST 2 : Run Septoria with rain for infection'
-    print ' ------------------------------------------------------------------------------- '
-    print '1st ring status must be 5 = EMPTY or 6 = DEAD. It is equal to', s.rings[0].status
+    print(2*'\n')
+    print('TEST 2 : Run Septoria with rain for infection')
+    print(' ------------------------------------------------------------------------------- ')
+    print('1st ring status must be 5 = EMPTY or 6 = DEAD. It is equal to', s.rings[0].status)
     
     test.setUp()
     test.test_death_by_drought()
@@ -188,7 +187,7 @@ if __name__ == '__main__':
     
     test.setUp()
     age, age_dday, status, surface, ring_status = test.test_septoria_hist()
-    print 5*'\n'
+    print(5*'\n')
     plt.plot(age_dday, surface)
     plt.xlabel('Lesion thermal age in degree-days')
     plt.ylabel('Lesion surface in cm2')

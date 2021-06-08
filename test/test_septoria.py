@@ -52,7 +52,7 @@ def test_initiate(model="septoria_exchanging_rings"):
     # Check that all the DUs that were in the stock are now instantiated
     # on leaf elements :
     dispersal_units = g.property('dispersal_units')
-    nb_dus_on_leaves = sum(len(dus) for dus in dispersal_units.itervalues())
+    nb_dus_on_leaves = sum(len(dus) for dus in dispersal_units.values())
     assert nb_dus_on_leaves == nb_initial_dus
 
 def test_infect(model="septoria_exchanging_rings"):
@@ -93,7 +93,7 @@ def test_infect(model="septoria_exchanging_rings"):
 
     # Check that all the DUs that were in the stock are now lesions on leaf elements
     lesions = g.property('lesions')
-    nb_lesions_on_leaves = sum(len(l) for l in lesions.itervalues())
+    nb_lesions_on_leaves = sum(len(l) for l in lesions.values())
     assert nb_lesions_on_leaves == nb_dus
 
 def test_update(model="septoria_exchanging_rings"):
@@ -139,11 +139,11 @@ def test_update(model="septoria_exchanging_rings"):
         # Check that the lesion is in the right status and has the right surface
         lesion = g.property('lesions')
         if lesion:
-            assert sum(len(l) for l in lesion.itervalues()) == 1
-            l = lesion.values()[0][0]
+            assert sum(len(l) for l in lesion.values()) == 1
+            l = list(lesion.values())[0][0]
             assert l.age_dday == timer.numiter
             f = l.fungus
-            print('lesion surface: %f' % round(l.surface, 6))
+            print(('lesion surface: %f' % round(l.surface, 6)))
             if l.age_dday < 220.:
                 assert l.status == 0
                 assert round(l.surface, 6) < round(f.Smin, 6)
@@ -181,7 +181,7 @@ def test_growth_control(model="septoria_exchanging_rings"):
                    area=initial_leaf_area, green_area=initial_leaf_area,
                    healthy_area=initial_leaf_area, position_senescence=None)
     labels = g.property('label')
-    total_initial_area = sum(g.node(vid).area for vid in labels.iterkeys()
+    total_initial_area = sum(g.node(vid).area for vid in labels.keys()
                              if labels[vid].startswith('LeafElement'))
 
     # Generate a stock of septoria dispersal units and distribute it on g
@@ -212,7 +212,7 @@ def test_growth_control(model="septoria_exchanging_rings"):
         lesions = g.property('lesions')
         healthy_areas = g.property('healthy_area')
 
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        bids = (v for v,l in labels.items() if l.startswith('blade'))
         for blade in bids:
             leaf = [vid for vid in g.components(blade) if labels[vid].startswith('LeafElement')]
             leaf_healthy_area = sum(healthy_areas[lf] for lf in leaf)
@@ -220,7 +220,7 @@ def test_growth_control(model="septoria_exchanging_rings"):
 
         # Check that healthy area + lesion surface = initial healthy surface
         if lesions:
-            leaf_lesion_area = sum(l.surface for les in lesions.itervalues() for l in les)
+            leaf_lesion_area = sum(l.surface for les in lesions.values() for l in les)
             assert round(leaf_healthy_area,6)+round(leaf_lesion_area,6)==round(total_initial_area,6)
 
         # Check that healthy area decreases after emergence of the first lesion
@@ -290,20 +290,20 @@ def test_disperse(model="septoria_exchanging_rings"):
             # Count objects on the MTG before dispersal event
             lesions = g.property('lesions')
             dispersal_units = g.property('dispersal_units')
-            total_stock_spores_before = sum(l.stock_spores for les in lesions.values() for l in les)
-            total_DUs_before = sum(len(du) for du in dispersal_units.itervalues())
+            total_stock_spores_before = sum(l.stock_spores for les in list(lesions.values()) for l in les)
+            total_DUs_before = sum(len(du) for du in dispersal_units.values())
 
             # Dispersal event
             disperse(g, dispersor, "septoria", label='LeafElement')
 
             # Check that stocks of spores on lesions decrease
             if total_stock_spores_before != 0.:
-                total_stock_spores_after = sum(l.stock_spores for les in lesions.values() for l in les)
+                total_stock_spores_after = sum(l.stock_spores for les in list(lesions.values()) for l in les)
                 # print(total_stock_spores_after)
                 assert total_stock_spores_after < total_stock_spores_before
 
                 # Check that new DUs are deposited on the MTG
-                total_DUs_after = sum(len(du) for du in dispersal_units.itervalues())
+                total_DUs_after = sum(len(du) for du in dispersal_units.values())
                 if total_DUs_after != 0:
                     assert total_DUs_after >= total_DUs_before
 
@@ -337,7 +337,7 @@ def test_senescence(status='CHLOROTIC', model="septoria_exchanging_rings"):
 
     # create a flat list of lesions and fix their position
     lesions = g.property('lesions')
-    les = sum(lesions.values(), [])
+    les = sum(list(lesions.values()), [])
     les[0].position = [0.3, 0]
     les[1].position = [0.7, 0]
     # Call a models growth control and senescence
@@ -362,7 +362,7 @@ def test_senescence(status='CHLOROTIC', model="septoria_exchanging_rings"):
         # 1. Compare lesions before senescence
         # Compute variables of interest
         l = g.property('lesions')
-        l = sum(l.values(), [])
+        l = sum(list(l.values()), [])
         lesion1 = l[0]
         lesion1.compute_all_surfaces()
         lesion2 = l[1]
@@ -379,7 +379,7 @@ def test_senescence(status='CHLOROTIC', model="septoria_exchanging_rings"):
 
         # Compute variables of interest
         l = g.property('lesions')
-        l = sum(l.values(), [])
+        l = sum(list(l.values()), [])
         lesion1 = l[0]
         lesion1.compute_all_surfaces()
         lesion2 = l[1]
@@ -411,7 +411,7 @@ def test_senescence(status='CHLOROTIC', model="septoria_exchanging_rings"):
         # 1. Compare lesions before senescence
         # Compute variables of interest
         l = g.property('lesions')
-        l = sum(l.values(), [])
+        l = sum(list(l.values()), [])
         lesion1 = l[0]
         lesion1.compute_all_surfaces()
         lesion2 = l[1]
@@ -429,7 +429,7 @@ def test_senescence(status='CHLOROTIC', model="septoria_exchanging_rings"):
 
         # Compute variables of interest
         l = g.property('lesions')
-        l = sum(l.values(), [])
+        l = sum(list(l.values()), [])
         lesion1 = l[0]
         lesion1.compute_all_surfaces()
         lesion2 = l[1]

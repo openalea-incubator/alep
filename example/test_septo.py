@@ -43,7 +43,7 @@ def run_simulation(start_year=1998, **kwds):
     seq = pandas.date_range(start = start_date,
                             end = str(start_year+1)+"-07-01 01:00:00", 
                             freq='H')
-    print start_year
+    print(start_year)
     
     # seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
                             # end = str(start_year)+"-12-31 01:00:00", 
@@ -169,10 +169,10 @@ def run_simulation(start_year=1998, **kwds):
             # print 'nb lesions %d' % count_lesions(g)
         
         # Save outputs
-        for recorder in recorders.itervalues():
+        for recorder in recorders.values():
             recorder.record(g, date)
 
-    for recorder in recorders.itervalues():
+    for recorder in recorders.values():
         recorder.get_complete_dataframe()
         recorder.get_audpc()
         
@@ -193,7 +193,7 @@ def run_simulation_opti(start_year=1998, **kwds):
     weather.check(varnames=['degree_days'], models={'degree_days':basic_degree_days}, start_date=start_date)
     weather.check(varnames=['septo_degree_days'], models={'septo_degree_days':basic_degree_days}, start_date=start_date, base_temp=-2.)
     seq = pandas.date_range(start = start_date, end = str(start_year+1)+"-07-01 01:00:00", freq='H')
-    print start_year
+    print(start_year)
     
     # seq = pandas.date_range(start = str(start_year)+"-10-01 01:00:00",
                             # end = str(start_year)+"-12-31 01:00:00", 
@@ -249,7 +249,7 @@ def run_simulation_opti(start_year=1998, **kwds):
         weather_eval, wheat_eval, septo_eval, rain_eval = controls
         date = weather_eval.value.index[0]
         if wheat_eval:
-            print date
+            print(date)
         # dates.append(date)
 
         # Get weather for date and add it as properties on leaves
@@ -312,10 +312,10 @@ def run_simulation_opti(start_year=1998, **kwds):
         
         # Save outputs
         if septo_eval:
-            for recorder in recorders.itervalues():
+            for recorder in recorders.values():
                 recorder.record(g, date, degree_days = septo_eval.value.degree_days[-1])
 
-    for recorder in recorders.itervalues():
+    for recorder in recorders.values():
         recorder.get_complete_dataframe()
         recorder.get_audpc()
         
@@ -329,7 +329,7 @@ def run_and_save(year, **kwds):
     g, recorder = run_simulation(start_year=year, **kwds)
     ind = 0
     if len(kwds)>0:
-        stored_rec = '.\sensitivity\\recorder_'+str(year)+'_'+kwds.keys()[0][:3]+'-'+str(kwds.values()[0])+'.pckl'
+        stored_rec = '.\sensitivity\\recorder_'+str(year)+'_'+list(kwds.keys())[0][:3]+'-'+str(list(kwds.values())[0])+'.pckl'
     else:
         stored_rec = '.\sensitivity\\recorder_'+str(year)+'.pckl'
     f_rec = open(stored_rec, 'w')
@@ -351,7 +351,7 @@ def run_stability(start_years = [1998, 2001, 2002], nb_rep=60):
 def load_stability(year = 1998, nb_rep=71):
     recs = {}
     for i_sim in range(nb_rep):
-        print i_sim
+        print(i_sim)
         stored_rec = '.\stability\\recorder_'+str(year)+'_'+str(i_sim)+'.pckl'
         f_rec = open(stored_rec)
         recs[i_sim] = pickle.load(f_rec)
@@ -365,16 +365,16 @@ def test_stability(recs, nb_tested=15, nb_combi=50, nb_rep=71):
     for i_leaf in range(len(leaves)):
         df_sev = pandas.DataFrame()
         df_nec = pandas.DataFrame()
-        for k,reco in recs.iteritems():
+        for k,reco in recs.items():
             df_sev[k] = reco[leaves[i_leaf]].data['severity']
             df_nec[k] = reco[leaves[i_leaf]].data['necrosis_percentage']
         for i in range(nb_combi):
-            df_sev_rand = df_sev[df_sev.columns[random.sample(range(nb_rep), nb_tested)]]
+            df_sev_rand = df_sev[df_sev.columns[random.sample(list(range(nb_rep)), nb_tested)]]
             axs[0].plot(df_sev_rand.index, df_sev_rand.mean(axis=1), color=colors[i_leaf])
             axs[0].set_ylabel('severity (in %)', fontsize = 20)
             axs[0].set_ylim([0.,1.])
             
-            df_nec_rand = df_nec[df_nec.columns[random.sample(range(nb_rep), nb_tested)]]
+            df_nec_rand = df_nec[df_nec.columns[random.sample(list(range(nb_rep)), nb_tested)]]
             axs[1].plot(df_nec_rand.index, df_nec_rand.mean(axis=1), color=colors[i_leaf])
             axs[1].set_ylabel('necrotic percentage (in %)', fontsize = 20)
             axs[1].set_ylim([0.,1.])
@@ -387,7 +387,7 @@ def test_stability2(recs, nb_tested=15, nb_rep=71):
     for i_leaf in range(len(leaves)):
         df_sev = pandas.DataFrame()
         df_nec = pandas.DataFrame()
-        for k,reco in recs.iteritems():
+        for k,reco in recs.items():
             df_sev[k] = reco[leaves[i_leaf]].data['severity']
             df_nec[k] = reco[leaves[i_leaf]].data['necrosis_percentage']
         for i in range(int(nb_rep/nb_tested)):
@@ -407,7 +407,7 @@ def run_all_simulations(start_years = [1998, 2001, 2002], **kwds):
     # Run simulation for each year with variable and fixed chlorosis threshold
     for year in start_years:
         if len(kwds)>0:
-            for k in kwds.keys():
+            for k in list(kwds.keys()):
                 if not is_iterable(kwds[k]):
                     kwds[k] = [kwds[k]]
                 for v in kwds[k]:
@@ -420,7 +420,7 @@ def read_outputs(start_years = [1998, 2001, 2002], **kwds):
     out = {}
     for year in start_years:
         if len(kwds)>0:
-            for k in kwds.keys():
+            for k in list(kwds.keys()):
                 if not is_iterable(kwds[k]):
                     kwds[k] = [kwds[k]]
                 for v in kwds[k]:

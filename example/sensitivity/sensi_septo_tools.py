@@ -12,7 +12,7 @@ def variety_code():
 
 
 def variety_decode():
-    return {v: k for k, v in variety_code().iteritems()}
+    return {v: k for k, v in variety_code().items()}
 
 
 def get_stored_rec(variety, year, i_sample, i_boot):
@@ -26,9 +26,9 @@ def get_stored_rec(variety, year, i_sample, i_boot):
 
 def run_septoria(sample):
     i_sample = sample.pop('i_sample')
-    print '------------------------------'
-    print 'i_sample %d' % i_sample
-    print '------------------------------'
+    print('------------------------------')
+    print('i_sample %d' % i_sample)
+    print('------------------------------')
     i_boot = sample.pop('i_boot')
     year = int(sample.pop('year'))
     variety = variety_decode()[sample.pop('variety')]
@@ -44,9 +44,9 @@ def run_septoria(sample):
 
 def run_custom_septoria(sample):
     i_sample = sample.pop('i_sample')
-    print '------------------------------'
-    print 'i_sample %d' % i_sample
-    print '------------------------------'
+    print('------------------------------')
+    print('i_sample %d' % i_sample)
+    print('------------------------------')
     i_boot = sample.pop('i_boot')
     year = int(sample.pop('year'))
     variety = variety_decode()[sample.pop('variety')]

@@ -57,10 +57,10 @@ wheat_timing = IterWithDelays(*time_control(seq, every_24h, weather.data))
 #timer = TimeControler(weather=weather_timing, wheat=wheat_timing, disease = septo_timing)
 
 for i,wheat_eval in enumerate(wheat_timing):
-    print '\niteration %d'%i
+    print('\niteration %d'%i)
     if wheat_eval:
-        print '\nwheat is growing...'
+        print('\nwheat is growing...')
         date = wheat_eval.value.index[0]
-        print date
-        print 'dt = %d'%wheat_eval.dt
+        print(date)
+        print('dt = %d'%wheat_eval.dt)
         grow_canopy(g,wheat,wheat_eval.value)

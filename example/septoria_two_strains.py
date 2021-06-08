@@ -10,8 +10,8 @@ class InfectionControlTwoStrains:
     def control(self, g, label = 'LeafElement'):
         """ Control if dispersal units can infect at their position """
         labels = g.property('label')
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
-        dispersal_units = {k:v for k,v in g.property('dispersal_units').iteritems() if len(v)>0.}
+        bids = (v for v,l in labels.items() if l.startswith('blade'))
+        dispersal_units = {k:v for k,v in g.property('dispersal_units').items() if len(v)>0.}
         areas = g.property('area')
         lesions = g.property('lesions')
         for blade in bids:
@@ -70,7 +70,7 @@ def septo_disease_two_strains(adel, strain_names = ['septoria_strain1', 'septori
         else:
             fungus_strain = plugin_septoria()
             mutable = False
-        kwds_strain = {k:v[i_str] for k,v in kwds.iteritems()}
+        kwds_strain = {k:v[i_str] for k,v in kwds.items()}
         fungus_strain.parameters(name = strain, group_dus=True, nb_rings_by_state=1, **kwds_strain)
         inoculum.append(SoilInoculum(fungus_strain, 
                                      sporulating_fraction=sporulating_fraction[i_str],
@@ -154,17 +154,17 @@ def run_disease_two_strains(start_date = "2011-10-21 12:00:00", end_date = "2012
             for recorder_strain in recorders:
                 for plant in recorder_strain:
                     deads = []
-                    for lf, recorder in recorder_strain[plant].iteritems():
+                    for lf, recorder in recorder_strain[plant].items():
                         recorder.update_vids_with_labels(adel_ids = leaf_ids)
                         recorder.record(g, date, degree_days = septo_iter.value.degree_days[-1])
                         if recorder.date_death != None and sum(recorder.data.leaf_green_area)>0.:
                             deads += [s for s in lf.split() if s.isdigit()]
                     if len(deads) > 0:
-                        map(lambda x: recorder_strain[plant][x].inactivate(date), map(lambda x: 'F%d' % x, range(1, min(deads)+1)))
+                        list(map(lambda x: recorder_strain[plant][x].inactivate(date), ['F%d' % x for x in range(1, min(deads)+1)]))
                     
     for recorder_strain in recorders:
         for plant in recorder_strain:
-            for recorder in recorder_strain[plant].itervalues():
+            for recorder in recorder_strain[plant].values():
                 recorder.get_complete_dataframe()
                 recorder.get_normalized_audpc(variable='necrosis_percentage')
                 recorder.get_audpc(variable='necrosis_percentage')

@@ -15,7 +15,7 @@ def create_g(leaf_sectors = 1, density = 350, interleaf = 10,
 
 def del_dus(g):
     dus = g.property('dispersal_units')
-    for vid, du_list in dus.iteritems():
+    for vid, du_list in dus.items():
         for du in du_list:
             du.disable()
         dus[vid] = [du for du in du_list if du.is_active]    

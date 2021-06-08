@@ -68,8 +68,8 @@ def run_simulation():
     np.random.seed(0)
 
     # Choose dates of simulation and initialize the value of date
-    start_date = datetime(2001, 03, 1, 1, 00, 00)
-    end_date = datetime(2001, 05, 1, 00, 00, 00)
+    start_date = datetime(2001, 0o3, 1, 1, 00, 00)
+    end_date = datetime(2001, 0o5, 1, 00, 00, 00)
     # end_date = datetime(2001, 07, 01, 00, 00)
     date = None
 
@@ -155,10 +155,10 @@ def run_simulation():
     return outputs
 
 def draw_outputs(outputs):
-    date_1 = datetime(2001, 03, 5, 1, 00, 00)
-    date_2 = datetime(2001, 04, 10, 00, 00, 00)
+    date_1 = datetime(2001, 0o3, 5, 1, 00, 00)
+    date_2 = datetime(2001, 0o4, 10, 00, 00, 00)
     date_seq = pandas.date_range(date_1,date_2, freq='H')
-    months = MonthLocator(bymonthday=([1]+range(5,30,5)))
+    months = MonthLocator(bymonthday=([1]+list(range(5,30,5))))
     month_fmt = DateFormatter('%b-%d')
 
     fig = plt.figure()

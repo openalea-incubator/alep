@@ -161,7 +161,7 @@ def run_simulation(start_year, variability=True, **kwds):
             update(g, septo_eval.dt, growth_controler, sen_model, label='LeafElement')                
         
         les = g.property('lesions')
-        lesions = sum([l for l in les.values()], [])
+        lesions = sum([l for l in list(les.values())], [])
         
         print([l.fungus.degree_days_to_chlorosis for l in lesions])
         
@@ -175,7 +175,7 @@ def run_simulation(start_year, variability=True, **kwds):
             wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
         
         # Save outputs
-        for inspector in inspectors.itervalues():
+        for inspector in inspectors.values():
             inspector.update_variables(g)
             inspector.update_du_variables(g)
         

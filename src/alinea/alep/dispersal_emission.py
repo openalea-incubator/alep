@@ -44,10 +44,10 @@ class SimpleEmission:
         """
         # Get lesions
         les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating] 
-                    for k, v in g.property('lesions').iteritems()} 
+                    for k, v in g.property('lesions').items()} 
 
         DU = {}
-        for vid, l in les.iteritems():
+        for vid, l in les.items():
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 if vid not in DU:
@@ -105,14 +105,14 @@ class SeptoriaRainEmission:
         
         # Get lesions
         les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, v in g.property('lesions').iteritems()} 
+                    for k, v in g.property('lesions').items()} 
         
         # Compute total sporulating area
-        total_spo = sum([l.surface_spo for v in les.values() for l in v])
+        total_spo = sum([l.surface_spo for v in list(les.values()) for l in v])
         tot_fraction_spo = total_spo/total_area if total_area>0. else 0.
         
         DU = {}
-        for vid, l in les.iteritems():
+        for vid, l in les.items():
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 leaf = g.node(vid)
@@ -186,15 +186,15 @@ class BenchSeptoriaRainEmission:
         
         # Get lesions
         les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, v in g.property('lesions').iteritems()} 
+                    for k, v in g.property('lesions').items()} 
         
         # Compute total sporulating area
-        total_spo = sum([l.surface_spo for v in les.values() for l in v])
+        total_spo = sum([l.surface_spo for v in list(les.values()) for l in v])
         # tot_fraction_spo = total_spo/(total_area/self.domain_area) if (total_area/self.domain_area)>0. else 0.
         tot_fraction_spo = total_spo/total_area if total_area>0. else 0.
 
         DU = {}
-        for vid, l in les.iteritems():
+        for vid, l in les.items():
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 leaf = g.node(vid)
@@ -262,10 +262,10 @@ class PowderyMildewWindEmission:
         
         # Get lesions
         lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, les in g.property('lesions').iteritems()} 
+                    for k, les in g.property('lesions').items()} 
         
         DU = {}
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             leaf = g.node(vid)
             wind_speed = leaf.wind_speed
             for lesion in l:

@@ -32,7 +32,7 @@ parameters = OrderedDict([('proba_main_nff', [0.56, 0.84]),
                           ('scale_fallingRate', [0.8, 1.2]),
                           ('scale_leafSenescence', [0.8, 1.2])])
 
-list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
+list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + list(parameters.keys())
 nboots = 3
 nb_cpu = cpu_count()
 samples = []
@@ -40,7 +40,7 @@ for i_boot in range(nboots):
     filename = './septo_wheat/septo_morris_input_boot'+str(i_boot)+'_full.txt'
 #    filename = './septoria/septo_morris_input_boot'+str(i_boot)+'_full.txt'
     param_values = np.loadtxt(filename, delimiter=' ').tolist()
-    samples += map(lambda x: param_values_to_dict(x, list_param_names), param_values)
+    samples += [param_values_to_dict(x, list_param_names) for x in param_values]
 
 # Run disease simulation
 if __name__ == '__main__':

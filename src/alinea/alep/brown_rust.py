@@ -295,7 +295,7 @@ class BrownRustLesion(Lesion):
             self.become_senescent()
         if not self.senescence_response_completed:
             # Get ratio of lesions senesced in cohort, if individual lesion ratio_sen = 1
-            nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
+            nb_sen = len([x for x in self.position if x[0]<=senesced_length])
             nb_new_sen = nb_sen - self.nb_lesions_sen
             ratio_sen = float(nb_new_sen)/(self.nb_lesions_non_sen)
 
@@ -463,7 +463,7 @@ def get_proba_inf_T(T):
 
 def plot_proba_inf_T():
     import matplotlib.pyplot as plt
-    temp = range(36)
+    temp = list(range(36))
     fig, ax = plt.subplots()
     ax.plot(temp, [get_proba_inf_T(T) for T in temp])
     ax.set_ylabel("Probability of infection", fontsize = 16)
@@ -527,7 +527,7 @@ def get_effective_T(T):
 
 def plot_effective_T():
     import matplotlib.pyplot as plt
-    temp = range(41)
+    temp = list(range(41))
     fig, ax = plt.subplots()
     ax.plot(temp, [get_effective_T(T) for T in temp])
     ax.set_ylabel("Teff (degrees Celsius)", fontsize = 16)
@@ -535,7 +535,7 @@ def plot_effective_T():
 
 def plot_progress():
     import matplotlib.pyplot as plt
-    temp = range(40)
+    temp = list(range(40))
     fig, ax = plt.subplots()
     ax.plot(temp, [get_progress(T) for T in temp])
 
@@ -549,7 +549,7 @@ def logistic_growth(x, x0 = 254.):
 def plot_logistic_growth():
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    ax.plot(range(450), [logistic_growth(x) for x in range(450)])
+    ax.plot(list(range(450)), [logistic_growth(x) for x in range(450)])
     # Points de Audsley
     # ax.plot([162], [0.05*0.22], 'ro')
     # ax.plot([324], [0.9*0.22], 'ro')
@@ -559,8 +559,8 @@ def plot_logistic_growth():
 def compare_logistic_growth_and_spo(nb_steps = 1000):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    ax.plot(range(nb_steps), [logistic_growth(x) for x in range(nb_steps)])
-    ax.plot(range(nb_steps), [logistic_growth(x, 254.+175.) for x in range(nb_steps)])
+    ax.plot(list(range(nb_steps)), [logistic_growth(x) for x in range(nb_steps)])
+    ax.plot(list(range(nb_steps)), [logistic_growth(x, 254.+175.) for x in range(nb_steps)])
     # Points de Audsley
     ax.plot([162], [0.05*0.22], 'ro')
     ax.plot([324], [0.9*0.22], 'ro')

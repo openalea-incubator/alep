@@ -29,7 +29,7 @@ def add_parameter(parameter_name='sporulating_fraction', interval=[1e-6, 1e-2], 
 def generate_parameter_range_file(parameters, filename='param_range_SA.txt'):
     """ Generate the file with range of variation for all tested parameters.
     """
-    for parameter_name, interval in parameters.iteritems():
+    for parameter_name, interval in parameters.items():
         add_parameter(parameter_name=parameter_name, interval=interval, filename=filename)
 
 
@@ -87,7 +87,7 @@ def generate_parameter_set(parameters,
 
 
 def param_values_to_dict(values, list_param_names):
-    return dict(zip(list_param_names, values))
+    return dict(list(zip(list_param_names, values)))
 
 
 def read_sensitivity_outputs(filename='septo_morris_output_mercia_2004.csv'):
@@ -128,11 +128,11 @@ def plot_morris_one_leaf(df_out, problem, leaf=1, ax=None,
     labels = []
     proxys = []
     for x, y in zip(mu_star, sigma):
-        tag = tags.next()
+        tag = next(tags)
         if tag in markers_SA:
             marker = markers_SA[tag]
         else:
-            marker = markers.next()
+            marker = next(markers)
         if tag in force_rename:
             tag = force_rename[tag]
         if colored == True:
@@ -236,7 +236,7 @@ def plot_morris_3_leaves(df_out, leaves=[10, 5, 1],
         fig, axs = plt.subplots(1, 3, figsize=(18, 6))
     leaves = iter(leaves)
     for i, ax in enumerate(axs.flat):
-        lf = leaves.next()
+        lf = next(leaves)
         if ax == axs[-1]:
             add_legend = True
         else:
@@ -297,7 +297,7 @@ def boxplot_3_leaves(df_out, leaves=[10, 5, 1],
         fig, axs = plt.subplots(1, 3, figsize=(18, 6))
     leaves = iter(leaves)
     for i, ax in enumerate(axs.flat):
-        lf = leaves.next()
+        lf = next(leaves)
         df = df_out[df_out['num_leaf_top'] == lf]
         params = np.unique(df[parameter])
         data = []
@@ -332,9 +332,9 @@ def plot_sample_levels(df_out, variable='normalized_audpc', leaf=1, cmap='YlOrRd
     nb_output_model = 2
     for i, row in df.iterrows():
         color = scalarMap.to_rgba(row[variable])
-        ax.plot(range(len(row) - nb_output_model), row.values[:-nb_output_model], color=color)
-    ax.set_xticks(range(len(row) - nb_output_model))
-    ax.set_xticklabels(row.keys()[:-nb_output_model])
+        ax.plot(list(range(len(row) - nb_output_model)), row.values[:-nb_output_model], color=color)
+    ax.set_xticks(list(range(len(row) - nb_output_model)))
+    ax.set_xticklabels(list(row.keys())[:-nb_output_model])
     ax.set_xlim([-1, len(row) - nb_output_model + 1])
 
 

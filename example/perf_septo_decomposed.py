@@ -11,10 +11,10 @@ g, recorder = run_disease(start_date = "2011-10-21 12:00:00", end_date = "2012-0
                 age_physio_switch_senescence = 0.01, temp_min = 0.)
 
 elapsed_time = time.clock() - start_time
-print '\n'
-print '----------------------------------------------'
-print "Time elapsed: {} seconds".format(elapsed_time)
-print '----------------------------------------------'
+print('\n')
+print('----------------------------------------------')
+print("Time elapsed: {} seconds".format(elapsed_time))
+print('----------------------------------------------')
 
 start_time = time.clock()
 
@@ -26,7 +26,7 @@ g, recorder = run_disease(start_date = "2011-10-21 12:00:00", end_date = "2012-0
                 age_physio_switch_senescence = 0.01, temp_min = 0.)
 
 elapsed_time = time.clock() - start_time
-print '\n'
-print '----------------------------------------------'
-print "Time elapsed: {} seconds".format(elapsed_time)
-print '----------------------------------------------'
+print('\n')
+print('----------------------------------------------')
+print("Time elapsed: {} seconds".format(elapsed_time))
+print('----------------------------------------------')

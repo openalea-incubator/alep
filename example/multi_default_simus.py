@@ -15,7 +15,7 @@ from matplotlib import colors, cm
 from alinea.alep.alep_weather import plot_septo_infection_risk
 plt.ion()
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except:
     import pickle
     
@@ -38,7 +38,8 @@ scen_fr = [(default_yr, default_nplants, default_nsect, fr) for fr in fracs if f
 scenarios = scen_default + scen_yr + scen_pl + scen_ns + scen_fr
 # scenarios = scen_default
 
-def annual_loop((yr, nplants, nsect, frac)):
+def annual_loop(xxx_todo_changeme):
+    (yr, nplants, nsect, frac) = xxx_todo_changeme
     try:
         for i_rep in range(nrep):
             g, recorder = run_disease(start_date = str(yr)+"-10-15 12:00:00", 
@@ -53,11 +54,11 @@ def annual_loop((yr, nplants, nsect, frac)):
             pickle.dump(recorder, f_rec)
             f_rec.close()
             del recorder
-        print 'evaluation successful'
+        print('evaluation successful')
     except:
-        print 'evaluation failed'
+        print('evaluation failed')
 
-def num_leaf_to_str(num_leaves=range(1,5)):
+def num_leaf_to_str(num_leaves=list(range(1,5))):
     return ['F%d' % lf for lf in num_leaves]
         
 def scenario_to_filename(yr, nplants, nsect, frac, i_rep):
@@ -79,7 +80,7 @@ def get_mean_by_leaf(recorder_getter = get_recorder,
     return glue_df_means(df_means, nb_rep)
     
 def glue_df_means(df_means, nb_rep=5):
-    glued = pandas.concat(df_means, axis=1, keys=range(nb_rep))
+    glued = pandas.concat(df_means, axis=1, keys=list(range(nb_rep)))
     glued.swaplevel(0, 1, axis=1).sortlevel(axis=1)
     return glued.groupby(level=1, axis=1).mean()
 
@@ -120,7 +121,7 @@ def plot_stability(scenario = (default_yr, default_nplants, default_nsect, defau
                     nb_reps = [1, 5, 10, 50, 100, 300, 500],
                     variable='necrosis_percentage',
                     ylabel = 'Necrosis percentage',
-                    num_leaves = range(1,4)):
+                    num_leaves = list(range(1,4))):
     yr, nplants, nsect, frac = scenario
     fig, axs = plt.subplots(len(num_leaves), 2)
     color_names = random.sample([c for c in colors.cnames if c.startswith('dark')], len(nb_reps))
@@ -128,7 +129,7 @@ def plot_stability(scenario = (default_yr, default_nplants, default_nsect, defau
     for ind, nb_rep in enumerate(nb_reps):
         df_means = []
         for i_rep in range(nb_rep):
-            print i_rep+sum(nb_reps[:ind])
+            print(i_rep+sum(nb_reps[:ind]))
             stored_rec = '.\mercia\\stability\\recorder_'+str(yr)+'_'+str(nplants)+'pl_'+str(nsect)+'sect'+'_frac'+str(len(str(frac))-2)+'_rep'+str(i_rep+sum(nb_reps[:ind]))+'.pckl'
             f_rec = open(stored_rec)
             recorder = pickle.load(f_rec)
@@ -166,7 +167,7 @@ def plot_mean_by_leaf(scenario = (default_yr, default_nplants, default_nsect, de
                       nb_rep = 5, 
                       variable='necrosis_percentage',
                       ylabel = 'Necrosis percentage',
-                      num_leaves = range(1, 13),
+                      num_leaves = list(range(1, 13)),
                       cmap=cm.jet):
     df_mean = get_mean_by_leaf(scenario = scenario, nb_rep = nb_rep, variable = variable)
     ax = plot_from_df(df_mean.ix[:, num_leaf_to_str(num_leaves)], cmap=cmap, ylabel=ylabel, 
@@ -175,7 +176,7 @@ def plot_mean_by_leaf(scenario = (default_yr, default_nplants, default_nsect, de
 
 def plot_states_by_leaf(scenario = (default_yr, default_nplants, default_nsect, default_frac), 
                         nb_rep = 5, 
-                        num_leaves = range(1, 13),
+                        num_leaves = list(range(1, 13)),
                         xlim = None,
                         cmap=cm.jet):
     variables = ['ratio_inc', 'ratio_chlo', 'ratio_nec', 'ratio_spo', 'ratio_empty', 'necrosis_percentage']
@@ -196,7 +197,7 @@ def plot_leaves_by_plant(scenario = (default_yr, default_nplants, default_nsect,
                          nb_rep = 5, 
                          variable='necrosis_percentage',
                          ylabel = 'Necrosis percentage',
-                         num_leaves = range(1, 13),
+                         num_leaves = list(range(1, 13)),
                          cmap=cm.jet):   
     recorders = get_recorder_list(scenario = scenario, nb_rep = nb_rep)
     
@@ -216,28 +217,28 @@ def plot_leaves_by_plant(scenario = (default_yr, default_nplants, default_nsect,
         ax.set_ylim([ymin, ymax])
     
 def group_recorders(scenario = (default_yr, default_nplants, default_nsect, default_frac),
-                    num_leaves = range(1,5), 
+                    num_leaves = list(range(1,5)), 
                     nb_rep = 5):
     recorders = []
     for i_rep in range(nb_rep):
         recorder = get_recorder(*scenario+(i_rep,))
         Fs = num_leaf_to_str(num_leaves)
-        Ps = recorder.keys()
+        Ps = list(recorder.keys())
         recorders.append([recorder[p][f] for p,f in product(Ps,Fs)])
     return recorders
 
-def get_audpc_by_leaf(scenario = (default_yr, default_nplants, default_nsect, default_frac), max_ddays=500., num_leaves = range(1,9,2), nb_rep = 5):
-    df_audpc_by_leaf = pandas.DataFrame(index = num_leaf_to_str(num_leaves), columns=range(nb_rep))
+def get_audpc_by_leaf(scenario = (default_yr, default_nplants, default_nsect, default_frac), max_ddays=500., num_leaves = list(range(1,9,2)), nb_rep = 5):
+    df_audpc_by_leaf = pandas.DataFrame(index = num_leaf_to_str(num_leaves), columns=list(range(nb_rep)))
     for i_rep in range(nb_rep):
         recorder = get_recorder(*scenario+(i_rep,))
-        df_audpc_by_leaf[i_rep] = [numpy.mean([r[lf].get_audpc(max_ddays=max_ddays) for r in recorder.values()]) for lf in num_leaf_to_str(num_leaves)]
+        df_audpc_by_leaf[i_rep] = [numpy.mean([r[lf].get_audpc(max_ddays=max_ddays) for r in list(recorder.values())]) for lf in num_leaf_to_str(num_leaves)]
     return df_audpc_by_leaf.mean(axis=1)
     
-def get_max_necrosis_by_leaf(scenario = (default_yr, default_nplants, default_nsect, default_frac), num_leaves = range(1,9,2), nb_rep = 5):
-    df_max_nec_by_leaf = pandas.DataFrame(index = num_leaf_to_str(num_leaves), columns=range(nb_rep))
+def get_max_necrosis_by_leaf(scenario = (default_yr, default_nplants, default_nsect, default_frac), num_leaves = list(range(1,9,2)), nb_rep = 5):
+    df_max_nec_by_leaf = pandas.DataFrame(index = num_leaf_to_str(num_leaves), columns=list(range(nb_rep)))
     for i_rep in range(nb_rep):
         recorder = get_recorder(*scenario+(i_rep,))
-        df_max_nec_by_leaf[i_rep] = [numpy.mean([max(r[lf].data.necrosis_percentage) for r in recorder.values()]) for lf in num_leaf_to_str(num_leaves)]
+        df_max_nec_by_leaf[i_rep] = [numpy.mean([max(r[lf].data.necrosis_percentage) for r in list(recorder.values())]) for lf in num_leaf_to_str(num_leaves)]
     return df_max_nec_by_leaf.mean(axis=1)
 
 def get_scenarios_and_labels(factor='year'):
@@ -277,9 +278,9 @@ def customize_ax(ax, factor, xs, labels, ylims=[0,350]):
     ax.set_xlabel(xlabel, fontsize=18)
     ax.yaxis.grid(True)
        
-def plot_audpc(factor='year', max_ddays=500., num_leaves=range(1,13,2), nb_rep=5, ylims=[0,120], cmap=cm.jet, ax = None):
+def plot_audpc(factor='year', max_ddays=500., num_leaves=list(range(1,13,2)), nb_rep=5, ylims=[0,120], cmap=cm.jet, ax = None):
     scen, labels = get_scenarios_and_labels(factor=factor)
-    xs = range(1, len(labels)+1)
+    xs = list(range(1, len(labels)+1))
     if ax == None:
         fig, ax = plt.subplots(1, 1)
     indcolors = numpy.linspace(0, 300, len(num_leaves))
@@ -292,9 +293,9 @@ def plot_audpc(factor='year', max_ddays=500., num_leaves=range(1,13,2), nb_rep=5
     ax.legend(h, df_audpcs.index.tolist(), bbox_to_anchor=(1.01, 0.5), loc=6, borderaxespad=0.)
     return h
     
-def plot_max_necrosis(factor='year',num_leaves=range(1,13,2), nb_rep=5, ylims=[0,1], cmap=cm.jet):
+def plot_max_necrosis(factor='year',num_leaves=list(range(1,13,2)), nb_rep=5, ylims=[0,1], cmap=cm.jet):
     scen, labels = get_scenarios_and_labels(factor=factor)
-    xs = range(1, len(labels)+1)
+    xs = list(range(1, len(labels)+1))
     fig, ax = plt.subplots(1, 1)
     indcolors = numpy.linspace(0, 300, len(num_leaves))
     df_max_necs = pandas.concat([get_max_necrosis_by_leaf(sc, num_leaves = num_leaves, nb_rep = nb_rep) for sc in scen], axis=1, keys=xs)
@@ -310,7 +311,7 @@ def plot_comparisons(factor='year',
                      nb_rep=5, 
                      variable='necrosis_percentage',
                      ylabel = 'Necrosis percentage',
-                     num_leaves = range(1, 13),
+                     num_leaves = list(range(1, 13)),
                      cmap=cm.jet):
     scen, labels = get_scenarios_and_labels(factor=factor)
     annotation = 'year: %d\nnb plants: %d\nnb sectors: %d\nfraction spo: %.4f' % scen[0]
@@ -326,13 +327,13 @@ def plot_comparisons(factor='year',
     for ax in axs.flat:
         ax.set_ylim([ymin, ymax])
 
-def plot_all_audpcs(num_leaves=range(1,13,2)):
+def plot_all_audpcs(num_leaves=list(range(1,13,2))):
     factors = ['year', 'nb_plants', 'nb_sects', 'fraction_spo']
     fig, axs = plt.subplots(int(numpy.ceil(len(factors)/2.)), 2)
     for i, fc in enumerate(factors):
         plot_audpc(fc, num_leaves, ax = axs[i])
         
-def plot_all_max_necrosis(num_leaves=range(1,13,2)):
+def plot_all_max_necrosis(num_leaves=list(range(1,13,2))):
     factors = ['year', 'nb_plants', 'nb_sects', 'fraction_spo']
     for fc in factors:
         plot_max_necrosis(fc, num_leaves)

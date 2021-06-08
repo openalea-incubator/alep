@@ -16,7 +16,7 @@ from alinea.alep.simulation_tools.simulation_tools import (wheat_path,
 from alinea.alep.architecture import set_properties
 
 # Imports for weather
-from simulation_tools import get_weather
+from .simulation_tools import get_weather
 from alinea.alep.alep_time_control import CustomIterWithDelays, septoria_filter_ddays
 from alinea.astk.TimeControl import (IterWithDelays, rain_filter, time_filter,
                                      thermal_time_filter, DegreeDayModel,
@@ -31,7 +31,7 @@ from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEm
 from alinea.alep.growth_control import PriorityGrowthControl, SeptoRustCompetition, GeometricPoissonCompetition
 from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.disease_outputs import save_image, AdelSeptoRecorder
-from variable_septoria import *
+from .variable_septoria import *
 
 # Temp
 from openalea.deploy.shared_data import shared_data
@@ -213,7 +213,7 @@ def annual_loop_septo(year=2013, variety='Tremie13', sowing_date='10-29',
         # Save outputs
         if record_iter and record == True:
             date = record_iter.value.index[-1]
-            print date
+            print(date)
             recorder.record(g, date, degree_days=record_iter.value.degree_days[-1])
 
     if record:
@@ -341,7 +341,7 @@ def temp_plot_simu(df, multiply_sev=True, xaxis='degree_days',
                    display_lesions=False, title=None, correct_fnl=False):
     from alinea.echap.disease.alep_septo_evaluation import data_reader, plot_confidence_and_boxplot, plot_one_sim
     from alinea.alep.alep_weather import plot_rain_and_temp
-    import cPickle as pickle
+    import pickle as pickle
     import matplotlib.pyplot as plt
     df_sim = df.copy()
     if title is not None:
@@ -367,7 +367,7 @@ def temp_plot_simu(df, multiply_sev=True, xaxis='degree_days',
             pickle.dump(weather, f)
             f.close()
         if leaves is None:
-            leaves = range(1, 7)
+            leaves = list(range(1, 7))
         (df_mean_obs, df_low, df_high, fig,
          axs) = plot_confidence_and_boxplot(data_obs, weather,
                                             leaves=leaves, variable='severity',
@@ -392,7 +392,7 @@ def temp_plot_simu(df, multiply_sev=True, xaxis='degree_days',
             pickle.dump(weather, f)
             f.close()
         if leaves is None:
-            leaves = range(1, 6)
+            leaves = list(range(1, 6))
         (df_mean_obs, df_low, df_high, fig,
          axs) = plot_confidence_and_boxplot(data_obs, weather,
                                             leaves=leaves, variable='severity',
@@ -872,7 +872,7 @@ def temp_plot_by_leaf(df, multiply_sev=True, xaxis='degree_days',
                       leaves=None, xlims=[800, 2200], correct_fnl=False):
     from alinea.echap.disease.alep_septo_evaluation import data_reader
     from alinea.echap.disease.septo_data_treatment import plot_by_leaf as plt_lf
-    import cPickle as pickle
+    import pickle as pickle
     df_sim = df.copy()
     fig, ax = plt.subplots()
     if multiply_sev:
@@ -898,7 +898,7 @@ def temp_plot_by_leaf(df, multiply_sev=True, xaxis='degree_days',
             pickle.dump(weather_2011, f)
             f.close()
         if leaves is None:
-            leaves = range(1, 10)
+            leaves = list(range(1, 10))
         plt_lf(df_sim, weather_2011, variable='severity_on_green',
                xaxis=xaxis, leaves=leaves,
                xlims=xlims, linestyle='-', marker=None,
@@ -925,7 +925,7 @@ def temp_plot_by_leaf(df, multiply_sev=True, xaxis='degree_days',
             pickle.dump(weather_2012, f)
             f.close()
         if leaves is None:
-            leaves = range(1, 7)
+            leaves = list(range(1, 7))
         if correct_fnl:
             df_sim = resample_fnl(data_obs_2012, df_sim, weather_2012, variable='severity')
         plt_lf(data_obs_2012, weather_2012, xaxis=xaxis, leaves=leaves,
@@ -953,7 +953,7 @@ def temp_plot_by_leaf(df, multiply_sev=True, xaxis='degree_days',
             pickle.dump(weather_2013, f)
             f.close()
         if leaves is None:
-            leaves = range(1, 6)
+            leaves = list(range(1, 6))
         if correct_fnl:
             df_sim = resample_fnl(data_obs_2013, df_sim, weather_2013, variable='severity')
         plt_lf(data_obs_2013, weather_2013, xaxis=xaxis, leaves=leaves,
@@ -1036,7 +1036,7 @@ def temp_plot_simu_by_fnl(df, multiply_sev=False, xaxis='degree_days',
     from alinea.echap.disease.alep_septo_evaluation import (data_reader,
                                                             plot_confidence_and_boxplot_by_fnl,
                                                             plot_one_sim)
-    import cPickle as pickle
+    import pickle as pickle
     import matplotlib.pyplot as plt
     #    from math import ceil
     df_sim = df.copy()
@@ -1059,7 +1059,7 @@ def temp_plot_simu_by_fnl(df, multiply_sev=False, xaxis='degree_days',
             pickle.dump(weather, f)
             f.close()
         if leaves is None:
-            leaves = range(1, 7)
+            leaves = list(range(1, 7))
         axs = plot_confidence_and_boxplot_by_fnl(data_obs_2012, weather,
                                                  leaves=leaves, variable='severity',
                                                  xaxis=xaxis, xlims=xlims,
@@ -1083,7 +1083,7 @@ def temp_plot_simu_by_fnl(df, multiply_sev=False, xaxis='degree_days',
             pickle.dump(weather, f)
             f.close()
         if leaves is None:
-            leaves = range(1, 6)
+            leaves = list(range(1, 6))
         axs = plot_confidence_and_boxplot_by_fnl(data_obs_2013, weather,
                                                  leaves=leaves, variable='severity',
                                                  xaxis=xaxis, xlims=xlims,
@@ -1242,15 +1242,14 @@ def get_rmse(data_obs, data_sim):
         df['doy'] = [d.dayofyear for d in df.index]
         return df
 
-    df_mean_obs, df_mean_sim = map(lambda df: get_mean_add_doy(df),
-                                   (data_obs, data_sim))
+    df_mean_obs, df_mean_sim = [get_mean_add_doy(df) for df in (data_obs, data_sim)]
     df_mean_sim = df_mean_sim[df_mean_obs.columns][df_mean_sim['doy'].isin(df_mean_obs['doy'])]
     df_mean_sim.index = df_mean_obs.index
-    df_mean_obs, df_mean_sim = map(lambda df: df.drop('doy', 1), (df_mean_obs, df_mean_sim))
+    df_mean_obs, df_mean_sim = [df.drop('doy', 1) for df in (df_mean_obs, df_mean_sim)]
     return np.sqrt((df_mean_sim - df_mean_obs) ** 2).mean().mean()
 
 
-def explore_scenarios(years=range(1999, 2007), nplants=15, nreps=3,
+def explore_scenarios(years=list(range(1999, 2007)), nplants=15, nreps=3,
                       parameters={'scale_HS': 0.8, 'scale_leafSenescence': 0.8,
                                   'scale_stemDim': 0.8, 'scale_stemRate': 0.8,
                                   'scale_tillering': 0.8, 'scale_leafDim_length': 0.8,
@@ -1258,7 +1257,7 @@ def explore_scenarios(years=range(1999, 2007), nplants=15, nreps=3,
                                   'scale_fallingRate': 0.8}):
     # parameters['reference']=1.
     for param in parameters:
-        kwds = {k: 1. if k != param else v for k, v in parameters.iteritems()}
+        kwds = {k: 1. if k != param else v for k, v in parameters.items()}
         # scale_leafRate = 1.5*kwds.pop('scale_leafRate')
         scale_leafRate = 1.5
         for yr in years:
@@ -1269,7 +1268,7 @@ def explore_scenarios(years=range(1999, 2007), nplants=15, nreps=3,
                            suffix='scenario_minus52_' + param + '_' + str(yr), nreps=3, **kwds)
 
 
-def rain_scenarios(years=range(1999, 2007)):
+def rain_scenarios(years=list(range(1999, 2007))):
     df_rain = pd.DataFrame(columns=['year', 'rain_cum', 'mean_rain_interruption'])
     indx = 0
     for yr in years:
@@ -1324,14 +1323,14 @@ def colors_years():
             2004: 'c', 2005: 'y', 2006: 'b'}
 
 
-def plot_explore_scenarios_single_param(years=range(1999, 2007), nplants=15,
-                                        variable='max_severity', leaves=range(1, 13),
+def plot_explore_scenarios_single_param(years=list(range(1999, 2007)), nplants=15,
+                                        variable='max_severity', leaves=list(range(1, 13)),
                                         error_bar=False, markersize=8, force_rename={},
                                         parameter={'scale_leafSenescence': 0.9},
                                         ylims=None, leaf_ref=1):
     import matplotlib.pyplot as plt
     from matplotlib import cm
-    param = parameter.keys()[0]
+    param = list(parameter.keys())[0]
     marker = markers_scenarios()[param]
     fig, ax = plt.subplots(figsize=(10, 10))
     #    color_list = iter([next(ax._get_lines.color_cycle) for lf in leaves])
@@ -1353,7 +1352,7 @@ def plot_explore_scenarios_single_param(years=range(1999, 2007), nplants=15,
         del df_ref
         del df
 
-    sort_refs = sorted([(value, key) for (key, value) in refs.items()], reverse=True)
+    sort_refs = sorted([(value, key) for (key, value) in list(refs.items())], reverse=True)
     rank_years = {ref[1]: x for x, ref in enumerate(sort_refs)}
 
     for leaf in leaves:
@@ -1398,10 +1397,10 @@ def plot_explore_scenarios_single_param(years=range(1999, 2007), nplants=15,
                               marker=marker, linestyle='None')]
 
     ax.plot([-1, len(years) + 1], [1, 1], 'k--')
-    ax.set_xticks([-1] + range(len(years)) + [len(years) + 1])
+    ax.set_xticks([-1] + list(range(len(years))) + [len(years) + 1])
     #    ax.set_xlim([years[0]-1, years[-1]+1])
     #    ax.set_xticklabels(['']+[str(yr) for yr in years]+[''], rotation=30)
-    str_ranked_years = [str(t[1]) for t in sorted({v: k for k, v in rank_years.iteritems()}.items())]
+    str_ranked_years = [str(t[1]) for t in sorted({v: k for k, v in rank_years.items()}.items())]
     ax.set_xticklabels([''] + str_ranked_years + [''], rotation=30)
     ax.grid(alpha=0.5)
     if ylims is not None:
@@ -1411,7 +1410,7 @@ def plot_explore_scenarios_single_param(years=range(1999, 2007), nplants=15,
                     bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
 
 
-def plot_explore_scenarios(years=range(1999, 2007), nplants=15,
+def plot_explore_scenarios(years=list(range(1999, 2007)), nplants=15,
                            leaf=1, variable='max_severity', error_bar=False,
                            parameters={'scale_HS': 0.8, 'scale_leafSenescence': 0.8,
                                        'scale_stemDim': 0.8, 'scale_stemRate': 0.8,
@@ -1454,7 +1453,7 @@ def plot_explore_scenarios(years=range(1999, 2007), nplants=15,
         del df_ref
         del df
 
-    sort_refs = sorted([(value, key) for (key, value) in refs.items()], reverse=True)
+    sort_refs = sorted([(value, key) for (key, value) in list(refs.items())], reverse=True)
     rank_years = {ref[1]: x for x, ref in enumerate(sort_refs)}
     for use_ref in [False, True]:
         for param in sorted(parameters.keys()):
@@ -1523,12 +1522,12 @@ def plot_explore_scenarios(years=range(1999, 2007), nplants=15,
                                       marker=marker, linestyle='None')]
 
     # Customize Right plot
-    ax.set_xticks([-1] + range(len(years)) + [len(years) + 1])
-    axRef.set_xticks([-1] + range(len(years)) + [len(years) + 1])
+    ax.set_xticks([-1] + list(range(len(years))) + [len(years) + 1])
+    axRef.set_xticks([-1] + list(range(len(years))) + [len(years) + 1])
     axRef.grid(alpha=0.5)
     axRef.set_xlim([-1, len(years)])
     str_ranked_years = [str(t[1]) for t in
-                        sorted({v: k for k, v in rank_years.iteritems()}.items())]
+                        sorted({v: k for k, v in rank_years.items()}.items())]
     axRef.set_xticklabels([''] + str_ranked_years + [''], rotation=30)
     ax.set_xlim([-1, len(years)])
     ax.set_xticklabels([''] + str_ranked_years + [''], rotation=30)
@@ -1540,8 +1539,8 @@ def plot_explore_scenarios(years=range(1999, 2007), nplants=15,
 
     if variable == 'max_severity' and leaf == 1 and custom_axis == True:
         axRef.set_ylim([0, 1.5])
-        axLength.set_xticks([-1] + range(len(years)) + [len(years) + 1])
-        axHS.set_xticks([-1] + range(len(years)) + [len(years) + 1])
+        axLength.set_xticks([-1] + list(range(len(years))) + [len(years) + 1])
+        axHS.set_xticks([-1] + list(range(len(years))) + [len(years) + 1])
         axLength.set_ylim([2.2, 2.61])
         axLength.set_yticks([2.3, 2.5])
         axLength.set_xlim([-1, len(years)])
@@ -1593,7 +1592,7 @@ def plot_explore_scenarios(years=range(1999, 2007), nplants=15,
 #    return fig, ax, lgd
 
 
-def plot_explore_scenarios_new(years=range(1999, 2007), nplants=15, leaf=1, variable='audpc',
+def plot_explore_scenarios_new(years=list(range(1999, 2007)), nplants=15, leaf=1, variable='audpc',
                                parameters=['scale_HS', 'scale_leafSenescence',
                                            'scale_leafDim_length', 'scale_leafDim_width',
                                            'scale_leafRate', 'scale_fallingRate',
@@ -1610,7 +1609,7 @@ def plot_explore_scenarios_new(years=range(1999, 2007), nplants=15, leaf=1, vari
         m_down = 'v'
         less = less_more_data[0]
         more = less_more_data[1]
-        x = range(len(rank_years))
+        x = list(range(len(rank_years)))
         ax.errorbar(x, ref, yerr=ref_conf, linestyle='',
                     color=c, marker=m_ref,
                     markeredgecolor=c, markerfacecolor=c, alpha=0.3,
@@ -1670,7 +1669,7 @@ def plot_explore_scenarios_new(years=range(1999, 2007), nplants=15, leaf=1, vari
             df_refs[yr] = data_saved.loc[yr, 'ref']
 
     if data_saved.size == 0:
-        sort_refs = sorted([(value, key) for (key, value) in refs.items()], reverse=True)
+        sort_refs = sorted([(value, key) for (key, value) in list(refs.items())], reverse=True)
         rank_years = [x[1] for x in sort_refs]
         ref = [x[0] for x in sort_refs]
         ref_conf = [refs_conf[yr] for yr in years]
@@ -1723,8 +1722,8 @@ def plot_explore_scenarios_new(years=range(1999, 2007), nplants=15, leaf=1, vari
     fig.savefig(title)
 
 
-def rank_audpc_severity_by_scenario(years=range(1999, 2007), nplants=15,
-                                    leaves=range(1, 12), markersize=10,
+def rank_audpc_severity_by_scenario(years=list(range(1999, 2007)), nplants=15,
+                                    leaves=list(range(1, 12)), markersize=10,
                                     title='comparison_rank_ref_septo'):
     import matplotlib.pyplot as plt
     fig, axs = plt.subplots(4, 3, figsize=(20, 20))
@@ -1751,7 +1750,7 @@ def rank_audpc_severity_by_scenario(years=range(1999, 2007), nplants=15,
 
     iter_axs = axs.flat
     for lf in leaves:
-        ax = iter_axs.next()
+        ax = next(iter_axs)
         sorted_audpcs = {yr: rank for rank, yr in
                          enumerate(sorted(audpcs[lf], key=audpcs[lf].get, reverse=True), 1)}
         sorted_sevs = {yr: rank for rank, yr in
@@ -1759,7 +1758,7 @@ def rank_audpc_severity_by_scenario(years=range(1999, 2007), nplants=15,
         for yr in years:
             ax.plot(sorted_sevs[yr], sorted_audpcs[yr], linestyle='',
                     marker=markers[yr], color=colors[yr], markersize=markersize)
-        ax.plot(range(1, len(years) + 1), range(1, len(years) + 1), 'k--')
+        ax.plot(list(range(1, len(years) + 1)), list(range(1, len(years) + 1)), 'k--')
         ax.grid(alpha=0.5)
         ax.set_ylabel('Rank in AUDPC', fontsize=20)
         ax.set_xlabel('Rank in severity', fontsize=20)
@@ -1811,8 +1810,8 @@ def get_audpc_ref(data, data_ref, variable='severity'):
                     data.loc[ind_data_lf, 'audpc_ref'] = np.nan
 
 
-def plot_audpc_by_leaf_ref(years=range(1999, 2007), nplants=15,
-                           leaves=range(1, 12), markersize=10,
+def plot_audpc_by_leaf_ref(years=list(range(1999, 2007)), nplants=15,
+                           leaves=list(range(1, 12)), markersize=10,
                            title='audpc_by_leaf_ref'):
     import matplotlib.pyplot as plt
     fig, axs = plt.subplots(1, 2, figsize=(16, 8))
@@ -1876,7 +1875,7 @@ def plot_audpc_by_leaf_ref(years=range(1999, 2007), nplants=15,
 
 def plot_range_effect(parameter='scale_leafSenescence',
                       values=[-30, -20, -10, -5, 0, 5, 10, 20, 30],
-                      years=range(1999, 2007), nplants=15, leaf=1, markersize=10,
+                      years=list(range(1999, 2007)), nplants=15, leaf=1, markersize=10,
                       title='range_effect_audpc_scale_leafSenescence',
                       correct_audpc=True):
     import matplotlib.pyplot as plt
@@ -1992,7 +1991,7 @@ def save_all_samples_year(parameter='scale_leafSenescence',
 
 def read_and_concat_samples_years(parameter='scale_leafSenescence',
                                   variable='audpc',
-                                  years=range(1999, 2007)):
+                                  years=list(range(1999, 2007))):
     df = None
     for yr in years:
         f = open('sample_values_' + parameter + '_' + variable + '_' + str(yr) + '.pckl')
@@ -2009,7 +2008,7 @@ def read_and_concat_samples_years(parameter='scale_leafSenescence',
 
 def anova_range_year(parameter='scale_leafSenescence',
                      variable='audpc',
-                     years=range(1999, 2007),
+                     years=list(range(1999, 2007)),
                      do_interaction_plot=False):
     from statsmodels.graphics.api import interaction_plot
     from statsmodels.stats.anova import anova_lm
@@ -2033,7 +2032,7 @@ def anova_range_year(parameter='scale_leafSenescence',
 
 def test_linearity_range_year(parameter='scale_leafSenescence',
                               variable='audpc',
-                              years=range(1999, 2007),
+                              years=list(range(1999, 2007)),
                               do_interaction_plot=False):
     def line(x, a, b):
         return a * x + b
@@ -2099,7 +2098,7 @@ def plot_comparison_scenarios(year=2004, xaxis='degree_days',
                                         'scenario_minus20_scale_HS_2004'],
                               title='comparison_scenarios_2004'):
     #    leaves = np.arange(5, 0, -1)
-    leaves = range(1, 6)
+    leaves = list(range(1, 6))
     fig, axs = plt.subplots(1, len(leaves), figsize=(10. * len(leaves), 10.))
     colors = iter(['b', 'g', 'r', 'k' 'm'])
     proxys = []
@@ -2109,7 +2108,7 @@ def plot_comparison_scenarios(year=2004, xaxis='degree_days',
                                          suffix=suffix)
         df_sim = df_sim.drop(df_sim[df_sim['leaf_green_area'] == 0].index)
         df_sim = get_data_without_death(df_sim)
-        color = colors.next()
+        color = next(colors)
         plot_one_sim(df_sim, 'severity', xaxis, axs, leaves, color, no_decreasing=False)
         for ax, lf in zip(axs, leaves):
             ax.annotate('Leaf %d' % lf, xy=(0.05, 0.85),
@@ -2317,7 +2316,7 @@ if __name__ == '__main__':
 
     plot_range_effect(parameter='scale_stemRate',
                       values=[-30, -20, -10, -5, 0, 5, 10, 20, 30],
-                      years=range(1999, 2007), nplants=15, leaf=1, markersize=10,
+                      years=list(range(1999, 2007)), nplants=15, leaf=1, markersize=10,
                       title='range_effect_audpc_scale_stemRate',
                       correct_audpc=True)
     plt.show()

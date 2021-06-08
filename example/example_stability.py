@@ -22,16 +22,16 @@ def is_iterable(obj):
 def get_iterable(nplants=[1, 5, 10, 20, 30, 50], nsect = 7, 
                  layer_thickness = 0.01):
     kwargs = locals()
-    iterable = {k:v for k,v in kwargs.iteritems() if is_iterable(v)}
+    iterable = {k:v for k,v in kwargs.items() if is_iterable(v)}
     assert len(iterable)==1,"Must provide one and only iterable as argument"
     return iterable, nplants, nsect, layer_thickness
 
 def get_value_iteration(it, iterable, nb_pl, ns, dh):
-    if iterable.keys()[0]=='nplants':
+    if list(iterable.keys())[0]=='nplants':
         nb_pl = it
-    elif iterable.keys()[0]=='nsect':
+    elif list(iterable.keys())[0]=='nsect':
         ns = it
-    elif iterable.keys()[0]=='layer_thickness':
+    elif list(iterable.keys())[0]=='layer_thickness':
         dh = it
     return nb_pl, ns, dh
 
@@ -58,7 +58,7 @@ def run_and_save_septo_full_recorder(variety='Tremie13',
                                    **kwds):
     iterable, nb_pl, ns, dh = get_iterable(nplants, nsect, layer_thickness)
     for rep in range(nreps):
-        for it in iterable.values()[0]:
+        for it in list(iterable.values())[0]:
             nb_pl, ns, dh = get_value_iteration(it, iterable, nb_pl, ns, dh)
             output_file = get_output_path_full_recorder(fungus='septoria',
                                                         variety=variety,
@@ -82,7 +82,7 @@ def run_and_save_rust_full_recorder(variety='Tremie13',
                                    **kwds):
     iterable, nb_pl, ns, dh = get_iterable(nplants, nsect, layer_thickness)
     for rep in range(nreps):
-        for it in iterable.values()[0]:
+        for it in list(iterable.values())[0]:
             nb_pl, ns, dh = get_value_iteration(it, iterable, nb_pl, ns, dh)
             output_file = get_output_path_full_recorder(fungus='rust',
                                                         variety=variety,
@@ -109,7 +109,7 @@ def plot_stability_full_recorder(fungus='rust', variety='Tremie13',
     cNorm  = colors.Normalize(vmin=0, vmax=nplants[-1])
     scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
     for rep in range(nreps):
-        for it in iterable.values()[0]:
+        for it in list(iterable.values())[0]:
             nb_pl, ns, dh = get_value_iteration(it, iterable, nb_pl, ns, dh)
             output_file = get_output_path_full_recorder(fungus=fungus,
                                                         variety=variety,
@@ -139,7 +139,7 @@ def get_rep_wheats(variety = 'Tremie13', year = 2013,
                     nplants = 15, nsect = 7, nreps = 5):
     nb_can = count_available_canopies(year, variety, nplants, nsect)
     if nb_can >= nreps:
-        rep_wheats = rd.sample(range(nb_can), nreps)
+        rep_wheats = rd.sample(list(range(nb_can)), nreps)
     else:
         rep_wheats = [None for rep in range(nreps)]
     return rep_wheats
@@ -156,10 +156,10 @@ def run_and_save_septo_synthetic(variety = 'Tremie13',
                                             variety=variety,
                                             year=year, 
                                             inoc=sporulating_fraction,
-                                            iterable=iterable.keys()[0])
+                                            iterable=list(iterable.keys())[0])
     rep_wheats = get_rep_wheats(variety, year, nplants, nsect, nreps)
     df_out = pd.DataFrame()
-    for it in iterable.values()[0]:
+    for it in list(iterable.values())[0]:
         nb_pl, ns, dh = get_value_iteration(it, iterable, nb_pl, ns, dh)
         for irep, rep_wheat in enumerate(rep_wheats):
             g, reco = annual_loop_septo(variety=variety, year=year,
@@ -188,10 +188,10 @@ def run_and_save_rust_synthetic(variety = 'Tremie13',
                                             variety=variety,
                                             year=year, 
                                             inoc=density_dispersal_units,
-                                            iterable=iterable.keys()[0])
+                                            iterable=list(iterable.keys())[0])
     rep_wheats = get_rep_wheats(variety, year, nplants, nsect, nreps)
     df_out = pd.DataFrame()
-    for it in iterable.values()[0]:
+    for it in list(iterable.values())[0]:
         nb_pl, ns, dh = get_value_iteration(it, iterable, nb_pl, ns, dh)
         for irep, rep_wheat in enumerate(rep_wheats):
             g, reco = annual_loop_rust(variety=variety, year=year,
@@ -223,15 +223,15 @@ def plot_stability_synthetic(fungus='rust',
                                             variety=variety,
                                             year=year, 
                                             inoc=inoc,
-                                            iterable=iterable.keys()[0])
+                                            iterable=list(iterable.keys())[0])
     df = pd.read_csv(output_file, sep=',')
-    if iterable.keys()[0]=='nplants':
+    if list(iterable.keys())[0]=='nplants':
         group_by = 'nb_plants'
         xlabel = 'Number of plants'
-    elif iterable.keys()[0]=='nsect':
+    elif list(iterable.keys())[0]=='nsect':
         group_by = 'nb_sects'
         xlabel = 'Number of sectors'
-    elif iterable.keys()[0]=='layer_thickness':
+    elif list(iterable.keys())[0]=='layer_thickness':
         group_by = 'layer_thickness'
         xlabel = 'Layer thickness'
     
@@ -245,7 +245,7 @@ def plot_stability_synthetic(fungus='rust',
         ax.set_xlabel(xlabel, fontsize=16)
         if ax==axs[0]:
             ax.set_ylabel(ylabel, fontsize=16)
-        ax.set_xlim([0, max(iterable.values()[0])*1.1])
+        ax.set_xlim([0, max(list(iterable.values())[0])*1.1])
         if ylims is not None:
             ax.set_ylim(ylims)
         ax.annotate('Leaf %d' % lf, xy=(0.05, 0.95), 

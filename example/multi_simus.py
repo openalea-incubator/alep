@@ -4,15 +4,16 @@ from multiprocessing import cpu_count
 from septo_decomposed import run_disease_and_canopy
 from itertools import product
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except:
     import pickle
 
-reps = range(5)
+reps = list(range(5))
 nb_plants = [5, 10, 20, 30, 50]
 samples = product(nb_plants, reps)
     
-def annual_loop((nb_plants, i_rep)):
+def annual_loop(xxx_todo_changeme):
+    (nb_plants, i_rep) = xxx_todo_changeme
     g, recorder = run_disease_and_canopy(start_date="2011-10-21 12:00:00", end_date="2012-08-01 00:00:00",
                                             variety = 'Tremie12', nplants=nb_plants, nsect=7, sporulating_fraction = 1.e-4,
                                             temp_min = 0., degree_days_to_chlorosis = 150,

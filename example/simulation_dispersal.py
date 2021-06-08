@@ -87,7 +87,7 @@ def plot3d(g,
         shape.id = vid
         scene.add(shape)
 
-    for vid, mesh in geometries.iteritems():
+    for vid, mesh in geometries.items():
         geom2shape(vid, mesh, scene)
     return scene
 
@@ -119,7 +119,7 @@ def update_plot(g, leaf_source):
 
 def periodise_canopy(g, domain):
     geometries = g.property('geometry')
-    shapes = [geom2shape(k,v) for k,v in geometries.iteritems()]                                          
+    shapes = [geom2shape(k,v) for k,v in geometries.items()]                                          
     cs = CaribuScene(scene=shapes, pattern=domain)
     cs.runPeriodise()
     shapes = cs.generate_scene()
@@ -137,7 +137,7 @@ def get_source_leaf_and_max_height(g, position='center', relative_height=2./3):
     leaves = get_leaves(g, label='LeafElement')
     centroids = g.property('centroid')
     geometries = g.property('geometry')
-    targets = list(leaf for leaf in leaves if leaf in geometries.iterkeys())
+    targets = list(leaf for leaf in leaves if leaf in iter(geometries.keys()))
     for vid in targets:
         if is_iterable(geometries[vid]):
             bbc.process(pgl.Scene(geometries[vid]))
@@ -145,12 +145,12 @@ def get_source_leaf_and_max_height(g, position='center', relative_height=2./3):
             bbc.process(pgl.Scene([pgl.Shape(geometries[vid])]))
         center = bbc.result.getCenter()
         centroids[vid] = center
-    zmax = max(centroids.items(), key=lambda x:x[1][2])[1][2]
+    zmax = max(list(centroids.items()), key=lambda x:x[1][2])[1][2]
     distances = {vid:pgl.norm(centroids[vid]-(0,0,relative_height*zmax)) for vid in centroids}
     if position=='center':
-        return min(distances.items(), key=lambda x:x[1])[0], zmax
+        return min(list(distances.items()), key=lambda x:x[1])[0], zmax
     elif position=='border':
-        return max(distances.items(), key=lambda x:x[1])[0], zmax
+        return max(list(distances.items()), key=lambda x:x[1])[0], zmax
 
 # Dummy lesion with dummy emission ############################################                                               
 # Create a undetermined lesion emitting a stock of dispersal units
@@ -184,8 +184,8 @@ class DummyEmission():
         
     def get_dispersal_units(self, g, fungus_name="dummy", label='LeafElement', weather_data=None):
         DU={}
-        lesions = {k:[l for l in les if l.fungus.name is fungus_name] for k, les in g.property('lesions').iteritems()} 
-        for vid, l in lesions.iteritems():
+        lesions = {k:[l for l in les if l.fungus.name is fungus_name] for k, les in g.property('lesions').items()} 
+        for vid, l in lesions.items():
             for lesion in l:
                 emissions = lesion.emission(self.to_emit)
                 try:
@@ -232,6 +232,6 @@ def run_dispersal(model=3, position_in_canopy='center', relative_height=2./3, po
     # Check proportion intercepted : must be low
     dus = g.property('dispersal_units')
     nb_deposited = count_dispersal_units(g)
-    max_dus = max([len(du) for du in dus.itervalues()])
-    min_dus = min([len(du) for du in dus.itervalues()])
+    max_dus = max([len(du) for du in dus.values()])
+    min_dus = min([len(du) for du in dus.values()])
     return g, lai, zmax, nb_deposited, max_dus, min_dus

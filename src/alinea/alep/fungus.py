@@ -267,7 +267,7 @@ class Fungus(object):
         self.length_unit = length_unit
         self.Lesion_class = Lesion
         self.DispersalUnit_class = DispersalUnit
-        self.parameter_names = parameters.keys()
+        self.parameter_names = list(parameters.keys())
         self.__dict__.update(parameters)
 
     def update_parameters(self, **kwds):
@@ -278,7 +278,7 @@ class Fungus(object):
         """
         self.__dict__.update(kwds)
         if len(kwds)>0:
-            self.parameter_names += [k for k in kwds.iterkeys()]
+            self.parameter_names += [k for k in kwds.keys()]
 
     def parameters(self, **kwds):
         """ Get parameters of the fungus.
