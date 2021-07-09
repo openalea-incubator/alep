@@ -31,7 +31,7 @@ from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.dispersal_transport import SeptoriaRainDispersal
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
-from alinea.alep.infection_control import BiotrophDUPositionModel
+from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
 
 # Imports for display and saving
@@ -60,7 +60,7 @@ source_leaf = g.node(21943)
 septoria = plugin_septoria()
 inoculator = RandomInoculation()
 growth_controler = NoPriorityGrowthControl()
-infection_controler = BiotrophDUPositionModel()
+infection_controler = BiotrophDUProbaModel()
 sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
 emitter = SeptoriaRainEmission(domain_area=domain_area)
 transporter = SeptoriaRainDispersal()
