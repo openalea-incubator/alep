@@ -6,7 +6,7 @@
 import random
 import numpy as np
 import collections
-from alinea.alep.fungal_objects import DispersalUnit, Lesion, Fungus
+from alinea.alep.fungus import DispersalUnit, Lesion, Fungus
 from alinea.alep.architecture import get_leaves
 from openalea.plantgl import all as pgl
 
