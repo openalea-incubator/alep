@@ -289,7 +289,7 @@ def run_simulation(start_year=1998, senescence_threshold=330., **kwds):
         nb_lesions.append(count_lesions(g))
         # Save outputs
         # if wheat_eval:
-        for inspector in inspectors.itervalues():
+        for inspector in inspectors.values():
             inspector.update_variables(g)
             inspector.update_du_variables(g)
 		
@@ -373,8 +373,8 @@ def test_update(senescence_threshold=330., sen_day=500., model="septoria_exchang
         # Check that the lesion is in the right status and has the right surface
         lesion = g.property('lesions')
         if lesion:
-            assert sum(len(l) for l in lesion.itervalues()) == 1
-            l = lesion.values()[0][0]
+            assert sum(len(l) for l in lesion.values()) == 1
+            l = list(lesion.values())[0][0]
             surface.append(l.surface)
             surface_alive.append(l.surface_alive)
             surface_empty.append(l.surface_empty)
@@ -384,6 +384,6 @@ def test_update(senescence_threshold=330., sen_day=500., model="septoria_exchang
                 # pdb.set_trace()
             l.compute_all_surfaces()
             f = l.fungus
-            print('lesion surface: %f' % round(l.surface, 6))
+            print(('lesion surface: %f' % round(l.surface, 6)))
             
     return g, surface, surface_alive, surface_empty, nb_dus, stock_spores

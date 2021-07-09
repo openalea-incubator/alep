@@ -3,7 +3,7 @@ import random as rd
 
 def variable_septoria(distri_chlorosis = {'mu':200., 'sigma':30.}):
     assert (isinstance(distri_chlorosis, dict) and 
-            distri_chlorosis.keys() == ['mu', 'sigma']), ("distri_chlorosis must be in the form {'mu':200., 'sigma':30.}")
+            list(distri_chlorosis.keys()) == ['mu', 'sigma']), ("distri_chlorosis must be in the form {'mu':200., 'sigma':30.}")
     rnd = rd.Random(1)
     septoria_parameters['mu'] = distri_chlorosis['mu']
     septoria_parameters['sigma'] = distri_chlorosis['sigma']

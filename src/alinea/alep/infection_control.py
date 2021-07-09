@@ -54,9 +54,9 @@ class BiotrophDUProbaModel:
             Updated MTG representing the canopy
         """
         labels = g.property('label')
-        bids = (v for v,l in labels.iteritems() if l.startswith('blade'))
+        bids = (v for v,l in labels.items() if l.startswith('blade'))
         DUs = g.property('dispersal_units')
-        dispersal_units = {k:v for k,v in DUs.iteritems() if len(v)>0.}
+        dispersal_units = {k:v for k,v in DUs.items() if len(v)>0.}
         areas = g.property('area')
         green_areas = g.property('green_area')
         lesions = g.property('lesions')

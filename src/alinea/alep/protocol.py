@@ -28,7 +28,7 @@ def external_contamination(g,
         stock = 0 # stock has been used (avoid uncontrolled future re-use)
 
         # Allocation of new dispersal units
-        for vid, dlist in deposits.iteritems():
+        for vid, dlist in deposits.items():
             if len(dlist)>0 and labels[vid].startswith(label):
                 leaf = g.node(vid)
                 try:
@@ -85,7 +85,7 @@ def infect(g, dt,
     # Find dispersal units on MTG
     dispersal_units = g.property('dispersal_units')
 
-    for vid, du in dispersal_units.iteritems():
+    for vid, du in dispersal_units.items():
         # By leaf element, keep only those which are deposited and active
         leaf = g.node(vid)
         dispersal_units[vid] = [d for d in du if d.is_active]
@@ -118,7 +118,7 @@ def update(g, dt,
     """
     lesions = g.property('lesions')
     # 1. Compute growth demand
-    for vid, les in lesions.iteritems():
+    for vid, les in lesions.items():
         for lesion in lesions[vid]:
             if lesion.is_active:
                 leaf=g.node(vid)
@@ -177,7 +177,7 @@ def disperse(g,
             
         # Allocation of new dispersal units
         labels = g.property('label') 
-        for vid, dlist in deposits.iteritems():
+        for vid, dlist in deposits.items():
             if len(dlist)>0 and labels[vid].startswith(label):
                 leaf = g.node(vid)
                 try:

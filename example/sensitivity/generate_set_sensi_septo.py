@@ -37,7 +37,7 @@ v = variety_code()
 scenarios = [(2011, v['Custom']),
               (2013, v['Custom'])]
 
-list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + parameters.keys()
+list_param_names = ['i_sample', 'i_boot', 'year', 'variety'] + list(parameters.keys())
 nboots = 3
 #generate_parameter_set(parameters,
 #                       scenarios,

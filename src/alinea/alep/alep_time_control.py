@@ -3,6 +3,7 @@ import numpy
 import pandas
 from datetime import datetime
 from alinea.astk.TimeControl import *
+from functools import reduce
 
 def evaluation_sequence(delays, eval_time='start'):
     """ retrieve evaluation filter from sequence of delays
@@ -24,12 +25,12 @@ class CustomIterWithDelays(IterWithDelays):
     def __iter__(self):
         return CustomIterWithDelays(self.values, self.delays, self.eval_time)
         
-    def next(self):
-        self.ev = self._evalseq.next()
+    def __next__(self):
+        self.ev = next(self._evalseq)
         if self.ev : 
             try: #prevent value exhaustion to stop iterating
-                self.val = self._iterable.next()
-                self.dt = self._iterdelays.next()
+                self.val = next(self._iterable)
+                self.dt = next(self._iterdelays)
                 self.count += 1
             except StopIteration:
                 pass
@@ -69,7 +70,7 @@ def septoria_filter_wetness(seq, weather, degree_days=10., base_temp = 0.,
     count_rain = 0.
     count_ddays = 0.
     df = pandas.Series([False for i in range(len(wetness))], index = wetness.index)
-    for i, row in df.iteritems():
+    for i, row in df.items():
         if wetness[i] and Tmin <= temperature[i] < Tmax:
             if count_wet == 0. and i < df.index[-1]-9 and cond_inf[i+9] == True:
                 df[i] = True
@@ -79,7 +80,7 @@ def septoria_filter_wetness(seq, weather, degree_days=10., base_temp = 0.,
                 df[i - 1] = True
             count_wet = 0.
     
-    for i, row in df.iteritems():
+    for i, row in df.items():
         if rain[i] > 0:
             if count_rain == 0.:
                 df[i] = True
@@ -89,7 +90,7 @@ def septoria_filter_wetness(seq, weather, degree_days=10., base_temp = 0.,
                 df[i] = True
             count_rain = 0.
 
-    for i, row in df.iteritems():
+    for i, row in df.items():
         if row == True:
             count_ddays = 0.
         count_ddays += ddays[i]
@@ -111,7 +112,7 @@ def septoria_filter_ddays(seq, weather, delay=10., base_temp = 0.,
     count_rain = 0.
     count_ddays = 0.
     df = pandas.Series([False for i in range(len(ddays))], index = ddays.index)
-    for i, row in df.iteritems():
+    for i, row in df.items():
         if rain[i] > 0:
             if count_rain == 0.:
                 df[i] = True
@@ -121,7 +122,7 @@ def septoria_filter_ddays(seq, weather, delay=10., base_temp = 0.,
                 df[i] = True
             count_rain = 0.
 
-    for i, row in df.iteritems():
+    for i, row in df.items():
         if row == True:
             count_ddays = 0.
         count_ddays += ddays[i]

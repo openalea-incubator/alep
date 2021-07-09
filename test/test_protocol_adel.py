@@ -292,21 +292,21 @@ def count_lesions_in_state(g, state):
     
     """
     lesions = g.property('lesions')
-    return sum(1 for l in lesions.itervalues() for lesion in l if lesion.status == state)
+    return sum(1 for l in lesions.values() for lesion in l if lesion.status == state)
     
 def count_DU(g):
     """ count DU of the mtg.
     
     """
     dispersal_units = g.property('dispersal_units')
-    return sum(len(du) for du in dispersal_units.itervalues())
+    return sum(len(du) for du in dispersal_units.values())
 
 def count_lesions(g):
     """ count lesions of the mtg.
     
     """
     lesions = g.property('lesions')
-    return sum(len(l) for l in lesions.itervalues())
+    return sum(len(l) for l in lesions.values())
     
 class DisplayLesions(object):
     """ Print the ID of Leaf Elements where new lesions appear. """
@@ -317,17 +317,17 @@ class DisplayLesions(object):
     def print_new_lesions(self, g):
         lesions = g.property('lesions')
         
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             for lesion in l:
                 if not lesion in self.old_lesions:
                     self.old_lesions.append(lesion)
-                    print('New Lesions on : ' + g.label(vid) + ' %d' % vid)
+                    print(('New Lesions on : ' + g.label(vid) + ' %d' % vid))
         
     def print_all_lesions(self, g):
         from pprint import pprint
         lesions = g.property('lesions')
         ldict = {}
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             ldict[vid] = len(l)
         pprint(ldict)
         # print('You can find lesions on LeafElements : ' + str(llist).strip('[]'))
@@ -336,12 +336,12 @@ class DisplayLesions(object):
         from pprint import pprint
         lesions = g.property('lesions')
         ldict = {}
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             for lesion in l:
                 if vid not in ldict:
                     ldict[vid] = 0
                 ldict[vid] += lesion.surface
-        print('\n' + 'Sum of lesion surfaces by leaf element : ' + '\n')             
+        print(('\n' + 'Sum of lesion surfaces by leaf element : ' + '\n'))             
         pprint(ldict)
     
 # Tests ###########################################################################    
@@ -455,7 +455,7 @@ def test_disperse():
     nb_steps = 750
     nb_les = numpy.array([0 for i in range(nb_steps)])
     for i in range(nb_steps):
-        print('time step %d' % i)
+        print(('time step %d' % i))
         
         # Update climate and force rain occurences       
         if i>400 and i%100 == 0:
@@ -529,7 +529,7 @@ def test_washing():
             print('   |  |')
             print('    |  | ')
             print('\n')
-            print('Sur le MTG il y a %d DU actives en tout' % nb_DU[i])
+            print(('Sur le MTG il y a %d DU actives en tout' % nb_DU[i]))
 
     # Display results
     plot(nb_DU)
@@ -553,7 +553,7 @@ def test_growth_control():
     # compute infection:
     nb_steps_inf = 11  
     for i in range(nb_steps_inf):
-        print('time step %d' % i)       
+        print(('time step %d' % i))       
         update_climate_all(g)           
         #grow(g)
         infect(g, dt=1.)
@@ -563,10 +563,10 @@ def test_growth_control():
         # compute competition
         dt = 50
         nb_steps = 500
-        dates = range(0,nb_steps,dt)
+        dates = list(range(0,nb_steps,dt))
         sum_surface = numpy.array([0. for i in dates])
         for i in dates:
-            print('time step %d' % i)       
+            print(('time step %d' % i))       
             update_climate_all(g)
                 
             #grow(g)      
@@ -637,7 +637,7 @@ def test_all(model="SeptoriaExchangingRings"):
         if nb_les > nb_max_les:
             nb_max_les = nb_les
     
-    print('max number lesions %d' % nb_max_les)
+    print(('max number lesions %d' % nb_max_les))
     
     return g
 

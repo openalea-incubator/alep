@@ -41,12 +41,12 @@ class DummyEmission():
     def get_dispersal_units(self, g, fungus_name="dummy", label='LeafElement'):
         DU={}
         lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, les in g.property('lesions').iteritems()} 
+                    for k, les in g.property('lesions').items()} 
         density_dus = 2000.
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             for lesion in l:
                 emissions = lesion.emission(density_dus, rain_exposition=0.5)
-                print 'Emissions: %f' % emissions
+                print('Emissions: %f' % emissions)
                 try:
                     DU[vid] += []
                 except:
@@ -63,7 +63,7 @@ lesion = septoria.lesion()
 lesion.surfaces_spo = np.array([1., 0., 0.])
 lesion.status = lesion.fungus.SPORULATING
 lesion.status_edge = lesion.fungus.SPORULATING
-print lesion.is_sporulating()
+print(lesion.is_sporulating())
 g.node(10).lesions = [lesion]
 emitter = PopDropsEmission()
 transporter = PopDropsTransport()
@@ -74,11 +74,11 @@ weather_data = pd.DataFrame(rain)
 for i in range(nb_steps):
     les = g.property('lesions')
     lesion = les[10][0]
-    print '-----------------------------------'
-    print 'Dispersion %d' % i
-    print 'Surfaces spo: ' +  str(lesion.surfaces_spo)
-    print 'Surface spo total: %f' % lesion.surface_spo
-    print 'Surface empty: %f' % lesion.surface_empty
+    print('-----------------------------------')
+    print('Dispersion %d' % i)
+    print('Surfaces spo: ' +  str(lesion.surfaces_spo))
+    print('Surface spo total: %f' % lesion.surface_spo)
+    print('Surface empty: %f' % lesion.surface_empty)
     # if i<3:
     if i<nb_steps-1:
         disperse(g, emitter, transporter, "septoria", label='LeafElement', weather_data=weather_data)

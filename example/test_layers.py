@@ -27,7 +27,7 @@ class DummyEmission():
         
     def get_dispersal_units(self, g, fungus_name="dummy", label='LeafElement', weather_data=None):
         DU={}
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             for lesion in l:
                 emissions = lesion.emission(self.to_emit)
                 import pdb
@@ -40,7 +40,7 @@ class DummyEmission():
 
 def get_leaf_ids(g):
     labels = g.property('label')
-    bids = [v for v,l in labels.iteritems() if l.startswith('blade')]
+    bids = [v for v,l in labels.items() if l.startswith('blade')]
     return [[vid for vid in g.components(blade) if labels[vid].startswith('LeafElement')] for blade in bids]
 
 def emission_source(g, leaves, domain_area, density_emitted=1e5):
@@ -118,7 +118,7 @@ def plot_layer_thickness_x_interleaf_two_metamers():
     df_target = pandas.DataFrame(index = interleaf, columns = layer_thickness)
     for int_lf in df_source.index:
         for dh in df_source.columns:
-            print int_lf, dh
+            print(int_lf, dh)
             (df_source.loc[int_lf, dh],
              df_target.loc[int_lf, dh]) = test_transport_rain_two_metamers(interleaf=float(int_lf), 
                                                                              layer_thickness=dh)
@@ -150,7 +150,7 @@ def plot_nb_sectors_x_interleaf_two_metamers():
     df_target = pandas.DataFrame(index = interleaf, columns = nb_sectors)
     for int_lf in df_source.index:
         for nb_sect in df_source.columns:
-            print int_lf, nb_sect
+            print(int_lf, nb_sect)
             (df_source.loc[int_lf, nb_sect],
              df_target.loc[int_lf, nb_sect]) = test_transport_rain_two_metamers(interleaf=float(int_lf), 
                                                                                 leaf_sectors=nb_sect)
@@ -179,7 +179,7 @@ def plot_sectors_two_metamers(by_sector = False):
     if by_sector == False:
         df = pandas.DataFrame(columns = ['source', 'target'])
         for nb_sect in range(1,11):
-            print nb_sect
+            print(nb_sect)
             df.loc[nb_sect, :] = test_transport_rain_two_metamers(interleaf=5.,
                                                                   layer_thickness=0.01, 
                                                                   leaf_sectors=nb_sect,
@@ -191,18 +191,18 @@ def plot_sectors_two_metamers(by_sector = False):
         ax.set_ylabel('number of deposits on leaf')
         
     else:
-        sectors = range(1, 11)
+        sectors = list(range(1, 11))
         df_source = pandas.DataFrame(index = sectors, columns = sectors)
         df_target = pandas.DataFrame(index = sectors, columns = sectors)
         for nb_sect in sectors:
-            print nb_sect
+            print(nb_sect)
             (nb_dus_on_source, 
              nb_dus_on_target) = test_transport_rain_two_metamers(interleaf=5.,
                                                                   layer_thickness=0.01,
                                                                   leaf_sectors=nb_sect,
                                                                   by_sector=True)
-            df_source.loc[nb_sect, :nb_sect] = nb_dus_on_source.values()
-            df_target.loc[nb_sect, :nb_sect] = nb_dus_on_target.values()
+            df_source.loc[nb_sect, :nb_sect] = list(nb_dus_on_source.values())
+            df_target.loc[nb_sect, :nb_sect] = list(nb_dus_on_target.values())
 
         fig, ax = plt.subplots(1,2)
         df_source.plot(ax = ax[0], marker='*')
@@ -229,7 +229,7 @@ def get_source_leaf(g, position_source=2./3):
     leaves = get_leaves(g, label='LeafElement')
     centroids = g.property('centroid')
     geometries = g.property('geometry')
-    targets = list(leaf for leaf in leaves if leaf in geometries.iterkeys())
+    targets = list(leaf for leaf in leaves if leaf in iter(geometries.keys()))
     for vid in targets:
         if isinstance(geometries[vid], collections.Iterable):
             bbc.process(pgl.Scene(geometries[vid]))
@@ -237,9 +237,9 @@ def get_source_leaf(g, position_source=2./3):
             bbc.process(pgl.Scene([pgl.Shape(geometries[vid])]))
         center = bbc.result.getCenter()
         centroids[vid] = center
-    zmax = max(centroids.items(), key=lambda x:x[1][2])[1][2]
+    zmax = max(list(centroids.items()), key=lambda x:x[1][2])[1][2]
     distances = {vid:pgl.norm(centroids[vid]-(0,0,position_source*zmax)) for vid in centroids}
-    return min(distances.items(), key=lambda x:x[1])[0]
+    return min(list(distances.items()), key=lambda x:x[1])[0]
 
 def get_deposits_num_leaf(g, adel, num_leaf_top=1, deposits={}, du_density=1e5):
     df = adel.get_exposed_areas(g)
@@ -288,7 +288,7 @@ def transport_canopy_single(agent='wind',
                                             deposits=deposits,
                                             du_density=du_density)       
     nb_deposits_total = (sum(sum([du.nb_dispersal_units for du in v]) 
-                        for v in deposits.itervalues())/adel.domain_area)/du_density
+                        for v in deposits.values())/adel.domain_area)/du_density
     return nb_deposits_total, nb_deposits_top, nb_deposits_bottom
     
 def plot_results(df, groupby='nplants', xlabel = 'Number of plants'):
@@ -333,7 +333,7 @@ def test_transport_canopy_nplants(agent = 'wind',
                                   position_source = 3./5,
                                   du_density = 1e5, layer_thickness=1.):
     # Run test and group outputs in dataframe
-    df = pandas.DataFrame(index=range(nreps*len(nplants)),
+    df = pandas.DataFrame(index=list(range(nreps*len(nplants))),
                           columns=['nplants', 'rep', 'nb_dus_tot',
                                    'nb_dus_top', 'nb_dus_bottom'])
     idx = -1
@@ -366,12 +366,12 @@ def test_transport_canopy_nsect(agent = 'wind',
                                 nreps = 10,
                                 plant_density = 250.,
                                 inter_row = 0.15,
-                                nsect = range(1,11), 
+                                nsect = list(range(1,11)), 
                                 age_canopy = 1400., 
                                 position_source = 3./5,
                                 du_density = 1e5, layer_thickness=1.):
     # Run test and group outputs in dataframe
-    df = pandas.DataFrame(index=range(nreps*len(nsect)),
+    df = pandas.DataFrame(index=list(range(nreps*len(nsect))),
                           columns=['nsect', 'rep', 'nb_dus',
                                    'nb_dus_top', 'nb_dus_bottom'])
     idx = -1
@@ -410,7 +410,7 @@ def test_transport_canopy_layers(agent='wind',
                                  du_density = 1e5, 
                                  layer_thickness=numpy.arange(1,11)):
     # Run test and group outputs in dataframe
-    df = pandas.DataFrame(index=range(nreps*len(layer_thickness)),
+    df = pandas.DataFrame(index=list(range(nreps*len(layer_thickness))),
                           columns=['nsect', 'rep', 'nb_dus',
                                    'nb_dus_top', 'nb_dus_bottom'])
     idx = -1
@@ -449,7 +449,7 @@ def test_transport_canopy_nsect_x_layers(agent='wind',
                                          du_density = 1e5, 
                                          layer_thickness=numpy.arange(2,11,2)):
     # Run test and group outputs in dataframe
-    df = pandas.DataFrame(index=range(nreps*len(nsect)*len(layer_thickness)),
+    df = pandas.DataFrame(index=list(range(nreps*len(nsect)*len(layer_thickness))),
                           columns=['nsect', 'rep', 'nb_dus',
                                    'nb_dus_top', 'nb_dus_bottom'])
     idx = -1
@@ -582,7 +582,7 @@ def plot_annual_loop_rust_nsect_x_layers(year = 2013, variety = 'Tremie13',
     ax_iter = iter(axs.flat)
     for ns, lay in scenarios:
         ax = next(ax_iter)
-        print ns, lay
+        print(ns, lay)
         df_sc = df[(df['nsect']==ns) & (df['layer_thickness']==lay)]
         df_mean =  df_sc.groupby('num_leaf_top').agg(numpy.mean)
         df_conf =  df_sc.groupby('num_leaf_top').agg(conf_int)

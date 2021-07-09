@@ -78,7 +78,7 @@ for ind, controls in enumerate(zip(weather_timing, vine_timing, mildew_timing)):
 
     # Grow vine canopy
     if vine_eval:
-        print(vine_eval.value.datetime[0])
+        print((vine_eval.value.datetime[0]))
         g,_ = grow_canopy(g, vine, vine_eval.value)
         add_area_topvine(g)
     

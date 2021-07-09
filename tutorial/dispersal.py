@@ -20,7 +20,7 @@ def get_source_leaf_and_max_height(g, position='center', relative_height=2./3):
     leaves = get_leaves(g, label='LeafElement')
     centroids = g.property('centroid')
     geometries = g.property('geometry')
-    targets = list(leaf for leaf in leaves if leaf in geometries.iterkeys())
+    targets = list(leaf for leaf in leaves if leaf in iter(geometries.keys()))
     for vid in targets:
         if is_iterable(geometries[vid]):
             bbc.process(pgl.Scene(geometries[vid]))
@@ -28,12 +28,12 @@ def get_source_leaf_and_max_height(g, position='center', relative_height=2./3):
             bbc.process(pgl.Scene([pgl.Shape(geometries[vid])]))
         center = bbc.result.getCenter()
         centroids[vid] = center
-    zmax = max(centroids.items(), key=lambda x:x[1][2])[1][2]
+    zmax = max(list(centroids.items()), key=lambda x:x[1][2])[1][2]
     distances = {vid:pgl.norm(centroids[vid]-(0,0,relative_height*zmax)) for vid in centroids}
     if position=='center':
-        return min(distances.items(), key=lambda x:x[1])[0], zmax
+        return min(list(distances.items()), key=lambda x:x[1])[0], zmax
     elif position=='border':
-        return max(distances.items(), key=lambda x:x[1])[0], zmax
+        return max(list(distances.items()), key=lambda x:x[1])[0], zmax
 
 
 fungus_name = "lesion_tutorial"
@@ -57,7 +57,7 @@ g = adel.setup_canopy(1500)
 # adel.plot(g)
 
 # choose source leaf
-leaf_ids = [id for id, label in g.property("label").iteritems() if label.startswith("LeafElement")]
+leaf_ids = [id for id, label in g.property("label").items() if label.startswith("LeafElement")]
 source_leaf = g.node(leaf_ids[1])
 
 # Alternatively, pick a leaf based on ist position in the canopy

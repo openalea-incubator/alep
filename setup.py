@@ -9,7 +9,7 @@ from openalea.deploy.metainfo import read_metainfo
 
 # Reads the metainfo file
 metadata = read_metainfo('metainfo.ini', verbose=True)
-for key,value in metadata.iteritems():
+for key,value in metadata.items():
     exec("%s = '%s'" % (key, value))
 
 #The metainfo files must contains
@@ -78,7 +78,7 @@ setup(
     package_dir= package_dir,
 
     # Namespace packages creation by deploy
-    #namespace_packages = [namespace],
+    namespace_packages = ['alinea'],
     #create_namespaces = False,
     zip_safe= False,
 

@@ -1,5 +1,6 @@
 """ Tests for brown rust model.
 """
+
 from alinea.alep.brown_rust import *
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.adel.data_samples import adel_two_metamers_stand
@@ -384,7 +385,7 @@ def pass_notest_density():
     # x = np.sort(np.concatenate([df_obs['density'], np.arange(1, 41, 2)]))
     x = np.sort(np.concatenate([df_obs['density'], np.arange(1,1)]))
     for d in x:
-        print d
+        print(d)
         # surf, surf_spo = test_single_density(d)
         df_sim.loc[len(df_sim)+1] = test_single_density(d)
         # surf_mean.append(surf)
