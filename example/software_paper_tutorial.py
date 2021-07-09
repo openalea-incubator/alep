@@ -4,12 +4,10 @@
 
 from pathlib import Path
 
-from alinea.echap.architectural_reconstructions import EchapReconstructions, echap_reconstructions
-
-from alinea.alep.architecture import update_healthy_area
-
+from alinea.echap.architectural_reconstructions import EchapReconstructions
 from alinea.adel.newmtg import move_properties
 
+from alinea.alep.architecture import update_healthy_area
 
 filename= 'echap_reconstruction.pckl'
 
@@ -26,7 +24,7 @@ adel = echap.get_reconstruction(name="Mercia", nplants=2,seed=0)
 
 #init sumulation
 timestep = 30 #Day degree
-steps = 10
+steps = 30
 
 
 
@@ -53,7 +51,35 @@ for i in range(steps):
     adel.plot(g)
     
 # 3. Disease development (septo3D)
-    
+import pandas
+
+from openalea.deploy.shared_data import shared_data
+
+from alinea.astk.Weather import Weather
+
+import alinea.alep
+from alinea.alep.septo3d_v2 import plugin_septoria
+from alinea.alep.inoculation import RandomInoculation
+from alinea.alep.dispersal_emission import SeptoriaRainEmission
+from alinea.alep.dispersal_transport import SeptoriaRainDispersal
+from alinea.alep.washing import RapillyWashing
+from alinea.alep.growth_control import NoPriorityGrowthControl
+from alinea.alep.infection_control import BiotrophDUProbaModel
+
+from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
+
 ## Initialize the models for septoria
 septoria = plugin_septoria()
+inoculator = RandomInoculation()
+growth_controler = NoPriorityGrowthControl()
+infection_controler = BiotrophDUProbaModel()
+sen_model = WheatSeptoriaPositionedSenescence(g, label='LeafElement')
+emitter = SeptoriaRainEmission(domain_area=domain_area)
+transporter = SeptoriaRainDispersal()
+washor = RapillyWashing()
 
+# Read weather and adapt it to septoria (add wetness)
+meteo_path = shared_data(alinea.alep, 'meteo05-06.txt')
+weather = Weather(data_file=meteo_path)
+weather.check(varnames=['wetness'], models={'wetness':wetness_rapilly})
+seq = pandas.date_range(start = "2005-10-01 01:00:00", end = "2006-07-01 01:00:00", freq='H')
