@@ -39,6 +39,11 @@ class DispersalUnit(object):
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
 
+    # Hack Christian as DU may be called after init in demos : deprecated ?
+    def __call__(self, nb_spores, status):
+        self.status=status
+        self.nb_dispersal_units=nb_spores
+
     def infect(self, dt=1, leaf=None, **kwds):
         """ Compute the success of infection by the DU.
 
