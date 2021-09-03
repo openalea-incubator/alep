@@ -25,7 +25,7 @@ from alinea.alep.dispersal_transport import SeptoriaRainDispersal
 from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUProbaModel
-from alinea.alep.mini_models import leaf_wetness_rapilly
+from alinea.alep.mini_models import leaf_wetness_rapilly, linear_degree_days
 from alinea.alep.disease_operation import generate_stock_du,DU_Generator
 from alinea.alep.protocol import infect , update, disperse,external_contamination
 from alinea.alep.disease_outputs import plot_severity_by_leaf
@@ -39,8 +39,9 @@ from alinea.echap.recorder import LeafElementRecorder
 from alinea.echap.milne_leaf import PenetratedDecayModel
 from alinea.echap.pesticide_efficacy import PesticideEfficacyModel
 from alinea.echap.contamination import SimpleContamination,SimpleSoilInoculum
+
 from alinea.astk.TimeControl import time_filter , rain_filter, IterWithDelays,time_control,date_filter,DegreeDayModel, thermal_time_filter
-from alinea.astk.Weather import Weather
+from alinea.astk.Weather import Weather, linear_degree_days
 
 from alinea.caribu.caribu_star import rain_and_light_star
 
@@ -102,10 +103,10 @@ washor = RapillyWashing()
 
 # Read weather and adapt it to septoria (add wetness)
 weather=get_weather(variety='Mercia')
-weather.check(['temperature_air', 'PPFD', 'relative_humidity', 'wind_speed', 'rain', 'global_radiation', 'vapor_pressure'])
+weather.check(["degree_days",'temperature_air', 'PPFD', 'relative_humidity', 'wind_speed', 'rain', 'global_radiation', 'vapor_pressure'],models={'degree_days':linear_degree_days})
     
 #weather.check(varnames=['wetness'], models={'wetness':lambda data: leaf_wetness_rapilly(data.rain, data.relative_humidity, data.PPFD)})
-periods = 5 # 5000 pour le cycle complet
+periods = 500 # 5000 pour le cycle complet
 seq = pandas.date_range(start = "2010-11-02", periods=periods, freq='H')  
 seq_bid = pandas.date_range(start = "2010-10-15", periods=periods+7000, freq='H')
 applications = """date,dose, product_name
@@ -127,7 +128,7 @@ Milne_efficacy = PesticideEfficacyModel()
 SspoSol = 0.01
 recorder = LeafElementRecorder()
 Milne_leaf = PenetratedDecayModel()
-TTmodel = DegreeDayModel(Tbase = 150)
+TTmodel = DegreeDayModel(Tbase = 0)
 every_rain = rain_filter(seq, weather)
 every_h = time_filter(seq, delay = 6)
 every_dd = thermal_time_filter(seq, weather, TTmodel, delay = 15)
@@ -156,26 +157,46 @@ source_leaf = g.node(12)
 
 for i,controls in enumerate(zip(canopy_timing, doses_timing, rain_timing, pest_timing)):
     canopy_iter, doses_iter, rain_iter, pest_iter = controls
-
+    
     if canopy_iter.eval:
         print('--', canopy_iter.value.index[-1], '--')
+        print('-- update microclimate / canopy --')
         g = adel.grow(g, canopy_iter.value)
         #_=rain_and_light_star(g, light_sectors = '1', domain=adel.domain, convUnit=adel.convUnit)
         _=update(g, canopy_iter.dt, growth_controler)
-        _=do_record(g, canopy_iter.value, recorder)
+        #_=do_record(g, canopy_iter.value, recorder)
     if pest_iter.eval:
+        print('--', pest_iter.value.index[-1], '--')
+        print('-- update microclimate / pesticide --')
+        
         #_=pesticide_intercept(g, pest_iter.value)
         _=pesticide_interception(g, interception, pest_iter.value, label='LeafElement')
         #plot_pesticide(g)
     if doses_iter.eval:
+        print('--', doses_iter.value.index[-1], '--')
         print('-- update microclimate / doses --')
         #_=microclimate_leaf(g, doses_iter.value, domain = adel.domain, convUnit = adel.convUnit)
         _=update_pesticides(g, doses_iter.value)
         #plot_pesticide(g)
-        _=do_record(g, doses_iter.value, recorder, header={'iter':i, 'TT':adel.canopy_age})
+        #_=do_record(g, doses_iter.value, recorder, header={'iter':i, 'TT':adel.canopy_age})
     if rain_iter.eval:
+        print('--', rain_iter.value.index[-1], '--')
         print('-- rain --')
+
         wdata = rain_iter.value
+        
+        # Get weather for date and add it as properties on leaves
+        set_properties(g,label = 'LeafElement',
+            temperature_sequence = wdata.temperature_air.tolist(),
+            relative_humidity_sequence= wdata.relative_humidity.tolist(),
+            wetness_sequence = leaf_wetness_rapilly(rain=wdata.rain,relative_humidity=wdata.relative_humidity,PPFD=wdata.PPFD),
+            #dd_sequence = wdata.degree_days.tolist()            
+            )
+
+#        set_properties(g,label = 'LeafElement',
+#            rain_intensity = wdata.rain.mean(),
+#            rain_duration = len(wdata.rain) if wdata.rain.sum() > 0 else 0.)
+
         g = disperse(g, emitter, transporter, "septoria", label='LeafElement')
         #dispersion(g, wdata, domain, domain_area, convUnit)
         _=simple_contamination(g,wdata, SspoSol, adel.domain, adel.domain_area, adel.convUnit)
