@@ -12,13 +12,10 @@ import pandas
 import random as rd
 
 from alinea.echap.architectural_reconstructions import EchapReconstructions
-from alinea.adel.newmtg import move_properties
-
-from openalea.deploy.shared_data import shared_data
 
 import alinea.alep
-from alinea.alep.architecture import update_healthy_area, set_properties, get_leaves
-from alinea.alep.septo3d_v2 import plugin_septoria,SeptoriaDU
+from alinea.alep.architecture import set_properties
+from alinea.alep.septo3d_v2 import plugin_septoria
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.dispersal_transport import SeptoriaRainDispersal
@@ -26,28 +23,27 @@ from alinea.alep.washing import RapillyWashing
 from alinea.alep.growth_control import NoPriorityGrowthControl
 from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.mini_models import leaf_wetness_rapilly, linear_degree_days
-from alinea.alep.disease_operation import generate_stock_du,DU_Generator
+from alinea.alep.disease_operation import DU_Generator
 from alinea.alep.protocol import infect , update, disperse,external_contamination
-from alinea.alep.disease_outputs import plot_severity_by_leaf
+
 
 from alinea.echap.weather_data import get_weather
 from alinea.echap.interception_leaf import pesticide_applications, InterceptModel
 from alinea.echap.interfaces import record as do_record, pesticide_interception, pesticide_surfacic_decay, pesticide_penetrated_decay, pesticide_efficacy#to avoid confusion with numpy record
-#from alinea.echap.macros_annual_loop import reconst, update_lesions, update_pesticides, dispersion, contamination, pesticide_intercept
 from alinea.echap.microclimate_leaf import microclimate_leaf
 from alinea.echap.recorder import LeafElementRecorder
 from alinea.echap.milne_leaf import PenetratedDecayModel
 from alinea.echap.pesticide_efficacy import PesticideEfficacyModel
 from alinea.echap.contamination import SimpleContamination,SimpleSoilInoculum
+from alinea.echap.tests_nodes import plot_pesticide
 
 from alinea.astk.TimeControl import time_filter , rain_filter, IterWithDelays,time_control,date_filter,DegreeDayModel, thermal_time_filter
 from alinea.astk.Weather import Weather, linear_degree_days
 
-from alinea.caribu.caribu_star import rain_and_light_star
 
 
 
-
+#1. Wheat architecture costruction from Echap data
 filename= 'echap_reconstruction.pckl'
 
 #if not os.path.exists(filename):
@@ -153,7 +149,7 @@ def simple_contamination(g, weather_data, level, domain, domain_area, convUnit):
 
 # Choose source leaf in canopy 
 # (Here the value of the leaf is known but it changes with another initialize_stand)
-source_leaf = g.node(12)
+#source_leaf = g.node(12)
 
 for i,controls in enumerate(zip(canopy_timing, doses_timing, rain_timing, pest_timing)):
     canopy_iter, doses_iter, rain_iter, pest_iter = controls
@@ -171,13 +167,13 @@ for i,controls in enumerate(zip(canopy_timing, doses_timing, rain_timing, pest_t
         
         #_=pesticide_intercept(g, pest_iter.value)
         _=pesticide_interception(g, interception, pest_iter.value, label='LeafElement')
-        #plot_pesticide(g)
+        #_=plot_pesticide(g)
     if doses_iter.eval:
         print('--', doses_iter.value.index[-1], '--')
         print('-- update microclimate / doses --')
         #_=microclimate_leaf(g, doses_iter.value, domain = adel.domain, convUnit = adel.convUnit)
         _=update_pesticides(g, doses_iter.value)
-        #plot_pesticide(g)
+        # plot_pesticide(g)
         #_=do_record(g, doses_iter.value, recorder, header={'iter':i, 'TT':adel.canopy_age})
     if rain_iter.eval:
         print('--', rain_iter.value.index[-1], '--')
