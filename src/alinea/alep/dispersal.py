@@ -2,6 +2,17 @@
     first step of dispersal.
 """
 
+def get_sporulating_lesions(lesions, fungus_name=None):
+            # get and copy sporulating lesions
+    if fungus_name is None: 
+        les = {k: [l for l in v if l.is_sporulating] 
+                for k, v in lesions.items()}
+    else:
+        les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating] 
+                for k, v in g.property('lesions').items()}
+    return les
+
+
 # Template emission model ###########################################################
 ### TODO : check if/how 'group_dus' is interfering
 class Emission(object):
@@ -13,14 +24,12 @@ class Emission(object):
     lesion that is found will emit.
     """
     
-    def __init__(self, nb_DU=1):
+    def __init__(self):
         """ Initialize the model with fixed parameters.
         
         Parameters
         ----------
-        - nb_DU (int): number of DU emited (default 1)
         """
-        self.nb_DU = nb_DU
         pass
         
     def get_dispersal_units(self, lesions, fungus_name=None, **kwds):
@@ -37,21 +46,15 @@ class Emission(object):
         dispersal_units : dict([leaf_id, list of dispersal units])
             Dispersal units emitted by leaf.
         """
-        # get and copy sporulating lesions
-        if fungus_name is None: 
-            les = {k: [l for l in v if l.is_sporulating] 
-                    for k, v in lesions.items()}
-        else:
-            les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating] 
-                    for k, v in g.property('lesions').items()} 
 
+        sporulating_lesions = get_sporulating_lesions(lesions, fungus_name)
         DU = {}
-        for vid, l in les.items():
+        for vid, l in sporulating_lesions.items():
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 if vid not in DU:
                     DU[vid] = []
-                DU[vid] += lesion.emission(self.nb_DU, **kwds)
+                DU[vid].append(lesion.emission(**kwds))
         return DU
 
 

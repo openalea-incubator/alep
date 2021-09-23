@@ -196,7 +196,7 @@ class Lesion(object):
         pass
 
     def emission(self, nb_DU=1, **kwds):
-        """ Compute number of dispersal units emitted according to climatic conditions
+        """ Compute number of dispersal units emitted
 
         To be overridden specifically by fungus type. By default, return 1 dispersal unit.
 
@@ -205,13 +205,14 @@ class Lesion(object):
          - **kwds (dict): optional arguments depending on fungus specifications
 
         :Returns:
-         - 'DispersalUnit_class' : the class the emited dispersal units belongs to
-         - 'nb_dispersal_units' (int): number of dispersal units emitted
+        - a list of 2-tuple containing: 
+             - 'DispersalUnit_class' : the class the emited dispersal units belongs to
+             - 'nb_dispersal_units' (int): number of dispersal units emitted
         """
         if self.fungus is None:
             raise TypeError("fungus undefined : lesion should be instantiated with fungus method for emission to prpoerly work")
             
-        return (self.fungus.DispersalUnit_class, nb_DU),
+        return self.fungus.DispersalUnit_class, nb_DU
 
     def senescence_response(self, **kwds):
         """ Modification of lesion variables in response to leaf natural senescence

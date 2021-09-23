@@ -2,7 +2,7 @@ from alinea.alep.dispersal import Emission
 from alinea.alep.fungus import Fungus
 
 
-def test_emission()
+def test_emission():
     fungus = Fungus()
     lesion = fungus.lesion()
     lesions = {'leaf': [lesion]}
