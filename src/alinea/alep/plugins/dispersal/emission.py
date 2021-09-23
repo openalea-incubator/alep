@@ -2,61 +2,16 @@
     first step of dispersal.
 """
 
+from alinea.alep.dispersal import Emission, get_sporulating_lesions
+
 # Imports #########################################################################
 from alinea.alep.architecture import get_total_leaf_area
 from alinea.alep.septoria import SeptoriaDU
 from alinea.alep.powdery_mildew import PowderyMildewDU
 from math import exp
 
-# Simple emission  ###########################################################
-class SimpleEmission:
-    """ Template class for a model of emission of dispersal units 
-        that complies with the guidelines of Alep.
-    
-    Emission is the first step of dispersal, before transport. A class for a model 
-    of emission must include a method 'get_dispersal_units'. In this example, each
-    lesion that is found will emit.
-    """
-    
-    def __init__(self):
-        """ Initialize the model with fixed parameters.
-        
-        Parameters
-        ----------
-        ...
-        """
-        pass
-        
-    def get_dispersal_units(self, g, fungus_name="septoria", label='LeafElement'):
-        """ Compute emission of dispersal units by rain splash on wheat.
-        
-        Parameters
-        ----------
-        g: MTG
-            MTG representing the canopy (and the soil)
-        fungus_name: str
-            Name of the fungus
-                    
-        Returns
-        -------
-        dispersal_units : dict([leaf_id, list of dispersal units])
-            Dispersal units emitted by leaf.
-        """
-        # Get lesions
-        les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating] 
-                    for k, v in g.property('lesions').items()} 
-
-        DU = {}
-        for vid, l in les.items():
-            for lesion in l:
-                # Compute number of dispersal units emitted by lesion
-                if vid not in DU:
-                    DU[vid] = 0
-                DU[vid] += lesion.emission()
-        return DU
-
 # Septoria rain emission ##########################################################
-class SeptoriaRainEmission:
+class SeptoriaRainEmission(Emission):
     """ Template class for a model of emission of dispersal units by rain 
         that complies with the guidelines of Alep.
     
@@ -66,7 +21,7 @@ class SeptoriaRainEmission:
     Rapilly and Jolivet (1976) and interacts with specific septoria lesions.
     """
     
-    def __init__(self, domain_area=None):
+    def __init__(self):
         """ Initialize the model with fixed parameters.
         
         Parameters
@@ -74,11 +29,9 @@ class SeptoriaRainEmission:
         domain_area: float
             Domain area of the canopy stand
         """
-        self.domain_area = domain_area
+        super(SeptoriaRainEmission, self).__init__()
         
-    def get_dispersal_units(self, g, fungus_name="septoria", 
-                            label='LeafElement', weather_data=None,
-                            domain_area = None, k_wheat = 0.65):
+    def get_dispersal_units(self, lesions, sporulating_surfaces, local_rain_intensity, total_area, lai, k = 0.65):
         """ Compute emission of dispersal units by rain splash on wheat.
         
         Parameters
@@ -93,31 +46,25 @@ class SeptoriaRainEmission:
         dispersal_units : dict([leaf_id, list of dispersal units])
             Dispersal units emitted by leaf.
         """
-        if domain_area is None:
-            domain_area = self.domain_area
-        
-        # Compute total leaf area
-        total_area = get_total_leaf_area(g, label=label)
-        
+        assert all([k in sporulating_surfaces for k in lesions])
+        domain_area = total_area / lai
         # Compute intercept with Beer Lambert
-        intercept = 1 - exp(-k_wheat*total_area*10**-4/self.domain_area)
+        intercept = 1 - exp(-k*lai)
         # intercept = 1 - exp(-k_wheat*total_area*10**-4)
         
         # Get lesions
-        les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, v in g.property('lesions').items()} 
+        les = get_sporulating_lesions(lesions, fungus_name)
         
         # Compute total sporulating area
-        total_spo = sum([l.surface_spo for v in list(les.values()) for l in v])
-        tot_fraction_spo = total_spo/total_area if total_area>0. else 0.
+        total_spo = sum([v for v in sporulating_surfaces.values()])
+        tot_fraction_spo = total_spo / total_area if total_area>0. else 0.
         
         DU = {}
         for vid, l in les.items():
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
-                leaf = g.node(vid)
                 total_DU_leaf = 0.36 * 6.19e7 * intercept * tot_fraction_spo *\
-                                leaf.rain_intensity * domain_area
+                                local_rain_intensity[vid] * domain_area
                 
                 if lesion.is_stock_available(leaf):
                     initial_stock = lesion.stock_spores

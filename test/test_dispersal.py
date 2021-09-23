@@ -17,8 +17,8 @@ def test_emission():
     assert 'leaf' in emissions
     dus = emissions['leaf']
     assert len(dus) == 1
-    du_class, du_number = dus[0]
-    assert du_class == lesion.fungus.DispersalUnit_class
-    assert du_number == 1
+    du = dus[0]
+    assert isinstance(du, lesion.fungus.DispersalUnit_class)
+    assert du.nb_dispersal_units == 1
     
     

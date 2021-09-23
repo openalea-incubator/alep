@@ -14,7 +14,8 @@ def get_sporulating_lesions(lesions, fungus_name=None):
 
 
 # Template emission model ###########################################################
-### TODO : check if/how 'group_dus' is interfering
+### TODO : check if/how 'group_dus' is interfering:
+
 class Emission(object):
     """ Template class for a model of emission of dispersal units 
         that complies with the guidelines of Alep.

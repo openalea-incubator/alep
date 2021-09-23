@@ -16,7 +16,7 @@ class DispersalUnit(object):
     To implement a dispersal unit for a specific fungus, you can override the following method:
         - infect()
     """
-    def __init__(self, mutable=False):
+    def __init__(self, nb_dispersal_units=1, status='emitted', mutable=False):
         """ Initialize the dispersal unit (DU).
 
         :Parameters:
@@ -31,8 +31,8 @@ class DispersalUnit(object):
          deposited on the leaf at the same date.
         """
         self.is_active = True
-        self.status = 'emitted'
-        self.nb_dispersal_units = 1
+        self.status = status
+        self.nb_dispersal_units = nb_dispersal_units
 
         # Capacity to differ from other lesions of same Fungus
         self.mutable = mutable
@@ -212,7 +212,7 @@ class Lesion(object):
         if self.fungus is None:
             raise TypeError("fungus undefined : lesion should be instantiated with fungus method for emission to prpoerly work")
             
-        return self.fungus.DispersalUnit_class, nb_DU
+        return self.fungus.DispersalUnit_class(nb_DU)
 
     def senescence_response(self, **kwds):
         """ Modification of lesion variables in response to leaf natural senescence
@@ -303,7 +303,7 @@ class Fungus(object):
         self.update_parameters(**kwds)
         return {k:getattr(self,k) for k in self.parameter_names}
 
-    def dispersal_unit(self, mutable=False, **kwds):
+    def dispersal_unit(self, nb_dispersal_units=1, status='emitted', mutable=False, **kwds):
         """ Create a dispersal unit instance of the fungus.
 
         :Parameters:
@@ -311,7 +311,7 @@ class Fungus(object):
         """
         self.update_parameters(**kwds)
         self.DispersalUnit_class.fungus = self
-        instance = self.DispersalUnit_class(mutable=mutable)
+        instance = self.DispersalUnit_class(nb_dispersal_units=nb_dispersal_units, status=status, mutable=mutable)
         return instance
 
     def lesion(self, mutable=False, **kwds):
