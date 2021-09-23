@@ -143,9 +143,11 @@ class Lesion(object):
          - 'is_senescent' (bool) - True if the lesion is on naturally senescent parts of the leaf.
          - 'growth_demand' (float) - Potential surface increase of the lesion during
          the time step to come.
+         - 'is_sporulating': whether the lesion is emiting spores or not
         """
         self.is_active = True
         self.growth_is_active = True
+        self.is_sporulating = False
         self.is_senescent = False
         self.growth_demand = 0.
         self.position = None
@@ -193,18 +195,23 @@ class Lesion(object):
         """
         pass
 
-    def emission(self, **kwds):
+    def emission(self, nb_DU=1, **kwds):
         """ Compute number of dispersal units emitted according to climatic conditions
 
         To be overridden specifically by fungus type. By default, return 1 dispersal unit.
 
         :Parameters:
+         - nb_DU (int): number of DU emited (default 1)
          - **kwds (dict): optional arguments depending on fungus specifications
 
         :Returns:
+         - 'DispersalUnit_class' : the class the emited dispersal units belongs to
          - 'nb_dispersal_units' (int): number of dispersal units emitted
         """
-        return 1
+        if self.fungus is None:
+            raise TypeError("fungus undefined : lesion should be instantiated with fungus method for emission to prpoerly work")
+            
+        return (self.fungus.DispersalUnit_class, nb_DU),
 
     def senescence_response(self, **kwds):
         """ Modification of lesion variables in response to leaf natural senescence
@@ -247,6 +254,7 @@ class Lesion(object):
         """ Set the senescence marker to True.
         """
         self.is_senescent = True
+
 
 # Composition to define a fungus type ##############################################################
 class Fungus(object):
