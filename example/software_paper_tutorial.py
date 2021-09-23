@@ -189,10 +189,6 @@ for i,controls in enumerate(zip(canopy_timing, doses_timing, rain_timing, pest_t
             #dd_sequence = wdata.degree_days.tolist()            
             )
 
-#        set_properties(g,label = 'LeafElement',
-#            rain_intensity = wdata.rain.mean(),
-#            rain_duration = len(wdata.rain) if wdata.rain.sum() > 0 else 0.)
-
         g = disperse(g, emitter, transporter, "septoria", label='LeafElement')
         #dispersion(g, wdata, domain, domain_area, convUnit)
         _=simple_contamination(g,wdata, SspoSol, adel.domain, adel.domain_area, adel.convUnit)
