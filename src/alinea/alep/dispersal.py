@@ -12,6 +12,22 @@ def get_sporulating_lesions(lesions, fungus_name=None):
                 for k, v in g.property('lesions').items()}
     return les
 
+def create_dus(sporulating_lesions, du_per_lesions=1, **kwds):
+    """Call emission methods of sporulating_lesions with appropriate du_per_lesions
+    
+    du_per_lesions is either a number or a {vid:[nb,...],...} dict
+    """
+
+    dus = {}
+    for vid, l in sporulating_lesions.items():
+        for il,lesion in enumerate(l):
+            if vid not in DU:
+                DU[vid] = []
+            if isinstance(du_per_lesions, int):
+                DU[vid].append(lesion.emission(nb_DU=du_per_lesions, **kwds))
+            else:
+                DU[vid].append(lesion.emission(nb_DU=du_per_lesions[vid][il], **kwds))
+    return DU
 
 # Template emission model ###########################################################
 ### TODO : check if/how 'group_dus' is interfering:
@@ -33,7 +49,7 @@ class Emission(object):
         """
         pass
         
-    def get_dispersal_units(self, lesions, fungus_name=None, **kwds):
+    def get_dispersal_units(self, lesions, fungus_name=None, du_per_lesion=1, **kwds):
         """ Compute emission of dispersal units by rain splash on wheat.
         
         Parameters
@@ -49,13 +65,8 @@ class Emission(object):
         """
 
         sporulating_lesions = get_sporulating_lesions(lesions, fungus_name)
-        DU = {}
-        for vid, l in sporulating_lesions.items():
-            for lesion in l:
-                # Compute number of dispersal units emitted by lesion
-                if vid not in DU:
-                    DU[vid] = []
-                DU[vid].append(lesion.emission(**kwds))
+        # eventualy compute here actual number of du_per_lesion
+        DU = create_dus(sporulating_lesions, du_per_lesion, **kwds)
         return DU
 
 

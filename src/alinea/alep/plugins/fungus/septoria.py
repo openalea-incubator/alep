@@ -649,17 +649,16 @@ class SeptoriaLesion(Lesion):
         self.surfaces_spo[0] += self.to_sporulation
         self.to_sporulation = 0.
 
-    def emission(self, density_DU_emitted):
-        """ Return number of DUs emitted by the lesion. """
-        if density_DU_emitted>0:       
-            f = self.fungus
-            emissions = [int(x) for x in self.surfaces_spo * density_DU_emitted]
+    def emission(self, nb_DU):
+        """ Return DUs emitted by the lesion and make houseeeping """  
+        if nb_DU > 0:
             self.surface_empty += self.surfaces_spo[-1]
             self.surfaces_spo[1:] = self.surfaces_spo[:-1]
             self.surfaces_spo[0] = 0.
-            return sum(emissions)
+            return self.fungus.DispersalUnit_class(nb_DU)
         else:
-            return 0.
+            return []
+
     
     def senescence_response(self, senesced_length=0.):
         """ Compute surface alive and surface dead after senescence. """

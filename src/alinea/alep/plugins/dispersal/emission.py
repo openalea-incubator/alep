@@ -5,13 +5,12 @@
 from alinea.alep.dispersal import Emission, get_sporulating_lesions
 
 # Imports #########################################################################
-from alinea.alep.architecture import get_total_leaf_area
-from alinea.alep.septoria import SeptoriaDU
+
 from alinea.alep.powdery_mildew import PowderyMildewDU
 from math import exp
 
-# Septoria rain emission ##########################################################
-class SeptoriaRainEmission(Emission):
+# Rain emission ##########################################################
+class RainEmission(Emission):
     """ Template class for a model of emission of dispersal units by rain 
         that complies with the guidelines of Alep.
     
@@ -21,156 +20,52 @@ class SeptoriaRainEmission(Emission):
     Rapilly and Jolivet (1976) and interacts with specific septoria lesions.
     """
     
-    def __init__(self):
+    def __init__(self, pFA=6.19e7, pEclin=0.36, Imin=0.5):
         """ Initialize the model with fixed parameters.
         
         Parameters
         ----------
-        domain_area: float
-            Domain area of the canopy stand
+        pFA: proportionality between rain intensity and number of splash droplets emited (m-2)
+        pECLIN : proportion of emitted infectious droplets that contain enough spores and that do not evaporate
         """
         super(SeptoriaRainEmission, self).__init__()
+        self.pFA = pFA
+        self.pEclin = pEclin
+        self.Imin = Imin
         
-    def get_dispersal_units(self, lesions, sporulating_surfaces, local_rain_intensity, total_area, lai, k = 0.65):
-        """ Compute emission of dispersal units by rain splash on wheat.
+    def get_dispersal_units(self, lesions, exposed_sporulating_areas, fungus_name=None, rain_intensity=1):
+        """ Compute emission of dispersal units by rain.
         
         Parameters
         ----------
-        g: MTG
-            MTG representing the canopy (and the soil)
-        fungus_name: str
-            Name of the fungus
+        lesions: {vid: [lesion,...], ...}
+            MTG property containing lesions
+        exposed_sporulating_areas: {vid: [area,...],...}
+            MTG property with sporulating areas exposed to rain. Areas should be in square meter
+            this quantity can be determined for a vid using a projection models
+        rain_intensity : 
                     
         Returns
         -------
         dispersal_units : dict([leaf_id, list of dispersal units])
-            Dispersal units emitted by leaf.
+            Dispersal units emitted by source lesions
         """
-        assert all([k in sporulating_surfaces for k in lesions])
-        domain_area = total_area / lai
-        # Compute intercept with Beer Lambert
-        intercept = 1 - exp(-k*lai)
-        # intercept = 1 - exp(-k_wheat*total_area*10**-4)
+        
+        if rain_intensity <= self.Imin:
+            return {}
         
         # Get lesions
-        les = get_sporulating_lesions(lesions, fungus_name)
+        sporulating_lesions = get_sporulating_lesions(lesions, fungus_name)
+        assert all([k in exposed_sporulating_areas for k in sporulating_lesions])
         
-        # Compute total sporulating area
-        total_spo = sum([v for v in sporulating_surfaces.values()])
-        tot_fraction_spo = total_spo / total_area if total_area>0. else 0.
-        
-        DU = {}
-        for vid, l in les.items():
-            for lesion in l:
-                # Compute number of dispersal units emitted by lesion
-                total_DU_leaf = 0.36 * 6.19e7 * intercept * tot_fraction_spo *\
-                                local_rain_intensity[vid] * domain_area
-                
-                if lesion.is_stock_available(leaf):
-                    initial_stock = lesion.stock_spores
-                    stock_available = int(lesion.stock_spores*2/3.)
-                    contribution = lesion.surface_spo/total_spo if total_spo>0. else 0.
-                    nb_DU_lesion = int(contribution * total_DU_leaf)
-                    
-                    # Distribute spores into dispersal units
-                    nb_spores_by_DU = 10
-                    nb_DU_lesion = min(nb_DU_lesion, stock_available/nb_spores_by_DU)
-                    
-                    SeptoriaDU.fungus = lesion.fungus
-                    emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU, status='emitted', 
-                                 position=lesion.position) for i in range(nb_DU_lesion)]
-
-                    # Update stock of spores of the lesion
-                    nb_spores_emitted = nb_DU_lesion*nb_spores_by_DU
-                    lesion.reduce_stock(nb_spores_emitted)
-                    
-                    # Update empty surface on lesion
-                    lesion.update_empty_surface(nb_spores_emitted, initial_stock)
-                    
-                    if vid not in DU:
-                        DU[vid] = []
-                    DU[vid] += emissions
+        DU = {k:[] for k in sporulating_lesions}
+        for vid, l in sporulating_lesions.items():
+            for i,lesion in enumerate(l):
+                nb_du = self.pFA * rain_intensity * self.pEclin * exposed_sporulating_areas[vid][i]
+                if nb_du > 0:
+                    DU[vid].append(lesion.emission(nb_DU=nb_du))
         return DU
  
-class BenchSeptoriaRainEmission:
-    """ Template class for a model of emission of dispersal units by rain 
-        that complies with the guidelines of Alep only for benchmark test.
-    """
-    
-    def __init__(self, domain_area=None):
-        """ Initialize the model with fixed parameters.
-        
-        Parameters
-        ----------
-        domain_area: float
-            Domain area of the canopy stand
-        """
-        self.domain_area = domain_area
-        
-    def get_dispersal_units(self, g, fungus_name="septoria", label='LeafElement'):
-        """ Compute emission of dispersal units by rain splash on wheat.
-        
-        Parameters
-        ----------
-        g: MTG
-            MTG representing the canopy (and the soil)
-        fungus_name: str
-            Name of the fungus
-                    
-        Returns
-        -------
-        dispersal_units : dict([leaf_id, list of dispersal units])
-            Dispersal units emitted by leaf.
-        """
-        k_wheat = 0.65
-        
-        # Compute total leaf area
-        total_area = get_total_leaf_area(g, label=label)
-        
-        # Compute intercept with Beer Lambert
-        intercept = 1 - exp(-k_wheat*total_area*10**-4/self.domain_area)
-        # intercept = 1 - exp(-k_wheat*total_area*10**-4)
-        
-        # Get lesions
-        les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, v in g.property('lesions').items()} 
-        
-        # Compute total sporulating area
-        total_spo = sum([l.surface_spo for v in list(les.values()) for l in v])
-        # tot_fraction_spo = total_spo/(total_area/self.domain_area) if (total_area/self.domain_area)>0. else 0.
-        tot_fraction_spo = total_spo/total_area if total_area>0. else 0.
-
-        DU = {}
-        for vid, l in les.items():
-            for lesion in l:
-                # Compute number of dispersal units emitted by lesion
-                leaf = g.node(vid)
-                total_DU_leaf = 0.36 * 6.19e7 * intercept * tot_fraction_spo * leaf.rain_intensity * self.domain_area
-
-                initial_stock = lesion.stock_spores
-                stock_available = int(lesion.stock_spores*2/3.)
-                contribution = lesion.surface_spo/total_spo if total_spo>0. else 0.
-                nb_DU_lesion = int(contribution * total_DU_leaf)
-                
-                # Distribute spores into dispersal units
-                nb_spores_by_DU = 10
-                nb_DU_lesion = min(nb_DU_lesion, stock_available/nb_spores_by_DU)
-                
-                SeptoriaDU.fungus = lesion.fungus
-                emissions = [SeptoriaDU(nb_spores = nb_spores_by_DU, status='emitted', 
-                             position=lesion.position) for i in range(nb_DU_lesion)]
-
-                # Update stock of spores of the lesion
-                nb_spores_emitted = nb_DU_lesion*nb_spores_by_DU
-                lesion.reduce_stock(nb_spores_emitted)
-                
-                # Update empty surface on lesion
-                lesion.update_empty_surface(nb_spores_emitted, initial_stock)
-                
-                if vid not in DU:
-                    DU[vid] = []
-                DU[vid] += emissions
-        return DU
  
 # Septoria rain emission ##########################################################
 class PowderyMildewWindEmission:

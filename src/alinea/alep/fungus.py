@@ -196,7 +196,7 @@ class Lesion(object):
         pass
 
     def emission(self, nb_DU=1, **kwds):
-        """ Compute number of dispersal units emitted
+        """ return dispersal units emitted by a lesion and perform required housekeeping
 
         To be overridden specifically by fungus type. By default, return 1 dispersal unit.
 
