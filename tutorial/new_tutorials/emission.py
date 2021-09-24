@@ -12,8 +12,13 @@ from datetime import timedelta
 import numpy
 import matplotlib.pyplot as plt
 
+
+
+#### Emission from a single user-defined lesion
+
+
 class DummyLesion(Lesion):
-    """ Undetermined lesion with only a method emission."""
+    """ Dummy lesion with only a method emission."""
     def __init__(self):
         super(DummyLesion, self).__init__()
         class params():
