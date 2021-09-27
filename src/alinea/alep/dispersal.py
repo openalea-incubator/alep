@@ -29,7 +29,7 @@ def get_sporulating_lesions(lesions:dict, fungus_name:str=None)-> Union[dict,int
                 for k, v in g.property('lesions').items()}
     return les
 
-def create_dus(sporulating_lesions:dict, du_per_lesions:Union(dict,int)=1, **kwds) -> dict:    
+def create_dus(sporulating_lesions:dict, du_per_lesions:Union[dict,int]=1, **kwds) -> dict:    
     """Call emission methods of sporulating_lesions with appropriate du_per_lesions
 
     Parameters
