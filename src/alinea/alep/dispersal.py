@@ -3,6 +3,8 @@
 """
 from typing import Union
 
+## Generic function for dispersion ###########################################
+
 def get_sporulating_lesions(lesions:dict, fungus_name:str=None)-> Union[dict,int]:
     """Get and copy sporulating lesions
 
@@ -29,14 +31,15 @@ def get_sporulating_lesions(lesions:dict, fungus_name:str=None)-> Union[dict,int
                 for k, v in g.property('lesions').items()}
     return les
 
-def create_dus(sporulating_lesions:dict, du_per_lesions:Union[dict,int]=1, **kwds) -> dict:    
+def create_dus(sporulating_lesions:dict, du_per_lesions:Union[dict,int]=1, **kwds) -> dict: 
+       
     """Call emission methods of sporulating_lesions with appropriate du_per_lesions
 
     Parameters
     ----------
     sporulating_lesions : dict
         dict with sporulating lesion
-    du_per_lesions : Union(dict,int), 
+    du_per_lesions : Union[dict,int], 
         number of dispersal Unit by lesion either a number or dict, by default 1
 
     Returns
