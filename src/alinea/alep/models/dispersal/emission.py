@@ -20,36 +20,45 @@ class RainEmission(Emission):
     Rapilly and Jolivet (1976) and interacts with specific septoria lesions.
     """
     
-    def __init__(self, pFA=6.19e7, pEclin=0.36, Imin=0.5):
-        """ Initialize the model with fixed parameters.
+    def __init__(self, pFA:float=6.19e7, pEclin:float=0.36, Imin:float=0.5):
         
+        """Initialize the model with fixed parameters.
+
         Parameters
         ----------
-        pFA: proportionality between rain intensity and number of splash droplets emited (m-2)
-        pECLIN : proportion of emitted infectious droplets that contain enough spores and that do not evaporate
-        """
+        pFA : float, 
+            proportionality between rain intensity and number of splash droplets emited (m-2), by default 6.19e7
+        pEclin : float
+            proportion of emitted infectious droplets that contain enough spores and that do not evaporate, by default 0.36
+        Imin : float, optional
+            minimal rain intensity, by default 0.5
+        """        
         super(RainEmission, self).__init__()
         self.pFA = pFA
         self.pEclin = pEclin
         self.Imin = Imin
         
-    def get_dispersal_units(self, lesions, exposed_sporulating_areas, fungus_name=None, rain_intensity=1):
-        """ Compute emission of dispersal units by rain.
-        
+    def get_dispersal_units(self, lesions:dict, exposed_sporulating_areas:dict, fungus_name:str=None, rain_intensity:float=1) -> dict:
+        """Compute emission of dispersal units by rain
+
         Parameters
         ----------
-        lesions: {vid: [lesion,...], ...}
-            MTG property containing lesions
-        exposed_sporulating_areas: {vid: [area,...],...}
+        lesions : dict
+            MTG property containing lesions {vid: [lesion,...], ...}
+        exposed_sporulating_areas : dict
             MTG property with sporulating areas exposed to rain. Areas should be in square meter
-            this quantity can be determined for a vid using a projection models
-        rain_intensity : 
-                    
+            this quantity can be determined for a vid using a projection models. {vid: [area,...],...}
+        fungus_name : str, optional
+            name of fungus, by default None
+        rain_intensity : int, optional
+            Rain intensity= ratio of rain quantity by rain duration, by default 1
+
         Returns
         -------
-        dispersal_units : dict([leaf_id, list of dispersal units])
+        dict
+            dispersal_units : dict([leaf_id, list of dispersal units])
             Dispersal units emitted by source lesions
-        """
+        """        
         
         if rain_intensity <= self.Imin:
             return {}
