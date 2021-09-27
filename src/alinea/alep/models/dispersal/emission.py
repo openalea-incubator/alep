@@ -6,7 +6,7 @@ from alinea.alep.dispersal import Emission, get_sporulating_lesions
 
 # Imports #########################################################################
 
-from alinea.alep.powdery_mildew import PowderyMildewDU
+#from alinea.alep.powdery_mildew import PowderyMildewDU
 from math import exp
 
 # Rain emission ##########################################################
@@ -28,7 +28,7 @@ class RainEmission(Emission):
         pFA: proportionality between rain intensity and number of splash droplets emited (m-2)
         pECLIN : proportion of emitted infectious droplets that contain enough spores and that do not evaporate
         """
-        super(SeptoriaRainEmission, self).__init__()
+        super(RainEmission, self).__init__()
         self.pFA = pFA
         self.pEclin = pEclin
         self.Imin = Imin
