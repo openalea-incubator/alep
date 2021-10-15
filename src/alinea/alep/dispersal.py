@@ -1,106 +1,143 @@
-""" Gather different strategies for modeling emission of fungus propagules, 
-    first step of dispersal.
+""" Generic dispersal API interacting with Alep Fungus
 """
-from typing import Union
+from functools import reduce
+from typing import Tuple, Dict, Any
+import random
+from collections import Counter
 
-## Generic function for dispersion ###########################################
 
-def get_sporulating_lesions(lesions:dict, fungus_name:str=None)-> Union[dict,int]:
-    """Get and copy sporulating lesions
+def count_dus(dispersal_units: Dict[Any, list]) -> Dict[Any, int]:
+    def _sum_dus(du_list):
+        return reduce(lambda x, y: x + y.nb_dispersal_units, du_list, 0)
 
-    Parameters
-    ----------
-    lesions : dict
-         a {vid:[lesion,...], ...} dict of list of lesion objects
-    fungus_name : str, optional
-        Name of fungus, by default None
+    return {vid: _sum_dus(du_list) for vid, du_list in dispersal_units.items()}
 
-    Returns
-    -------
-    Union[dict,int]
-        a {vid:[lesion,...], ...} dict of list of sporulating lesion objects or a number
-    
-    """    
-    # get and copy sporulating lesions
 
-    if fungus_name is None: 
-        les = {k: [l for l in v if l.is_sporulating] 
-                for k, v in lesions.items()}
-    else:
-        les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating] 
-                for k, v in g.property('lesions').items()}
-    return les
+class Dispersal(object):
+    """ Generic class for dispersal models interacting with alep Fungus objects"""
 
-def create_dus(sporulating_lesions:dict, du_per_lesions:Union[dict,int]=1, **kwds) -> dict: 
-       
-    """Call emission methods of sporulating_lesions with appropriate du_per_lesions
-
-    Parameters
-    ----------
-    sporulating_lesions : dict
-        dict with sporulating lesion
-    du_per_lesions : Union[dict,int], 
-        number of dispersal Unit by lesion either a number or dict, by default 1
-
-    Returns
-    -------
-    dict
-        Dispersal unit emitted by the lesion
-    """  
- 
-    DU = {}
-    for vid, l in sporulating_lesions.items():
-        for il,lesion in enumerate(l):
-            if vid not in DU:
-                DU[vid] = []
-            if isinstance(du_per_lesions, int):
-                DU[vid].append(lesion.emission(nb_DU=du_per_lesions, **kwds))
-            else:
-                DU[vid].append(lesion.emission(nb_DU=du_per_lesions[vid][il], **kwds))
-    return DU
-
-# Template emission model ###########################################################
-### TODO : check if/how 'group_dus' is interfering:
-
-class Emission(object):
-    
-    """ Template class for a model of emission of dispersal units 
-        that complies with the guidelines of Alep.
-    
-    Emission is the first step of dispersal, before transport. A class for a model 
-    of emission must include a method 'get_dispersal_units'. In this example, each
-    lesion that is found will emit.
-    """
-    
-    def __init__(self):
+    def __init__(self, **parameters):
         """ Initialize the model with fixed parameters.
-        
+
         Parameters
         ----------
         """
-        pass
-        
-    def get_dispersal_units(self, lesions:dict, fungus_name:str=None, du_per_lesion:int=1, **kwds)->dict:
-        """Compute emission of dispersal units
+        self.parameters = parameters
+
+    # generic APIs
+    ##############
+
+    def get_sporulating_lesions(self, lesions: Dict[Any, list], fungus_name: str = None) -> Dict[Any, list]:
+        """Get sporulating lesions of a given fungus
 
         Parameters
         ----------
         lesions : dict
-            a {vid:[lesion,...], ...} dict of list of lesion objects
+             a {vid:[lesion,...], ...} dict of list of lesion objects
         fungus_name : str, optional
-            name of fungus, by default None
-        du_per_lesion : int, 
-            number of dispersal unit by lesion, by default 1
+            Name of fungus, by default None
+
+        Returns
+        -------
+        Union[dict,int]
+            a {vid:[lesion,...], ...} dict of list of sporulating lesion objects
+
+        """
+        if fungus_name is None:
+            les = {k: [l for l in v if l.is_sporulating()]
+                   for k, v in lesions.items()}
+        else:
+            les = {k: [l for l in v if l.fungus.name is fungus_name and l.is_sporulating()]
+                   for k, v in lesions.items()}
+        return les
+
+    def get_dispersal_units(self, sporulating_lesions: Dict[Any, list], emission_demands: Dict[Any, list])->Dict[Any, list]:
+        """Collect actual emissions of sporulating lesions
+
+        Parameters
+        ----------
+        sporulating_lesions : dict
+            a {vid:[lesion,...], ...} dict of list of lesion objects
+        emission_demands:
+            a {vid:[nb_du,...],...} dict of list of emission demands per lesion attached to vid
 
         Returns
         -------
         dict
-            Dispersal units emitted by leaf. dict([leaf_id, list of dispersal units])
+            Dispersal units emitted by sources. {source_vid : [dispersal unit, ...], ...}
         """
-        sporulating_lesions = get_sporulating_lesions(lesions, fungus_name)
-        # eventualy compute here actual number of du_per_lesion
-        DU = create_dus(sporulating_lesions, du_per_lesion, **kwds)
+
+        DU = {}
+        for vid, lesions in sporulating_lesions.items():
+            for il, lesion in enumerate(lesions):
+                if vid not in DU:
+                    DU[vid] = []
+                DU[vid].append(lesion.emission(emission_demand=emission_demands[vid][il]))
         return DU
 
+    def deposits(self, transport_map: Dict[Any, Dict[Any, int]], dispersal_units: Dict[Any, list])->Dict[Any, list]:
+        """
 
+        Parameters
+        ----------
+        transport_map : a {target_vid:{source_vid: nbDU, ...}, ...} dict of dict counting deposits on targets,
+            indexed by source origin
+        dispersal_units: Dispersal units emitted by sources. a {source_vid : [dispersal unit, ...], ...} dict
+
+        Returns
+        -------
+            a {target_vid: [dispesal_unit, ...], ...} dict
+        """
+        deposits = {}
+        emissions = {vid: reduce(lambda x, y: x + y,
+                                 [[i] * du.nb_dispersal_units for i, du in enumerate(du_list)],
+                                 [])
+                     for vid, du_list in dispersal_units.items()}
+        random.shuffle(emissions)
+        for target, sources in transport_map.items():
+            deposits[target] = []
+            for source, ntot in sources.items():
+                origins = Counter([emissions[source].pop() for i in range(ntot)])
+                for idu, nb in origins.items():
+                    mother_du = dispersal_units[source][idu]
+                    deposits[target].append(mother_du.fungus.dispersal_unit(nb_dispersal_units=nb))
+        return deposits
+
+    def disperse(self, lesions: Dict[Any, list], fungus_name: str = None,
+                 emission_args: dict = None, transport_args: dict = None) -> Tuple[Dict[Any, list], int]:
+        if emission_args is None:
+            emission_args = {}
+        if transport_args is None:
+            transport_args = {}
+        sporulating_lesions = self.get_sporulating_lesions(lesions, fungus_name= fungus_name)
+        emission_demands = self.emission_demands(sporulating_lesions, **emission_args)
+        dispersal_units = self.get_dispersal_units(sporulating_lesions, emission_demands)
+        sources = count_dus(dispersal_units)
+        tmap = self.transport_map(sources, **transport_args)
+        deposits = self.deposits(tmap, dispersal_units)
+        loss = sum(sources.values()) - sum(count_dus(deposits).values())
+        return deposits, loss
+
+    # specific methods to be overwritten
+
+    def emission_demands(self, sporulating_lesions: Dict[Any, list], **kwds) -> Dict[Any, list]:
+        """ Emissions as driven by environmental and internal variables"""
+        return {vid: [1 for les in lesions] for vid, lesions in sporulating_lesions.items()}
+
+    def transport_map(self, sources: Dict[Any, int], targets: list=None, **kwds)-> Dict[Any, Dict[Any, int]]:
+        """
+
+        Parameters
+        ----------
+        sources: a {source_vid: nbDU, ...} dict of total number of DU associated to a vid
+        targets:  a list of potential target_vids for dispersal units. if None (default), they just stay where they
+            are
+        kwds : other args to dispersal transport model
+
+        Returns
+        -------
+        a {target_vid:{source_vid: nbDU, ...}, ...} dict of dict counting deposits on targets, indexed by source origin
+        """
+        deposits = {vid: {vid: emission} for vid, emission in sources.items()}
+        return deposits
 

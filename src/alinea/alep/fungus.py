@@ -16,7 +16,9 @@ class DispersalUnit(object):
     To implement a dispersal unit for a specific fungus, you can override the following method:
         - infect()
     """
-    def __init__(self, nb_dispersal_units=1, status='emitted', mutable=False):
+    fungus = None
+
+    def __init__(self, nb_dispersal_units=1, mutable=False):
         """ Initialize the dispersal unit (DU).
 
         :Parameters:
@@ -24,25 +26,16 @@ class DispersalUnit(object):
          False if all DU of the same fungus share the same parameters.
 
         :Attributes:
-         - 'is_active' (bool) - Activity of the DU (bool): if False, DU is dead.
-         - 'status' (str) - 'emitted' or 'deposited': can be used to distinguish DUs to disperse and
-         DUs that are already deposited on leaves.
          - 'nb_dispersal_units' (int) - A DispersalUnit object can represent a cohort of DU that are
          deposited on the leaf at the same date.
         """
         self.is_active = True
-        self.status = status
         self.nb_dispersal_units = nb_dispersal_units
 
         # Capacity to differ from other lesions of same Fungus
         self.mutable = mutable
         if mutable:
             self.fungus = copy.copy(self.__class__.fungus)
-
-    # Hack Christian as DU may be called after init in demos : deprecated ?
-    def __call__(self, nb_spores, status):
-        self.status=status
-        self.nb_dispersal_units=nb_spores
 
     def infect(self, dt=1, leaf=None, **kwds):
         """ Compute the success of infection by the DU.
@@ -96,15 +89,6 @@ class DispersalUnit(object):
         """
         self.position = position
 
-    def set_status(self, status = 'deposited'):
-        """ Set the status of the DU to given argument.
-
-        :Parameters:
-         - 'status' (str) - 'emitted' or 'deposited': can be used to distinguish DUs to disperse and
-         DUs that are already deposited on leaves.
-        """
-        self.status = status
-
     def set_nb_dispersal_units(self, nb_dispersal_units=1):
         """ Set the number of DUs in cohort to number given in argument.
 
@@ -120,7 +104,7 @@ class Lesion(object):
 
     Contains the methods common to all dispersal units in the framework.
 
-    To implement a dispersal unit for a specific fungus, you can override the following methods:
+    To implement a lesion for a specific fungus, you can override the following methods:
         - update()
         - control_growth()
         - emission()
@@ -147,7 +131,8 @@ class Lesion(object):
         """
         self.is_active = True
         self.growth_is_active = True
-        self.is_sporulating = False
+
+        # to check
         self.is_senescent = False
         self.growth_demand = 0.
         self.position = None
@@ -195,24 +180,36 @@ class Lesion(object):
         """
         pass
 
-    def emission(self, nb_DU=1, **kwds):
-        """ return dispersal units emitted by a lesion and perform required housekeeping
+# interface with dispersal models
+#################################
 
-        To be overridden specifically by fungus type. By default, return 1 dispersal unit.
+    def emission(self, emission_demand=1, mutations=[]):
+        """ return dispersal units the lesion can emmit as a function of an emmission demand originated from a dispersal model.
+            This method is NOT intended to specify the emission demand, but how the lesion accommodates to such a demand,
+            and do required housekeeping
+
+        To be overridden specifically by fungus type.
 
         :Parameters:
-         - nb_DU (int): number of DU emited (default 1)
-         - **kwds (dict): optional arguments depending on fungus specifications
+         - emission_demand (int): number of dispersal units to be produced according to dispersal emission model
+         - mutations : not used yet
 
         :Returns:
-        - a list of 2-tuple containing: 
-             - 'DispersalUnit_class' : the class the emited dispersal units belongs to
-             - 'nb_dispersal_units' (int): number of dispersal units emitted
+        - a list of dispersal units. If all dispersal units share the same parameters (no mutations), the list resume
+        to a single element, with nb_dispersal_units appropriately set.
         """
         if self.fungus is None:
-            raise TypeError("fungus undefined : lesion should be instantiated with fungus method for emission to prpoerly work")
+            raise TypeError("fungus undefined : lesion should be instantiated with fungus method for lesion.emission "
+                            "to properly work")
             
-        return self.fungus.DispersalUnit_class(nb_DU)
+        return self.fungus.dispersal_unit(emission_demand)
+
+    def is_sporulating(self):
+        """Inform the dispersal model about the current ability of the lesion to emit dispersal units """
+        return True
+
+# end dispersal interface
+#################################
 
     def senescence_response(self, **kwds):
         """ Modification of lesion variables in response to leaf natural senescence
@@ -232,7 +229,7 @@ class Lesion(object):
         """
         self.growth_is_active = False
         self.growth_demand = 0.
-        if round(self.surface, 16)==0.:
+        if round(self.surface, 16) == 0.:
             self.is_active = False
 
     def disable(self):
@@ -264,7 +261,7 @@ class Fungus(object):
     """
     def __init__(self, Lesion=Lesion,
                  DispersalUnit = DispersalUnit,
-                 parameters = {'name':'template', 'group_dus':'False'},
+                 parameters = {'name':'basic'},
                  length_unit = 0.01):
         """ Initialize the fungus.
 
@@ -303,7 +300,7 @@ class Fungus(object):
         self.update_parameters(**kwds)
         return {k:getattr(self,k) for k in self.parameter_names}
 
-    def dispersal_unit(self, nb_dispersal_units=1, status='emitted', mutable=False, **kwds):
+    def dispersal_unit(self, nb_dispersal_units=1, mutable=False, **kwds):
         """ Create a dispersal unit instance of the fungus.
 
         :Parameters:
@@ -311,7 +308,7 @@ class Fungus(object):
         """
         self.update_parameters(**kwds)
         self.DispersalUnit_class.fungus = self
-        instance = self.DispersalUnit_class(nb_dispersal_units=nb_dispersal_units, status=status, mutable=mutable)
+        instance = self.DispersalUnit_class(nb_dispersal_units=nb_dispersal_units, mutable=mutable)
         return instance
 
     def lesion(self, mutable=False, **kwds):

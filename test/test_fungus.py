@@ -28,7 +28,7 @@ def test_lesion_du_instantiation():
 def test_lesion_emission():
     fungus = Fungus()
     lesion = fungus.lesion()
-    du = lesion.emission(nb_DU=3)
+    du = lesion.emission(emission_demand=3)
     assert isinstance(du, lesion.fungus.DispersalUnit_class)
     assert du.nb_dispersal_units == 3
     
