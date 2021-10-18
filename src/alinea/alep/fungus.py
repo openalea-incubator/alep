@@ -4,8 +4,28 @@ import copy
 ##
 
 """ Define the interface for the abstract classes of dispersal units and lesions.
-
 """
+
+
+class DotDict(dict):
+    """
+    a dictionary that supports dot notation
+    as well as dictionary access notation
+    usage: d = DotDict() or d = DotDict({'val1':'first'})
+    set attributes: d.val2 = 'second' or d['val2'] = 'second'
+    get attributes: d.val2 or d['val2']
+    """
+    __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+    def __init__(self, dct = None):
+        if dct is None:
+            dct = {}
+        for key, value in dct.items():
+            if hasattr(value, 'keys'):
+                value = DotDict(value)
+            self[key] = value
 
 # Dispersal unit ###################################################################################
 class DispersalUnit(object):
@@ -18,7 +38,7 @@ class DispersalUnit(object):
     """
     fungus = None
 
-    def __init__(self, nb_dispersal_units=1, mutable=False):
+    def __init__(self, nb_dispersal_units=1, **mutations):
         """ Initialize the dispersal unit (DU).
 
         :Parameters:
@@ -31,11 +51,16 @@ class DispersalUnit(object):
         """
         self.is_active = True
         self.nb_dispersal_units = nb_dispersal_units
+        self.mutations = mutations
 
-        # Capacity to differ from other lesions of same Fungus
-        self.mutable = mutable
-        if mutable:
-            self.fungus = copy.copy(self.__class__.fungus)
+    def parameters(self):
+        """ Get parameters of parent fungus, updated with mutations
+        """
+        pars = {}
+        if self.fungus:
+            pars.update(self.fungus.parameters)
+        pars.update(self.mutations)
+        return DotDict(pars)
 
     def infect(self, dt=1, leaf=None, **kwds):
         """ Compute the success of infection by the DU.
@@ -110,13 +135,14 @@ class Lesion(object):
         - emission()
         - senescence_response()
     """
+
+    # fungus is inherited by Fungus
     fungus = None
-    def __init__(self, mutable=False):
-        """ Initialize the lesion.
+
+    def __init__(self, nb_lesions=1, **mutations):
+        """ Initialize a lesion.
 
         :Parameters:
-         - 'mutable' (bool) - True if each lesion has its own parameters (intra-population
-         variability), False if all lesions of the same fungus share the same parameters.
          - 'nb_lesions' (int) - A Lesion object can represent a cohort of lesions that are
          deposited on the leaf at the same date.
 
@@ -132,15 +158,23 @@ class Lesion(object):
         self.is_active = True
         self.growth_is_active = True
 
+        self.nb_lesions = nb_lesions
+
         # to check
         self.is_senescent = False
         self.growth_demand = 0.
         self.position = None
 
-        # Capacity to differ from other lesions of same Fungus
-        self.mutable = mutable
-        if mutable:
-            self.fungus = copy.copy(self.__class__.fungus)
+        self.mutations = mutations
+
+    def parameters(self):
+        """ Get parameters of parent fungus, updated with mutations
+        """
+        pars = {}
+        if self.fungus:
+            pars.update(self.fungus.parameters)
+        pars.update(self.mutations)
+        return DotDict(pars)
 
     def update(self, dt, leaf, **kwds):
         """ Update the lesion: compute growth demand and ageing during time step.
@@ -183,7 +217,7 @@ class Lesion(object):
 # interface with dispersal models
 #################################
 
-    def emission(self, emission_demand=1, mutations=[]):
+    def emission(self, emission_demand=1, **mutations):
         """ return dispersal units the lesion can emmit as a function of an emmission demand originated from a dispersal model.
             This method is NOT intended to specify the emission demand, but how the lesion accommodates to such a demand,
             and do required housekeeping
@@ -201,8 +235,9 @@ class Lesion(object):
         if self.fungus is None:
             raise TypeError("fungus undefined : lesion should be instantiated with fungus method for lesion.emission "
                             "to properly work")
-            
-        return self.fungus.dispersal_unit(emission_demand)
+        transmitted_mutations = copy.deepcopy(self.mutations)
+        transmitted_mutations.update(mutations)
+        return self.fungus.dispersal_unit(emission_demand, **transmitted_mutations)
 
     def is_sporulating(self):
         """Inform the dispersal model about the current ability of the lesion to emit dispersal units """
@@ -259,65 +294,40 @@ class Fungus(object):
     """ Defines a fungus type by combining a lesion type, a dispersal unit type and specific
         parameters
     """
-    def __init__(self, Lesion=Lesion,
-                 DispersalUnit = DispersalUnit,
-                 parameters = {'name':'basic'},
-                 length_unit = 0.01):
+    def __init__(self, lesion=Lesion, dispersal_unit=DispersalUnit, name='basic', length_unit=0.01, **parameters):
         """ Initialize the fungus.
 
         :Parameters:
          - 'Lesion' (Lesion class): Lesion class for a specific fungus.
          - 'DispersalUnit' (Dispersal class): Dispersal unit class for a specific fungus.
-         - 'parameters' (dict): dict of fungus specific parameters, mandatory:
-            * 'name' (str): name of fungal species
-            * 'group_dus' (bool): True if the model operates with cohorts, False if the model
             operates with strictly individual lesions and DUs.
          - 'length_unit' (float): Unit of conversion for dimensions (uses meters as reference:
             thus 0.01 is centimeter)
         """
         self.length_unit = length_unit
-        self.Lesion_class = Lesion
-        self.DispersalUnit_class = DispersalUnit
-        self.parameter_names = list(parameters.keys())
-        self.__dict__.update(parameters)
+        self.name = name
+        self.Lesion = lesion
+        self.DispersalUnit = dispersal_unit
+        if parameters is None:
+            parameters = {}
+        self.parameters = DotDict(parameters)
 
-    def update_parameters(self, **kwds):
-        """ Get and update fungus parameters with parameters in kwds.
-
-        :Parameters:
-         - 'kwds' (dict): keys and values for new parameters
-        """
-        self.__dict__.update(kwds)
-        if len(kwds)>0:
-            self.parameter_names += [k for k in kwds.keys()]
-
-    def parameters(self, **kwds):
-        """ Get parameters of the fungus.
-
-        :Parameters:
-         - 'kwds' (dict): keys and values for eventual new parameters
-        """
-        self.update_parameters(**kwds)
-        return {k:getattr(self,k) for k in self.parameter_names}
-
-    def dispersal_unit(self, nb_dispersal_units=1, mutable=False, **kwds):
+    def dispersal_unit(self, nb_dispersal_units=1, **mutations):
         """ Create a dispersal unit instance of the fungus.
 
         :Parameters:
          - 'kwds' (dict): keys and values for eventual new parameters
         """
-        self.update_parameters(**kwds)
-        self.DispersalUnit_class.fungus = self
-        instance = self.DispersalUnit_class(nb_dispersal_units=nb_dispersal_units, mutable=mutable)
+        self.DispersalUnit.fungus = self
+        instance = self.DispersalUnit(nb_dispersal_units=nb_dispersal_units, **mutations)
         return instance
 
-    def lesion(self, mutable=False, **kwds):
+    def lesion(self, nb_lesions=1, **mutations):
         """ Create a lesion instance of the fungus.
 
         :Parameters:
          - 'kwds' (dict): keys and values for eventual new parameters
         """
-        self.update_parameters(**kwds)
-        self.Lesion_class.fungus = self
-        instance = self.Lesion_class(mutable=mutable)
+        self.Lesion.fungus = self
+        instance = self.Lesion(nb_lesions=nb_lesions, **mutations)
         return instance

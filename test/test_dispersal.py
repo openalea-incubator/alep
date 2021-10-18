@@ -13,9 +13,9 @@ def test_generic_methods():
     spo = disp.get_sporulating_lesions(lesions)
     assert 'leaf' in spo
     les = spo['leaf'][0]
-    assert isinstance(les, lesion.fungus.Lesion_class)
+    assert isinstance(les, lesion.fungus.Lesion)
 
-    dem = disp.emission_demands(spo)
+    dem = disp.emission(spo)
     assert 'leaf' in dem
     n = dem['leaf'][0]
     assert n == 1
@@ -23,14 +23,14 @@ def test_generic_methods():
     dus = disp.get_dispersal_units(spo, dem)
     assert 'leaf' in dus
     du = dus['leaf'][0]
-    assert isinstance(du, lesion.fungus.DispersalUnit_class)
+    assert isinstance(du, lesion.fungus.DispersalUnit)
     assert du.nb_dispersal_units == 1
 
     src = count_dus(dus)
     assert 'leaf' in src
     assert src['leaf'] == 1
 
-    tmap = disp.transport_map(src)
+    tmap = disp.transport(src)
     assert 'leaf' in tmap
     assert 'leaf' in tmap['leaf']
     assert tmap['leaf']['leaf'] == 1
@@ -38,7 +38,7 @@ def test_generic_methods():
     dep = disp.deposits(tmap, dus)
     assert 'leaf' in dep
     du = dep['leaf'][0]
-    assert isinstance(du, lesion.fungus.DispersalUnit_class)
+    assert isinstance(du, lesion.fungus.DispersalUnit)
     assert du.nb_dispersal_units == 1
 
     deposits, loss = disp.disperse(lesions)

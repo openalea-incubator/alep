@@ -75,12 +75,12 @@ class Dispersal(object):
                 DU[vid].append(lesion.emission(emission_demand=emission_demands[vid][il]))
         return DU
 
-    def deposits(self, transport_map: Dict[Any, Dict[Any, int]], dispersal_units: Dict[Any, list])->Dict[Any, list]:
+    def deposits(self, transport: Dict[Any, Dict[Any, int]], dispersal_units: Dict[Any, list])->Dict[Any, list]:
         """
 
         Parameters
         ----------
-        transport_map : a {target_vid:{source_vid: nbDU, ...}, ...} dict of dict counting deposits on targets,
+        transport : a {target_vid:{source_vid: nbDU, ...}, ...} dict of dict counting deposits on targets,
             indexed by source origin
         dispersal_units: Dispersal units emitted by sources. a {source_vid : [dispersal unit, ...], ...} dict
 
@@ -94,7 +94,7 @@ class Dispersal(object):
                                  [])
                      for vid, du_list in dispersal_units.items()}
         random.shuffle(emissions)
-        for target, sources in transport_map.items():
+        for target, sources in transport.items():
             deposits[target] = []
             for source, ntot in sources.items():
                 origins = Counter([emissions[source].pop() for i in range(ntot)])
@@ -110,21 +110,21 @@ class Dispersal(object):
         if transport_args is None:
             transport_args = {}
         sporulating_lesions = self.get_sporulating_lesions(lesions, fungus_name= fungus_name)
-        emission_demands = self.emission_demands(sporulating_lesions, **emission_args)
-        dispersal_units = self.get_dispersal_units(sporulating_lesions, emission_demands)
+        emissions = self.emission(sporulating_lesions, **emission_args)
+        dispersal_units = self.get_dispersal_units(sporulating_lesions, emissions)
         sources = count_dus(dispersal_units)
-        tmap = self.transport_map(sources, **transport_args)
-        deposits = self.deposits(tmap, dispersal_units)
+        transport = self.transport(sources, **transport_args)
+        deposits = self.deposits(transport, dispersal_units)
         loss = sum(sources.values()) - sum(count_dus(deposits).values())
         return deposits, loss
 
     # specific methods to be overwritten
 
-    def emission_demands(self, sporulating_lesions: Dict[Any, list], **kwds) -> Dict[Any, list]:
+    def emission(self, sporulating_lesions: Dict[Any, list], **kwds) -> Dict[Any, list]:
         """ Emissions as driven by environmental and internal variables"""
         return {vid: [1 for les in lesions] for vid, lesions in sporulating_lesions.items()}
 
-    def transport_map(self, sources: Dict[Any, int], targets: list=None, **kwds)-> Dict[Any, Dict[Any, int]]:
+    def transport(self, sources: Dict[Any, int], targets: list=None, **kwds)-> Dict[Any, Dict[Any, int]]:
         """
 
         Parameters
