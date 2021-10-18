@@ -62,6 +62,11 @@ class DispersalUnit(object):
         pars.update(self.mutations)
         return DotDict(pars)
 
+    def is_like(self, foreign):
+        """ return True if foreign has the same origin and parameters as itself"""
+        return type(self) is type(foreign) and self.parameters() == foreign.parameters()
+
+
     def infect(self, dt=1, leaf=None, **kwds):
         """ Compute the success of infection by the DU.
 
@@ -155,17 +160,15 @@ class Lesion(object):
          the time step to come.
          - 'is_sporulating': whether the lesion is emiting spores or not
         """
-        self.is_active = True
-        self.growth_is_active = True
-
         self.nb_lesions = nb_lesions
+        self.mutations = mutations
 
         # to check
+        self.is_active = True
+        self.growth_is_active = True
         self.is_senescent = False
         self.growth_demand = 0.
         self.position = None
-
-        self.mutations = mutations
 
     def parameters(self):
         """ Get parameters of parent fungus, updated with mutations
@@ -175,6 +178,10 @@ class Lesion(object):
             pars.update(self.fungus._parameters)
         pars.update(self.mutations)
         return DotDict(pars)
+
+    def is_like(self, foreign):
+        """ return True if foreign has the same origin and parameters as itself"""
+        return type(self) is type(foreign) and self.parameters() == foreign.parameters()
 
     def update(self, dt, leaf, **kwds):
         """ Update the lesion: compute growth demand and ageing during time step.
@@ -233,7 +240,7 @@ class Lesion(object):
         to a single element, with nb_dispersal_units appropriately set.
         """
         if self.fungus is None:
-            raise TypeError("fungus undefined : lesion should be instantiated with fungus method for lesion.emission "
+            raise TypeError("fungus undefined : lesion should be instantiated with fungus.lesion() method for lesion"
                             "to properly work")
         transmitted_mutations = copy.deepcopy(self.mutations)
         transmitted_mutations.update(mutations)
@@ -294,7 +301,7 @@ class Fungus(object):
     """ Defines a fungus type by combining a lesion type, a dispersal unit type and specific
         parameters
     """
-    def __init__(self, lesion=Lesion, dispersal_unit=DispersalUnit, name='basic', length_unit=0.01, **parameters):
+    def __init__(self, lesion=Lesion, dispersal_unit=DispersalUnit, name='basic', **parameters):
         """ Initialize the fungus.
 
         :Parameters:
@@ -304,10 +311,9 @@ class Fungus(object):
          - 'length_unit' (float): Unit of conversion for dimensions (uses meters as reference:
             thus 0.01 is centimeter)
         """
-        self.length_unit = length_unit
-        self.name = name
         self.Lesion = lesion
         self.DispersalUnit = dispersal_unit
+        parameters.update({'name':  name})
         self._parameters = parameters
 
     def parameters(self):
@@ -319,8 +325,8 @@ class Fungus(object):
         :Parameters:
          - 'kwds' (dict): keys and values for eventual new parameters
         """
-        self.DispersalUnit.fungus = self
         instance = self.DispersalUnit(nb_dispersal_units=nb_dispersal_units, **mutations)
+        instance.fungus = self
         return instance
 
     def lesion(self, nb_lesions=1, **mutations):
@@ -329,6 +335,6 @@ class Fungus(object):
         :Parameters:
          - 'kwds' (dict): keys and values for eventual new parameters
         """
-        self.Lesion.fungus = self
         instance = self.Lesion(nb_lesions=nb_lesions, **mutations)
+        instance.fungus = self
         return instance

@@ -4,11 +4,10 @@ from alinea.alep.fungus import Fungus, Lesion, DispersalUnit, DotDict
 
 def test_base_api():
     fungus = Fungus(a_parameter='dummy')
-    assert hasattr(fungus, 'length_unit')
-    assert hasattr(fungus, 'name')
     assert hasattr(fungus, '_parameters')
     fp = fungus.parameters()
     assert isinstance(fp, DotDict)
+    assert 'name' in fp
     assert 'a_parameter' in fp
     assert fp.a_parameter == 'dummy'
     assert hasattr(fungus, 'Lesion')
@@ -23,9 +22,25 @@ def test_fungus_transmission():
     """Test whether fungus generate appropriate lesion and dispersal units"""
     fungus = Fungus()
     lesion = fungus.lesion()
-    assert lesion.fungus.name == fungus.name
+    assert type(lesion.fungus) is type(fungus)
+    assert lesion.fungus._parameters ==  fungus._parameters
+
     du = fungus.dispersal_unit()
-    assert du.fungus.name == fungus.name
+    assert type(du.fungus) is type(fungus)
+    assert du.fungus._parameters ==  fungus._parameters
+
+    my_fungus = Fungus(name='my_fungus')
+    my_lesion = my_fungus.lesion()
+    assert type(my_lesion.fungus) is type(my_fungus)
+    assert my_lesion.fungus._parameters == my_fungus._parameters
+    my_du = my_fungus.dispersal_unit()
+    assert type(my_du.fungus) is type(my_fungus)
+    assert my_du.fungus._parameters == my_fungus._parameters
+    # check fungus has not been affected
+    assert type(lesion.fungus) is type(fungus)
+    assert lesion.fungus._parameters ==  fungus._parameters
+    assert type(du.fungus) is type(fungus)
+    assert du.fungus._parameters ==  fungus._parameters
 
 
 def test_parameters():
@@ -50,7 +65,7 @@ def test_parameters():
     assert fp.mutable == 'origin'
 
     
-def test__emission():
+def test_emission():
     fungus = Fungus(latency=100)
     lesion = fungus.lesion(latency=200)
 
@@ -64,6 +79,33 @@ def test__emission():
     ppp = fungus.parameters()
     assert ppp.latency == 100
 
+def test_is_like():
+    fungus = Fungus(latency=100)
+    les = fungus.lesion()
+    du = les.emission()
+
+    les2 = fungus.lesion(latency=100)
+    du2 = les2.emission(emission_demand=10)
+    assert les.is_like(les2)
+    assert du.is_like(du2)
+
+    les2 = fungus.lesion(latency=200)
+    du2 = les2.emission()
+    assert not les.is_like(les2)
+    assert not du.is_like(du2)
+
+    fungus = Fungus()
+    les = fungus.lesion()
+    fungus2 = Fungus(name='my_fungus')
+    les2 = fungus2.lesion()
+    assert not les.is_like(les2)
+
+    class MyLesion(Lesion): pass
+    fungus = Fungus()
+    les = fungus.lesion()
+    my_fungus = Fungus(lesion=MyLesion)
+    les2 = my_fungus.lesion()
+    assert not les.is_like(les2)
 
 
     
