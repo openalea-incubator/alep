@@ -6,10 +6,11 @@ def test_base_api():
     fungus = Fungus(a_parameter='dummy')
     assert hasattr(fungus, 'length_unit')
     assert hasattr(fungus, 'name')
-    assert hasattr(fungus, 'parameters')
-    assert isinstance(fungus.parameters, DotDict)
-    assert 'a_parameter' in fungus.parameters
-    assert fungus.parameters.a_parameter == 'dummy'
+    assert hasattr(fungus, '_parameters')
+    fp = fungus.parameters()
+    assert isinstance(fp, DotDict)
+    assert 'a_parameter' in fp
+    assert fp.a_parameter == 'dummy'
     assert hasattr(fungus, 'Lesion')
     assert fungus.Lesion is Lesion
     assert hasattr(fungus, 'DispersalUnit')
@@ -32,7 +33,7 @@ def test_parameters():
     base_lesion = fungus.lesion()
     lesion = fungus.lesion(mutable='muted')
 
-    fp = fungus.parameters
+    fp = fungus.parameters()
     p = lesion.parameters()
     bp = base_lesion.parameters()
     assert p.fixed == fp.fixed == bp.fixed == 'origin'
@@ -40,7 +41,7 @@ def test_parameters():
     assert fp.mutable == bp.mutable == 'origin'
 
     du = fungus.dispersal_unit(mutable='du_muted')
-    fp = fungus.parameters
+    fp = fungus.parameters()
     p = lesion.parameters()
     dup = du.parameters()
     assert p.fixed == fp.fixed == dup.fixed == 'origin'
@@ -60,7 +61,7 @@ def test__emission():
     assert p.latency == 300
     pp = lesion.parameters()
     assert pp.latency == 200
-    ppp = fungus.parameters
+    ppp = fungus.parameters()
     assert ppp.latency == 100
 
 

@@ -58,7 +58,7 @@ class DispersalUnit(object):
         """
         pars = {}
         if self.fungus:
-            pars.update(self.fungus.parameters)
+            pars.update(self.fungus._parameters)
         pars.update(self.mutations)
         return DotDict(pars)
 
@@ -172,7 +172,7 @@ class Lesion(object):
         """
         pars = {}
         if self.fungus:
-            pars.update(self.fungus.parameters)
+            pars.update(self.fungus._parameters)
         pars.update(self.mutations)
         return DotDict(pars)
 
@@ -308,9 +308,10 @@ class Fungus(object):
         self.name = name
         self.Lesion = lesion
         self.DispersalUnit = dispersal_unit
-        if parameters is None:
-            parameters = {}
-        self.parameters = DotDict(parameters)
+        self._parameters = parameters
+
+    def parameters(self):
+        return DotDict(self._parameters)
 
     def dispersal_unit(self, nb_dispersal_units=1, **mutations):
         """ Create a dispersal unit instance of the fungus.
