@@ -62,9 +62,12 @@ class DispersalUnit(object):
         pars.update(self.mutations)
         return DotDict(pars)
 
-    def is_like(self, foreign):
+    def is_like(self, other):
         """ return True if foreign has the same origin and parameters as itself"""
-        return type(self) is type(foreign) and self.parameters() == foreign.parameters()
+        return type(self) is type(other) and self.parameters() == other.parameters()
+
+    def merge(self, other):
+        self.nb_dispersal_units += other.nb_dispersal_units
 
 
     def infect(self, dt=1, leaf=None, **kwds):
@@ -223,7 +226,7 @@ class Lesion(object):
 
 # interface with dispersal models
 #################################
-
+    #generic
     def emission(self, emission_demand=1, **mutations):
         """ return dispersal units the lesion can emmit as a function of an emmission demand originated from a dispersal model.
             This method is NOT intended to specify the emission demand, but how the lesion accommodates to such a demand,
@@ -242,9 +245,14 @@ class Lesion(object):
         if self.fungus is None:
             raise TypeError("fungus undefined : lesion should be instantiated with fungus.lesion() method for lesion"
                             "to properly work")
+        response = self.emission_response(emission_demand)
         transmitted_mutations = copy.deepcopy(self.mutations)
         transmitted_mutations.update(mutations)
-        return self.fungus.dispersal_unit(emission_demand, **transmitted_mutations)
+        return self.fungus.dispersal_unit(response, **transmitted_mutations)
+
+    # specific
+    def emission_response(self, emission_demand):
+        return emission_demand
 
     def is_sporulating(self):
         """Inform the dispersal model about the current ability of the lesion to emit dispersal units """

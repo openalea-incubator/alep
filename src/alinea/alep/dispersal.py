@@ -67,13 +67,21 @@ class Dispersal(object):
             Dispersal units emitted by sources. {source_vid : [dispersal unit, ...], ...}
         """
 
-        DU = {}
+        dus = {}
         for vid, lesions in sporulating_lesions.items():
             for il, lesion in enumerate(lesions):
-                if vid not in DU:
-                    DU[vid] = []
-                DU[vid].append(lesion.emission(emission_demand=emission_demands[vid][il]))
-        return DU
+                if vid not in dus:
+                    dus[vid] = []
+                du = lesion.emission(emission_demand=emission_demands[vid][il])
+                found = False
+                for d in dus[vid]:
+                    if du.is_like(d):
+                        d.merge(du)
+                        found = True
+                        break
+                if not found:
+                    dus[vid].append(du)
+        return dus
 
     def deposits(self, transport: Dict[Any, Dict[Any, int]], dispersal_units: Dict[Any, list])->Dict[Any, list]:
         """
@@ -93,14 +101,23 @@ class Dispersal(object):
                                  [[i] * du.nb_dispersal_units for i, du in enumerate(du_list)],
                                  [])
                      for vid, du_list in dispersal_units.items()}
-        random.shuffle(emissions)
+        for vid in emissions:
+            random.shuffle(emissions[vid])
         for target, sources in transport.items():
             deposits[target] = []
             for source, ntot in sources.items():
-                origins = Counter([emissions[source].pop() for i in range(ntot)])
+                origins = Counter([emissions[source].pop() for _ in range(ntot)])
                 for idu, nb in origins.items():
                     mother_du = dispersal_units[source][idu]
-                    deposits[target].append(mother_du.fungus.dispersal_unit(nb_dispersal_units=nb))
+                    du = mother_du.fungus.dispersal_unit(nb_dispersal_units=nb)
+                    found = False
+                    for d in deposits[target]:
+                        if du.is_like(d):
+                            d.merge(du)
+                            found = True
+                            break
+                    if not found:
+                        deposits[target].append(du)
         return deposits
 
     def disperse(self, lesions: Dict[Any, list], fungus_name: str = None,
@@ -121,8 +138,9 @@ class Dispersal(object):
     # specific methods to be overwritten
 
     def emission(self, sporulating_lesions: Dict[Any, list], **kwds) -> Dict[Any, list]:
-        """ Emissions as driven by environmental and internal variables"""
-        return {vid: [1 for les in lesions] for vid, lesions in sporulating_lesions.items()}
+        """ Emissions demands as driven by environmental and/or internal variables"""
+        demand = 1
+        return {vid: [demand for _ in lesions] for vid, lesions in sporulating_lesions.items()}
 
     def transport(self, sources: Dict[Any, int], targets: list=None, **kwds)-> Dict[Any, Dict[Any, int]]:
         """
