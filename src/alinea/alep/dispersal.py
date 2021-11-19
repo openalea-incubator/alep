@@ -6,36 +6,7 @@ import random
 from collections import Counter
 from inspect import getfullargspec
 
-class DotDict(dict):
-    """
-    a dictionary that supports dot notation
-    as well as dictionary access notation
-    usage: d = DotDict() or d = DotDict({'val1':'first'})
-    set attributes: d.val2 = 'second' or d['val2'] = 'second'
-    get attributes: d.val2 or d['val2']
-    """
-    __getattr__ = dict.__getitem__
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
-    def __init__(self, dct = None):
-        if dct is None:
-            dct = {}
-        for key, value in dct.items():
-            if hasattr(value, 'keys'):
-                value = DotDict(value)
-            self[key] = value
-
-
-class ParametricModel(object):
-
-    _parameters = {}
-
-    def __init__(self, **parameters):
-        self._parameters.update(parameters)
-
-    def parameters(self):
-        return DotDict(self._parameters)
+from alinea.alep.alep_objects import DotDict, ParametricModel
 
 
 def count_dus(dispersal_units: Dict[Any, list]) -> Dict[Any, int]:
@@ -160,11 +131,12 @@ class Dispersal(object):
 
         dus = {}
         for vid, lesions in sporulating_lesions.items():
+            if vid not in dus:
+                dus[vid] = []
             for il, lesion in enumerate(lesions):
-                if vid not in dus:
-                    dus[vid] = []
-                du = lesion.emission(emission_demand=emission_demands[vid][il])
-                if du.nb_dispersal_units > 0:
+                response, mutations = lesion.emission_response(emission_demand=emission_demands[vid][il])
+                du = lesion.produce(response, **mutations)
+                if du.n_objects > 0:
                     found = False
                     for d in dus[vid]:
                         if du.is_like(d):
@@ -202,6 +174,7 @@ class Dispersal(object):
                 for idu, nb in origins.items():
                     mother_du = dispersal_units[source][idu]
                     du = mother_du.fungus.dispersal_unit(nb_dispersal_units=nb)
+                    du.setup()
                     found = False
                     for d in deposits[target]:
                         if du.is_like(d):
