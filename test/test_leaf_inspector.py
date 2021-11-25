@@ -9,7 +9,7 @@ from alinea.alep.wheat import initialize_stand, find_blade_id, find_leaf_ids
 # Imports for lesions of septoria
 from openalea.core import plugin
 from alinea.alep.disease_operation import generate_stock_lesions
-from alinea.alep.disease_outputs import LeafInspector
+from alinea.alep.disease_outputs import VineLeafInspector as LeafInspector
 
 # Useful functions ###################################################
 def generate_lesions_with_surfaces(nb_lesions = 100, surface_inc = 0.1, surface_chlo = 0.2,

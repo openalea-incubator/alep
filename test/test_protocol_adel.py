@@ -11,7 +11,6 @@ from alinea.alep.wheat import adel_mtg, adel_mtg2, adel_one_leaf
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 
-from alinea.alep import fungal_objects
 from alinea.alep import septoria
 from alinea.alep.septoria import *
 from alinea.alep import powdery_mildew
@@ -152,7 +151,7 @@ def distribute_lesions(g, nb_lesions=1, model="SeptoriaWithRings"):
     g: MTG
         Updated MTG representing the canopy
     """
-    fungus = septoria(model=model)
+    fungus = septoria.plugin_septoria(model=model)
     models = ({"SeptoriaExchangingRings":SeptoriaExchangingRings,
                     "SeptoriaWithRings":SeptoriaWithRings, 
                     "ContinuousSeptoria":ContinuousSeptoria})
@@ -166,7 +165,7 @@ def distribute_lesions(g, nb_lesions=1, model="SeptoriaWithRings"):
     return g
     
 # Call models for disease #########################################################
-def generate_stock_DU(fungus = septoria(), nb_Spores=rd.randint(1,100), nb_DU = 100):
+def generate_stock_DU(fungus = septoria.plugin_septoria(), nb_Spores=rd.randint(1,100), nb_DU = 100):
     """ Generate a stock of DU as a list of DU 
     
     """

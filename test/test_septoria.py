@@ -19,8 +19,8 @@ from alinea.alep.architecture import set_properties, update_healthy_area
 from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.infection_control import BiotrophDUProbaModel
 from alinea.alep.growth_control import NoPriorityGrowthControl
-from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
-from alinea.septo3d.alep_interfaces import Septo3DSplash
+#from alinea.alep.senescence import WheatSeptoriaPositionedSenescence
+#from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.washing import RapillyWashing
 
