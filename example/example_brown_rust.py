@@ -3,7 +3,7 @@
 """
 from alinea.echap.weather_data import read_weather_year
 from alinea.alep.brown_rust import BrownRustFungus
-from alinea.alep.septo3d_v2 import SeptoriaFungus
+from alinea.alep.septoria import SeptoriaFungus
 from alinea.alep.disease_outputs import BrownRustRecorder, plot_by_leaf, conf_int
 from alinea.alep.growth_control import (NoPriorityGrowthControl,
                                         GeometricPoissonCompetition,

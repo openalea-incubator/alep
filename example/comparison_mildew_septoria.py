@@ -21,7 +21,7 @@ from alinea.alep.architecture import set_properties, update_healthy_area, get_le
 
 # Imports for septoria
 from alinea.alep.protocol import *
-from alinea.alep.septo3d_v2 import plugin_septoria
+from alinea.alep.septoria import plugin_septoria
 from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.disease_outputs import LeafInspector
 from alinea.alep.inoculation import RandomInoculation
@@ -70,7 +70,7 @@ def run_simulation_septoria():
 
     # Choose dates of simulation and initialize the value of date
     start_date = datetime(2000, 10, 1, 1, 00, 00)
-    end_date = datetime(2001, 0o7, 0o1, 00, 00)
+    end_date = datetime(2001, 7, 1, 00, 00)
     date = None
 
     # Read weather and adapt it to septoria (add wetness)
@@ -176,7 +176,7 @@ def run_simulation_powdery_mildew():
 
     # Choose dates of simulation and initialize the value of date
     start_date = datetime(2000, 10, 1, 1, 00, 00)
-    end_date = datetime(2001, 0o7, 0o1, 00, 00)
+    end_date = datetime(2001, 7, 1, 00, 00)
     date = None
 
     # Read weather and adapt it to septoria (add wetness)

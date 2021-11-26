@@ -1,4 +1,4 @@
-from alinea.alep.septo3d_v2 import *
+from alinea.alep.septoria import *
 import random as rd
 
 def variable_septoria(distri_chlorosis = {'mu':200., 'sigma':30.}):

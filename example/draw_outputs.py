@@ -6,7 +6,7 @@ except:
     import pickle
 import pandas
 import numpy
-from alinea.alep.septo3d_v2 import is_iterable
+from alinea.alep.septoria import is_iterable
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 from matplotlib import cm

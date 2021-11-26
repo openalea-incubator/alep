@@ -927,7 +927,7 @@ except ImportError:
     from openalea.core import plugin
 
 
-def plugin_septoria(model='septo3d_v2'):
+def plugin_septoria(model='septoria'):
     diseases = plugin.discover('alep.disease')
     try:
         septoria = diseases[model].load()

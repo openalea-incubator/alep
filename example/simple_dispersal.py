@@ -2,7 +2,7 @@ from alinea.echap.architectural_reconstructions import EchapReconstructions
 from alinea.alep.protocol import *
 from alinea.alep.architecture import get_leaves
 from alinea.alep.disease_outputs import plot_severity_by_leaf
-from alinea.alep.septo3d_v2 import plugin_septoria
+from alinea.alep.septoria import plugin_septoria
 from alinea.alep.inoculation import InoculationLowerLeaves
 from alinea.alep.fungal_objects import Lesion, DispersalUnit
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport

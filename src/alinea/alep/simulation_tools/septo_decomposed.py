@@ -24,7 +24,7 @@ from alinea.astk.TimeControl import (IterWithDelays, rain_filter, time_filter,
 
 # Imports for alep septoria
 from alinea.alep.protocol import *
-from alinea.alep.septo3d_v2 import SeptoriaFungus
+from alinea.alep.septoria import SeptoriaFungus
 from alinea.alep.simulation_tools.simulation_tools import group_duplicates_in_cohort
 from alinea.septo3d.dispersion.alep_interfaces import SoilInoculum, Septo3DEmission
 from alinea.popdrops.alep_interface import PopDropsSoilContamination, PopDropsEmission, PopDropsTransport
@@ -87,8 +87,8 @@ def septo_disease(adel, sporulating_fraction, layer_thickness,
                   age_infection=False, compute_star=False, **kwds):
     """ Choose models to assemble the disease model. """
 
-    if 'alinea.alep.septo3d_v2' in sys.modules:
-        del (sys.modules['alinea.alep.septo3d_v2'])
+    if 'alinea.alep.septoria' in sys.modules:
+        del (sys.modules['alinea.alep.septoria'])
 
     domain = adel.domain
     domain_area = adel.domain_area

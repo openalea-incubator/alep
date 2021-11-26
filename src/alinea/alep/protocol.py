@@ -22,9 +22,11 @@ def external_contamination(g,
     """
     stock = contamination_source.emission(g, weather_data, **kwds)
     labels = g.property('label')
+    #if stock > 0:
     if len(stock) > 0:
         # Allocation of stock of inoculum
         deposits = contamination_model.contaminate(g, stock, weather_data, label=label, **kwds)
+       # stock = 0
         stock = [] # stock has been used (avoid uncontrolled future re-use)
 
         # Allocation of new dispersal units
