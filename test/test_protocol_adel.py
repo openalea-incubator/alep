@@ -7,7 +7,7 @@ import numpy
 import pandas
 from pylab import *
 
-from alinea.alep.wheat import adel_mtg, adel_mtg2, adel_one_leaf
+from alinea.adel.data_samples import adel_two_metamers, adel_one_leaf
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 
@@ -23,6 +23,8 @@ from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.architecture import set_properties, update_healthy_area
 
 from alinea.alep.protocol import *
+from alinea.alep.diseases import get_disease
+
 
 from datetime import datetime
 import time
@@ -121,7 +123,7 @@ def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaWithRings"):
     g: MTG
         Updated MTG representing the canopy
     """
-    fungus = septoria(model=model)
+    fungus = fungus = get_disease('powdery_mildew')
     fungus = septoria(model=model)
     SeptoriaDU.fungus = fungus
     dispersal_units = ([SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted')
@@ -348,7 +350,7 @@ def test_initiate():
     """ Check if 'initiate' from 'protocol.py' deposits dispersal units on the MTG.
     
     """
-    g = adel_mtg2()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
     fungus = septoria()
     SeptoriaDU.fungus = fungus
@@ -362,7 +364,7 @@ def test_infect():
     """ Check if 'infect' from 'protocol.py' leads to infection by dispersal units on the MTG.
 
     """
-    g = adel_mtg2()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
     fungus = septoria(); SeptoriaDU.fungus = fungus
     stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
@@ -441,7 +443,7 @@ def test_disperse():
     """ Check if 'disperse' from 'protocol.py' disperse new dispersal units on the MTG.
 
     """
-    g = adel_mtg2()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
     fungus = septoria(); SeptoriaDU.fungus = fungus
     stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(10)]
@@ -492,7 +494,7 @@ def test_washing():
     """ Check if 'washing' from 'protocol.py' washes dispersal units out of the MTG.
 
     """
-    g = adel_mtg()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
     fungus = septoria(); SeptoriaDU.fungus = fungus
     stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
@@ -540,7 +542,7 @@ def test_washing():
     return g
 
 def test_growth_control():
-    g = adel_mtg()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
     fungus = septoria(); SeptoriaDU.fungus = fungus
     stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(1000)]
@@ -594,7 +596,7 @@ def test_growth_control():
 
 def test_all(model="SeptoriaExchangingRings"):
     # Generate a MTG with required properties :
-    g = adel_mtg2()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
     
     # Deposit first dispersal units on the MTG :

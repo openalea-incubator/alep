@@ -672,7 +672,7 @@ class SeptoriaLesion(Lesion):
             self.become_senescent()
             
         if not self.senescence_response_completed:
-            nb_sen = len([x for x in self.position if x[0]<=senesced_length])
+            nb_sen = len([x for x in self.position if x<=senesced_length])
             nb_new_sen = nb_sen - self.nb_lesions_sen
             ratio_sen = float(nb_new_sen)/(self.nb_lesions_non_sen)
 

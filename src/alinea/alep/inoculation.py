@@ -58,7 +58,7 @@ class RandomInoculation:
                     except:
                         leaf.lesions = [i]            
                 elif isinstance(i, DispersalUnit):
-                    i.deposited()
+                    i.status = 'deposited'
                     try:
                         leaf.dispersal_units.append(i)
                     except:

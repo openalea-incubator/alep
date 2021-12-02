@@ -9,7 +9,7 @@ from alinea.astk.TimeControl import *
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 
-from alinea.alep.wheat import adel_one_leaf, adel_one_leaf_element
+from alinea.adel.data_samples import adel_one_leaf, adel_one_leaf_element
 from alinea.alep.protocol import *
 from alinea.alep.septoria import *
 from alinea.alep.disease_operation import (distribute_dispersal_units,
@@ -23,9 +23,10 @@ from alinea.alep.growth_control import NoPriorityGrowthControl
 #from alinea.septo3d.alep_interfaces import Septo3DSplash
 from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.washing import RapillyWashing
+from alinea.alep.diseases import get_disease
 
 # Tests ###########################################################################
-def test_initiate(model="septoria_exchanging_rings"):
+def test_initiate(model="septoria"):
     """ Check if 'initiate' from 'protocol.py' deposits dispersal units on the MTG.
 
     Generate a wheat MTG and distribute dispersal units randomly on leaf elements.
@@ -55,7 +56,7 @@ def test_initiate(model="septoria_exchanging_rings"):
     nb_dus_on_leaves = sum(len(dus) for dus in dispersal_units.values())
     assert nb_dus_on_leaves == nb_initial_dus
 
-def test_infect(model="septoria_exchanging_rings"):
+def test_infect(model="septoria"):
     """ Check if 'infect' from 'protocol.py' leads to infection by dispersal units
         on the MTG.
 
@@ -71,8 +72,12 @@ def test_infect(model="septoria_exchanging_rings"):
     """
     # Generate a wheat MTG
     g = adel_one_leaf_element()
-    set_properties(g, label = 'LeafElement',
-                   area=5., green_area=5., healthy_area=5., position_senescence=None)
+    set_properties(g, label='LeafElement',
+                   area=5., green_area=5., healthy_area=5., position_senescence=None,
+                   temperature_sequence = [18] * 24,
+                    relative_humidity_sequence = [85] * 24,
+                    wetness_sequence = [True] * 24
+    )
 
     # Generate a stock of septoria dispersal units and distribute it on g
     nb_dus = 100
@@ -96,7 +101,7 @@ def test_infect(model="septoria_exchanging_rings"):
     nb_lesions_on_leaves = sum(len(l) for l in lesions.values())
     assert nb_lesions_on_leaves == nb_dus
 
-def test_update(model="septoria_exchanging_rings"):
+def test_update(model="septoria"):
     """ Check if 'update' from 'protocol.py' provokes the growth of a lesion
         instantiated on the MTG.
 
@@ -134,33 +139,33 @@ def test_update(model="septoria_exchanging_rings"):
         set_properties(g, label = 'LeafElement', wetness=True, temp=22., rain_intensity=0.)
 
         # Update
-        update(g, t['disease'].dt, controler, senescence_model=None, label='LeafElement')
+        update(g, t['disease'].dt, controler, label='LeafElement')
 
         # Check that the lesion is in the right status and has the right surface
         lesion = g.property('lesions')
         if lesion:
             assert sum(len(l) for l in lesion.values()) == 1
             l = list(lesion.values())[0][0]
-            assert l.age_dday == timer.numiter
+            assert l.age_tt == timer.numiter
             f = l.fungus
             print(('lesion surface: %f' % round(l.surface, 6)))
             if l.age_dday < 220.:
                 assert l.status == 0
                 assert round(l.surface, 6) < round(f.Smin, 6)
-            if 220. <= l.age_dday < 330.:
+            if 220. <= l.age_tt < 330.:
                 assert l.status == 1
                 assert round(f.Smin, 6) <= round(l.surface, 6)
                 assert round(l.surface, 6) < round(f.Smin + f.growth_rate * f.degree_days_to_necrosis, 6)
-            elif 330. <= l.age_dday < 350.:
+            elif 330. <= l.age_tt < 350.:
                 assert l.status == 2
                 assert round(f.Smin + f.growth_rate * f.degree_days_to_necrosis, 6) <= round(l.surface, 6)
                 assert round(l.surface, 6) < round(f.Smin + f.growth_rate * (f.degree_days_to_necrosis + f.degree_days_to_sporulation), 6)
-            elif l.age_dday >= 350.:
+            elif l.age_tt >= 350.:
                 assert l.status == 3
                 assert round(f.Smin + f.growth_rate * f.degree_days_to_sporulation, 6) <= round(l.surface, 6)
                 assert round(l.surface, 6) <= round(l.fungus.Smax, 6)
 
-def test_growth_control(model="septoria_exchanging_rings"):
+def test_growth_control(model="septoria"):
     """ Check if 'control_growth' from 'protocol.py' limits the lesion growth
         up to available surface on the leaf.
 
@@ -205,7 +210,7 @@ def test_growth_control(model="septoria_exchanging_rings"):
         set_properties(g, label = 'LeafElement', wetness=True, temp=22., rain_intensity=0.)
 
         # Update
-        update(g, t['disease'].dt, controler, senescence_model=None, label='LeafElement')
+        update(g, t['disease'].dt, controler, label='LeafElement')
         update_healthy_area(g, label = 'LeafElement')
 
         # Find the value of interest on the MTG (total healthy area of the leaf)
@@ -238,7 +243,7 @@ def test_growth_control(model="septoria_exchanging_rings"):
             # Update of 'healthy_surface_before' for next step
             healthy_area_before[0] = leaf_healthy_area
 
-def test_disperse(model="septoria_exchanging_rings"):
+def test_disperse(model="septoria"):
     """ Check if 'disperse' from 'protocol.py' disperse new
         dispersal units on the MTG.
 
@@ -283,7 +288,7 @@ def test_disperse(model="septoria_exchanging_rings"):
                        rain_intensity=rain_intensity)
 
         # Update
-        update(g, t['disease'].dt, controler, senescence_model=None, label='LeafElement')
+        update(g, t['disease'].dt, controler, label='LeafElement')
 
         # Force rain occurences
         if rain_intensity != 0:
@@ -307,7 +312,7 @@ def test_disperse(model="septoria_exchanging_rings"):
                 if total_DUs_after != 0:
                     assert total_DUs_after >= total_DUs_before
 
-def test_senescence(status='CHLOROTIC', model="septoria_exchanging_rings"):
+def test_senescence(status='CHLOROTIC', model="septoria"):
     """ Check if 'senescence' from 'protocol.py' compute the effects of
     senescence on the lesions of the MTG
 

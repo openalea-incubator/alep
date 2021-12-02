@@ -13,4 +13,4 @@ def get_disease(model='septoria'):
     elif model == 'brown_rust':
         return BrownRustFungus()
     else:
-        raise('Unknown disease: ' + model + ', should be one of : septoria, brown_rust, powdery_mildew')
+        raise Exception('Unknown disease: ' + model + ', should be one of : septoria, brown_rust, powdery_mildew')

@@ -15,6 +15,7 @@ try:
     from openalea.vpltk import plugin
 except ImportError:
     from openalea.core import plugin
+from alinea.alep.diseases import get_disease
 
 def generate_stock_du(nb_dus, disease, **kwds):
     """ Generate a stock of dispersal units.
@@ -31,9 +32,14 @@ def generate_stock_du(nb_dus, disease, **kwds):
     dus: list of objects
         List of dispersal units of the given disease
     """
-    DU = disease.dispersal_unit(**kwds)
-    return [DU(nb_spores=rd.randint(1,100), status='emitted')
-                        for i in range(nb_dus)]
+    stock=[]
+    for _ in range(nb_dus):
+        DU = disease.dispersal_unit()
+        DU.position=None
+        DU.nb_spores = rd.randint(1,100)
+        DU.status='emitted'
+        stock.append(DU)
+    return stock
 
 class DU_Generator(object):
     """ Generator of DU to be used in the form of SoilInoculum in septo3D."""
@@ -60,8 +66,13 @@ def generate_stock_lesions(nb_lesions, disease, position=None):
     lesions: list of objects
         List of lesions of the given disease
     """
-    lesion = disease.lesion(**kwds)
-    return [lesion(nb_spores=rd.randint(1,100), position=position) for i in range(nb_lesions)]
+    stock=[]
+    for _ in range (nb_lesions):
+        lesion = disease.lesion()
+        lesion.position = position
+        lesion.nb_spores = rd.randint(1,100)
+        stock.append(lesion)
+    return stock
 
 def generate_lesions_with_emission(nb_lesions, nb_dus, disease):
     """ Generate a stock of lesions that are emitting dispersal units.
@@ -144,8 +155,8 @@ def distribute_disease(g,
         Updated MTG with dispersal units or lesions
     """
     # Create a pool of dispersal units (DU)
-    diseases = plugin.discover('alep.disease')
-    disease = diseases[disease_model].load()
+    disease = get_disease(disease_model)
+
     if fungal_object=='dispersal_unit':
         objects = generate_stock_du(nb_dus=nb_objects, disease=disease)
     elif fungal_object=='lesion':
