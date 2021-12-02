@@ -4,26 +4,42 @@
 from random import sample, randint, seed
 
 # Imports for wheat
-from alinea.alep.wheat import initialize_stand, find_blade_id, find_leaf_ids
+from alinea.adel.data_samples import adel_two_metamers_stand
 
 # Imports for lesions of septoria
 from openalea.core import plugin
 from alinea.alep.disease_operation import generate_stock_lesions
 from alinea.alep.disease_outputs import VineLeafInspector as LeafInspector
+from alinea.alep.diseases import get_disease
 
 # Useful functions ###################################################
+def find_blade_id(g, leaf_rank = 1, only_visible=True):
+    labels = g.property('label')
+    if only_visible==True:
+        mets = [n for n in g if g.label(n).startswith('metamer') and g.order(n)==0
+                and sum(component.visible_length for component in g.node(n).components())>0]
+    else:
+        mets = [n for n in g if g.label(n).startswith('metamer') and g.order(n)==0]
+    bids = [co.index() for n in mets for co in g.node(n).components() if co.label.startswith('blade')]
+    blade_id = bids[len(mets)-leaf_rank]
+    return blade_id
+
+def find_leaf_ids(g, blade_id):
+    labels = g.property('label')
+    leaf_elements = [id for id in g.components(blade_id) if labels[id].startswith('LeafElement')]
+    return leaf_elements
+
 def generate_lesions_with_surfaces(nb_lesions = 100, surface_inc = 0.1, surface_chlo = 0.2,
                                    surface_nec = 0.3, surface_spo = 0.4):
 
     def necrotic_area_new(lesion):
         return lesion.surface_nec + lesion.surface_spo
 
-    diseases=plugin.discover('alep.disease')
-    septoria = diseases['septoria_exchanging_rings'].load()
-    LesionKlass = septoria.lesion()
-    LesionKlass.necrotic_area = necrotic_area_new
-    lesion_stock = [LesionKlass(nb_spores=1) for i in range(nb_lesions)]
+
+    septoria = get_disease('septoria')
+    lesion_stock = [septoria.lesion() for i in range(nb_lesions)]
     for lesion in lesion_stock:
+        lesion.necrotic_area = necrotic_area_new
         lesion.surface_alive = surface_inc + surface_chlo + surface_nec + surface_spo
         lesion.surface_inc = surface_inc
         lesion.surface_chlo = surface_chlo
@@ -75,9 +91,7 @@ def compute_ratios_new(inspector, g):
 
 # Test ###############################################################
 # Initialize a wheat canopy
-g, wheat, domain_area = initialize_stand(age=1000., length=0.1,
-                                        width=0.2, sowing_density=150,
-                                        plant_density=150, inter_row=0.12)
+g, wheat, domain_area, conv_unit =      adel_two_metamers_stand(density=150, inter_row=0.12)
 
 # Generate a pool of lesions with given surface to be distributed on target leaves
 nb_lesions = 50; surface_inc = 0.1; surface_chlo = 0.2; surface_nec = 0.3; surface_spo = 0.4
