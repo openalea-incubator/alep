@@ -5,14 +5,10 @@
 from openalea.plantgl.all import Viewer
 
 # Imports for selection of source leaf
-from alinea.alep.architecture import get_leaves
-from openalea.plantgl import all as pgl
-from collections import OrderedDict
 import collections
 
 # Imports for wheat
-from alinea.astk.caribu_interface import *
-from alinea.alep.wheat import initialize_stand
+from alinea.caribu.caribu_interface import *
 from alinea.astk.plantgl_utils import get_lai
 from alinea.alep.architecture import set_properties,set_property_on_each_id, get_leaves
 
@@ -20,7 +16,6 @@ from alinea.echap.architectural_reconstructions import EchapReconstructions
 
 # Imports for disease
 from alinea.alep.fungal_objects import DispersalUnit, Lesion, Fungus
-from alinea.alep.dispersal_emission import SeptoriaRainEmission
 from alinea.alep.dispersal_transport import PowderyMildewWindDispersal, SeptoriaRainDispersal
 from alinea.alep.disease_outputs import count_dispersal_units_by_leaf, count_dispersal_units
 from alinea.alep.alep_color import alep_colormap, green_yellow_red
