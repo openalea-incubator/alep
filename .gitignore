@@ -87,4 +87,5 @@ target/
 # #}
 
 # user custom filters
-
+# mac
+.DS_Store
