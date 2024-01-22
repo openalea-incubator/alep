@@ -8,6 +8,53 @@ from alinea.alep.septoria import SeptoriaDU
 from alinea.alep.powdery_mildew import PowderyMildewDU
 from math import exp
 
+# Simple emission  ###########################################################
+class SimpleEmission:
+    """ Template class for a model of emission of dispersal units 
+        that complies with the guidelines of Alep.
+    
+    Emission is the first step of dispersal, before transport. A class for a model 
+    of emission must include a method 'get_dispersal_units'. In this example, each
+    lesion that is found will emit.
+    """
+    
+    def __init__(self):
+        """ Initialize the model with fixed parameters.
+        
+        Parameters
+        ----------
+        ...
+        """
+        pass
+        
+    def get_dispersal_units(self, g, fungus_name="septoria", label='LeafElement'):
+        """ Compute emission of dispersal units by rain splash on wheat.
+        
+        Parameters
+        ----------
+        g: MTG
+            MTG representing the canopy (and the soil)
+        fungus_name: str
+            Name of the fungus
+                    
+        Returns
+        -------
+        dispersal_units : dict([leaf_id, list of dispersal units])
+            Dispersal units emitted by leaf.
+        """
+        # Get lesions
+        les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating] 
+                    for k, v in g.property('lesions').items()} 
+
+        DU = {}
+        for vid, l in les.items():
+            for lesion in l:
+                # Compute number of dispersal units emitted by lesion
+                if vid not in DU:
+                    DU[vid] = 0
+                DU[vid] += lesion.emission()
+        return DU
+
 # Septoria rain emission ##########################################################
 class SeptoriaRainEmission:
     """ Template class for a model of emission of dispersal units by rain 
@@ -16,7 +63,7 @@ class SeptoriaRainEmission:
     Emission is the first step of dispersal, before transport. A class for a model 
     of emission must include a method 'get_dispersal_units'. In this example, the 
     number of dispersal units emitted is calculated according to the equations of
-    Rapilly and Jolivet (1976).
+    Rapilly and Jolivet (1976) and interacts with specific septoria lesions.
     """
     
     def __init__(self, domain_area=None):
@@ -58,15 +105,14 @@ class SeptoriaRainEmission:
         
         # Get lesions
         les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, v in g.property('lesions').iteritems()} 
+                    for k, v in g.property('lesions').items()} 
         
         # Compute total sporulating area
-        total_spo = sum([l.surface_spo for v in les.values() for l in v])
-        # tot_fraction_spo = total_spo/(total_area/self.domain_area) if (total_area/self.domain_area)>0. else 0.
+        total_spo = sum([l.surface_spo for v in list(les.values()) for l in v])
         tot_fraction_spo = total_spo/total_area if total_area>0. else 0.
         
         DU = {}
-        for vid, l in les.iteritems():
+        for vid, l in les.items():
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 leaf = g.node(vid)
@@ -140,15 +186,15 @@ class BenchSeptoriaRainEmission:
         
         # Get lesions
         les = {k:[l for l in v if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, v in g.property('lesions').iteritems()} 
+                    for k, v in g.property('lesions').items()} 
         
         # Compute total sporulating area
-        total_spo = sum([l.surface_spo for v in les.values() for l in v])
+        total_spo = sum([l.surface_spo for v in list(les.values()) for l in v])
         # tot_fraction_spo = total_spo/(total_area/self.domain_area) if (total_area/self.domain_area)>0. else 0.
         tot_fraction_spo = total_spo/total_area if total_area>0. else 0.
 
         DU = {}
-        for vid, l in les.iteritems():
+        for vid, l in les.items():
             for lesion in l:
                 # Compute number of dispersal units emitted by lesion
                 leaf = g.node(vid)
@@ -216,10 +262,10 @@ class PowderyMildewWindEmission:
         
         # Get lesions
         lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, les in g.property('lesions').iteritems()} 
+                    for k, les in g.property('lesions').items()} 
         
         DU = {}
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             leaf = g.node(vid)
             wind_speed = leaf.wind_speed
             for lesion in l:

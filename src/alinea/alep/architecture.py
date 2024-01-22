@@ -7,7 +7,7 @@ into one that provides all the good parameters and organ name definition.
 
 def get_leaves(g, label='LeafElement'):
     labels = g.property('label')
-    return [k for k,l in labels.iteritems() if l.startswith(label)]
+    return [k for k,l in labels.items() if l.startswith(label)]
 
 def get_total_leaf_area(g, label='LeafElement'):
     leaves = get_leaves(g)
@@ -44,7 +44,7 @@ def add_area_topvine(g, conversion_factor=1000., label='lf'):
     g_area.update({vid:area[vid] for vid in new_vids})
     
 def default_properties(g,vids,props):
-    for name, default in props.iteritems():
+    for name, default in props.items():
         g.add_property(name)
         prop = g.property(name)
         if default is not None:
@@ -104,7 +104,7 @@ def set_properties_on_new_leaves(g,
     """ Give initial properties to newly emerged leaves.
     """
     vids = get_leaves(g, label=label)
-    for name, default in kwds.iteritems():
+    for name, default in kwds.items():
         prop = g.property(name)
         new_vids = [n for n in g if g.label(n).startswith(label) if n not in prop]
         if default is not None:

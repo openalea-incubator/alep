@@ -172,7 +172,7 @@ def annual_loop_rust(year = 2013, variety = 'Tremie13',
         # Save outputs
         if rust_iter and record == True:
             date = rust_iter.value.index[-1]
-            print date
+            print(date)
             recorder.record(g, date, 
                             degree_days = rust_iter.value.degree_days[-1])
    
@@ -293,7 +293,7 @@ def plot_severity_rust_by_leaf(g, senescence=True,
     Viewer.display(scene)
     return scene
 
-def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
+def explore_scenarios(years = list(range(2000,2007)), nplants=15, nreps=3,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
                                     'scale_stemDim':1.3, 'scale_stemRate':1.1,
                                     'tiller_probability':0.8, 'scale_leafDim_length':1.2,
@@ -301,7 +301,7 @@ def explore_scenarios(years = range(2000,2007), nplants=15, nreps=3,
                                     'scale_fallingRate':0.8}):
     parameters['reference']=1.
     for param in parameters:
-        kwds = {k:1. if k!=param else v for k,v in parameters.iteritems()}
+        kwds = {k:1. if k!=param else v for k,v in parameters.items()}
         scale_leafRate = 1.5*kwds.pop('scale_leafRate')
         for yr in years:
             run_reps_rust(year=yr, variety='Custom', sowing_date='10-29',
@@ -323,7 +323,7 @@ def colors_scenarios():
             'scale_leafDim_length':'g', 'scale_leafDim_width':'g', 
             'scale_leafRate':'c', 'scale_fallingRate':'y'}
       
-def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_severity', 
+def plot_explore_scenarios(years = list(range(1999,2007)), nplants=15, variable='max_severity', 
                            leaf=1, error_bar=False,
                       parameters = {'scale_HS':0.9, 'scale_leafSenescence':0.9,
                                     'scale_stemDim':1.3, 'scale_stemRate':1.1,
@@ -354,7 +354,7 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
         del df_ref
         del df
     
-    sort_refs = sorted([(value,key) for (key,value) in refs.items()], reverse=True)
+    sort_refs = sorted([(value,key) for (key,value) in list(refs.items())], reverse=True)
     rank_years = {ref[1]:x for x, ref in enumerate(sort_refs)}
     for use_ref in [False, True]:
         for param in sorted(parameters.keys()):
@@ -397,7 +397,7 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
                 proxys += [plt.Line2D((0,1),(0,0), color=color, 
                                       marker=marker, linestyle='None')]
 
-    str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.iteritems()}.items())]    
+    str_ranked_years = [str(t[1]) for t in sorted({v:k for k,v in rank_years.items()}.items())]    
     axRef.set_xlim([-1, len(years)])
     axRef.set_ylim([0,1.8])
     if variable=='max_severity':
@@ -405,10 +405,10 @@ def plot_explore_scenarios(years = range(1999,2007), nplants=15, variable='max_s
     if ylims is not None:
         axSev.set_ylim(ylims)
     axRef.set_ylim([0,1.8])
-    axRef.set_xticks([-1] + range(len(years))+ [len(years)+1])
+    axRef.set_xticks([-1] + list(range(len(years)))+ [len(years)+1])
     axRef.set_xticklabels(['']+str_ranked_years+[''], rotation=30)
     axSev.set_xlim([-1, len(years)])
-    axSev.set_xticks([-1] + range(len(years))+ [len(years)+1])
+    axSev.set_xticks([-1] + list(range(len(years)))+ [len(years)+1])
     axSev.set_xticklabels(['']+str_ranked_years+[''], rotation=30)
     axRef.grid(alpha=0.5)
     axSev.grid(alpha=0.5)

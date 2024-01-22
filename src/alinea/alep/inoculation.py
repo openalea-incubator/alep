@@ -6,7 +6,7 @@
 import random
 import numpy as np
 import collections
-from alinea.alep.fungal_objects import DispersalUnit, Lesion, Fungus
+from alinea.alep.fungus import DispersalUnit, Lesion, Fungus
 from alinea.alep.architecture import get_leaves
 from openalea.plantgl import all as pgl
 
@@ -58,7 +58,7 @@ class RandomInoculation:
                     except:
                         leaf.lesions = [i]            
                 elif isinstance(i, DispersalUnit):
-                    i.deposited()
+                    i.status = 'deposited'
                     try:
                         leaf.dispersal_units.append(i)
                     except:
@@ -172,7 +172,7 @@ class InoculationLowerLeaves(object):
         
         leaves = get_leaves(g, label='LeafElement')
         geometries = g.property('geometry')
-        vids = list(leaf for leaf in leaves if leaf in geometries.iterkeys()
+        vids = list(leaf for leaf in leaves if leaf in iter(geometries.keys())
                         and self.get_leaf_height(geometries[leaf])<=self.max_height)
         n = len(vids)
         
@@ -239,18 +239,18 @@ class AirborneContamination:
                 centroid(vid)
                 
             # Define grid (horizontal layers)
-            zs = [c[2] for c in centroids.itervalues()]
+            zs = [c[2] for c in centroids.values()]
             minz = min(zs)
             maxz = max(zs) + self.layer_thickness
             layers = {l:[] for l in np.arange(minz, maxz, self.layer_thickness)}
             
             # Distribute leaves in layers
-            for vid, coords in centroids.iteritems():
+            for vid, coords in centroids.items():
                 z = coords[2]
-                ls = layers.keys()
-                i_layer = np.where(map(lambda x: x<=z<x+self.layer_thickness 
+                ls = list(layers.keys())
+                i_layer = np.where([x<=z<x+self.layer_thickness 
                                         if z!=maxz - self.layer_thickness
-                                        else x<=z<=x+self.layer_thickness , ls))[0]
+                                        else x<=z<=x+self.layer_thickness for x in ls])[0]
                 if len(i_layer) > 0.:
                     layers[ls[i_layer]].append(vid)
             
@@ -286,7 +286,7 @@ class AirborneContamination:
         areas = g.property('area')
         self.leaves_in_grid(g, label=label)
         deposits = {}
-        sorted_layers = sorted(self.layers.keys(), reverse = True)
+        sorted_layers = sorted(list(self.layers.keys()), reverse = True)
         for layer in sorted_layers:
             if nb_dus > 0.:              
                 vids = self.layers[layer]
@@ -301,7 +301,7 @@ class AirborneContamination:
                                      if distribution_by_leaf[i_lf] > 0.})
                     nb_dus -= sum(distribution_by_leaf)
         
-        for vid, nb_dus in deposits.iteritems():
+        for vid, nb_dus in deposits.items():
             if self.fungus.group_dus==True:
                 du = self.fungus.dispersal_unit()
                 du.set_nb_dispersal_units(nb_dispersal_units = nb_dus)
@@ -324,7 +324,7 @@ class AirborneContamination:
         # Compute severity by leaf
         nb_dus = density_dispersal_units * self.domain_area
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
-                    self.contaminate(g, nb_dus).iteritems()}
+                    self.contaminate(g, nb_dus).items()}
         set_property_on_each_id(g, 'nb_dispersal_units', deposits)
     
         # Visualization
@@ -340,7 +340,7 @@ class AirborneContamination:
         geometries = g.property('geometry') 
         leaves = get_leaves(g, label='LeafElement')
         leaves = [l for l in leaves if l in geometries] 
-        transp = {vid:0. for k,v in self.layers.iteritems() for vid in v}
+        transp = {vid:0. for k,v in self.layers.items() for vid in v}
         set_property_on_each_id(g, 'transparency', transp)   
         for id in g:
             if not id in deposits:
@@ -360,10 +360,10 @@ class AirborneContamination:
         self.leaves_in_grid(g)
         nb_dus = density_dispersal_units * self.domain_area
         deposits = {k:sum([du.nb_dispersal_units for du in v]) for k,v in 
-                    self.contaminate(g, nb_dus).iteritems()}
+                    self.contaminate(g, nb_dus).items()}
         depo_layer = {k:sum([deposits[vid] for vid in v if vid in deposits])
-                        for k,v in self.layers.iteritems()}
-        df = pd.DataFrame([[k,v] for k, v in depo_layer.iteritems()])
+                        for k,v in self.layers.items()}
+        df = pd.DataFrame([[k,v] for k, v in depo_layer.items()])
         df = df.sort(0)
         df[2] = df[1]/df[1].sum()
         fig, ax = plt.subplots()

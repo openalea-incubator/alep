@@ -36,19 +36,19 @@ class BrownRustDU(DispersalUnit):
             if leaf.green_area== 0.:
                 self.disable()
                 return
-            
+
             # Kill all non viable spores
             if len(self.temperature_sequence)==0.:
                 nb_dead = np.random.binomial(self.nb_dispersal_units, 1-f.proba_inf)
-                self.nb_dispersal_units -= nb_dead                
+                self.nb_dispersal_units -= nb_dead
                 if self.nb_dispersal_units == 0.:
                     self.disable()
                     return
-                    
+
             # Accumulate climatic data on the leaf sector during the time step
-            self.temperature_sequence += leaf.temperature_sequence
-            self.wetness_sequence += leaf.wetness_sequence
-    
+            self.temperature_sequence.append(leaf.temperature_sequence)
+            self.wetness_sequence.append(leaf.wetness_sequence)
+
             # Infection success
             temps = self.temperature_sequence
             wets = self.wetness_sequence
@@ -95,12 +95,15 @@ class BrownRustDU(DispersalUnit):
                     return
 
     def create_lesion(self, nb_lesions = 1, leaf = None, **kwds):
+        if leaf is None:
+            return
+
         green_length = leaf.green_length
         length = leaf.length
-        if green_length>0 and nb_lesions>0:        
+        if green_length > 0 and nb_lesions > 0:
             les = self.fungus.lesion(mutable = self.mutable)
             les.__dict__.update(kwds)
-            les.set_position([[length - np.random.random()*green_length, 0] 
+            les.set_position([[length - np.random.random()*green_length, 0]
                                 for i in range(nb_lesions)])
             self.nb_dispersal_units -= nb_lesions
             if leaf is None:
@@ -120,7 +123,7 @@ class BrownRustLesion(Lesion):
     """ Define a lesion of brown rust """
     def __init__(self, mutable = False):
         """ Initialize the lesion of brown rust """
-        super(BrownRustLesion, self).__init__(mutable = mutable)        
+        super(BrownRustLesion, self).__init__(mutable = mutable)
         # Status of the lesion
         self.status = 0.
         # Age in thermal time
@@ -141,13 +144,13 @@ class BrownRustLesion(Lesion):
         self.stock_spores = 0.
         # Potential surface if no compeptition
         self.potential_surface = 0.
-        
+
     def update(self, dt = 1, leaf = None):
         """ Update the growth demand and the status of the lesion """
         # Eliminate extra lesions
         if round(self.surface, 10) == 0. and not self.growth_is_active:
             self.disable()
-        
+
         # Manage senescence
         if (leaf.senesced_length is not None and self.position is not None and
             any([x[0]<=leaf.senesced_length for x in self.position])):
@@ -156,14 +159,14 @@ class BrownRustLesion(Lesion):
         if self.is_active:
             # Calculate progress in thermal time
             self.update_age_and_status(leaf_temperature = leaf.temperature_sequence)
-            
+
             # Calculate growth demand
-            self.update_growth()         
-            
+            self.update_growth()
+
             # Calulate production of spores and necrosis
             if self.is_sporulating:
                 self.update_sporulation(dt=dt, leaf=leaf)
-                
+
             # Update potential surface
             self.potential_surface += self.growth_demand
 
@@ -198,10 +201,10 @@ class BrownRustLesion(Lesion):
     def update_age_and_status(self, leaf_temperature = [0.]):
         self.dtt = self.delta_thermal_time_growth(leaf_temperature = leaf_temperature)
         self.age_tt += self.dtt
-        
+
         if (self.is_chlorotic and self.age_tt >= self.fungus.latency):
             self.status += 1
-            
+
     def logistic(self, x0, x):
         """ Calculate y for x with logistic curve """
         f = self.fungus
@@ -213,15 +216,15 @@ class BrownRustLesion(Lesion):
         x2 = self.age_tt
         self.growth_demand = self.nb_lesions_non_sen * (self.logistic(f.x0, x2) - \
                         self.logistic(f.x0, x1))
-        
+
     def update_sporulation(self, dt=1, leaf=None):
         f = self.fungus
-        self.age_sporulation += self.dtt        
+        self.age_sporulation += self.dtt
         self.update_necrosis(leaf)
         self.stock_spores += self.surface_spo*100*f.conversion_mg_to_nb_spo*dt/24.
-        
+
     def update_necrosis(self, leaf=None):
-           
+
         def gompertz_necro(date, dens):
             a = 3.08e-5
             b = 0.00305171209440162
@@ -229,15 +232,15 @@ class BrownRustLesion(Lesion):
             d = 10.448840245012178
             A = a*dens + b
             B = c*dens + d
-            return np.exp(-B * np.exp(-A*date)) 
-        
+            return np.exp(-B * np.exp(-A*date))
+
         if self.surface_sink > 0.:
             f = self.fungus
             a_spo = self.age_sporulation
             nb_les = sum([l.nb_lesions_non_sen for l in leaf.lesions if l.fungus.name=='brown_rust'])
             dens = nb_les/leaf.green_area if leaf.green_area > 0 else 0.
             ratio_empty = gompertz_necro(a_spo, dens)-gompertz_necro(a_spo-self.dtt, dens)
-            ratio_les = self.nb_lesions_non_sen/float(nb_les)            
+            ratio_les = self.nb_lesions_non_sen/float(nb_les)
             total_smax = self.nb_lesions_non_sen*(1-np.exp(-dens*f.Smax))/dens
 #            total_smax = min(leaf.green_area, self.nb_lesions_non_sen*f.Smax) # to use if simple model of competition
             smax = ratio_les*total_smax
@@ -292,7 +295,7 @@ class BrownRustLesion(Lesion):
             self.become_senescent()
         if not self.senescence_response_completed:
             # Get ratio of lesions senesced in cohort, if individual lesion ratio_sen = 1
-            nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
+            nb_sen = len([x for x in self.position if x[0]<=senesced_length])
             nb_new_sen = nb_sen - self.nb_lesions_sen
             ratio_sen = float(nb_new_sen)/(self.nb_lesions_non_sen)
 
@@ -306,13 +309,13 @@ class BrownRustLesion(Lesion):
             empty_to_dead = self.surface_empty * ratio_sen
             self.surface_empty -= empty_to_dead
             self.surface_dead += sink_to_dead + chlo_to_dead + spo_to_dead + empty_to_dead
-            
+
             # Update potential surface
             self.potential_surface *= (1-ratio_sen)
-            
+
             # Update number of lesions in senescence
-            self.nb_lesions_sen += nb_new_sen  
-            
+            self.nb_lesions_sen += nb_new_sen
+
             # Stop developemnt when last lesion of cohort is reached
             if self.nb_lesions_non_sen == 0.:
                 assert self.surface_alive == 0.
@@ -327,7 +330,7 @@ class BrownRustLesion(Lesion):
             self.position = [position]
         else:
             self.position = position
-            
+
     def disable_growth(self):
         """ Disable growth of the lesion.
         """
@@ -342,7 +345,7 @@ class BrownRustLesion(Lesion):
             self.is_active = False
 
     def disappear(self):
-        """ Kill the lesion and pass all surfaces to 0. 
+        """ Kill the lesion and pass all surfaces to 0.
         """
         self.growth_is_active = False
         self.growth_demand = 0.
@@ -352,7 +355,7 @@ class BrownRustLesion(Lesion):
         self.surface_empty = 0.
         self.surface_dead = 0.
         self.disable()
-            
+
     @property
     def nb_lesions(self):
         """ Get number of lesions in cohort if group_dus == True.
@@ -361,7 +364,7 @@ class BrownRustLesion(Lesion):
             return len(self.position) if self.position is not None else 1.
         else:
             return 1.
-            
+
     @property
     def nb_lesions_non_sen(self):
         """ Get number of non senescent lesions in cohort. """
@@ -381,7 +384,7 @@ class BrownRustLesion(Lesion):
     def is_empty(self):
         """ Check if lesion is empty """
         return self.status == self.fungus.EMPTY
-        
+
     @property
     def surface_alive(self):
         """ Get surface alive (non senescent) on the lesion """
@@ -396,12 +399,12 @@ class BrownRustLesion(Lesion):
     def _surface_max(self):
         """ Calculate the surface max for a cohort of lesion. """
         return self.fungus.Smax * self.nb_lesions_non_sen + self.surface_dead
-        
+
     @property
     def surface_non_senescent(self):
         """ calculate the surface of the lesion non affected by senescence. """
         return self.surface_alive
-        
+
 # Fungus parameters: config of the fungus ##########################################################
 brown_rust_parameters = dict(name = 'brown_rust',
                              CHLOROTIC = 0,
@@ -424,7 +427,7 @@ brown_rust_parameters = dict(name = 'brown_rust',
                              temp_opt_chlo = 27.,
                              temp_max_chlo = 40.,
                              temp_min_chlo = 0.,
-                             ratio_sink = 0.28, 
+                             ratio_sink = 0.28,
                              ratio_chlo = 0.4,
                              ratio_spo = 0.32,
                              latency = 170.,
@@ -447,7 +450,7 @@ import collections
 def is_iterable(obj):
     """ Test if object is iterable """
     return isinstance(obj, collections.Iterable)
-       
+
 def get_proba_inf_T(T):
     # Pivonia and Yang
     temp_opt = 15.
@@ -460,7 +463,7 @@ def get_proba_inf_T(T):
 
 def plot_proba_inf_T():
     import matplotlib.pyplot as plt
-    temp = range(36)
+    temp = list(range(36))
     fig, ax = plt.subplots()
     ax.plot(temp, [get_proba_inf_T(T) for T in temp])
     ax.set_ylabel("Probability of infection", fontsize = 16)
@@ -468,10 +471,10 @@ def plot_proba_inf_T():
 
 def weibull(x, A = 0.11, B = 3.152, x_min = 0.):
     return 1 - np.exp(-(A*x - x_min)**B)
-    
+
 def gompertz(x, k = 0.47, B = 30.):
     return np.exp(-B * np.exp(-k*x))
-    
+
 def get_proba_inf_WD(WD, A = 0.11, B = 3.152):
     # Caubel
     wetness_min = 8
@@ -488,7 +491,7 @@ def compare_proba_inf_WD_weibull(A = 0.11, B = 3.152):
     fig, ax = plt.subplots()
     ax.plot(wetness, y1, 'b')
     ax.plot(wetness, y2, 'r')
-    
+
 def compare_proba_inf_WD_gomp(k = 0.47, B = 30.):
     import matplotlib.pyplot as plt
     wetness = np.arange(0,30,0.1)
@@ -524,7 +527,7 @@ def get_effective_T(T):
 
 def plot_effective_T():
     import matplotlib.pyplot as plt
-    temp = range(41)
+    temp = list(range(41))
     fig, ax = plt.subplots()
     ax.plot(temp, [get_effective_T(T) for T in temp])
     ax.set_ylabel("Teff (degrees Celsius)", fontsize = 16)
@@ -532,7 +535,7 @@ def plot_effective_T():
 
 def plot_progress():
     import matplotlib.pyplot as plt
-    temp = range(40)
+    temp = list(range(40))
     fig, ax = plt.subplots()
     ax.plot(temp, [get_progress(T) for T in temp])
 
@@ -546,7 +549,7 @@ def logistic_growth(x, x0 = 254.):
 def plot_logistic_growth():
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    ax.plot(range(450), [logistic_growth(x) for x in range(450)])
+    ax.plot(list(range(450)), [logistic_growth(x) for x in range(450)])
     # Points de Audsley
     # ax.plot([162], [0.05*0.22], 'ro')
     # ax.plot([324], [0.9*0.22], 'ro')
@@ -556,8 +559,8 @@ def plot_logistic_growth():
 def compare_logistic_growth_and_spo(nb_steps = 1000):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    ax.plot(range(nb_steps), [logistic_growth(x) for x in range(nb_steps)])
-    ax.plot(range(nb_steps), [logistic_growth(x, 254.+175.) for x in range(nb_steps)])
+    ax.plot(list(range(nb_steps)), [logistic_growth(x) for x in range(nb_steps)])
+    ax.plot(list(range(nb_steps)), [logistic_growth(x, 254.+175.) for x in range(nb_steps)])
     # Points de Audsley
     ax.plot([162], [0.05*0.22], 'ro')
     ax.plot([324], [0.9*0.22], 'ro')

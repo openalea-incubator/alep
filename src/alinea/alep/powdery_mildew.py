@@ -160,7 +160,7 @@ class PowderyMildewDU(DispersalUnit):
 class PowderyMildewLesion(Lesion):
     """ Powdery mildew lesion implemented as in Calonnec et al., 2008 for the most part. """
     
-    def __init__(self, nb_spores=None, position=None):
+    def __init__(self, nb_lesions=1,nb_spores=None, position=None, mutable=False):
         """ Initialize the lesion of powdery mildew.
         
         Parameters
@@ -170,7 +170,10 @@ class PowderyMildewLesion(Lesion):
         position: non defined
             Position of the dispersal unit on the phyto-element
         """
-        super(PowderyMildew, self).__init__(nb_spores=nb_spores, position=position)
+        super(PowderyMildewLesion, self).__init__(mutable=mutable)
+        self.position = position
+        self.nb_spores = nb_spores
+        self.nb_lesions=nb_lesions
         f = self.fungus
         # Duration of the time step
         self.dt = 0.

@@ -9,7 +9,7 @@ from openalea.deploy.metainfo import read_metainfo
 
 # Reads the metainfo file
 metadata = read_metainfo('metainfo.ini', verbose=True)
-for key,value in metadata.iteritems():
+for key,value in metadata.items():
     exec("%s = '%s'" % (key, value))
 
 #The metainfo files must contains
@@ -78,7 +78,7 @@ setup(
     package_dir= package_dir,
 
     # Namespace packages creation by deploy
-    #namespace_packages = [namespace],
+    namespace_packages = ['alinea'],
     #create_namespaces = False,
     zip_safe= False,
 
@@ -108,7 +108,7 @@ setup(
     entry_points = { 
         'wralea' : ['alep = alinea.alep_wralea'],
         'alep.disease' :  ['template = alinea.alep.fungal_objects:Fungus',
-                           'septoria= alinea.alep.septo3d_v2:SeptoriaFungus',
+                           'septoria= alinea.alep.septoria:SeptoriaFungus',
                            'powdery_mildew = alinea.alep.powdery_mildew:PowderyMildewFungus',
                            'brown_rust = alinea.alep.brown_rust:BrownRustFungus',],
         #'console_scripts': [

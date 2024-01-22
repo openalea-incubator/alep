@@ -2,7 +2,7 @@ from alinea.echap.architectural_reconstructions import EchapReconstructions
 from alinea.alep.protocol import *
 from alinea.alep.architecture import get_leaves
 from alinea.alep.disease_outputs import plot_severity_by_leaf
-from alinea.alep.septo3d_v2 import plugin_septoria
+from alinea.alep.septoria import plugin_septoria
 from alinea.alep.inoculation import InoculationLowerLeaves
 from alinea.alep.fungal_objects import Lesion, DispersalUnit
 from alinea.popdrops.alep_interface import PopDropsEmission, PopDropsTransport
@@ -32,8 +32,8 @@ class DummyEmission():
     def get_dispersal_units(self, g, fungus_name="dummy", label='LeafElement'):
         DU={}
         lesions = {k:[l for l in les if l.fungus.name is fungus_name and l.is_sporulating()] 
-                    for k, les in g.property('lesions').iteritems()} 
-        for vid, l in lesions.iteritems():
+                    for k, les in g.property('lesions').items()} 
+        for vid, l in lesions.items():
             for lesion in l:
                 emissions = [DispersalUnit() for i in range(int(self.nb))]
                 try:
@@ -47,7 +47,7 @@ def tremie12_main_stem(nplants = 1, nsect = 1, age=1500, only_MS = True):
     adel = reconst.get_reconstruction(name='Tremie12', nplants = nplants, nsect = nsect, disc_level = 5, aspect = 'line')
     g = adel.setup_canopy(age=age)
     labels = g.property('label')
-    vids = labels.keys()
+    vids = list(labels.keys())
     vids.reverse()
     if only_MS == True:
         for vid in vids:
@@ -78,9 +78,9 @@ def dummy_dispersal(nplants=1, nsect = 1, age = 1500., only_MS = True):
     
     if only_MS == False:
         MS_ids = [vid for vid in g if vid>0 and not g.node(vid).complex_at_scale(2).label.startswith('T')]
-        deposits = {k:v for k,v in deposits.iteritems() if k in MS_ids}
+        deposits = {k:v for k,v in deposits.items() if k in MS_ids}
     
-    return len(sum(deposits.values(), []))
+    return len(sum(list(deposits.values()), []))
 
 # Find a rain sequence in weather
 weather = get_weather()
@@ -97,8 +97,8 @@ def test_transport():
     # nb_sects = [1, 3, 5, 7, 10]
     # ages = [500, 1000, 1500, 2000]
     for npl in nb_plants:
-        print '--------------------------'
-        print 'number of plant: %d' % npl
+        print('--------------------------')
+        print('number of plant: %d' % npl)
         # print 'age: %d' % age
         deposits.append(dummy_dispersal(nplants=npl, nsect=5, age=1500, only_MS = True))
     return deposits

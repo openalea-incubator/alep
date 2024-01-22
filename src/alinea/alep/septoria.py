@@ -6,6 +6,7 @@ from alinea.alep.fungus import *
 from random import random
 import numpy as np
 from math import floor, ceil
+import warnings
 
 # Dispersal unit #############################################################
 class SeptoriaDU(DispersalUnit):
@@ -223,6 +224,7 @@ class SeptoriaLesion(Lesion):
         self.sporulating_capacity = self.fungus.sporulating_capacity
         
         self.surface_senescent = 0.
+        self.set_position(0.5)
         
     def is_incubating(self):
         """ Check if lesion status is incubation. """
@@ -251,9 +253,12 @@ class SeptoriaLesion(Lesion):
             A leaf sector with properties (e.g. area, green area, healthy area,
             senescence, rain intensity, wetness, temperature, lesions, etc.)
         """            
-        # Manage senescence              
-        if any([x[0]<=leaf.senesced_length for x in self.position]):
-            self.senescence_response(leaf.senesced_length)
+        # Manage senescence
+        if self.position is not None and hasattr(leaf, 'senesced_length'):
+            if any([x <= leaf.senesced_length for x in self.position]):
+                self.senescence_response(leaf.senesced_length)
+        else:
+            warnings.warn('position or leaf sescence not specified : skipping senescence response')
 
         if self.is_active:           
             # Compute delta degree days in dt
@@ -444,8 +449,8 @@ class SeptoriaLesion(Lesion):
                 self.growth_demand = progress * f.Smin * self.nb_lesions_non_sen
         else:
             if self.growth_is_active:
-                ratio_left = 1 - (self.age_physio-progress)
-                self.growth_demand = progress * f.Smin * self.nb_lesions_non_sen *ratio_left
+                progress_left = 1 - (self.age_physio - progress)
+                self.growth_demand = progress_left * f.Smin * self.nb_lesions_non_sen
             # Change status
             self.ratio_left = round((self.age_physio - 1.)/progress, 14)
             self.change_status()
@@ -497,7 +502,7 @@ class SeptoriaLesion(Lesion):
                     rings = rings[int(floor(age_edge/width)):]
                     rings[0] = age_edge
                     while len(self.surfaces_chlo)<len(rings)-1:
-                        self.surfaces_chlo=np.insert(self.surfaces_chlo,0.,0.)
+                        self.surfaces_chlo=np.insert(self.surfaces_chlo,0,0.)
                 
                 # 3. Get the beginnings and the ends of age classes
                 begs = rings[:-1]
@@ -653,7 +658,7 @@ class SeptoriaLesion(Lesion):
         """ Return number of DUs emitted by the lesion. """
         if density_DU_emitted>0:       
             f = self.fungus
-            emissions = map(lambda x: int(x), self.surfaces_spo * density_DU_emitted)
+            emissions = [int(x) for x in self.surfaces_spo * density_DU_emitted]
             self.surface_empty += self.surfaces_spo[-1]
             self.surfaces_spo[1:] = self.surfaces_spo[:-1]
             self.surfaces_spo[0] = 0.
@@ -667,7 +672,7 @@ class SeptoriaLesion(Lesion):
             self.become_senescent()
             
         if not self.senescence_response_completed:
-            nb_sen = len(filter(lambda x: x[0]<=senesced_length, self.position))
+            nb_sen = len([x for x in self.position if x<=senesced_length])
             nb_new_sen = nb_sen - self.nb_lesions_sen
             ratio_sen = float(nb_new_sen)/(self.nb_lesions_non_sen)
 
@@ -792,7 +797,7 @@ class SeptoriaLesion(Lesion):
         position: list[x, y] on leaf blade
             Position of the DU.
         """
-        if not is_iterable(position[0]):
+        if not is_iterable(position):
             self.position = [position]
         else:
             self.position = position
@@ -927,7 +932,7 @@ except ImportError:
     from openalea.core import plugin
 
 
-def plugin_septoria(model='septo3d_v2'):
+def plugin_septoria(model='septoria'):
     diseases = plugin.discover('alep.disease')
     try:
         septoria = diseases[model].load()

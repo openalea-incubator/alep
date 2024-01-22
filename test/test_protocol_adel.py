@@ -7,11 +7,10 @@ import numpy
 import pandas
 from pylab import *
 
-from alinea.alep.wheat import adel_mtg, adel_mtg2, adel_one_leaf
+from alinea.adel.data_samples import adel_two_metamers, adel_one_leaf
 from alinea.adel.mtg_interpreter import *
 from openalea.plantgl.all import *
 
-from alinea.alep import fungal_objects
 from alinea.alep import septoria
 from alinea.alep.septoria import *
 from alinea.alep import powdery_mildew
@@ -24,6 +23,9 @@ from alinea.alep.inoculation import RandomInoculation
 from alinea.alep.architecture import set_properties, update_healthy_area
 
 from alinea.alep.protocol import *
+from alinea.alep.diseases import get_disease
+from alinea.alep.disease_operation import generate_stock_du
+
 
 from datetime import datetime
 import time
@@ -105,7 +107,7 @@ def update_climate_all(g, wetness=True,
     return g
 
 # Fungus ##########################################################################
-def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaWithRings"):
+def distribute_dispersal_units(g, nb_dus=1, model="septoria"):
     """ Distribute new dispersal units on g. 
     
     Call the method 'initiate' from the protocol with dispersal units.
@@ -122,57 +124,47 @@ def distribute_dispersal_units(g, nb_dus=1, model="SeptoriaWithRings"):
     g: MTG
         Updated MTG representing the canopy
     """
-    fungus = septoria(model=model)
-    fungus = septoria(model=model)
-    SeptoriaDU.fungus = fungus
-    dispersal_units = ([SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted')
-                        for i in range(nb_dus)])
+    dispersal_units = generate_stock_du(nb_dus, model)
 
     inoculator = RandomInoculation()
     initiate(g, dispersal_units, inoculator)
     
     return g
     
-def distribute_lesions(g, nb_lesions=1, model="SeptoriaWithRings"):
-    """ Distribute new lesions on g. 
-    
-    Call the method 'initiate' from the protocol with lesions.
-    
-    Parameters
-    ----------
-    g: MTG
-        MTG representing the canopy
-    nb_lesions: int
-        Number of lesions to put on g
-    model: str
-        Type of model of septoria lesion
-        
-    Returns
-    -------
-    g: MTG
-        Updated MTG representing the canopy
-    """
-    fungus = septoria(model=model)
-    models = ({"SeptoriaExchangingRings":SeptoriaExchangingRings,
-                    "SeptoriaWithRings":SeptoriaWithRings, 
-                    "ContinuousSeptoria":ContinuousSeptoria})
-    if model in models:
-        models[model].fungus = fungus
-        lesions = [models[model](nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
-
-    inoculator = RandomInoculation()
-    initiate(g, lesions, inoculator)
-    
-    return g
+# def distribute_lesions(g, nb_lesions=1, model="SeptoriaWithRings"):
+#     """ Distribute new lesions on g.
+#
+#     Call the method 'initiate' from the protocol with lesions.
+#
+#     Parameters
+#     ----------
+#     g: MTG
+#         MTG representing the canopy
+#     nb_lesions: int
+#         Number of lesions to put on g
+#     model: str
+#         Type of model of septoria lesion
+#
+#     Returns
+#     -------
+#     g: MTG
+#         Updated MTG representing the canopy
+#     """
+#     fungus = septoria.plugin_septoria(model=model)
+#     models = ({"SeptoriaExchangingRings":SeptoriaExchangingRings,
+#                     "SeptoriaWithRings":SeptoriaWithRings,
+#                     "ContinuousSeptoria":ContinuousSeptoria})
+#     if model in models:
+#         models[model].fungus = fungus
+#         lesions = [models[model](nb_spores=rd.randint(1,100)) for i in range(nb_lesions)]
+#
+#     inoculator = RandomInoculation()
+#     initiate(g, lesions, inoculator)
+#
+#     return g
     
 # Call models for disease #########################################################
-def generate_stock_DU(fungus = septoria(), nb_Spores=rd.randint(1,100), nb_DU = 100):
-    """ Generate a stock of DU as a list of DU 
-    
-    """
-    SeptoriaDU.fungus = fungus
-    stock_DU = [SeptoriaDU(nb_spores=nb_Spores, status='emitted') for i in range(nb_DU)]
-    return stock_DU
+
 
 def inoculator():            
     """ Instantiate the class RandomInoculation().
@@ -292,21 +284,21 @@ def count_lesions_in_state(g, state):
     
     """
     lesions = g.property('lesions')
-    return sum(1 for l in lesions.itervalues() for lesion in l if lesion.status == state)
+    return sum(1 for l in lesions.values() for lesion in l if lesion.status == state)
     
 def count_DU(g):
     """ count DU of the mtg.
     
     """
     dispersal_units = g.property('dispersal_units')
-    return sum(len(du) for du in dispersal_units.itervalues())
+    return sum(len(du) for du in dispersal_units.values())
 
 def count_lesions(g):
     """ count lesions of the mtg.
     
     """
     lesions = g.property('lesions')
-    return sum(len(l) for l in lesions.itervalues())
+    return sum(len(l) for l in lesions.values())
     
 class DisplayLesions(object):
     """ Print the ID of Leaf Elements where new lesions appear. """
@@ -317,17 +309,17 @@ class DisplayLesions(object):
     def print_new_lesions(self, g):
         lesions = g.property('lesions')
         
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             for lesion in l:
                 if not lesion in self.old_lesions:
                     self.old_lesions.append(lesion)
-                    print('New Lesions on : ' + g.label(vid) + ' %d' % vid)
+                    print(('New Lesions on : ' + g.label(vid) + ' %d' % vid))
         
     def print_all_lesions(self, g):
         from pprint import pprint
         lesions = g.property('lesions')
         ldict = {}
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             ldict[vid] = len(l)
         pprint(ldict)
         # print('You can find lesions on LeafElements : ' + str(llist).strip('[]'))
@@ -336,12 +328,12 @@ class DisplayLesions(object):
         from pprint import pprint
         lesions = g.property('lesions')
         ldict = {}
-        for vid, l in lesions.iteritems():
+        for vid, l in lesions.items():
             for lesion in l:
                 if vid not in ldict:
                     ldict[vid] = 0
                 ldict[vid] += lesion.surface
-        print('\n' + 'Sum of lesion surfaces by leaf element : ' + '\n')             
+        print(('\n' + 'Sum of lesion surfaces by leaf element : ' + '\n'))             
         pprint(ldict)
     
 # Tests ###########################################################################    
@@ -349,11 +341,10 @@ def test_initiate():
     """ Check if 'initiate' from 'protocol.py' deposits dispersal units on the MTG.
     
     """
-    g = adel_mtg2()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
-    fungus = septoria()
-    SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
+    fungus = get_disease('septoria')
+    stock = generate_stock_du(100, fungus)
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     plot_DU(g)
@@ -363,10 +354,12 @@ def test_infect():
     """ Check if 'infect' from 'protocol.py' leads to infection by dispersal units on the MTG.
 
     """
-    g = adel_mtg2()
-    set_initial_properties_g(g, surface_leaf_element=5.)
-    fungus = septoria(); SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
+    g = adel_two_metamers()
+    set_initial_properties_g(g, surface_leaf_element=5.,
+                   temperature_sequence = [18] * 24,
+                    relative_humidity_sequence = [85] * 24)
+    fungus = get_disease('septoria')
+    stock = generate_stock_du(100, fungus)
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -384,11 +377,10 @@ def test_update():
     """ Check if 'update' from 'protocol.py' provokes the growth of a lesion instantiated on the MTG.
 
     """
-    g = adel_mtg2()
+    g = adel_two_metamers()
     set_properties(g, area=20., green_area=20.)
-    septoria = plugin_septoria()
-    SeptoriaDU = septoria.dispersal_unit()
-    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
+    fungus = get_disease('septoria')
+    stock = generate_stock_du(100, fungus)
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -442,10 +434,12 @@ def test_disperse():
     """ Check if 'disperse' from 'protocol.py' disperse new dispersal units on the MTG.
 
     """
-    g = adel_mtg2()
-    set_initial_properties_g(g, surface_leaf_element=5.)
-    fungus = septoria(); SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(10)]
+    g = adel_two_metamers()
+    set_initial_properties_g(g, surface_leaf_element=5.,
+                   temperature_sequence = [18] * 24,
+                    relative_humidity_sequence = [85] * 24)
+    fungus = get_disease('septoria')
+    stock = generate_stock_du(100, fungus)
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -455,7 +449,7 @@ def test_disperse():
     nb_steps = 750
     nb_les = numpy.array([0 for i in range(nb_steps)])
     for i in range(nb_steps):
-        print('time step %d' % i)
+        print(('time step %d' % i))
         
         # Update climate and force rain occurences       
         if i>400 and i%100 == 0:
@@ -493,10 +487,10 @@ def test_washing():
     """ Check if 'washing' from 'protocol.py' washes dispersal units out of the MTG.
 
     """
-    g = adel_mtg()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
-    fungus = septoria(); SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(100)]
+    fungus = get_disease('septoria')
+    stock = generate_stock_du(100, fungus)
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -529,7 +523,7 @@ def test_washing():
             print('   |  |')
             print('    |  | ')
             print('\n')
-            print('Sur le MTG il y a %d DU actives en tout' % nb_DU[i])
+            print(('Sur le MTG il y a %d DU actives en tout' % nb_DU[i]))
 
     # Display results
     plot(nb_DU)
@@ -541,10 +535,12 @@ def test_washing():
     return g
 
 def test_growth_control():
-    g = adel_mtg()
-    set_initial_properties_g(g, surface_leaf_element=5.)
-    fungus = septoria(); SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=random.randint(1,100), status='emitted') for i in range(1000)]
+    g = adel_two_metamers()
+    set_initial_properties_g(g, surface_leaf_element=5.,
+                   temperature_sequence = [18] * 24,
+                    relative_humidity_sequence = [85] * 24)
+    fungus = get_disease('septoria')
+    stock = generate_stock_du(100, fungus)
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
    
@@ -553,7 +549,7 @@ def test_growth_control():
     # compute infection:
     nb_steps_inf = 11  
     for i in range(nb_steps_inf):
-        print('time step %d' % i)       
+        print(('time step %d' % i))       
         update_climate_all(g)           
         #grow(g)
         infect(g, dt=1.)
@@ -563,10 +559,10 @@ def test_growth_control():
         # compute competition
         dt = 50
         nb_steps = 500
-        dates = range(0,nb_steps,dt)
+        dates = list(range(0,nb_steps,dt))
         sum_surface = numpy.array([0. for i in dates])
         for i in dates:
-            print('time step %d' % i)       
+            print(('time step %d' % i))       
             update_climate_all(g)
                 
             #grow(g)      
@@ -595,12 +591,12 @@ def test_growth_control():
 
 def test_all(model="SeptoriaExchangingRings"):
     # Generate a MTG with required properties :
-    g = adel_mtg2()
+    g = adel_two_metamers()
     set_initial_properties_g(g, surface_leaf_element=5.)
     
     # Deposit first dispersal units on the MTG :
-    fungus = septoria(model=model); SeptoriaDU.fungus = fungus
-    stock = [SeptoriaDU(nb_spores=rd.randint(1,100), status='emitted') for i in range(10)]
+    fungus = get_disease('septoria')
+    stock = generate_stock_du(100, fungus)
     inoculator = RandomInoculation()
     initiate(g, stock, inoculator)
     
@@ -637,7 +633,7 @@ def test_all(model="SeptoriaExchangingRings"):
         if nb_les > nb_max_les:
             nb_max_les = nb_les
     
-    print('max number lesions %d' % nb_max_les)
+    print(('max number lesions %d' % nb_max_les))
     
     return g
 

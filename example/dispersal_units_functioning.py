@@ -24,7 +24,7 @@ from alinea.alep.architecture import set_properties, update_healthy_area, get_le
 
 # Imports for septoria
 from alinea.alep.protocol import *
-from alinea.alep.septo3d_v2 import plugin_septoria
+from alinea.alep.septoria import plugin_septoria
 from alinea.alep.disease_operation import generate_stock_du
 from alinea.alep.disease_outputs import LeafInspector, save_image
 from alinea.alep.inoculation import RandomInoculation
@@ -158,31 +158,31 @@ def run_simulation():
         if rain_eval:
             if rain_eval.value.rain.mean()>0:
                 g, nb = disperse(g, emitter, transporter, "septoria", label='LeafElement')
-                for inspector in inspectors.itervalues():
+                for inspector in inspectors.values():
                     inspector.update_du_variables(g)
                 wash(g, washor, rain_eval.value.rain.mean(), label='LeafElement')
                 # Save outputs after washing
                 infection_controler.control_position(g)
-                for inspector in inspectors.itervalues():
+                for inspector in inspectors.values():
                     inspector.update_du_variables(g)
                     inspector.update_green_area(g)
                     inspector.update_healthy_area(g)
             else:
-                for inspector in inspectors.itervalues():
+                for inspector in inspectors.values():
                     inspector.nb_dus += [0, 0]
                     inspector.nb_dus_on_green += [0, 0]
                     inspector.nb_dus_on_healthy += [0, 0]
                     inspector.update_green_area(g)
                     inspector.update_healthy_area(g)
         else:
-            for inspector in inspectors.itervalues():
+            for inspector in inspectors.values():
                 inspector.nb_dus += [0, 0]
                 inspector.nb_dus_on_green += [0, 0]
                 inspector.nb_dus_on_healthy += [0, 0]
                 inspector.update_green_area(g)
                 inspector.update_healthy_area(g)
         
-        for inspector in inspectors.itervalues():
+        for inspector in inspectors.values():
             inspector.compute_nb_infections(g)
         
         if wheat_eval:

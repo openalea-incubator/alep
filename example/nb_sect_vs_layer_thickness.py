@@ -39,9 +39,9 @@ def plot_sect_vs_thick(num_leaves = [1, 3, 5, 7, 9]):
     for num_yr, yr in enumerate(years):
         for num_lf, lf in enumerate(num_leaves):
         
-            print yr, lf
+            print(yr, lf)
         
-            df = pandas.DataFrame(index = range(len(nb_sects)), columns = range(len(layer_thicknesses)))
+            df = pandas.DataFrame(index = list(range(len(nb_sects))), columns = list(range(len(layer_thicknesses))))
             for i, nsect in enumerate(nb_sects):
                 for j, dh  in enumerate(layer_thicknesses):
                     df.ix[i, j] = sum(get_norm_audpc_by_leaf(recorder_getter=get_recorder_with_dh, scenario = (yr, 6, nsect, 1e-3, dh), num_leaves = [lf], nb_rep = 5))
@@ -49,11 +49,11 @@ def plot_sect_vs_thick(num_leaves = [1, 3, 5, 7, 9]):
             ax = fig.add_subplot(len(num_leaves), len(years), len(years)*num_lf+num_yr+1, projection='3d')
             X, Y = numpy.meshgrid(df.columns, df.index)
             ax.plot_surface(X,Y, df.values, rstride=1, cstride=1, color='b', alpha=0.5)
-            xs = range(len(layer_thicknesses))
+            xs = list(range(len(layer_thicknesses)))
             ax.set_xticks(xs)
             ax.set_xticklabels(layer_thicknesses)
             
-            ys = range(len(nb_sects))
+            ys = list(range(len(nb_sects)))
             ax.set_yticks(ys)
             ax.set_yticklabels(nb_sects)
             # ax.tick_params(axis='both', labelsize=14)

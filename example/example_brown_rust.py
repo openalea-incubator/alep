@@ -3,7 +3,7 @@
 """
 from alinea.echap.weather_data import read_weather_year
 from alinea.alep.brown_rust import BrownRustFungus
-from alinea.alep.septo3d_v2 import SeptoriaFungus
+from alinea.alep.septoria import SeptoriaFungus
 from alinea.alep.disease_outputs import BrownRustRecorder, plot_by_leaf, conf_int
 from alinea.alep.growth_control import (NoPriorityGrowthControl,
                                         GeometricPoissonCompetition,
@@ -190,7 +190,7 @@ def example_density_robert_2005(**kwds):
     weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
                        parse_dates={'datetime':['date', 'hour']},
                        date_parser=_parse)
-    weather['day'] = map(lambda x : x.dayofyear -  weather['datetime'][0].dayofyear, weather['datetime'])
+    weather['day'] = [x.dayofyear -  weather['datetime'][0].dayofyear for x in weather['datetime']]
     weather.set_index('datetime', inplace = True)    
     
     brown_rust = BrownRustFungus()
@@ -331,7 +331,7 @@ def example_density_complete(with_complex=False, **kwds):
     weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
                        parse_dates={'datetime':['date', 'hour']},
                        date_parser=_parse)
-    weather['day'] = map(lambda x : x.dayofyear -  weather['datetime'][0].dayofyear, weather['datetime'])
+    weather['day'] = [x.dayofyear -  weather['datetime'][0].dayofyear for x in weather['datetime']]
     weather.set_index('datetime', inplace = True)
     
     brown_rust = BrownRustFungus()
@@ -349,7 +349,7 @@ def example_density_complete(with_complex=False, **kwds):
     df_obs_2005 = df_obs_2005.rename(columns={'sev_spo':'severity'})
     df_obs_2005['area'] = [x/y if y>0. else 0. for x,y in zip(df_obs_2005['severity'],df_obs_2005['density'])]
     
-    (df_obs_2004, df_obs_2005) = map(lambda df: df[df['date']!=9], (df_obs_2004, df_obs_2005))
+    (df_obs_2004, df_obs_2005) = [df[df['date']!=9] for df in (df_obs_2004, df_obs_2005)]
 
     
     dates_obs = np.unique(df_obs_2004['date'])
@@ -375,8 +375,8 @@ def example_density_complete(with_complex=False, **kwds):
             growth_controler.control(g)
             if leaf.lesions[0].status > 0:
                 if day == 0.:
-                    print date
-                    print les.age_tt
+                    print(date)
+                    print(les.age_tt)
                     day = weather.loc[date, 'day']
                 if (day > 0 and date.hour == 12 and i_dates < len(dates_obs) and
                     weather.loc[date, 'day'] - day + 1 >= dates_obs[i_dates]):
@@ -396,8 +396,7 @@ def example_density_complete(with_complex=False, **kwds):
     for i, ax in enumerate(axs.flat):
         if i<7:
             date = next(dates_iter)
-            (df_o_2004, df_o_2005) = map(lambda df: df[df['date']==date],
-                                        (df_obs_2004, df_obs_2005))
+            (df_o_2004, df_o_2005) = [df[df['date']==date] for df in (df_obs_2004, df_obs_2005)]
             df_s = df_sim[df_sim['date']==date]
     
             # Plot
@@ -442,8 +441,7 @@ def example_density_complete(with_complex=False, **kwds):
     for i, ax in enumerate(axs.flat):
         if i<7:
             date = next(dates_iter)
-            (df_o_2004, df_o_2005) = map(lambda df: df[df['date']==date],
-                                        (df_obs_2004, df_obs_2005))
+            (df_o_2004, df_o_2005) = [df[df['date']==date] for df in (df_obs_2004, df_obs_2005)]
             df_s = df_sim[df_sim['date']==date]
     
             # Plot
@@ -483,7 +481,7 @@ def compare_competition_models(**kwds):
     weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
                        parse_dates={'datetime':['date', 'hour']},
                        date_parser=_parse)
-    weather['day'] = map(lambda x : x.dayofyear -  weather['datetime'][0].dayofyear, weather['datetime'])
+    weather['day'] = [x.dayofyear -  weather['datetime'][0].dayofyear for x in weather['datetime']]
     weather.set_index('datetime', inplace = True)
     
     brown_rust = BrownRustFungus()
@@ -549,8 +547,7 @@ def compare_competition_models(**kwds):
     letters = iter(['A', 'B'])
 
     for i, ax in enumerate(axs):
-        (df_o_2004, df_o_2005) = map(lambda df: df[df['date']==date],
-                                    (df_obs_2004, df_obs_2005))
+        (df_o_2004, df_o_2005) = [df[df['date']==date] for df in (df_obs_2004, df_obs_2005)]
         df_s = next(df_sims)
 
         # Plot
@@ -649,7 +646,7 @@ def plot_first_date_necrosis(threshold = 0.03):
     result = mod.fit(df['date_nec'].values, x=df['density'].values, a=400., b=0.05, c=249.)
     ax.plot(x, fit_func(x,**result.best_values), 'k')
     
-    print result.best_values
+    print(result.best_values)
 
     df2['date_nec'] = df2['date_nec'].apply(randomize_first_date)
     ax.plot(df2['density'], df2['date_nec'], 'ro', alpha = 0.5)
@@ -745,7 +742,7 @@ def plot_necrosis_dynamics(fit='gompertz'):
         result = mod.fit(df_obs['sev_nec'], x=df_obs[['date','density']], a=7., b=800., c=1e-4, d=0.013)   
     elif fit == 'gompertz':
         result = mod.fit(df_obs['sev_nec'], x=df_obs[['date','density']], a=0.01, b=0.01, c=5, d=500)
-    print result.best_values
+    print(result.best_values)
     
     x = np.arange(0, 800, 50)
     y = np.arange(0, 102, 10)
@@ -771,7 +768,7 @@ def sim_necrosis_dynamics(**kwds):
     weather = pd.read_csv('temperature_frezal.csv', sep = ';', 
                        parse_dates={'datetime':['date', 'hour']},
                        date_parser=_parse)
-    weather['day'] = map(lambda x : x.dayofyear -  weather['datetime'][0].dayofyear, weather['datetime'])
+    weather['day'] = [x.dayofyear -  weather['datetime'][0].dayofyear for x in weather['datetime']]
     weather.set_index('datetime', inplace = True)
     
     brown_rust = BrownRustFungus()
@@ -896,12 +893,12 @@ def example_dispersal(age_canopy = 1400., density_dispersal_units = 1e4,
     df = dispersor.view_distri_layers(g, nb_dispersal_units, vmax = vmax,
                                       position_source=position_source,
                                       return_df=True)
-    print '-----------------------------'
-    print 'Nb of emissions by m2 :  %d' % density_dispersal_units
-    print '-----------------------------'    
-    print '-----------------------------'
-    print 'Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area)
-    print '-----------------------------'
+    print('-----------------------------')
+    print('Nb of emissions by m2 :  %d' % density_dispersal_units)
+    print('-----------------------------')    
+    print('-----------------------------')
+    print('Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area))
+    print('-----------------------------')
     
 def visualize_layer_thickness(age_canopy = 1400., nplants = 50,
                               layer_thickness = 1., nsect = 5):
@@ -926,9 +923,9 @@ def example_inoculation(age_canopy = 1400., density_inoculum = 1e4,
                                          domain_area = adel.domain_area)
     df = contaminator.plot_distri_layers(g, density_inoculum)
     contaminator.view_distri_layers(g, density_inoculum, vmax = vmax)
-    print '-----------------------------'
-    print 'Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area)
-    print '-----------------------------'
+    print('-----------------------------')
+    print('Nb of deposits by m2 :  %d' % (sum(df[1])/adel.domain_area))
+    print('-----------------------------')
 
 def setup_simu(sowing_date="2000-10-15 12:00:00", 
                end_date="2001-05-25 01:00:00", start_date = None,
@@ -989,15 +986,15 @@ def example_frezal(k_dispersal = 0.07, source = 2, position_source = 4,
     # Inoculate all leaves 2 with 1 lesion
     labels = g.property('label')
     a_labels = adel_labels(g, scale = 5)
-    plants = [p for p,l in labels.iteritems() if l.startswith('plant')]
+    plants = [p for p,l in labels.items() if l.startswith('plant')]
     sources = []    
     for i_pl, pl in enumerate(plants):
-        a_labs = {k:v for k,v in a_labels.iteritems()
+        a_labs = {k:v for k,v in a_labels.items()
                     if v.startswith('plant'+str(i_pl+1)+'_MS')
                     and 'LeafElement' in v}
         fnl = int(a_labs[max(a_labs.keys())].split('_')[2].split('metamer')[1])
         f_top = fnl-source+1
-        sources += [k for k,l in a_labs.iteritems() 
+        sources += [k for k,l in a_labs.items() 
                     if int(l.split('_')[2].split('metamer')[1])==f_top and
                     int(l.split('_')[4].split('LeafElement')[1])==position_source]
     for source in sources:
@@ -1037,7 +1034,7 @@ def example_frezal(k_dispersal = 0.07, source = 2, position_source = 4,
         # Save outputs
         if rust_iter:
             date = rust_iter.value.index[-1]
-            print date
+            print(date)
             recorder.record(g, date, 
                             degree_days = rust_iter.value.degree_days[-1])
     
@@ -1116,8 +1113,7 @@ def plot_sim_obs_frezal(df_sim, df_obs, averaged = True):
             x = [1, 2]
             src = int(floor(i/2)) + 1
             yr = 2000 + i%2
-            (sim, obs) = map(lambda x: x[(x['source']==src) & (x['year']==yr)], 
-                             (df_sim, df_obs))
+            (sim, obs) = [x[(x['source']==src) & (x['year']==yr)] for x in (df_sim, df_obs)]
             y_bottom = np.array([0., 0.])
             for target in np.arange(3., 0., -1.):
                 y = [obs.loc[:, int(target)].values[0], sim.loc[:, int(target)].values[0]]            
@@ -1143,12 +1139,12 @@ def plot_sim_obs_frezal(df_sim, df_obs, averaged = True):
             df = df.drop('year', 1)
             return df
         fig, axs = plt.subplots(1,3)
-        (df_sim, df_obs) = map(lambda df: pre_treat_df(df), (df_sim, df_obs))
+        (df_sim, df_obs) = [pre_treat_df(df) for df in (df_sim, df_obs)]
         colors = itertools.cycle(['b', 'r', 'g'])
         for i, ax in enumerate(axs.flat):
             x = [1, 2]
             src = i + 1
-            (sim, obs) = map(lambda x: x[(x.index==src)], (df_sim, df_obs))
+            (sim, obs) = [x[(x.index==src)] for x in (df_sim, df_obs)]
             y_bottom = np.array([0., 0.])
             for target in np.arange(3., 0., -1.):
                 y = [obs.loc[:, int(target)].values[0], sim.loc[:, int(target)].values[0]]            
@@ -1226,7 +1222,7 @@ def example_annual_loop(variety = 'Tremie13', nplants = 30,
         # Save outputs
         if rust_iter:
             date = rust_iter.value.index[-1]
-            print date
+            print(date)
             recorder.record(g, date, 
                             degree_days = rust_iter.value.degree_days[-1])
     
@@ -1310,7 +1306,7 @@ def example_competition_complex(nb_rust = 100, nb_septo = 100):
     ax.grid()
     
 def get_audpc_all_years(nreps=5):
-    years = range(1999, 2007) + range(2011, 2014)
+    years = list(range(1999, 2007)) + list(range(2011, 2014))
     from alinea.alep.simulation_tools.brown_rust_decomposed import annual_loop_rust
     from alinea.alep.disease_outputs import get_synthetic_outputs_by_leaf
     df = pd.DataFrame()

@@ -68,7 +68,7 @@ def setup_simu(sowing_date="2000-10-15 12:00:00", start_date = None,
     """
     def modif_params(fungus, suffix='_septoria'):
         pars = fungus.parameters()
-        for par in pars.iterkeys():
+        for par in pars.keys():
             if par in kwds:
                 pars[par] = kwds[par]
             elif par+suffix in kwds:
@@ -252,7 +252,7 @@ def annual_loop_septo_rust(year = 2013, variety = 'Tremie13', sowing_date = '10-
         # Save outputs
         if record_iter and record == True:
             date = record_iter.value.index[-1]
-            print date
+            print(date)
             recorder.record(g, date, degree_days = record_iter.value.degree_days[-1])
                     
     if record == True:
@@ -297,7 +297,7 @@ def plot_septo_rust(fungus = 'septo_rust', year = 2012,
                     variety = 'Tremie12', nplants = 15,
                     sporulating_fraction = 5e-4, density_dispersal_units=150., 
                     nreps = 10, variable = 'severity', xaxis = 'degree_days', 
-                    leaves = range(1, 14), from_top = True,
+                    leaves = list(range(1, 14)), from_top = True,
                     plant_axis = ['MS'], error_bars = False, 
                     error_method = 'confidence_interval', marker = '', 
                     empty_marker = False, linestyle = '-', 

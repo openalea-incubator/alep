@@ -22,13 +22,15 @@ def external_contamination(g,
     """
     stock = contamination_source.emission(g, weather_data, **kwds)
     labels = g.property('label')
-    if stock > 0:
+    #if stock > 0:
+    if len(stock) > 0:
         # Allocation of stock of inoculum
         deposits = contamination_model.contaminate(g, stock, weather_data, label=label, **kwds)
-        stock = 0 # stock has been used (avoid uncontrolled future re-use)
+       # stock = 0
+        stock = [] # stock has been used (avoid uncontrolled future re-use)
 
         # Allocation of new dispersal units
-        for vid, dlist in deposits.iteritems():
+        for vid, dlist in deposits.items():
             if len(dlist)>0 and labels[vid].startswith(label):
                 leaf = g.node(vid)
                 try:
@@ -85,7 +87,7 @@ def infect(g, dt,
     # Find dispersal units on MTG
     dispersal_units = g.property('dispersal_units')
 
-    for vid, du in dispersal_units.iteritems():
+    for vid, du in dispersal_units.items():
         # By leaf element, keep only those which are deposited and active
         leaf = g.node(vid)
         dispersal_units[vid] = [d for d in du if d.is_active]
@@ -118,7 +120,7 @@ def update(g, dt,
     """
     lesions = g.property('lesions')
     # 1. Compute growth demand
-    for vid, les in lesions.iteritems():
+    for vid, les in lesions.items():
         for lesion in lesions[vid]:
             if lesion.is_active:
                 leaf=g.node(vid)
@@ -138,7 +140,7 @@ def disperse(g,
              fungus_name='', 
              weather_data=None,
              label="LeafElement",
-             **kwds):
+			 **kwds):
     """ Disperse spores of the lesions of fungus identified by fungus_name.
         
     In the framework, the dispersal of DUs is calculated in two steps:
@@ -162,9 +164,9 @@ def disperse(g,
     """
     # Emission of dispersal units
     if weather_data is None:
-        DU = emission_model.get_dispersal_units(g, fungus_name, label, **kwds)
+        DU = emission_model.get_dispersal_units(g, fungus_name=fungus_name, label=label, **kwds)
     else: 
-        DU = emission_model.get_dispersal_units(g, fungus_name, label, weather_data, **kwds)
+        DU = emission_model.get_dispersal_units(g, fungus_name=fungus_name, label=label, weather_data=weather_data, **kwds)
     # DU is in the following format: dict: {'leaf_id in the MTG': number of DU emitted}
  
     # Transport of dispersal units
@@ -173,11 +175,11 @@ def disperse(g,
             deposits = transport_model.disperse(g, DU, weather_data, **kwds)
         else:
             deposits = transport_model.disperse(g, DU, **kwds)
-        # deposits is in the following format: dict: {'leaf_id in the MTG': number of DU deposited}
+        # deposits is in the following format: dict: {'leaf_id in the MTG': list of DU deposited}
             
         # Allocation of new dispersal units
         labels = g.property('label') 
-        for vid, dlist in deposits.iteritems():
+        for vid, dlist in deposits.items():
             if len(dlist)>0 and labels[vid].startswith(label):
                 leaf = g.node(vid)
                 try:
