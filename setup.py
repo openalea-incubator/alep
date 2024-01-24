@@ -15,7 +15,7 @@ from setuptools import setup, find_namespace_packages
 #metadata = read_metainfo('metainfo.ini', verbose=True)
 #for key,value in metadata.items():
 #    exec("%s = '%s'" % (key, value))
-name='OpenAlea.Alep'
+name='openalea.alep'
 
 _version = {}
 with open("src/alinea/alep/version.py") as fp:
