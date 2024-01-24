@@ -16,7 +16,7 @@ from setuptools import setup, find_namespace_packages
 #for key,value in metadata.items():
 #    exec("%s = '%s'" % (key, value))
 name='OpenAlea.Alep'
-# find version number in src/alinea/caribu/version.py
+
 _version = {}
 with open("src/alinea/alep/version.py") as fp:
     exec(fp.read(), _version)
@@ -34,23 +34,9 @@ keywords = 'openalea, FSPM, plant pathosystem',
 
 
 
-#The metainfo files must contains
-# version, release, project, name, namespace, pkg_name,
-# description, long_description,
-# authors, authors_email, url and license
-# * version is 0.8.0 and release 0.8
-# * project must be in [openalea, vplants, alinea]
-# * name is the full name (e.g., Alinea.Alep) whereas pkg_name is only 'alep'
-
-# name will determine the name of the egg, as well as the name of 
-# the pakage directory under Python/lib/site-packages). It is also 
-# the one to use in setup script of other packages to declare a dependency to this package)
-# (The version number is used by deploy to detect UPDATES)
-
-
 # Packages list, namespace and root directory of packages
 
-packages = find_namespace_packages(where='src', include=['alinea', 'alinea.*'])
+packages = find_namespace_packages(where='src', include=['alinea.*'])
 package_dir={'': 'src'}
 
 
